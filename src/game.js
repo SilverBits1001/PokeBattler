@@ -389,7 +389,7 @@
         hurtR: 11,
         size: 1,
         tall: 29,
-        role: "Rushdown \xB7 fragile",
+        role: "Aerial \xB7 rushdown",
         stats: { speed: 4, power: 4, defense: 2, range: 2, difficulty: 3 },
         basic: () => [
           {
@@ -405,6 +405,7 @@
             reach: 15,
             radius: 14,
             heat: 9,
+            claw: !0,
           },
           {
             anim: "Strike",
@@ -419,6 +420,7 @@
             reach: 15,
             radius: 14,
             heat: 9,
+            claw: !0,
           },
           {
             anim: "Swing",
@@ -433,6 +435,7 @@
             reach: 17,
             radius: 17,
             heat: 14,
+            fang: !0,
           },
         ],
         dodge: {
@@ -450,12 +453,14 @@
           maxCharge: 48,
           active: 5,
           recovery: 26,
-          lunge: 26,
-          dmg: 66,
+          lunge: 40,
+          dmg: 54,
           kb: 7.6,
           shape: "circle",
-          reach: 16,
+          reach: 12,
           radius: 18,
+          pierce: !0,
+          blitz: { grow: 0.9, recoil: 0.12 },
         },
         xName: "FLAMETHROWER",
         yName: "FLY",
@@ -991,7 +996,7 @@
         type2: "STEEL",
         color: "#4a7fd6",
         typeInk: "#0e1a33",
-        hp: 980,
+        hp: 1010,
         speed: 3.05,
         weight: 1,
         r: 8,
@@ -1624,9 +1629,16 @@
         }
         if (
           (t.state === "flyUp" &&
-            t.t >= 14 &&
-            Math.hypot(t.markX - o.x, t.markY - o.y) < 10 &&
-            i.pressed.add("attack"),
+            t.t >= FLY.min &&
+            (Math.hypot(t.markX - o.x, t.markY - o.y) < 16
+              ? i.pressed.add("attack")
+              : !t.blastUsed &&
+                Math.hypot(
+                  t.markX + Math.cos(t.facing) * 34 - o.x,
+                  t.markY + Math.sin(t.facing) * 34 - o.y,
+                ) < 20 &&
+                r() < 0.3 &&
+                i.pressed.add("special1")),
           p && l >= this.nextAct)
         ) {
           if (
@@ -2103,6 +2115,18 @@
       analytic: 1.25,
       shock: 120,
     },
+    // Charizard: Fly is steered by hand (no lock-on homing). It is untouchable
+    // only while climbing; cruising low it can be hit. X mid-flight drops a Fire Blast.
+    FLY = {
+      rise: 10,
+      min: 14,
+      max: 96,
+      safe: 34,
+      speed: 3.5,
+      slamDmg: 54,
+      blastDmg: 30,
+      blastR: 30,
+    },
     // Snorlax: Yawn puts a foe to sleep after a delay; Rest heals while snoring.
     SNOR = {
       yawnSpeed: 1.5,
@@ -2140,7 +2164,7 @@
     LUCA = {
       sphereCharge: 70,
       sphereMin: 14,
-      sphereMax: 52,
+      sphereMax: 56,
       sphereSpeed: 3.4,
       detectWin: 22,
       detectLag: 26,
@@ -2356,7 +2380,7 @@
         if (this.ejectT > 0) return !0;
         return this.state === "dodge"
           ? this.t < this.kit.dodge.iframes
-          : (this.state === "flyUp" && this.t >= 3) ||
+          : (this.state === "flyUp" && this.t >= 3 && this.t < FLY.safe) ||
               (this.state === "flySlam" && this.t < 5) ||
               this.state === "faint" ||
               this.state === "phantom" ||
@@ -2407,7 +2431,7 @@
       }
       get airborne() {
         return (
-          this.state === "flyUp" ||
+          (this.state === "flyUp" && this.t < FLY.safe) ||
           (this.state === "flySlam" && this.t < 6) ||
           this.state === "launched"
         );
@@ -3638,6 +3662,7 @@
             src: `basic${e.combo + 1}`,
             melee: !0,
             hex: r.hex,
+            burns: r.fang,
           });
         }
         if (e.t > r.startup + r.active && e.swingHit) {
@@ -4015,7 +4040,8 @@
             (e.lungeDist =
               t.shape === "vine"
                 ? t.lunge
-                : t.lunge + this.magnet(e, e.atkDir, t.reach, t.radius, 30)),
+                : t.lunge * (1 + (t.blitz ? t.blitz.grow * e.smashCharge : 0)) +
+                  this.magnet(e, e.atkDir, t.reach, t.radius, 30)),
             this.emit({
               type: "smashRelease",
               who: e,
@@ -4151,9 +4177,10 @@
             rehit: 0,
             attackerStop: !0,
             fire: e.kit.id === "charizard",
-            src: "smash",
+            src: s.blitz ? "flareblitz" : "smash",
             melee: !0,
             poison: s.poison,
+            burns: !!s.blitz,
             smash: Math.max(0.01, i),
           });
         }
@@ -4176,10 +4203,10 @@
         )
           if (t === "x") (e.state = "flame"), (e.flameEnd = 0);
           else {
-            e.state = "flyUp";
-            let o = e.lock;
-            (e.markX = o ? o.x : e.x + Math.cos(s) * 40),
-              (e.markY = o ? o.y : e.y + Math.sin(s) * 40),
+            (e.state = "flyUp"),
+              (e.markX = e.x),
+              (e.markY = e.y),
+              (e.blastUsed = !1),
               (r.cdY = i.yCd),
               this.emit({ type: "flyUp", who: e });
           }
@@ -5220,25 +5247,55 @@
       }
       tickFly(e, t, s, i, r) {
         if (e.state === "flyUp") {
-          if (
-            ((e.z = 44 * (1 - Math.pow(1 - Math.min(1, e.t / 10), 3))), e.lock)
-          ) {
-            let l = e.lock.x - e.markX,
-              f = e.lock.y - e.markY,
-              u = Math.hypot(l, f);
-            if (u > 0.1) {
-              let h = Math.min(u, 3.8);
-              (e.markX += (l / u) * h), (e.markY += (f / u) * h);
-            }
-          } else (e.markX += t * 4.2), (e.markY += s * 4.2);
-          (e.markX = me(e.markX, B.x0 + 10, B.x1 - 10)),
-            (e.markY = me(e.markY, B.y0 + 8, B.y1 - 6)),
-            (e.x += (e.markX - e.x) * 0.12),
-            (e.y += (e.markY - e.y) * 0.12),
-            (e.facing = Math.atan2(e.markY - e.y, e.markX - e.x) || e.facing);
-          let o = e.t >= 14 && (i("attack") || i("special2"));
+          // Steered entirely by the stick: wings beat toward where you push.
+          let l = e.t < FLY.safe ? 44 : 30;
+          (e.z += ((e.t < FLY.rise ? l * (e.t / FLY.rise) : l) - e.z) * 0.35),
+            (e.mvx += (t * FLY.speed - e.mvx) * 0.18),
+            (e.mvy += (s * FLY.speed - e.mvy) * 0.18),
+            (e.x = me(e.x + e.mvx, B.x0 + 10, B.x1 - 10)),
+            (e.y = me(e.y + e.mvy, B.y0 + 8, B.y1 - 6)),
+            (e.markX = e.x),
+            (e.markY = e.y),
+            Math.hypot(e.mvx, e.mvy) > 0.4 &&
+              (e.facing = Math.atan2(e.mvy, e.mvx));
+          if (e.t >= FLY.min && i("special1") && !e.blastUsed) {
+            r("special1"), (e.blastUsed = !0);
+            let f = e.x + Math.cos(e.facing) * 34,
+              u = e.y + Math.sin(e.facing) * 34;
+            this.projectiles.push({
+              id: this.nextId++,
+              team: e.team,
+              owner: e,
+              x: e.x,
+              y: e.y,
+              px: e.x,
+              py: e.y,
+              z: e.z,
+              pz: e.z,
+              vx: 0,
+              vy: 0,
+              r: 6,
+              life: 99,
+              age: 0,
+              dmg: FLY.blastDmg,
+              kb: 0,
+              hitstun: 0,
+              hitstop: 0,
+              kind: "fireblast",
+              color: "#ff8a3d",
+              sx: e.x,
+              sy: e.y,
+              sz: e.z,
+              tx: me(f, B.x0 + 10, B.x1 - 10),
+              ty: me(u, B.y0 + 8, B.y1 - 6),
+              flight: 14,
+            }),
+              this.emit({ type: "fireBlastDrop", who: e });
+          }
+          let o = e.t >= FLY.min && (i("attack") || i("special2"));
           o && (r("attack"), r("special2")),
-            (e.t >= 36 || o) && ((e.state = "flySlam"), (e.t = 0));
+            (e.t >= FLY.max || o) &&
+              ((e.state = "flySlam"), (e.t = 0), (e.mvx = e.mvy = 0));
         } else {
           if (e.t <= 6) {
             let o = e.t / 6;
@@ -5258,7 +5315,7 @@
               team: e.team,
               owner: e,
               shape: { kind: "circle", x: e.x, y: e.y, r: 32 },
-              dmg: 50,
+              dmg: FLY.slamDmg,
               kb: 6.2,
               kbMode: "away",
               dx: 0,
@@ -7168,6 +7225,49 @@
       }
       updateProjectiles() {
         for (let e of this.projectiles) {
+          if (e.kind === "fireblast") {
+            e.age++;
+            let t = Math.min(1, e.age / e.flight);
+            if (
+              ((e.x = e.sx + (e.tx - e.sx) * t),
+              (e.y = e.sy + (e.ty - e.sy) * t),
+              (e.z = e.sz * (1 - t * t)),
+              t >= 1)
+            ) {
+              e.dead = !0;
+              for (let s of this.victimsFor(e.team)) {
+                let i = s.x - e.x,
+                  r = s.y - e.y,
+                  o = Math.hypot(i, r);
+                o < FLY.blastR + s.hurtR &&
+                  (this.applyHit(
+                    s,
+                    e.owner,
+                    e.dmg,
+                    5.2,
+                    i / (o || 1),
+                    r / (o || 1),
+                    !0,
+                    A.hitstopHeavy,
+                    A.hitstunHeavy,
+                    "#ff8a3d",
+                    s.x,
+                    s.y,
+                    !1,
+                    !1,
+                    this.srcLabel(e.owner, "fireblast"),
+                  ),
+                  this.burn(s));
+              }
+              for (let s of this.ice)
+                s.melt <= 0 &&
+                  this.inZone(e.x, e.y, s) &&
+                  ((s.melt = FROST.melt),
+                  this.emit({ type: "melt", x: e.x, y: e.y }));
+              this.emit({ type: "fireBlast", x: e.x, y: e.y });
+            }
+            continue;
+          }
           if (e.kind === "hurricane") {
             e.age++, this.tickHurricane(e);
             continue;
@@ -7467,7 +7567,7 @@
                 !!e.pierceGuard,
                 e.smash ?? 0,
               ),
-              (e.poison && this.poison(t), 0),
+              (e.poison && this.poison(t), e.burns && this.burn(t), 0),
               e.heat &&
                 e.owner.kind === "player" &&
                 e.owner.kit.id === "charizard")
@@ -7517,7 +7617,14 @@
                   this.reflect(t, e.owner, 5));
         }
         for (let e of this.projectiles)
-          if (!(e.dead || e.kind === "seed" || e.kind === "hurricane"))
+          if (
+            !(
+              e.dead ||
+              e.kind === "seed" ||
+              e.kind === "hurricane" ||
+              e.kind === "fireblast"
+            )
+          )
             for (let t of this.targetsFor(e.team)) {
               if (Math.hypot(t.x - e.x, t.y - e.y) >= e.r + t.hurtR) continue;
               if (e.pierce && e.hits.includes(t)) continue;
@@ -7754,6 +7861,22 @@
               ? (re = Math.round(K * 0.2))
               : w.rooted && (re = Math.round(K * 0.8));
           let se = U.hp;
+          t &&
+            t.kind === "player" &&
+            C > 0 &&
+            t.kit.smash.blitz &&
+            t.slot.hp > 1 &&
+            ((t.slot.hp = Math.max(
+              1,
+              t.slot.hp - Math.round(re * t.kit.smash.blitz.recoil),
+            )),
+            this.emit({
+              type: "recoil",
+              who: t,
+              x: t.x,
+              y: t.y,
+              dmg: Math.round(re * t.kit.smash.blitz.recoil),
+            }));
           if (
             ((U.hp = Math.max(0, U.hp - re)),
             U.hp === 0 &&
@@ -9168,6 +9291,7 @@
     airslash: ["201,166,255", 18],
     hurricane: ["201,166,255", 34],
     leaf: ["120,200,80", 8],
+    fireblast: ["255,138,61", 30],
   };
   function lightPools(a, e) {
     let t = (s, i, r, o, l = 1) => {
@@ -9886,7 +10010,14 @@
       }
       if (h.state === "flyUp" || (h.state === "flySlam" && h.t < 6)) {
         let y = 10 + Math.sin(e.tick * 0.5) * 2,
-          b = h.isCpu ? "#ef5a4f" : L.flame;
+          b =
+            h.state === "flyUp" && h.t >= FLY.safe
+              ? e.tick % 10 < 5
+                ? "#ffffff"
+                : "#ef5a4f"
+              : h.isCpu
+                ? "#ef5a4f"
+                : L.flame;
         (a.strokeStyle = b),
           (a.lineWidth = 1),
           (a.globalAlpha = 0.9),
@@ -11287,6 +11418,56 @@
             },
           );
           break;
+        case "daiFire": {
+          // 大: a top arm, a cross bar and two legs, flames licking up each stroke.
+          let l = 1 - i,
+            f = Math.min(1, l * 4),
+            u = [
+              [0, -1, 0, 0.15],
+              [-1.1, -0.35, 1.1, -0.35],
+              [0, -0.35, -0.95, 0.9],
+              [0, -0.35, 0.95, 0.9],
+            ];
+          for (let [h, c, y, b] of u) {
+            let p = r + h * 30 * f,
+              k = o + c * 18 * f,
+              M = r + y * 30 * f,
+              P = o + b * 18 * f;
+            if (s.top) {
+              for (let C = 0; C <= 6; C++) {
+                let x = C / 6,
+                  v = p + (M - p) * x,
+                  E = k + (P - k) * x,
+                  Q = (6 + 6 * Math.sin(C * 2 + s.life * 0.9)) * i;
+                (a.globalAlpha = 0.85 * i),
+                  (a.fillStyle = C % 2 ? "#ffd25e" : "#ff8a3d"),
+                  a.beginPath(),
+                  a.moveTo(v - 2.5, E),
+                  a.quadraticCurveTo(v, E - Q * 1.6, v + 2.5, E),
+                  a.fill();
+              }
+              continue;
+            }
+            (a.lineCap = "round"),
+              (a.globalAlpha = 0.5 * i),
+              (a.strokeStyle = "#2a1206"),
+              (a.lineWidth = 9),
+              a.beginPath(),
+              a.moveTo(p, k),
+              a.lineTo(M, P),
+              a.stroke(),
+              (a.globalAlpha = 0.95 * Math.min(1, i * 1.5)),
+              (a.strokeStyle = "#ff8a3d"),
+              (a.lineWidth = 5),
+              a.stroke(),
+              (a.strokeStyle = "#fff4c2"),
+              (a.lineWidth = 1.6),
+              a.stroke(),
+              (a.lineCap = "butt");
+          }
+          a.globalAlpha = 1;
+          break;
+        }
         case "orbp": {
           let f = s.glow ?? "74,163,255",
             l = d2grad(a, r, o, s.size * 2.2, [
@@ -11491,6 +11672,38 @@
   // Projectiles for Snorlax, Noivern and Lucario.
   function drawProj2(a, e, h, c, y) {
     let t = e.tick;
+    if (h.kind === "fireblast") {
+      let s = 5 + 3 * Math.sin(t * 0.8);
+      return (
+        (a.fillStyle = d2grad(a, c, y, s * 3, [
+          [0, "rgba(255,244,194,0.9)"],
+          [0.4, "rgba(255,138,61,0.6)"],
+          [1, "rgba(255,138,61,0)"],
+        ])),
+        a.beginPath(),
+        a.arc(c, y, s * 3, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#fff4c2"),
+        a.beginPath(),
+        a.arc(c, y, s, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 0.4),
+        (a.fillStyle = "#1a1530"),
+        a.beginPath(),
+        a.ellipse(
+          h.tx,
+          h.ty,
+          14 * (h.age / h.flight),
+          6 * (h.age / h.flight),
+          0,
+          0,
+          Math.PI * 2,
+        ),
+        a.fill(),
+        (a.globalAlpha = 1),
+        !0
+      );
+    }
     if (h.kind === "leaf") {
       // Spinning razor leaf with an afterimage trail and a glinting edge.
       let s = Math.atan2(h.vy, h.vx),
@@ -13932,29 +14145,29 @@
     charizard: [
       [
         "A",
-        "Claw combo",
-        "3 fast hits. The third is a spinning finisher.",
+        "Dragon Claw, Fire Fang",
+        "Two glowing dragon claw rakes, then a burning bite.",
         "COMBO",
       ],
       [
         "RS",
         "Flare Blitz",
-        "Fiery charging tackle. Charge longer to launch harder.",
+        "Flaming comet charge through foes. Charge to go further. Recoil.",
         "OPTIONAL CHARGE",
       ],
-      ["B", "Air dash", "Long dash with invincibility.", "DODGE"],
       [
         "X",
         "Flamethrower",
-        "Hold for a long stream. Hurts most up close.",
+        "Hold to breathe fire. Closer is hotter. Builds heat.",
         "HOLD",
       ],
       [
         "Y",
         "Fly",
-        "Rise, steer the marker, slam down. A or Y lands early.",
+        "Steer freely; A or Y to dive-slam. X mid-air drops a Fire Blast.",
         "MULTI-STAGE",
       ],
+      ["B", "Wing Dash", "Fast air dash.", "DODGE"],
       [
         "*",
         "Heat",
@@ -16922,6 +17135,29 @@
             t.speedLines(R, W, 10, "#7038f8");
           break;
         }
+        case "recoil":
+          t.popup(n.x, n.y - 40, `RECOIL ${n.dmg}`, "#ffb347", !1),
+            t.smoke(n.x, n.y, 12, 4);
+          break;
+        case "fireBlastDrop":
+          S.flyUp(), t.flare(n.who.x, n.who.y, n.who.z + 10, 16, "#fff4c2", 10);
+          break;
+        case "fireBlast":
+          S.slam(),
+            S.burn(),
+            t.add({ kind: "daiFire", x: n.x, y: n.y, life: 34, under: !0 }),
+            t.add({ kind: "daiFire", x: n.x, y: n.y, life: 34, top: !0 }),
+            t.flare(n.x, n.y, 10, 36, "#fff4c2", 18),
+            t.ring(n.x, n.y, 6, 3.6, 18, "#ff8a3d", !0),
+            t.cracks(n.x, n.y, 6, 26, "#3a1a0c"),
+            t.embers(n.x, n.y, 10, 22),
+            t.shake(0, 1, 7),
+            (t.impact = 3),
+            (t.screenFlash = 2),
+            (t.screenFlashColor = "#ffb347");
+          for (let R = 0; R < 12; R++)
+            t.flame(n.x, n.y, (R / 12) * Math.PI * 2, 1);
+          break;
         case "riseShock":
           S.orb(),
             t.flare(n.x, n.y, 8, 22, "#fff6a0", 12),
@@ -17275,12 +17511,46 @@
           else if (n.kit === "charizard")
             n.smash
               ? (t.slash(R, W, T + 4, 1.7, 9, 1, "#ff8a3d", 13),
-                t.slash(R, W, T - 3, 1.5, 4, 1, "#ffd25e", 11),
-                t.flame(ne, ee + 6, W, 6))
+                t.slash(R, W, T - 3, 1.5, 4, 1, "#fff4c2", 11),
+                t.flame(ne, ee + 6, W, 10, 1 / 0, !0),
+                t.flare(ne, ee + 10, 10, 30, "#fff4c2", 14),
+                t.ring(ne, ee + 10, 6, 3.4, 14, "#ff8a3d", !0),
+                t.embers(ne, ee + 10, 8, 14))
               : n.last
-                ? t.slash(R, W, T + 2, 2.9, 7, -1, "#ffb347", 12)
-                : (t.slash(R, W, T, 0.8, 4, Z, "#ff8a3d", 8),
-                  t.claw(ne, ee, W, Z * 0.9, "#ffd25e"));
+                ? // Fire Fang: fiery jaws snap shut on the target.
+                  (t.arcWave(
+                    ne,
+                    ee - 6,
+                    0,
+                    W - Math.PI / 2,
+                    2.2,
+                    12,
+                    -0.6,
+                    "#ffb347",
+                    10,
+                    3,
+                  ),
+                  t.arcWave(
+                    ne,
+                    ee + 4,
+                    0,
+                    W + Math.PI / 2,
+                    2.2,
+                    12,
+                    -0.6,
+                    "#ff8a3d",
+                    10,
+                    3,
+                  ),
+                  t.flame(ne, ee + 6, W, 6),
+                  t.embers(ne, ee + 6, 8, 10),
+                  t.flare(ne, ee + 6, 8, 18, "#fff4c2", 10))
+                : // Dragon Claw: glowing blue-violet rakes with dragon energy.
+                  (t.slash(R, W, T, 0.9, 5, Z, "#7b8cff", 9),
+                  t.slash(R, W + Z * 0.2, T - 4, 0.7, 2, Z, "#e0e6ff", 8),
+                  t.claw(ne, ee, W, Z * 0.9, "#9fb4ff"),
+                  t.claw(ne + n.dx * 3, ee + n.dy * 3, W, Z * 0.9, "#ffffff"),
+                  t.wisps(ne, ee + 10, 8, 3, "#6f6cff", 6));
           else if (n.kit === "venusaur") {
             let J = R.x + n.dx * n.reach,
               Ye2 = R.y + n.dy * n.reach - 8;
@@ -17701,6 +17971,51 @@
           e.tick % 2 === 0 &&
           ve(T, "#9fdcff", 6),
         T.state === "dodge" && e.tick % 1 === 0 && ve(T, "#4aa3ff", 9));
+      n === "charizard" &&
+        (T.state === "smashCharge" &&
+          T.kit.smash.blitz &&
+          (t.add({
+            kind: "orbp",
+            x: T.x,
+            y: T.y,
+            z: 12,
+            size: 6 + 10 * T.smashCharge,
+            life: 2,
+            color: "#ff8a3d",
+            glow: "255,138,61",
+          }),
+          e.tick % 2 === 0 && t.embers(T.x, T.y, 8, 2)),
+        T.state === "smash" &&
+          T.t <= T.kit.smash.active + 3 &&
+          (ve(T, T.t % 2 ? "#fff4c2" : "#ff8a3d", 12),
+          t.flame(T.x, T.y, T.atkDir + Math.PI, 3, 1 / 0, !0),
+          t.streaks(
+            T.x,
+            T.y - 10,
+            Math.cos(T.atkDir),
+            Math.sin(T.atkDir),
+            2,
+            "#ffb347",
+          ),
+          t.embers(T.x, T.y, 10, 3)),
+        T.state === "flyUp" &&
+          (e.tick % 4 === 0 &&
+            t.dust(T.markX, T.markY, 2, -T.mvx * 0.3, -T.mvy * 0.3, 1.2),
+          e.tick % 2 === 0 &&
+            t.embers(
+              T.x - Math.cos(T.facing) * 8,
+              T.y - Math.sin(T.facing) * 4,
+              T.z + 6,
+              1,
+            ),
+          e.tick % 10 === 0 &&
+            t.ring(T.markX, T.markY, 6, 1.4, 10, "#e9dcc0", !0)));
+      e.projectiles.forEach(
+        (Z) =>
+          Z.kind === "fireblast" &&
+          Z.owner === T &&
+          t.flame(Z.x, Z.y - Z.z, -Math.PI / 2, 1),
+      );
       n === "dragapult" &&
         (e.tick % 9 === 0 &&
           t.wisps(

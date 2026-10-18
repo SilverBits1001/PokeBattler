@@ -384,3 +384,29 @@ abilities (Blaze, **Overgrow**, **Torrent**: +30% damage below 30% health); Venu
 is listed as **Ingrain**, the move it comes from; Solar Beam's scorch is now charred earth with a
 glowing ember seam. Noivern's Flight stays a lore trait beside its real ability, Infiltrator.
 Balance is still CPU-vs-CPU only; a human playtest is the remaining check.
+
+## Pass: Charizard rework (from playtest feedback)
+
+Feedback: the kit didn't feel true to Charizard, and Fly "cheated" — while locked on it flew
+itself across the map to the target. Kept: Flamethrower and Fly. Changed:
+
+| Input | Move | Notes |
+| --- | --- | --- |
+| A | **Dragon Claw**, Dragon Claw, **Fire Fang** | Glowing blue-violet claw rakes (its Dragon heritage), then a burning bite. |
+| RS | **Flare Blitz** | Flaming comet charge that pierces and travels up to 1.9× further when charged; 12% recoil, as in the games. |
+| X | Flamethrower | Unchanged. |
+| Y | **Fly** | Steered entirely by the stick: no lock-on homing. Lasts about 1.6 s (was 0.6 s). A or Y dive-slams where you are. X mid-flight drops a **Fire Blast** that bursts into the five-armed 大 fire star and burns. Untouchable only while climbing; cruising low, its shadow flashes red and it can be hit. |
+| B | Wing Dash | Air dash. |
+| Passive | Heat, Blaze | Unchanged. |
+
+Verified: locked on with no stick input, Charizard stays put; steering moves it freely; Fire
+Blast and Fire Fang burn; Flare Blitz deals recoil. Balance (10 games per side, all arenas):
+Charizard .56; every fighter's average .45–.56.
+
+## Bug fix: freeze about 12 seconds into a match
+
+Cause: every sprite sheet was held as seven full-size canvases (the sheet, a white copy and
+five tints), about 724 MB of canvas memory before a match started — far past mobile limits.
+Tinted copies are now made on demand in a least-recently-used cache with a pixel budget
+(peak 25–47 MB in a match), and the frame loop caps its catch-up backlog. Confirmed fixed on
+the player's device.
