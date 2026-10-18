@@ -14955,7 +14955,7 @@
           d,
           $,
           Be($, l + Q * 9, 1),
-          s ? 6 : 2,
+          0,
           m(t + v),
           m(y + 116),
           E * Fe * (xe[x]?.size ?? 1),
@@ -15162,7 +15162,7 @@
           G("Shooter in Options.", u + 20, 82, 6.4, g.haze);
         let M = e.wobbuffet,
           P = M.anims.Idle;
-        et(d, P, Be(P, t, 1), 6, m(u + 75), m(160), 2 * Fe, M.ground);
+        et(d, P, Be(P, t, 1), 0, m(u + 75), m(160), 2 * Fe, M.ground);
       }
     }
     // The roster, three across.
@@ -15344,7 +15344,7 @@
       d.save(),
       (d.globalCompositeOperation = "lighter");
     // Turning rays behind the winner (slower and dimmer after a loss).
-    let o = a * (e ? 0.004 : 0.0015);
+    let o = a * (e ? 0.0016 : 0.0008);
     for (let p = 0; p < 14; p++) {
       let k = o + (p / 14) * Math.PI * 2,
         M = 0.035,
@@ -15366,7 +15366,7 @@
     // The lattice: each triangle lights up as a ring passes through it.
     let l = 26,
       f = l * 0.866,
-      u = (a * 0.25) % l,
+      u = (a * 0.06) % l,
       h = e ? 1 : -1;
     d.lineJoin = "round";
     for (let p = -1; p < oe / f + 1; p++)
@@ -15388,10 +15388,12 @@
             v = (x[0][0] + x[1][0] + x[2][0]) / 3,
             E = (x[0][1] + x[1][1] + x[2][1]) / 3,
             Q = Math.hypot(v - t, (E - s) * 1.2),
-            K = (Q * 0.02 - a * 0.05 * h) % 1,
+            // Broad, slow swells (about one every eight seconds) rather
+            // than sharp flashes.
+            K = (Q * 0.006 - a * 0.002 * h) % 1,
             ie = Math.pow(
-              Math.max(0, Math.cos((K < 0 ? K + 1 : K) * Math.PI * 2)),
-              8,
+              0.5 + 0.5 * Math.cos((K < 0 ? K + 1 : K) * Math.PI * 2),
+              3,
             ),
             q = (k * 7 + p * 13 + M * 5) % 3,
             le = Math.max(0, 1 - Q / 520);
@@ -15401,7 +15403,7 @@
             d.lineTo(m(x[2][0]), m(x[2][1])),
             d.closePath(),
             ie > 0.05 &&
-              ((d.fillStyle = `rgba(${i.tri[q]},${(0.16 * ie * le).toFixed(3)})`),
+              ((d.fillStyle = `rgba(${i.tri[q]},${(0.13 * ie * le).toFixed(3)})`),
               d.fill()),
             (d.strokeStyle = `rgba(${i.tri[q]},${(0.05 + 0.18 * ie * le).toFixed(3)})`),
             (d.lineWidth = m(0.6)),
@@ -15413,7 +15415,7 @@
         M = 30 + ((p * 151) % (H - 60)),
         P = 0.12 + ((p * 29) % 11) / 30,
         C =
-          (((((e ? -1 : 1) * a * P * 0.6 + p * 53) % (oe + 40)) + oe + 40) %
+          (((((e ? -1 : 1) * a * P * 0.25 + p * 53) % (oe + 40)) + oe + 40) %
             (oe + 40)) -
           20,
         x = 3 + k * 6;
@@ -15507,7 +15509,7 @@
           d,
           le,
           Be(le, i + 20, 1),
-          1,
+          0,
           m(C + 98),
           m(x - 48),
           1.9 * Fe,
@@ -15516,7 +15518,7 @@
         d.restore();
     }
     P > 0 &&
-      et(d, Q, Be(Q, i, 1), 1, m(C), m(x - (1 - P) * 60), 4 * Fe, E.ground);
+      et(d, Q, Be(Q, i, 1), 0, m(C), m(x - (1 - P) * 60), 4 * Fe, E.ground);
     let K = Ee((s - 4) / 12);
     d.save(),
       d.translate(m((1 - K) * -80), 0),
@@ -19423,7 +19425,7 @@
           d,
           y,
           Be(y, t, 1),
-          6,
+          0,
           m(f + (1 - p) * 30),
           m(u + 52),
           3.9 * Fe * Math.min(1.12, xe[s.mon]?.size ?? 1),
