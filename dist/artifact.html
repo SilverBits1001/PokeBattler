@@ -7690,6 +7690,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         if (!e || e.kind !== "player") return 1;
         let t = e,
           i = t.xatkT > 0 ? XATK.mult : 1;
+        // Overgrow and Torrent: the other starters' own low-health boost.
+        if (t.kit.id === "venusaur" || t.kit.id === "blastoise")
+          return i * (t.slot.hp < t.slot.maxHp * 0.3 ? 1.3 : 1);
         if (t.kit.id !== "charizard") return i * this.auraMult(t);
         let s = t.slot;
         return (
@@ -11040,7 +11043,19 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           let l = s.x2 - s.x,
             f = s.y2 - s.y,
             u = Math.hypot(l, f) || 1;
-          (a.globalAlpha = 0.35 * i),
+          (a.globalAlpha = 0.55 * i),
+            (a.strokeStyle = "#2a1c0e"),
+            (a.lineWidth = s.size * 1.1),
+            (a.lineCap = "round"),
+            a.beginPath(),
+            a.moveTo(s.x, s.y),
+            a.lineTo(s.x2, s.y2),
+            a.stroke(),
+            (a.globalAlpha = 0.7 * i * (0.75 + 0.25 * Math.sin(s.life * 0.5))),
+            (a.strokeStyle = "#ff8a3d"),
+            (a.lineWidth = Math.max(1, s.size * 0.45)),
+            a.stroke(),
+            (a.globalAlpha = 0.35 * i),
             (a.strokeStyle = "#4a3a12"),
             (a.lineWidth = s.size * 0.9),
             (a.lineCap = "round"),
@@ -11055,12 +11070,13 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             (a.lineCap = "butt");
           for (let h = 0; h < u; h += 14)
             (a.globalAlpha = i * (0.4 + 0.4 * Math.sin(h + s.life * 0.4))),
-              (a.fillStyle = "#fff6c8"),
+              (a.fillStyle = h % 28 ? "#fff6c8" : "#ffb347"),
               a.fillRect(
                 Math.round(s.x + (l * h) / u),
-                Math.round(s.y + (f * h) / u),
+                Math.round(s.y + (f * h) / u) -
+                  Math.round((1 - i) * 4 * ((h / 14) % 2)),
                 2,
-                1,
+                2,
               );
           break;
         }
@@ -14002,10 +14018,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       ["B", "Roll", "Short dodge. Stay out of reach instead.", "DODGE"],
       [
         "*",
-        "Rooted",
-        "Stand still: no knockback, less damage, faster Solar.",
+        "Ingrain",
+        "Stand still to root: no knockback, less damage, faster Solar.",
         "PASSIVE",
       ],
+      ["*", "Overgrow", "+30% damage below 30% health.", "PASSIVE"],
     ],
     blastoise: [
       [
@@ -14043,6 +14060,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         "Mega Launcher",
         "Shots from a puddle hit harder and fly further.",
         "PASSIVE",
+        ["*", "Torrent", "+30% damage below 30% health.", "PASSIVE"],
       ],
     ],
     dragapult: [

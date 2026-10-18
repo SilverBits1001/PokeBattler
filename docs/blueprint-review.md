@@ -379,5 +379,8 @@ review:
 
 **Final independent grade:** A (design), B (balance: 12 games per side, averages .46–.55, every
 arena .39–.64), C (sizes) and D (every move shows a telegraph, a palette effect and impact)
-all PASS. Minor notes left open: Venusaur's "Rooted" and Noivern's "Flight" are lore-based rather
-than real abilities; Solar Beam's scorch trail is a plain tan band; balance is CPU-vs-CPU only.
+all PASS. Follow-ups to its minor notes: all three starters now carry their real low-health
+abilities (Blaze, **Overgrow**, **Torrent**: +30% damage below 30% health); Venusaur's rooting
+is listed as **Ingrain**, the move it comes from; Solar Beam's scorch is now charred earth with a
+glowing ember seam. Noivern's Flight stays a lore trait beside its real ability, Infiltrator.
+Balance is still CPU-vs-CPU only; a human playtest is the remaining check.
