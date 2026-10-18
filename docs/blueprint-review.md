@@ -322,18 +322,25 @@ swap menu and move list handle eight.
   Dreepy darts (glow and streaks), Yawn (bigger, brighter bubble), Solar Beam charge (a small
   sun gathering over the flower with converging rays), Lucario's Detect (visible barrier) and
   Aura (flames that grow as health drops), and Snorlax's Rest (sleep bubble).
+- **Animation review**: signature moves (Heavy Slam, Boomburst, Hurricane, Aura Sphere,
+  Detect counter, Flash Cannon, Phantom Force ambush) were captured every 2–10 ticks from
+  wind-up to impact and reviewed as filmstrips. Fixes from that: the Detect callout no
+  longer covers the counter-strike, and Aura Sphere, Zap Cannon and Yawn got proper impact
+  bursts.
+- **Arena spread**: Noivern swung from 30% to 74% by arena. Its Air Slash now slices through
+  cover (chipping rocks and pylons instead of dying on them), and heat off the lava still
+  scorches it for half damage while it hovers. Spread is now 39–66%.
 - **Balance** (CPU Hard vs Hard, every pairing both ways, 5 games each, per arena):
 
 | Fighter | Stadium | Ruins | Crater | Frostfall | Plant | Avg |
 | --- | --- | --- | --- | --- | --- | --- |
-| Charizard | .54 | .51 | .50 | .53 | .69 | .55 |
-| Venusaur | .46 | .47 | .44 | .41 | .44 | .44 |
-| Blastoise | .46 | .54 | .53 | .49 | .43 | .49 |
-| Dragapult | .60 | .66 | .36 | .61 | .59 | .56 |
-| Magnezone | .49 | .53 | .53 | .53 | .57 | .53 |
-| Snorlax | .51 | .46 | .49 | .47 | .57 | .50 |
-| Noivern | .53 | .34 | .74 | .43 | .30 | .47 |
-| Lucario | .41 | .49 | .41 | .53 | .41 | .45 |
+| Charizard | .54 | .59 | .51 | .53 | .64 | .56 |
+| Venusaur | .46 | .47 | .54 | .41 | .46 | .47 |
+| Blastoise | .46 | .47 | .40 | .49 | .43 | .45 |
+| Dragapult | .60 | .66 | .43 | .61 | .54 | .57 |
+| Magnezone | .49 | .43 | .56 | .53 | .53 | .51 |
+| Snorlax | .51 | .54 | .54 | .47 | .50 | .51 |
+| Noivern | .53 | .41 | .66 | .43 | .39 | .48 |
+| Lucario | .41 | .43 | .36 | .53 | .51 | .45 |
 
-Arena swings are intentional stage matchups (Noivern flies over Cinder Crater's lava; Dragapult
-loses its edge there).
+Remaining arena swings are stage matchups (fliers like Crater; Dragapult loses its edge there).

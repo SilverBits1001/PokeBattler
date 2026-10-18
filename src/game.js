@@ -1755,7 +1755,7 @@
                   (this.holdX = r() < 0.5 ? 0 : Math.floor(r() * 36)))
                 : u.cdY === 0 && y > 60 && y < 220 && r() < 0.3
                   ? i.pressed.add("special2")
-                  : y > 70 && y < 210 && fe && r() < 0.18
+                  : y > 70 && y < 210 && r() < 0.18
                     ? ((this.smashHold = 4 + Math.floor(r() * 28)),
                       (i.ax = Math.cos(b)),
                       (i.ay = Math.sin(b)))
@@ -6621,12 +6621,24 @@
                 (s.life = 0),
                 this.emit({ type: "cooled", x: s.x, y: s.y }));
           }
-          if (this.tick % CRATER.every === 0)
+          if (this.tick % CRATER.every === 0) {
             for (let t of e())
               this.inLava(t.x, t.y) &&
                 (this.envHit(t, CRATER.tickDmg, 0.4, 0, -1, !1, 2, 8),
                 this.burn(t),
                 this.emit({ type: "lavaBurn", x: t.x, y: t.y }));
+            // Heat rising off the lava still scorches fliers, though less.
+            for (let t of this.players)
+              t.kit.flier &&
+                t.state !== "faint" &&
+                !t.invincible &&
+                this.inLava(t.x, t.y) &&
+                ((t.slot.hp = Math.max(
+                  1,
+                  t.slot.hp - Math.round(CRATER.tickDmg * 0.5),
+                )),
+                this.emit({ type: "burnTick", who: t, x: t.x, y: t.y }));
+          }
           if (
             this.match.phase === "fight" &&
             this.intro <= 0 &&
@@ -7177,9 +7189,18 @@
             continue;
           }
           // Will-O-Wisp is a ghost flame and drifts through cover.
+          // Air Slash slices through cover, chipping each rock once.
+          if (e.kind === "airslash") {
+            for (let t of this.rocks)
+              t.state === "solid" &&
+                !e.hits.includes(t) &&
+                Math.hypot(t.x - e.x, t.y - e.y) < t.r + e.r &&
+                (e.hits.push(t), this.hitRock(t, e.dmg, e.x, e.y, e.owner));
+          }
           let rk =
             e.kind !== "wisp" &&
             e.kind !== "yawn" &&
+            e.kind !== "airslash" &&
             this.rocks.find(
               (t) =>
                 t.state === "solid" &&
@@ -13963,7 +13984,7 @@
       [
         "RS",
         "Air Slash",
-        "Crescent blade of wind that cuts through everyone in its path.",
+        "Crescent blade of wind that cuts through everyone, and through cover.",
         "OPTIONAL CHARGE",
       ],
       [
@@ -16025,8 +16046,9 @@
           }
           break;
         case "projDie":
-          n.wall &&
-            (S.fizzle(), t.ring(n.p.x, n.p.y - n.p.z, 2, 1.3, 8, n.p.color)),
+          n.wall || projBurst(n.p),
+            n.wall &&
+              (S.fizzle(), t.ring(n.p.x, n.p.y - n.p.z, 2, 1.3, 8, n.p.color)),
             n.p.kind === "pulse"
               ? t.splash(n.p.x, n.p.y, n.p.z, 6)
               : n.p.kind === "leaf"
@@ -16624,7 +16646,7 @@
         case "detectHit":
           S.parry(),
             S.counter(),
-            t.banner("DETECT!", "#4aa3ff", 40, "counter"),
+            t.popup(n.x, n.y - 44, "DETECT!", "#9fdcff", !0),
             t.flare(n.x, n.y, 12, 30, "#ffffff", 14),
             t.ring(n.x, n.y, 6, 3, 14, "#9fdcff", !0),
             (t.screenFlash = 2),
@@ -17122,6 +17144,29 @@
             (t.screenFlashColor = "#ffffff");
           break;
       }
+    }
+    // Impact bursts for projectiles that connect.
+    function projBurst(n) {
+      let R = n.x,
+        W = n.y,
+        T = n.charge ?? 0.5;
+      n.kind === "aura"
+        ? (S.slam(),
+          t.flare(R, W, n.z, 18 + 22 * T, "#ffffff", 14),
+          t.ring(R, W - n.z, 4, 2 + 2.6 * T, 14, "#4aa3ff"),
+          t.ring(R, W, 6, 1.6 + 2 * T, 18, "#9fdcff", !0),
+          t.wisps(R, W, n.z - 6, 6 + Math.round(10 * T), "#4aa3ff", 10),
+          t.motes(R, W, n.z, 10, "#9fdcff", 2),
+          t.shake(n.vx, n.vy, 2 + 4 * T),
+          T > 0.7 && (t.impact = 3))
+        : n.kind === "yawn"
+          ? (t.ring(R, W - n.z, 6, 2, 12, "#e9f2ff"),
+            t.motes(R, W, n.z, 14, "#e9f2ff", 1.4),
+            t.zzz(R, W, n.z + 6))
+          : n.kind === "zap" &&
+            (t.shockRing(R, W, 30, "#f8d030", 8),
+            t.flare(R, W, n.z, 26, "#fff6a0", 12),
+            t.shake(n.vx, n.vy, 4));
     }
     // Particles thrown off styled beams (Flash Cannon, Aura, Boomburst...).
     function beamFx(T) {
