@@ -581,3 +581,17 @@ announced 2.5 seconds ahead with:
 
 Each surge targets every fighter equally, and the CPU avoids drop zones and the
 Overload lines.
+
+### Fairness with surges (30-game round robins, 8 fighters)
+
+| Arena | Win spread before surges | With surges | Hazard share |
+| --- | --- | --- | --- |
+| Stadium | .22 | .21 | 0% |
+| Ruins | .16 | .21 | 2.7% |
+| Cinder Crater | .19 | .23 | 8.4% |
+| Frostfall Lake | .24 | .19 | 1.5% |
+| Power Plant | .16 | .20 | 2.2% |
+
+The first Crater run came out at .30, with Noivern winning 70%: fliers were
+immune to meteors. Rocks and meteors fall from the sky, so they now hit fliers
+too. Every arena is back inside the earlier .16–.24 range.
