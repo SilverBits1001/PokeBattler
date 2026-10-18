@@ -154,3 +154,57 @@ Every layout is point-symmetric. The CPU steers around lava, warnings and arcs.
 
 Matches now end on a **victory** fanfare (C major, loops) or a slow **defeat** theme
 (A minor), switching the moment the round ends; Rematch returns to the battle theme.
+
+## Pass: second theme, Solar Beam identity, modes, items, accessibility
+
+### Second battle theme
+
+**Champion Battle** (184 BPM, D minor, driving bass and a high lead) joins the Trainer Battle
+theme. Options → Sound → Battle music: Random (default), Trainer Battle, or Champion Battle.
+
+### Solar Beam vs Hydro Pump
+
+They used to read as the same straight beam in a different colour. Now:
+
+| | Hydro Pump / Hydro Cannon | Solar Beam |
+| --- | --- | --- |
+| Wind-up | Pressure build | Dashed sunlight **aim line** shows exactly where it will fire |
+| Shape | Water jet, spray and droplets | Wobbling column of green/gold/white light with travelling sun pulses, spiralling leaves and a sunburst at the source |
+| Cover | Stopped by boulders | **Pierces cover** (sunlight goes through) |
+| After | Puddles | **Scorched trail** on the ground, leaf gust, flash |
+
+### Modes (Options → Match → Mode, or X on team select)
+
+| Mode | Rules |
+| --- | --- |
+| VS CPU | 1v1, as before. |
+| Training | Dummies. |
+| Free-for-All | Four fighters, every one for themselves. Last one standing wins; results show your placement. |
+| Team 2v2 | You and a CPU ally against two CPUs. Your team wins when both enemies are out. |
+| Zone Control | 1v1 with a ring on the floor. Standing in it alone fills your meter (20 s to win); contested rings don't count. The ring relocates every 12 s with a 2.5 s telegraph. A KO still wins outright. |
+
+The extra CPUs get random teams. Each fighter has its own tag and foot-ring colour (P1, ALLY,
+CPU, CPU 2, CPU 3). Fighters three and four get compact HP strips under the main CPU panel. The
+camera frames everyone still in the fight. CPUs go for the zone and read the next spot early
+on Normal and Hard.
+
+### Items (Options → Match → Items)
+
+| Item | Effect |
+| --- | --- |
+| Sitrus Berry | Heal (as before). |
+| X Attack | +25% damage for 8 s (ATK+ chip). |
+| Smoke Bomb | Leaves a smoke cloud. Fighters inside are translucent, can't be locked onto, and aren't tracked by homing shots or aim assist. CPUs lose track of you. |
+| Eject Button | The next launch or heavy hit teleports you to safety with brief invulnerability. |
+
+### Accessibility (Options)
+
+- **Effects: Reduced** turns off slow-motion, hit-pause punches and screen flashes, and cuts shake to about a third.
+- **Team colours: High contrast** uses a palette that stays distinct for common colour-blindness types.
+- **Swap specials** swaps the X and Y buttons.
+
+### Not done yet
+
+- Full button remapping (only swapping specials for now).
+- Blastoise Surf / Rain Dance ideas from the moveset brainstorm.
+- Online or local multiplayer (the modes use CPUs for every other slot).

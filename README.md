@@ -12,8 +12,11 @@ Q switch, E assist).
 
 See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
 callouts, five arenas with hazards (Stadium, Ruins, Cinder Crater, Frostfall Lake,
-Power Plant), the Sitrus Berry, Smash-style move types, Magnezone, and new music.
-Arena and items can be switched in Options → Match.
+Power Plant), items (Sitrus Berry, X Attack, Smoke Bomb, Eject Button), Smash-style
+move types, Magnezone, two battle themes plus victory/defeat music, and five modes
+(VS CPU, Training, Free-for-All, Team 2v2, Zone Control). Mode, arena and items can be
+switched in Options → Match, or with X / Select on team select. Accessibility options
+(reduced effects, high-contrast team colours, swapped specials) are in Options.
 
 Roster: Charizard, Venusaur, Blastoise, Dragapult, Magnezone.
 

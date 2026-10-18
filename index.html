@@ -94,6 +94,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       cpuLevel: 2,
       arena: 1,
       items: 1,
+      theme: 0,
+      fx: 0,
+      colors: 0,
+      swapSp: 0,
       dummyCount: 1,
       dummyMode: 0,
       showHitboxes: 0,
@@ -116,6 +120,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       "slowmo",
       "arena",
       "items",
+      "theme",
+      "fx",
+      "colors",
+      "swapSp",
     ];
   function Vt() {
     try {
@@ -161,12 +169,24 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       min: 0,
       max: 1,
     },
+    {
+      kind: "choice",
+      key: "theme",
+      label: "Battle music",
+      options: ["Random", "Trainer Battle", "Champion Battle"],
+    },
     { kind: "header", label: "Match" },
     {
       kind: "choice",
       key: "gameMode",
       label: "Mode (next battle)",
-      options: ["VS CPU", "Training"],
+      options: [
+        "VS CPU",
+        "Training",
+        "Free-for-All",
+        "Team Battle",
+        "Zone Control",
+      ],
     },
     {
       kind: "choice",
@@ -190,6 +210,25 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       kind: "choice",
       key: "items",
       label: "Items (Sitrus Berry)",
+      options: ["Off", "On"],
+    },
+    { kind: "header", label: "Accessibility" },
+    {
+      kind: "choice",
+      key: "fx",
+      label: "Effects",
+      options: ["Full", "Reduced"],
+    },
+    {
+      kind: "choice",
+      key: "colors",
+      label: "Team colours",
+      options: ["Standard", "High contrast"],
+    },
+    {
+      kind: "choice",
+      key: "swapSp",
+      label: "Swap specials (X / Y)",
       options: ["Off", "On"],
     },
     { kind: "header", label: "Practice" },
@@ -916,12 +955,29 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             f = s ? Math.hypot(o.x - s.x, o.y - s.y) : 1 / 0;
           if (
             this.berryWant &&
-            r.hp < r.maxHp * 0.9 &&
+            (o.kind !== "sitrus" || r.hp < r.maxHp * 0.9) &&
             (l < f + 40 || r.hp < r.maxHp * 0.35) &&
             (o.state === "ready" || l > 34)
           ) {
             let u = Math.max(1, l);
             (i.mx = (o.x - t.x) / u), (i.my = (o.y - t.y) / u);
+          }
+        }
+        let z =
+          e.zoneNext && (this.level ?? A.cpuLevel) > 0 ? e.zoneNext : e.zone;
+        if (
+          z &&
+          t.state === "move" &&
+          !i.pressed.has("special1") &&
+          !i.pressed.has("attack")
+        ) {
+          let l = z.x - t.x,
+            f = (z.y - t.y) * 1.6,
+            u = Math.hypot(l, f);
+          if (u > z.r * 0.55) {
+            let h = 0.45 + 0.2 * (this.level ?? A.cpuLevel);
+            (i.mx = i.mx * (1 - h) + (l / u) * h),
+              (i.my = i.my * (1 - h) + (f / u / 1.6) * h);
           }
         }
         // Zap Cannon is slow: dodge as it arrives, not when it is fired.
@@ -1518,7 +1574,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             u = o.vx * o.vx + o.vy * o.vy;
           if (u < 0.01) continue;
           let h = (l * o.vx + f * o.vy) / u;
-          if (h <= 0 || h > (o.kind === "wisp" || o.kind === "zap" ? 32 : 16)) continue;
+          if (h <= 0 || h > (o.kind === "wisp" || o.kind === "zap" ? 32 : 16))
+            continue;
           let c = l - o.vx * h,
             y = f - o.vy * h;
           if (Math.hypot(c, y) < t.hurtR + o.r + 3)
@@ -1540,6 +1597,23 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     Oa = 1,
     Na = 2,
     yt = { strong: 1.05, weak: 0.95 },
+    // Match modes, indexed by the gameMode option.
+    MODES = ["vs", "practice", "ffa", "team", "zone"],
+    MODE_NAMES = [
+      "VS CPU",
+      "TRAINING",
+      "FREE-FOR-ALL",
+      "TEAM 2V2",
+      "ZONE CONTROL",
+    ],
+    QUAD = [
+      [Se - 150, Te - 50],
+      [Se + 150, Te - 50],
+      [Se - 110, Te + 75],
+      [Se + 110, Te + 75],
+    ],
+    // Zone Control: hold the ring alone to fill your meter; it relocates on a telegraph.
+    ZONE = { r: 44, goal: 100, rate: 100 / (60 * 20), every: 720, warn: 150 },
     he = {
       base: 11,
       per: 0.04,
@@ -1656,6 +1730,15 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       short: 480,
     },
     // Sitrus Berry: one contested heal at centre, announced before it lands.
+    // Item pool for the centre spawn. One item at a time, always announced first.
+    ITEMS = [
+      { kind: "sitrus", name: "SITRUS BERRY", color: "#9cf28a", w: 3 },
+      { kind: "xatk", name: "X ATTACK", color: "#ff6a5a", w: 2 },
+      { kind: "smoke", name: "SMOKE BOMB", color: "#b9c0cc", w: 2 },
+      { kind: "eject", name: "EJECT BUTTON", color: "#ffd25e", w: 2 },
+    ],
+    XATK = { ticks: 480, mult: 1.25 },
+    SMOKE = { r: 48, ticks: 360 },
     SITRUS = {
       firstAt: 900,
       every: 1200,
@@ -1878,6 +1961,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           (this.tintColor = e.color);
       }
       get invincible() {
+        if (this.ejectT > 0) return !0;
         return this.state === "dodge"
           ? this.t < this.kit.dodge.iframes
           : (this.state === "flyUp" && this.t >= 3) ||
@@ -2076,6 +2160,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         this.lava = [];
         this.ice = [];
         this.vents = [];
+        this.smokes = [];
         this.icicles = [];
         this.arc = null;
         this.item = null;
@@ -2185,6 +2270,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 }))
               : []),
           (this.vents = []),
+          (this.smokes = []),
           (this.ventT = CRATER.ventEvery[0]),
           (this.icicles = []),
           (this.icicleT = FROST.icicleEvery[0]),
@@ -2197,14 +2283,48 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           (this.dreepy = []),
           this.hitLog.clear(),
           (this.slowTicks = 0),
-          e === "vs" && s.length)
+          e !== "practice" && s.length)
         ) {
-          let o = new bt(this.mons, Se + 120, Te, Na, s);
+          let q = e === "ffa" || e === "team";
+          q &&
+            ((this.player.x = this.player.px = QUAD[0][0]),
+            (this.player.y = this.player.py = QUAD[0][1]));
+          let o = new bt(
+            this.mons,
+            q ? QUAD[1][0] : Se + 120,
+            q ? QUAD[1][1] : Te,
+            e === "ffa" ? 3 : Na,
+            s,
+          );
           (o.facing = Math.PI),
             (o.brain = new ft(this.rand)),
+            (o.cpuIndex = 0),
             this.players.push(o),
             (this.dummies = []);
+          if (q) {
+            (i && r.extra?.length === 2) ||
+              (r.extra = [0, 1].map(() => {
+                let l = [...ge].sort(() => this.rand() - 0.5);
+                return l.slice(0, 2);
+              }));
+            for (let l = 0; l < 2; l++) {
+              let f = l + 2,
+                u = new bt(
+                  this.mons,
+                  QUAD[f][0],
+                  QUAD[f][1],
+                  e === "ffa" ? f + 2 : l === 0 ? mt : Na,
+                  r.extra[l],
+                );
+              (u.facing = QUAD[f][0] > Se ? Math.PI : 0),
+                (u.brain = new ft(this.rand)),
+                (u.cpuIndex = e === "ffa" ? f - 1 : l === 0 ? 0 : 1),
+                this.players.push(u);
+            }
+          }
         } else (this.dummies = []), this.syncDummies();
+        (this.zone = null), (this.zscore = [0, 0]);
+        e === "zone" && this.placeZone(!0);
         (this.intro = 70),
           this.emit({
             type: "roundStart",
@@ -2212,11 +2332,72 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             cpuKit: (this.cpu ?? this.player).kit,
           });
       }
+      // Picks a fresh hill spot away from hazards, cover and the last one.
+      placeZone(e) {
+        let t = this.zone,
+          s = null;
+        for (let i = 0; i < 40 && !s; i++) {
+          let r =
+              e && i === 0 ? Se : B.x0 + 70 + this.rand() * (B.x1 - B.x0 - 140),
+            o =
+              e && i === 0
+                ? Te + 20
+                : B.y0 + 60 + this.rand() * (B.y1 - B.y0 - 100);
+          if (t && Math.hypot(r - t.x, o - t.y) < 150) continue;
+          if (this.hazardAt(r, o)) continue;
+          if (
+            this.rocks.some((l) => Math.hypot(l.x - r, l.y - o) < l.r + ZONE.r)
+          )
+            continue;
+          s = [r, o];
+        }
+        s ??= [Se, Te + 20];
+        let i = { x: s[0], y: s[1], r: ZONE.r, t: 0, owner: -1 };
+        e ? (this.zone = i) : (this.zoneNext = i);
+      }
+      updateZone() {
+        let e = this.zone;
+        if (!e || this.match.phase !== "fight" || this.intro > 0) return;
+        e.t++;
+        e.t === ZONE.every - ZONE.warn &&
+          (this.placeZone(!1),
+          this.emit({
+            type: "zoneWarn",
+            x: this.zoneNext.x,
+            y: this.zoneNext.y,
+          }));
+        if (e.t >= ZONE.every && this.zoneNext) {
+          (this.zone = this.zoneNext), (this.zoneNext = null);
+          this.emit({ type: "zoneMove", x: this.zone.x, y: this.zone.y });
+          return;
+        }
+        let t = this.player.team,
+          s = !1,
+          i = !1;
+        for (let r of this.players)
+          r.state === "faint" ||
+            r.out ||
+            Math.hypot(r.x - e.x, (r.y - e.y) * 1.6) > e.r ||
+            (r.team === t ? (s = !0) : (i = !0));
+        let r = s && !i ? 0 : i && !s ? 1 : s ? 2 : -1;
+        r !== e.owner &&
+          ((e.owner = r), this.emit({ type: "zoneOwner", owner: r }));
+        if (r === 0 || r === 1) {
+          let o = this.zscore[r],
+            l = Math.min(ZONE.goal, o + ZONE.rate);
+          this.zscore[r] = l;
+          for (let f of [25, 50, 75])
+            o < f &&
+              l >= f &&
+              this.emit({ type: "zoneMark", side: r, mark: f });
+          l >= ZONE.goal && this.endRound(r === 0 ? "win" : "lose");
+        }
+      }
       rematch() {
         this.startMatch(this.match.mode, this.match.you, this.match.cpu, !0);
       }
       syncDummies() {
-        if (this.match.mode === "vs") {
+        if (this.match.mode !== "practice") {
           this.dummies = [];
           return;
         }
@@ -2244,7 +2425,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         return this.slowTicks > 0 ? this.slowScale : 1;
       }
       slow(e, t) {
-        (t <= this.timeScale() || this.slowTicks < e) &&
+        !A.fx &&
+          (t <= this.timeScale() || this.slowTicks < e) &&
           ((this.slowTicks = e), (this.slowScale = t));
       }
       targetsFor(e) {
@@ -2267,7 +2449,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         let i = null,
           r = 1 / 0;
         for (let o of this.targetsFor(e)) {
-          let l = Math.hypot(o.x - t, o.y - s);
+          let l = Math.hypot(o.x - t, o.y - s) + (this.smoked(o) ? 400 : 0);
           l < r && ((r = l), (i = o));
         }
         return i;
@@ -2318,7 +2500,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
       updateMatch() {
         let e = this.match;
-        e.mode !== "vs" ||
+        this.updateZone();
+        e.mode === "practice" ||
           e.phase !== "end" ||
           (--e.endT <= 0 && (e.phase = "results"));
       }
@@ -2328,6 +2511,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           ((t.phase = "end"),
           (t.endT = 150),
           (t.result = e),
+          (t.place =
+            e === "win"
+              ? 1
+              : this.players.filter((s) => !s.out).length +
+                (this.player.out ? 1 : 0)),
           e === "win" ? t.wins++ : t.losses++,
           this.emit({ type: "roundEnd", result: e }));
       }
@@ -2402,6 +2590,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           e.seededT > 0 && e.seededT--,
           e.dazeT > 0 && e.dazeT--,
           e.paraT > 0 && e.paraT--,
+          e.xatkT > 0 && e.xatkT--,
+          e.ejectT > 0 && e.ejectT--,
           e.lockT > 0 && e.lockT--,
           e.hitstop > 0)
         ) {
@@ -2708,8 +2898,20 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           e.t === 60)
         ) {
           let t = e.aliveSlot(1);
-          if (this.match.mode === "vs" && t === null) {
-            this.endRound(e.isCpu ? "win" : "lose");
+          if (this.match.mode !== "practice" && t === null) {
+            e.out = !0;
+            let s = this.player.team,
+              i = this.players.some((o) => !o.out && o.team === s),
+              r = this.players.some((o) => !o.out && o.team !== s);
+            i
+              ? r
+                ? this.emit({
+                    type: "eliminated",
+                    who: e,
+                    left: this.players.filter((o) => !o.out).length,
+                  })
+                : this.endRound("win")
+              : this.endRound("lose");
             return;
           }
           t !== null && ((e.alpha = 1), this.doSwitch(e, t, !0));
@@ -2724,7 +2926,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             this.emit({ type: "lock", who: e, target: null }));
           return;
         }
-        e.lock && !i.includes(e.lock) && (e.lock = null),
+        (i = i.filter((o) => !this.smoked(o))),
+          e.lock && !i.includes(e.lock) && (e.lock = null),
           !e.lock &&
             i.length &&
             ((e.lock = i.reduce((o, l) =>
@@ -3036,7 +3239,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           o = (A.meleeAssist * Math.PI) / 180;
         for (let l of this.targetsFor(e.team)) {
           let f = Math.hypot(l.x - e.x, l.y - e.y);
-          if (f > s) continue;
+          if (f > s || this.smoked(l)) continue;
           let u = Math.atan2(l.y - e.y, l.x - e.x),
             h = Math.abs($e(u, t));
           if (h > o && f > 40) continue;
@@ -3945,7 +4148,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             e.t >= 20 && ((e.state = "move"), (e.t = 0));
         }
       }
-      beamEnd(e, t, s, i) {
+      beamEnd(e, t, s, i, f = !1) {
         let r = Math.cos(s),
           o = Math.sin(s),
           l = i;
@@ -3956,7 +4159,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           o > 0
             ? (l = Math.min(l, (B.y1 - t) / o))
             : o < 0 && (l = Math.min(l, (B.y0 - 6 - t) / o)),
-          (l = this.rayLen(e, t, s, l)),
+          f || (l = this.rayLen(e, t, s, l)),
           { x: e + r * l, y: t + o * l, len: l }
         );
       }
@@ -4161,6 +4364,18 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         }
         this.emit({ type: "discharge", x: e.x, y: e.y });
       }
+      ejectOut(e, t, s) {
+        (e.eject = !1),
+          (e.state = "move"),
+          (e.t = 0),
+          (e.hitstun = 0),
+          (e.kvx = e.kvy = 0),
+          (e.z = 0),
+          (e.spinRow = -1),
+          this.moveBody(e, t * 70, s * 70),
+          (e.ejectT = 20),
+          this.emit({ type: "eject", who: e });
+      }
       paralyze(e) {
         e.kind === "player" &&
           e.state !== "faint" &&
@@ -4207,11 +4422,37 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           (e.t <= 6 &&
             ((e.dir2 = this.aimAssist(e, t, 260)), (e.facing = e.dir2)),
           this.locomote(e, 0, 0),
-          e.t > 6 && e.t <= 20)
+          e.t <= 6)
         ) {
+          // Wind-up: a dashed line of sunlight shows exactly where it will fire.
           let i = e.x + Math.cos(e.dir2) * 10,
             r = e.y + Math.sin(e.dir2) * 10,
-            o = this.beamEnd(i, r, e.dir2, SOLAR.range);
+            o = this.beamEnd(i, r, e.dir2, SOLAR.range, !0);
+          this.beams.push({
+            x1: i,
+            y1: r,
+            x2: o.x,
+            y2: o.y,
+            owner: e,
+            age: e.t,
+            aim: !0,
+            solar: s,
+          });
+        }
+        if (e.t > 6 && e.t <= 20) {
+          let i = e.x + Math.cos(e.dir2) * 10,
+            r = e.y + Math.sin(e.dir2) * 10,
+            o = this.beamEnd(i, r, e.dir2, SOLAR.range, !0);
+          e.t === 7 &&
+            this.emit({
+              type: "solarBeam",
+              who: e,
+              x1: i,
+              y1: r,
+              x2: o.x,
+              y2: o.y,
+              c: s,
+            });
           this.beams.push({
             x1: i,
             y1: r,
@@ -5121,7 +5362,17 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           "arena",
         );
       }
+      smoked(e) {
+        return (
+          !!e &&
+          this.smokes.some(
+            (t) => Math.hypot(t.x - e.x, (t.y - e.y) * 1.3) < t.r,
+          )
+        );
+      }
       updateHazards() {
+        for (let t of this.smokes) t.t--;
+        this.smokes = this.smokes.filter((t) => t.t > 0);
         let e = (t) =>
           [...this.players, ...this.dummies].filter(
             (s) =>
@@ -5282,6 +5533,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               y: Te,
               state: "warn",
               t: 0,
+              kind: ((r) => {
+                for (let o of ITEMS) if ((r -= o.w) < 0) return o.kind;
+                return "sitrus";
+              })(this.rand() * ITEMS.reduce((r, o) => r + o.w, 0)),
             }),
             this.emit({ type: "itemWarn", x: Se, y: Te }));
           return;
@@ -5303,10 +5558,20 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             continue;
           let s = t.slot,
             i = s.hp;
-          (s.hp = Math.min(s.maxHp, s.hp + Math.round(s.maxHp * SITRUS.heal))),
+          e.kind === "xatk"
+            ? (t.xatkT = XATK.ticks)
+            : e.kind === "smoke"
+              ? this.smokes.push({ x: e.x, y: e.y, r: SMOKE.r, t: SMOKE.ticks })
+              : e.kind === "eject"
+                ? (t.eject = !0)
+                : (s.hp = Math.min(
+                    s.maxHp,
+                    s.hp + Math.round(s.maxHp * SITRUS.heal),
+                  )),
             this.emit({
               type: "itemGet",
               who: t,
+              kind: e.kind,
               x: e.x,
               y: e.y,
               amount: Math.round(s.hp - i),
@@ -5608,6 +5873,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           if (
             (e.kind === "leaf" || e.kind === "wisp" || e.kind === "zap") &&
             e.target &&
+            !this.smoked(e.target) &&
             e.age > 4 &&
             this.targetsFor(e.team).includes(e.target)
           ) {
@@ -5985,10 +6251,13 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
       outgoingMult(e) {
         if (!e || e.kind !== "player") return 1;
-        let t = e;
-        if (t.kit.id !== "charizard") return 1;
+        let t = e,
+          i = t.xatkT > 0 ? XATK.mult : 1;
+        if (t.kit.id !== "charizard") return i;
         let s = t.slot;
-        return (1 + 0.5 * (s.heat / 100)) * (s.hp < s.maxHp * 0.3 ? 1.3 : 1);
+        return (
+          i * (1 + 0.5 * (s.heat / 100)) * (s.hp < s.maxHp * 0.3 ? 1.3 : 1)
+        );
       }
       applyHit(
         e,
@@ -6157,7 +6426,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                   x: w.x,
                   y: w.y,
                   power: ce,
-                }));
+                })),
+              w.eject && (l || C > 0) && this.ejectOut(w, r, o);
           }
         }
         let $ = x
@@ -6450,6 +6720,15 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     }
     for (let [p, k] of Object.entries(sa)) if (f(p)) for (let M of k) r.add(M);
     let b = new Set(Ue);
+    if (A.swapSp)
+      for (let p of [b, r]) {
+        let k = p.has("special1"),
+          M = p.has("special2");
+        p.delete("special1"),
+          p.delete("special2"),
+          k && p.add("special2"),
+          M && p.add("special1");
+      }
     return (
       Ue.clear(),
       ($a = r),
@@ -6519,13 +6798,14 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
       shake(e, t, s) {
         let i = Math.hypot(e, t) || 1,
-          r = s * A.shake;
+          r = s * A.shake * (A.fx ? 0.35 : 1);
         (this.svx += (e / i) * r),
           (this.svy += (t / i) * r),
           (this.jitter = Math.max(this.jitter, r * 0.35));
       }
       punch(e, t, s) {
-        (this.zoom = Math.max(this.zoom, s)), (this.zx = e), (this.zy = t);
+        A.fx ||
+          ((this.zoom = Math.max(this.zoom, s)), (this.zx = e), (this.zy = t));
       }
       dust(e, t, s, i = 0, r = 0, o = 1) {
         for (let l = 0; l < s; l++)
@@ -6873,7 +7153,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           (this.screenFlash = Math.max(0, this.screenFlash - 1)),
           (this.vignette *= 0.9),
           this.impact > 0 && this.impact--,
-          this.speed > 0 && this.speed--;
+          this.speed > 0 && this.speed--,
+          A.fx &&
+            ((this.screenFlash = 0), (this.impact = 0), (this.vignette *= 0.6));
         for (let e of this.ambient)
           (e.ph += 0.03),
             (e.x += e.vx + Math.sin(e.ph) * 0.05),
@@ -7313,6 +7595,62 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
   }
   // Ground layer for a rock: contact shadow, rubble while broken, and a pulsing
   // warning ring for the last two seconds before it rises again.
+  // Zone Control ring on the floor, tinted by who holds it, plus the next spot's telegraph.
+  function zoneGround(a, e) {
+    let t = e.zone;
+    if (!t) return;
+    let s = e.tick,
+      i = ["#33d6ff", "#ef5a4f", s % 16 < 8 ? "#ffffff" : "#ffcf3a", "#ffcf3a"][
+        t.owner < 0 ? 3 : t.owner
+      ],
+      r = t.r,
+      o = r / 1.6;
+    a.save(),
+      (a.globalAlpha = 0.16 + (t.owner === 0 || t.owner === 1 ? 0.08 : 0)),
+      (a.fillStyle = i),
+      a.beginPath(),
+      a.ellipse(t.x, t.y, r, o, 0, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalAlpha = 0.85),
+      (a.strokeStyle = i),
+      (a.lineWidth = 1.5),
+      a.setLineDash([6, 4]),
+      (a.lineDashOffset = -s * 0.4),
+      a.beginPath(),
+      a.ellipse(t.x, t.y, r, o, 0, 0, Math.PI * 2),
+      a.stroke(),
+      a.setLineDash([]),
+      (a.globalAlpha = 0.6),
+      (a.lineWidth = 2.5),
+      a.beginPath(),
+      a.ellipse(
+        t.x,
+        t.y,
+        r + 4,
+        o + 3,
+        0,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * (1 - t.t / ZONE.every),
+      ),
+      a.stroke();
+    let l = e.zoneNext;
+    l &&
+      ((a.globalAlpha = 0.45 + 0.35 * Math.sin(s * 0.3)),
+      (a.strokeStyle = "#ffcf3a"),
+      (a.lineWidth = 1.2),
+      a.setLineDash([3, 3]),
+      a.beginPath(),
+      a.ellipse(l.x, l.y, l.r, l.r / 1.6, 0, 0, Math.PI * 2),
+      a.stroke(),
+      a.setLineDash([]),
+      a.beginPath(),
+      a.moveTo(l.x - 5, l.y),
+      a.lineTo(l.x + 5, l.y),
+      a.moveTo(l.x, l.y - 3),
+      a.lineTo(l.x, l.y + 3),
+      a.stroke()),
+      a.restore();
+  }
   function hazardGround(a, e) {
     let t = e.tick;
     for (let s of e.lava) {
@@ -7552,11 +7890,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     } else return;
     let c = Math.cos(t.atkDir),
       y = Math.sin(t.atkDir),
-      b = t.isCpu
-        ? "239,90,79"
-        : t.kit.id === "dragapult"
-          ? "161,132,245"
-          : "111,211,232",
+      b = ((k) =>
+        [1, 3, 5].map((M) => parseInt(k.slice(M, M + 2), 16)).join(","))(
+        tagOf(t, e).color,
+      ),
       p =
         (0.1 + 0.28 * f) *
         (u && t.smashCharge >= 1 && e.tick % 6 < 3 ? 1.5 : 1);
@@ -7637,7 +7974,30 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       a.beginPath(),
       a.ellipse(e.x, e.y + 1, 5, 2, 0, 0, Math.PI * 2),
       a.fill();
-    let o = [
+    let o = ITEM_ART[e.kind] ?? ITEM_ART.sitrus;
+    o.forEach((l, f) => {
+      for (let u = 0; u < l.length; u++) {
+        let h = {
+          g: "#4f9a3c",
+          k: "#5a3a12",
+          y: "#f7d24a",
+          o: "#d39a2c",
+          w: "#fff6c8",
+          r: "#e8453a",
+          R: "#a3231c",
+          b: "#2b2f3a",
+          s: "#9aa3b2",
+          S: "#d6dbe4",
+          f: "#ff9a1f",
+          c: "#bfe6ff",
+        }[l[u]];
+        h && ((a.fillStyle = h), a.fillRect(i - 5 + u, r - 6 + f, 1, 1));
+      }
+    });
+  }
+  // 10x10 pixel art for each item.
+  var ITEM_ART = {
+    sitrus: [
       "....gg....",
       "...ggg....",
       "..kkkgkk..",
@@ -7648,19 +8008,59 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       ".kyyyyook.",
       "..kooook..",
       "...kkkk...",
-    ];
-    o.forEach((l, f) => {
-      for (let u = 0; u < l.length; u++) {
-        let h = {
-          g: "#4f9a3c",
-          k: "#5a3a12",
-          y: "#f7d24a",
-          o: "#d39a2c",
-          w: "#fff6c8",
-        }[l[u]];
-        h && ((a.fillStyle = h), a.fillRect(i - 5 + u, r - 6 + f, 1, 1));
-      }
-    });
+    ],
+    xatk: [
+      "...bbbb...",
+      "...bSSb...",
+      "....bb....",
+      "...bccb...",
+      "..bcrrcb..",
+      ".bcrrrrRb.",
+      ".bcrwrrRb.",
+      ".bcrrrrRb.",
+      "..bRRRRb..",
+      "...bbbb...",
+    ],
+    smoke: [
+      "......f...",
+      ".....f....",
+      "....bb....",
+      "..bssssb..",
+      ".bsSssssb.",
+      ".bsSssssb.",
+      ".bsssssbb.",
+      ".bssssssb.",
+      "..bssssb..",
+      "...bbbb...",
+    ],
+    eject: [
+      "..........",
+      "...rrrr...",
+      "..rwrrRr..",
+      ".rwrrrrRr.",
+      ".rrrrrrRr.",
+      ".bRRRRRRb.",
+      "bssssssssb",
+      "bSSSSSSSSb",
+      ".bbbbbbbb.",
+      "..........",
+    ],
+  };
+  // Tag and colour for a fighter: you, an ally, or one of up to three CPUs.
+  var TAGC = [
+    { p1: "#33d6ff", ally: "#4df08a", cpu: ["#ef5a4f", "#ff9a1f", "#c46cff"] },
+    { p1: "#4aa3ff", ally: "#ffffff", cpu: ["#ffb000", "#ff6ad5", "#b0ff4a"] },
+  ];
+  function tagOf(a, e) {
+    let t = TAGC[A.colors] ?? TAGC[0];
+    return a.isCpu
+      ? e && a.team === e.player.team
+        ? { label: "ALLY", color: t.ally }
+        : {
+            label: a.cpuIndex > 0 ? `CPU ${a.cpuIndex + 1}` : "CPU",
+            color: t.cpu[(a.cpuIndex ?? 0) % 3],
+          }
+      : { label: "P1", color: t.p1 };
   }
   // Drawn scale for a body: its Pokémon's true size relative to Charizard.
   function Bz(a) {
@@ -7795,6 +8195,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           (a.globalAlpha = 1));
     }
     hazardGround(a, e);
+    zoneGround(a, e);
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
     for (let h of e.players) dzone(a, e, h);
@@ -7839,9 +8240,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           (a.globalAlpha = 1);
       }
     for (let h of e.players) {
-      if (h.state === "faint" || (h.vanished && h.isCpu)) continue;
-      let c = h.isCpu ? "#ef5a4f" : "#6fd3e8";
-      if (e.match.mode === "vs") {
+      if (h.state === "faint" || (h.vanished && h.team !== e.player.team))
+        continue;
+      let c = tagOf(h, e).color;
+      if (e.match.mode !== "practice") {
         let y = o(h.px, h.x),
           b = o(h.py, h.y);
         (a.globalAlpha = 0.55),
@@ -8081,6 +8483,53 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
     }
     e.arc && arcLayer(a, e);
+    for (let h of e.smokes ?? []) {
+      let c = Math.min(1, h.t / 40, (SMOKE.ticks - h.t) / 10 + 0.3),
+        y = rt(Math.round(h.x + h.y));
+      for (let b = 0; b < 14; b++) {
+        let p = y() * Math.PI * 2 + e.tick * 0.004 * (b % 2 ? 1 : -1),
+          k = Math.sqrt(y()) * h.r * 0.85;
+        (a.globalAlpha = 0.55 * c),
+          (a.fillStyle = b % 3 ? "#9aa3b2" : "#c9cfd8"),
+          a.beginPath(),
+          a.arc(
+            h.x + Math.cos(p) * k,
+            h.y - 10 + Math.sin(p) * k * 0.6,
+            10 + y() * 8,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill();
+      }
+      a.globalAlpha = 1;
+    }
+    for (let h of e.players) {
+      if (h.state === "faint") continue;
+      let c = Math.round(o(h.px, h.x)),
+        y = Math.round(o(h.py, h.y));
+      h.xatkT > 0 &&
+        ((a.globalAlpha = 0.5 + 0.3 * Math.sin(e.tick * 0.3)),
+        (a.strokeStyle = "#ff6a5a"),
+        (a.lineWidth = 1.5),
+        a.beginPath(),
+        a.ellipse(c, y, 14, 6, 0, 0, Math.PI * 2),
+        a.stroke(),
+        (a.globalAlpha = 1));
+      let b = [
+        h.xatkT > 0 ? ["ATK+", "#ff6a5a"] : null,
+        h.eject ? ["EJECT", "#ffd25e"] : null,
+      ].filter(Boolean);
+      (a.font = '700 6px "Barlow Semi Condensed", sans-serif'),
+        (a.textAlign = "center");
+      b.forEach(([p, k], M) => {
+        let P = y + 10 + M * 7;
+        (a.fillStyle = "rgba(8,10,14,0.7)"),
+          a.fillRect(c - 12, P - 5, 24, 6),
+          (a.fillStyle = k),
+          a.fillText(p, c, P);
+      }),
+        (a.textAlign = "start");
+    }
     // Smash-style player tags: a coloured "P1" / "CPU" flag with a pointer over each fighter.
     for (let h of e.players) {
       if (h.state === "faint" || (h.vanished && h.isCpu)) continue;
@@ -8092,8 +8541,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             17 +
             Math.sin(e.tick * 0.08) * 1.2,
         ),
-        b = h.isCpu ? "CPU" : "P1",
-        p = h.isCpu ? "#ef5a4f" : "#33d6ff";
+        b = tagOf(h, e).label,
+        p = tagOf(h, e).color;
       (a.font = '900 8px "Big Shoulders Display", sans-serif'),
         (a.textAlign = "center"),
         (a.textBaseline = "alphabetic");
@@ -8109,7 +8558,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         a.lineTo(c, y + 3),
         a.closePath(),
         a.fill(),
-        (a.fillStyle = h.isCpu ? "#2e0507" : "#031730"),
+        (a.fillStyle = "#0b0918"),
         a.fillText(b, c, y - 1.5),
         (a.globalAlpha = 1),
         (a.textAlign = "start");
@@ -8128,23 +8577,102 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           a.fillRect(Math.round(h.x2) - 1, Math.round(h.y2) - 13, 3, 3);
         continue;
       }
+      if (h.aim) {
+        (a.globalAlpha = 0.45 + 0.4 * Math.abs(Math.sin(e.tick * 0.5))),
+          (a.strokeStyle = "#ffe27a"),
+          (a.lineWidth = 1),
+          a.setLineDash([6, 4]),
+          (a.lineDashOffset = -e.tick * 1.5),
+          a.beginPath(),
+          a.moveTo(h.x1, h.y1 - 10),
+          a.lineTo(h.x2, h.y2 - 10),
+          a.stroke(),
+          a.setLineDash([]),
+          (a.globalAlpha = 1);
+        continue;
+      }
       if (h.solar !== void 0) {
+        // Sunlight, not water: a column that flares open and fades, a green-gold
+        // halo, bright pulses racing outward, leaves spiralling around it and a
+        // rotating sunburst at the flower.
         let C = Math.max(0, 1 - h.age / 14),
-          x = (6 + 10 * h.solar) * (0.4 + 0.6 * C) + (e.tick % 2);
-        a.lineCap = "round";
-        for (let [v, E, Q] of [
-          ["rgba(255,226,122,0.35)", 2.2, 0.9],
-          ["#ffd25e", 1.2, 1],
-          ["#fff6c8", 0.6, 1],
-          ["#ffffff", 0.22, 1],
-        ])
-          (a.globalAlpha = Q * (0.3 + 0.7 * C)),
-            (a.strokeStyle = v),
-            (a.lineWidth = Math.max(1, x * E)),
+          x =
+            (8 + 14 * h.solar) *
+            (h.age < 3 ? 0.5 + h.age * 0.25 : 0.35 + 0.65 * C),
+          v = h.x2 - h.x1,
+          E = h.y2 - h.y1,
+          Q = Math.hypot(v, E) || 1,
+          ie = v / Q,
+          K = E / Q,
+          $ = h.x1,
+          w = h.y1 - 10;
+        a.lineCap = "butt";
+        for (let [U, re, se] of [
+          ["rgba(156,242,138,0.28)", 2.4, 1],
+          ["rgba(255,226,122,0.55)", 1.5, 1],
+          ["#ffe27a", 0.95, 1],
+          ["#fffbe6", 0.45, 1],
+          ["#ffffff", 0.18, 1],
+        ]) {
+          let N = (x * re) / 2;
+          (a.globalAlpha = se * (0.25 + 0.75 * C)),
+            (a.fillStyle = U),
+            a.beginPath();
+          for (let J = 0; J <= 10; J++) {
+            let fe = J / 10,
+              ce = N * (0.7 + 0.3 * Math.sin(e.tick * 0.9 + fe * 9));
+            a.lineTo($ + v * fe - K * ce, w + E * fe + ie * ce);
+          }
+          for (let J = 10; J >= 0; J--) {
+            let fe = J / 10,
+              ce = N * (0.7 + 0.3 * Math.sin(e.tick * 0.9 + fe * 9 + 1.3));
+            a.lineTo($ + v * fe + K * ce, w + E * fe - ie * ce);
+          }
+          a.closePath(), a.fill();
+        }
+        a.globalAlpha = C;
+        for (let U = 0; U < 6; U++) {
+          let re = ((e.tick * 9 + U * (Q / 6)) % Q) / Q,
+            se = $ + v * re,
+            N = w + E * re;
+          (a.fillStyle = "#ffffff"),
             a.beginPath(),
-            a.moveTo(h.x1, h.y1 - 9),
-            a.lineTo(h.x2, h.y2 - 9),
+            a.moveTo(se + ie * 6, N + K * 6),
+            a.lineTo(se - K * x * 0.35, N + ie * x * 0.35),
+            a.lineTo(se - ie * 6, N - K * 6),
+            a.lineTo(se + K * x * 0.35, N - ie * x * 0.35),
+            a.closePath(),
+            a.fill();
+        }
+        for (let U = 0; U < 8; U++) {
+          let re = (U / 8 + e.tick * 0.02) % 1,
+            se = e.tick * 0.35 + U * 2.1,
+            N = (x * 0.75 + 3) * Math.sin(se),
+            J = $ + v * re - K * N,
+            fe = w + E * re + ie * N;
+          (a.fillStyle = Math.cos(se) > 0 ? "#6cc04a" : "#3f8a35"),
+            a.save(),
+            a.translate(J, fe),
+            a.rotate(se),
+            a.fillRect(-2.5, -1, 5, 2),
+            a.restore();
+        }
+        let U = 10 + 8 * h.solar;
+        (a.globalAlpha = 0.85 * C),
+          (a.strokeStyle = "#ffe27a"),
+          (a.lineWidth = 1.5);
+        for (let re = 0; re < 10; re++) {
+          let se = e.tick * 0.12 + (re / 10) * Math.PI * 2,
+            N = re % 2 ? U * 0.6 : U;
+          a.beginPath(),
+            a.moveTo($ + Math.cos(se) * 4, w + Math.sin(se) * 4),
+            a.lineTo($ + Math.cos(se) * N, w + Math.sin(se) * N),
             a.stroke();
+        }
+        (a.fillStyle = "#fffbe6"),
+          a.beginPath(),
+          a.arc($, w, 5 + 3 * C, 0, Math.PI * 2),
+          a.fill();
         (a.globalAlpha = 1), (a.lineCap = "butt");
         continue;
       }
@@ -8321,7 +8849,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             b.fh,
           ),
           h.team !== l.team &&
-            e.match.mode === "vs" &&
+            e.match.mode !== "practice" &&
             ((a.globalAlpha = 0.25),
             a.drawImage(
               b.tints.get("#ef5a4f") ?? b.white,
@@ -8529,7 +9057,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       return;
     }
     if (
-      ((a.globalAlpha = (e.alpha ?? 1) * (x ? 0.6 : 1) * v),
+      ((a.globalAlpha =
+        (e.alpha ?? 1) *
+        (x ? 0.6 : 1) *
+        v *
+        (t.smoked && e !== t.player && t.smoked(e) ? 0.22 : 1)),
       a.drawImage(
         e.flash > 0 ? l.white : l.img,
         p,
@@ -8776,6 +9308,34 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             ),
             a.stroke();
           break;
+        case "sunTrail": {
+          let l = s.x2 - s.x,
+            f = s.y2 - s.y,
+            u = Math.hypot(l, f) || 1;
+          (a.globalAlpha = 0.35 * i),
+            (a.strokeStyle = "#4a3a12"),
+            (a.lineWidth = s.size * 0.9),
+            (a.lineCap = "round"),
+            a.beginPath(),
+            a.moveTo(s.x, s.y),
+            a.lineTo(s.x2, s.y2),
+            a.stroke(),
+            (a.globalAlpha = 0.5 * i),
+            (a.strokeStyle = s.color),
+            (a.lineWidth = Math.max(1, s.size * 0.3)),
+            a.stroke(),
+            (a.lineCap = "butt");
+          for (let h = 0; h < u; h += 14)
+            (a.globalAlpha = i * (0.4 + 0.4 * Math.sin(h + s.life * 0.4))),
+              (a.fillStyle = "#fff6c8"),
+              a.fillRect(
+                Math.round(s.x + (l * h) / u),
+                Math.round(s.y + (f * h) / u),
+                2,
+                1,
+              );
+          break;
+        }
         case "flash":
           (a.globalAlpha = 1),
             (a.fillStyle = s.color),
@@ -9723,8 +10283,14 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     for (let r of Object.keys(e.chipFlash))
       e.chipFlash[r] > 0 && e.chipFlash[r]--;
     let i = a.cpu;
-    if (a.match.mode === "vs" && i) {
+    if (a.match.mode !== "practice" && i) {
       wa(a, e, i, H - 5 - Pt, 5, !0, t);
+      a.players
+        .slice(2)
+        .forEach((r, o) =>
+          miniPanel(a, r, H - 5 - 128, 5 + ka + 4 + o * 19, t),
+        );
+      a.zone && zoneHud(a);
       let r = a.match,
         o = 50,
         l = H / 2 - o / 2,
@@ -9770,6 +10336,75 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         italic: !0,
         outline: 2,
       }));
+  }
+  // Compact status strip for the third and fourth fighters.
+  function miniPanel(a, e, t, s, i) {
+    let r = tagOf(e, a),
+      o = e.slot,
+      l = e.out || e.state === "faint";
+    d.save(),
+      l && (d.globalAlpha = 0.45),
+      Ae(t, s, 128, 16, r.color, { edge: "right" }),
+      Oe(i[o.kit.id], Gt(a, e, e.active), t + 4, s + 1.5, 13, {
+        bg: o.kit.color,
+        grey: l,
+        slash: !0,
+      });
+    let f = ue(r.label, r.color, t + 20, s + 2.5, { text: g.night, size: 5 });
+    G(o.kit.name, t + 23 + f, s + 7.4, 6, g.chalk, { weight: 700 }),
+      ot(t + 20, s + 10, 92, o.hp / o.maxHp, o.hp / o.maxHp, 3.2, !1),
+      e.slots.forEach((u, h) =>
+        te(t + 116 + h * 5, s + 10.5, 3, 3, u.hp > 0 ? r.color : g.track2, 1),
+      ),
+      d.restore();
+  }
+  // Tug-of-war meter for Zone Control under the round timer.
+  function zoneHud(a) {
+    let [e, t] = a.zscore,
+      s = H / 2,
+      i = 53,
+      r = 62,
+      o = a.zone.owner;
+    te(s - r - 3, i - 2, r * 2 + 6, 9, "rgba(8,6,18,0.75)", 3),
+      te(
+        s - 1 - (r - 2) * (e / ZONE.goal),
+        i,
+        (r - 2) * (e / ZONE.goal),
+        5,
+        "#33d6ff",
+        2,
+      ),
+      te(s + 1, i, (r - 2) * (t / ZONE.goal), 5, g.cpu, 2),
+      te(s - 0.5, i - 1, 1, 7, g.chalk, 0),
+      G(`${Math.floor(e)}`, s - r - 6, i + 4.6, 6.4, "#33d6ff", {
+        align: "right",
+        weight: 800,
+        outline: 2,
+      }),
+      G(`${Math.floor(t)}`, s + r + 6, i + 4.6, 6.4, g.cpu, {
+        weight: 800,
+        outline: 2,
+      }),
+      G(
+        o === 0
+          ? "HOLDING"
+          : o === 1
+            ? "CPU HOLDING"
+            : o === 2
+              ? "CONTESTED"
+              : "ZONE",
+        s,
+        i + 13,
+        5.4,
+        o === 0
+          ? "#33d6ff"
+          : o === 1
+            ? g.cpu
+            : o === 2 && a.tick % 16 < 8
+              ? g.chalk
+              : g.gold,
+        { align: "center", weight: 800, italic: !0, outline: 2 },
+      );
   }
   function wa(a, e, t, s, i, r, o) {
     let l = t.slot,
@@ -10361,10 +10996,16 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       });
     let i = ["Easy", "Normal", "Hard"][A.cpuLevel],
       r = ["#4df08a", g.gold, g.cpu][A.cpuLevel],
-      o = ue(s ? "VS CPU" : "TRAINING", s ? g.cpu : g.dim, H - 12, 14, {
-        right: !0,
-        size: 7,
-      });
+      o = ue(
+        MODE_NAMES[A.gameMode] ?? "VS CPU",
+        s ? g.cpu : g.dim,
+        H - 12,
+        14,
+        {
+          right: !0,
+          size: 7,
+        },
+      );
     s &&
       ue(i.toUpperCase(), r, H - 14 - o, 14, {
         right: !0,
@@ -10509,7 +11150,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     if (
       (Pe("X", H / 2 - 118, p, 3.4),
       G(
-        `Mode: ${s ? "VS CPU" : "Training"}`,
+        `Mode: ${["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control"][A.gameMode] ?? "VS CPU"}`,
         H / 2 - 112,
         p + 2.4,
         7,
@@ -10634,14 +11275,38 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       te(-10, 14, 236, 44, "rgba(8,6,18,0.7)", 10),
       (d.fillStyle = b),
       d.fillRect(0, m(56), m(230 * K), m(1.6)),
-      V(o ? "You win!" : "CPU wins", 14, 46, 36, o ? g.gold : g.cpu, {
-        skew: !0,
-        outline: 3,
-      }),
-      G(`${_a(c.name)} took the final KO`, 17, 54, 6.4, g.chalk, {
-        italic: !0,
-        weight: 600,
-      }),
+      V(
+        o
+          ? r.mode === "team"
+            ? "Team wins!"
+            : "You win!"
+          : r.mode === "ffa"
+            ? `${["", "1st", "2nd", "3rd", "4th"][r.place] ?? "Out"} place`
+            : r.mode === "team"
+              ? "CPUs win"
+              : "CPU wins",
+        14,
+        46,
+        36,
+        o ? g.gold : g.cpu,
+        {
+          skew: !0,
+          outline: 3,
+        },
+      ),
+      G(
+        r.mode === "zone" && a.zscore && Math.max(...a.zscore) >= ZONE.goal
+          ? `${o ? "You" : "The CPU"} held the zone`
+          : `${_a(c.name)} took the final KO`,
+        17,
+        54,
+        6.4,
+        g.chalk,
+        {
+          italic: !0,
+          weight: 600,
+        },
+      ),
       d.restore(),
       d.restore();
     let $ = 252,
@@ -11950,6 +12615,66 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         { bass: "pump", arp: "roll" },
       ],
     ),
+    // Champion Battle: heroic rather than tense. D-minor verse with brassy stabs,
+    // a soaring F-major chorus with a doubled lead, and a menacing half-time bridge.
+    Ci = dt(
+      [
+        "D5 . . D5 . . D5 . F5 - - - E5 - D5 -",
+        "A4 - - - A#4 - - - B4 - - - C#5 - - -",
+      ],
+      ["Dm", "A"],
+      ["stab", "roll"],
+      [
+        { bass: "pump", arp: "off" },
+        { bass: "walk", arp: "off" },
+      ],
+    ),
+    Cv = dt(
+      [
+        "D5 - - - A4 - D5 - F5 - E5 - D5 - C5 -",
+        "D5 - - - - - - - A4 - C5 - D5 - E5 -",
+        "F5 - - - E5 - D5 - C5 - - - D5 - F5 -",
+        "E5 - - - - - - - C5 - D5 - E5 - G5 -",
+        "A5 - - - G5 - F5 - E5 - F5 - G5 - A5 -",
+        "D6 - - - C6 - A5 - F5 - - - A5 - C6 -",
+        "A#5 - - - A5 - G5 - F5 - G5 - A5 - A#5 -",
+        "A5 - C#6 - E6 - - - A5 - - - C#6 - E6 -",
+      ],
+      ["Dm", "Dm", "Bb", "C", "Dm", "Dm", "Gm", "A"],
+      ["stab", "stab", "stab", "stab", "rush", "rush", "rush", "fill"],
+      Array(8).fill({ bass: "pump", arp: "up" }),
+    ),
+    Cc = dt(
+      [
+        "F5 - - - - - A5 - C6 - - - - - A5 -",
+        "G5 - - - - - E5 - C5 - - - E5 - G5 -",
+        "A5 - - - - - F5 - D5 - - - F5 - A5 -",
+        "A#5 - - - A5 - G5 - F5 - - - G5 - A5 -",
+        "C6 - - - - - A5 - F6 - - - E6 - D6 -",
+        "E6 - - - D6 - C6 - G5 - - - C6 - E6 -",
+        "D6 - - - C6 - A#5 - A5 - - - F5 - D5 -",
+        "E5 - - - - - - - C#6 - - - E6 - - -",
+      ],
+      ["F", "C", "Dm", "Bb", "F", "C", "Bb", "A"],
+      ["main", "main", "main", "main", "rush", "rush", "rush", "roll"],
+      Array(8).fill({ bass: "drive", arp: "roll", dbl: !0 }),
+    ),
+    Cb = dt(
+      [
+        "G4 - - - A#4 - - - D5 - - - G5 - - -",
+        "F5 - - - E5 - - - D5 - - - A4 - - -",
+        "A#4 - - - D5 - - - F5 - - - A#5 - - -",
+        "A5 - A5 - A5 - A5 - C#6 - C#6 - E6 - E6 -",
+      ],
+      ["Gm", "Dm", "Bb", "A"],
+      ["half", "half", "main", "roll"],
+      [
+        { bass: "half", arp: "roll" },
+        { bass: "half", arp: "roll" },
+        { bass: "drive", arp: "roll" },
+        { bass: "pump", arp: "off" },
+      ],
+    ),
     // Victory: a bright fanfare into a bouncing C-major loop.
     Vf = dt(
       [
@@ -12000,6 +12725,14 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       Array(4).fill({ bass: "half", arp: "roll" }),
     ),
     ws = {
+      champion: {
+        bpm: 184,
+        bars: [...Ci, ...Cv, ...Cc, ...Cv, ...Cb, ...Cc],
+        loopFrom: 2,
+        lead: "p50",
+        leadVol: 0.085,
+        arpVol: 0.04,
+      },
       victory: {
         bpm: 140,
         bars: Vf,
@@ -12232,7 +12965,16 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           P === "h" && ct(l, s, 0.028, "highpass", 7500, 0.6, 0.06);
       }
     },
-    Me = new Wt();
+    Me = new Wt(),
+    // Which battle theme to use for the next match.
+    battleSong = () =>
+      A.theme === 1
+        ? "battle"
+        : A.theme === 2
+          ? "champion"
+          : Math.random() < 0.5
+            ? "battle"
+            : "champion";
   var Ut = 1e3 / 60,
     be = "#a184f5";
   async function Ms() {
@@ -12356,7 +13098,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     }
     function E() {
       let n = A.gameMode !== 1;
-      e.startMatch(n ? "vs" : "practice", s.picks, n ? s.cpuPicks : []),
+      e.startMatch(MODES[A.gameMode] ?? "vs", s.picks, n ? s.cpuPicks : []),
         (s.screen = "play"),
         (l.hidden = !0),
         (s.flash = 10),
@@ -12367,7 +13109,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         (de.kit = ""),
         S.select(),
         S.cry(e.player.kit.id, 0.1),
-        Me.play("battle");
+        Me.play(battleSong());
     }
     function Q() {
       for (let n = 0; n < 20; n++) {
@@ -12418,12 +13160,12 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         (s.cursor = RN[W][s.cursor] ?? s.cursor), S.ui(!0);
       }),
         n.pressed.has("special1") &&
-          ((A.gameMode = D ? 1 : 0),
+          ((A.gameMode = (A.gameMode + 1) % MODES.length),
           Ze(),
           (s.cpuPicks = []),
           (s.roulette = -1),
           S.ui(!0),
-          s.picks.length === 2 && A.gameMode === 0 && (s.roulette = 48)),
+          s.picks.length === 2 && A.gameMode !== 1 && (s.roulette = 48)),
         n.pressed.has("special2") &&
           D &&
           ((A.cpuLevel = (A.cpuLevel + 1) % 3), Ze(), S.ui(!0)),
@@ -12617,7 +13359,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               (s.cards = []),
               (s.trail = {}),
               (s.hintT = 0),
-              Me.play("battle"))
+              Me.play(battleSong()))
             : s.resultIndex === 1
               ? x(!0)
               : v()));
@@ -12809,21 +13551,41 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             t.ring(n.x, n.y, 6, 2.4, 14, "#ffd25e", !0);
           break;
         case "itemWarn":
-          t.popup(n.x, n.y - 24, "SITRUS BERRY INCOMING", L.gold, !1);
+          t.popup(n.x, n.y - 24, "ITEM INCOMING", L.gold, !1);
           break;
         case "itemSpawn":
           S.select(),
             t.ring(n.x, n.y, 4, 2, 14, L.gold, !0),
             t.motes(n.x, n.y, 8, 10, L.gold, 1);
           break;
-        case "itemGet":
-          S.heal(),
-            t.heal(n.x, n.y, 10),
-            t.ring(n.x, n.y, 6, 2.6, 16, "#9cf28a", !0),
-            t.popup(n.x, n.y - 40, `+${n.amount} HP`, "#9cf28a", !0),
+        case "itemGet": {
+          let R = ITEMS.find((W) => W.kind === n.kind) ?? ITEMS[0],
+            W = {
+              sitrus: `+${n.amount} HP`,
+              xatk: "ATTACK UP",
+              smoke: "SMOKE!",
+              eject: "EJECT READY",
+            }[n.kind];
+          n.kind === "sitrus" ? (S.heal(), t.heal(n.x, n.y, 10)) : S.cdReady(),
+            n.kind === "smoke" && (t.smoke(n.x, n.y, 30, 10), S.fizzle()),
+            t.ring(n.x, n.y, 6, 2.6, 16, R.color, !0),
+            t.popup(n.x, n.y - 40, W, R.color, !0),
             n.who === D
-              ? t.banner("SITRUS BERRY", "#9cf28a", 40, "health restored")
-              : t.banner("CPU GRABBED THE BERRY", "#ef5a4f", 40);
+              ? t.banner(R.name, R.color, 40)
+              : t.popup(
+                  n.who.x,
+                  n.who.y - 56,
+                  `${tagOf(n.who, e).label}: ${R.name}`,
+                  tagOf(n.who, e).color,
+                  !1,
+                );
+          break;
+        }
+        case "eject":
+          S.dodge(),
+            t.ring(n.who.x, n.who.y - 10, 6, 3, 14, "#ffd25e"),
+            t.popup(n.who.x, n.who.y - 46, "EJECT!", "#ffd25e", !0),
+            t.motes(n.who.x, n.who.y, 10, 12, "#ffd25e", 1.6);
           break;
         case "itemGone":
           t.dust(n.x, n.y, 4, 0, 0, 0.6);
@@ -13090,6 +13852,38 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           break;
         case "roundStart":
           break;
+        case "zoneWarn":
+          t.ring(n.x, n.y, 4, 3, 30, L.gold, !0),
+            t.popup(n.x, n.y - 20, "ZONE MOVING", L.gold),
+            S.ui(!0);
+          break;
+        case "zoneMove":
+          t.ring(n.x, n.y, 10, 2.4, 22, L.gold, !0),
+            (t.shake = Math.max(t.shake, 3)),
+            S.callout(1);
+          break;
+        case "zoneOwner":
+          n.owner === 0 && S.ui(!0);
+          break;
+        case "zoneMark":
+          t.banner(
+            `${n.mark}%`,
+            n.side === 0 ? "#33d6ff" : "#ef5a4f",
+            50,
+            n.side === 0
+              ? "you're holding the zone"
+              : "the CPU is holding the zone",
+          );
+          break;
+        case "eliminated":
+          t.banner(
+            n.who === e.player ? "OUT!" : "ELIMINATED",
+            n.who.team === e.player.team ? "#ef5a4f" : L.gold,
+            70,
+            `${tagOf(n.who, e).label} is out \xB7 ${n.left} left`,
+          ),
+            (t.impact = 4);
+          break;
         case "rooted":
           n.on &&
             (S.shell(),
@@ -13114,6 +13908,32 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               "#ffe27a",
               n.c >= 1,
             );
+          break;
+        case "solarBeam":
+          t.add({
+            kind: "sunTrail",
+            x: n.x1,
+            y: n.y1,
+            x2: n.x2,
+            y2: n.y2,
+            size: 6 + 10 * n.c,
+            life: 70,
+            under: !0,
+            color: "#ffe27a",
+          }),
+            t.shake(n.x2 - n.x1, n.y2 - n.y1, 2 + 4 * n.c),
+            (t.screenFlash = n.c > 0.8 ? 2 : 0),
+            (t.screenFlashColor = "#fff6c8");
+          for (let R = 0; R < 10; R++) {
+            let W = R / 10;
+            t.leaves(
+              n.x1 + (n.x2 - n.x1) * W,
+              n.y1 + (n.y2 - n.y1) * W,
+              6,
+              1,
+              1.4,
+            );
+          }
           break;
         case "solarRelease":
           S.smashRelease(1),
@@ -13670,7 +14490,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           48,
           e.match.mode === "vs" && T
             ? `Round ${e.match.round} \xB7 vs ${T.kit.name} & ${T.slots[1]?.kit.name ?? ""}`
-            : "Training",
+            : ({
+                ffa: "Free-for-all \xB7 last one standing",
+                team: "Team battle \xB7 you and your ally vs two CPUs",
+                zone: "Zone control \xB7 hold the ring to fill your meter",
+              }[e.match.mode] ?? "Training"),
         ),
           S.ready(),
           T && S.cry(T.kit.id, 0.35);
