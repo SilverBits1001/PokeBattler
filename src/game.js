@@ -2116,6 +2116,38 @@
       dischargeDmg: 24,
       short: 480,
     },
+    // Arena surges: one big set-piece per arena, announced a few seconds ahead.
+    // Each one hits every fighter alike, so none of them favours a side.
+    SURGE = {
+      first: 1200,
+      every: 1800,
+      warn: 150,
+      names: [
+        "SPOTLIGHT FINALE",
+        "TREMOR",
+        "METEOR SHOWER",
+        "BLIZZARD",
+        "OVERLOAD",
+      ],
+      subs: [
+        "One big spotlight at centre",
+        "Rocks are falling on everyone",
+        "Meteors incoming",
+        "Gale winds, and the ice refreezes",
+        "Every pylon arcs at once",
+      ],
+      colors: ["#ffd25e", "#c9a26b", "#ff7a2a", "#bfe6ff", "#f8d030"],
+      live: [480, 150, 300, 420, 100],
+      // Falling rocks and meteors: shadow grows for dropWarn ticks, then lands.
+      dropWarn: 75,
+      rockR: 24,
+      rockDmg: 18,
+      meteorR: 26,
+      meteorDmg: 22,
+      meteorEvery: 38,
+      spotR: 64,
+      wind: 0.4,
+    },
     // Sitrus Berry: one contested heal at centre, announced before it lands.
     // Item pool for the centre spawn. One item at a time, always announced first.
     ITEMS = [
@@ -2640,6 +2672,9 @@
         this.collapses = [];
         this.heatVents = [];
         this.icicles = [];
+        this.drops = [];
+        this.surge = null;
+        this.surgeT = SURGE.first;
         this.arc = null;
         this.item = null;
         this.itemT = 0;
@@ -2755,6 +2790,9 @@
           (this.icicleT = FROST.icicleEvery[0]),
           (this.arc = null),
           (this.arcT = PLANT.cycle / 2),
+          (this.drops = []),
+          (this.surge = null),
+          (this.surgeT = SURGE.first),
           (this.arcPair = 0),
           (this.item = null),
           (this.itemT = SITRUS.firstAt),
@@ -6775,6 +6813,21 @@
           s = e[this.arc.b];
         return t && s ? [t.x, t.y, s.x, s.y] : null;
       }
+      // Overload: near any of the three pylon-to-pylon lines.
+      nearPylonLine(e, t, s) {
+        let i = this.rocks.filter((r) => r.pylon);
+        return i.some((r, o) => {
+          let l = i[(o + 1) % i.length],
+            f = l.x - r.x,
+            u = l.y - r.y,
+            h = me(
+              ((e - r.x) * f + (t - r.y) * u) / (f * f + u * u || 1),
+              0,
+              1,
+            );
+          return Math.hypot(e - (r.x + f * h), t - (r.y + u * h)) < s;
+        });
+      }
       nearArc(e, t, s = 10) {
         let i = this.arcPoints();
         if (!i) return !1;
@@ -6797,6 +6850,10 @@
           this.collapses.some(
             (s) => Math.hypot(s.x - e, (s.y - t) * 1.3) < RUINS.collapseR + 6,
           ) ||
+          this.drops.some(
+            (s) => Math.hypot(s.x - e, (s.y - t) * 1.3) < SURGE.meteorR + 6,
+          ) ||
+          (this.surgeLive(4) && this.nearPylonLine(e, t, 16)) ||
           this.nearArc(e, t, 16)
         );
       }
@@ -6806,17 +6863,24 @@
         let e = this.tick * STADIUM.speed,
           t = Se + Math.cos(e) * STADIUM.rx,
           s = Te + Math.sin(e * 1.7) * STADIUM.ry;
-        return [
-          [t, s],
-          [2 * Se - t, 2 * Te - s],
+        let i = [
+          [t, s, STADIUM.spotR],
+          [2 * Se - t, 2 * Te - s, STADIUM.spotR],
         ];
+        // Spotlight Finale adds one big spot in the centre.
+        return this.surgeLive(0) && i.push([Se, Te, SURGE.spotR]), i;
+      }
+      // Is this arena's surge under way (past its warning)?
+      surgeLive(e) {
+        let t = this.surge;
+        return !!t && t.k === e && t.t > SURGE.warn;
       }
       // How much faster this fighter's specials recharge from the arena.
       cdBoost(e) {
         if (e.state === "faint") return 1;
         if (
           this.spotlights().some(
-            ([t, s]) => Math.hypot(e.x - t, (e.y - s) * 1.5) < STADIUM.spotR,
+            ([t, s, i]) => Math.hypot(e.x - t, (e.y - s) * 1.5) < i,
           )
         )
           return STADIUM.boost;
@@ -6853,6 +6917,123 @@
           u,
           "arena",
         );
+      }
+      // The arena surge: warn, run the set-piece, then wait for the next one.
+      updateSurge(e) {
+        if (this.match.phase === "fight" && this.intro <= 0) {
+          let t = this.surge;
+          if (!t && --this.surgeT <= 0)
+            (this.surge = t = { k: this.arena, t: 0, n: 0 }),
+              this.emit({ type: "surgeWarn", k: this.arena });
+          if (t) {
+            let s = ++t.t - SURGE.warn,
+              i = SURGE.live[t.k],
+              r = this.players.filter((o) => o.state !== "faint" && !o.out);
+            if (s === 0)
+              (t.dir = this.rand() < 0.5 ? -1 : 1),
+                this.emit({ type: "surgeStart", k: t.k });
+            if (s >= 0 && s < i) {
+              // Tremor: two waves of rocks, one aimed near each fighter plus a stray.
+              if (t.k === 1 && (s === 0 || s === 70))
+                for (let o of [...r, null])
+                  this.drops.push({
+                    kind: "rock",
+                    x: o
+                      ? me(o.x + (this.rand() - 0.5) * 40, B.x0 + 24, B.x1 - 24)
+                      : B.x0 + 40 + this.rand() * (B.x1 - B.x0 - 80),
+                    y: o
+                      ? me(o.y + (this.rand() - 0.5) * 26, B.y0 + 20, B.y1 - 16)
+                      : B.y0 + 30 + this.rand() * (B.y1 - B.y0 - 60),
+                    t: 0,
+                  });
+              // Meteor Shower: one meteor at a time, taking turns between fighters.
+              if (t.k === 2 && s % SURGE.meteorEvery === 0 && r.length) {
+                let o = r[t.n++ % r.length];
+                this.drops.push({
+                  kind: "meteor",
+                  x: me(o.x + (this.rand() - 0.5) * 60, B.x0 + 24, B.x1 - 24),
+                  y: me(o.y + (this.rand() - 0.5) * 36, B.y0 + 20, B.y1 - 16),
+                  t: 0,
+                });
+              }
+              // Blizzard: a steady gale pushes everyone on the ground one way.
+              if (t.k === 3)
+                for (let o of e())
+                  o.kind === "player" &&
+                    (o.x = me(
+                      o.x + t.dir * SURGE.wind,
+                      B.x0 + o.r,
+                      B.x1 - o.r,
+                    ));
+              // Overload: all three pylon lines are live.
+              if (t.k === 4 && s % 10 === 1) {
+                let o = this.rocks.filter((l) => l.pylon);
+                for (let l of e())
+                  o.some((f, u) => {
+                    let h = o[(u + 1) % o.length];
+                    if (f.off > 0 || h.off > 0) return !1;
+                    let c = h.x - f.x,
+                      y = h.y - f.y,
+                      b = me(
+                        ((l.x - f.x) * c + (l.y - f.y) * y) / (c * c + y * y),
+                        0,
+                        1,
+                      );
+                    return (
+                      Math.hypot(l.x - f.x - c * b, l.y - f.y - y * b) <
+                      PLANT.arcW
+                    );
+                  }) &&
+                    (l.kind === "player" &&
+                    (l.kit.type === "ELECTRIC" || l.kit.type2 === "ELECTRIC")
+                      ? ((l.slot.cdX = Math.max(0, l.slot.cdX - 30)),
+                        (l.slot.cdY = Math.max(0, l.slot.cdY - 30)))
+                      : (this.envHit(l, PLANT.arcDmg, 1.5, 0, 1, !1, 4, 14),
+                        l.kind === "player" &&
+                          ((l.paraT = Math.max(l.paraT ?? 0, 30)),
+                          this.emit({ type: "shock", x: l.x, y: l.y }))));
+              }
+            }
+            s === i &&
+              (t.k === 3 &&
+                this.ice.forEach((o) => {
+                  o.melt > 0 &&
+                    ((o.melt = 0),
+                    this.emit({ type: "refreeze", x: o.x, y: o.y }));
+                }),
+              (this.surge = null),
+              (this.surgeT = SURGE.every),
+              this.emit({ type: "surgeEnd", k: t.k }));
+          }
+        }
+        // Falling rocks and meteors land when their shadow has fully grown.
+        for (let t of this.drops)
+          if (++t.t === SURGE.dropWarn) {
+            let s = t.kind === "meteor",
+              i = s ? SURGE.meteorR : SURGE.rockR;
+            for (let r of e()) {
+              let o = r.x - t.x,
+                l = r.y - t.y,
+                f = Math.hypot(o, l * 1.3);
+              f < i &&
+                (this.envHit(
+                  r,
+                  s ? SURGE.meteorDmg : SURGE.rockDmg,
+                  4,
+                  o / (f || 1),
+                  l / (f || 1),
+                  !1,
+                  8,
+                  24,
+                  !1,
+                ),
+                s && this.burn(r));
+            }
+            // A meteor leaves a heat vent behind, like an eruption does.
+            s && this.heatVents.push({ x: t.x, y: t.y, t: CRATER.heatTicks }),
+              this.emit({ type: "drop", kind: t.kind, x: t.x, y: t.y });
+          }
+        this.drops = this.drops.filter((t) => t.t < SURGE.dropWarn);
       }
       updateHazards() {
         // Ruins: rubble falls where a boulder was destroyed.
@@ -6895,6 +7076,7 @@
               !(s.kind === "player" && (s.invincible || s.state === "faint")) &&
               !this.floating(s),
           );
+        this.updateSurge(e);
         // Cinder Crater
         if (this.lava.length) {
           // Water shots and jets crust over any pool they pass across.
@@ -8328,6 +8510,8 @@
       };
     }
     for (let e of window.__TILES__ ?? []) TILESET.push(await Qt(e));
+    for (let [e, t] of Object.entries(window.__VFX__ ?? {}))
+      VFX[e] = { ...t, img: await Qt(t.src) };
     return a;
   }
   // Canvas memory is tight on phones and tablets, so tinted sprite sheets live in
@@ -8551,6 +8735,7 @@
     xt = class {
       constructor() {
         this.parts = [];
+        this.sheets = [];
         this.ghosts = [];
         this.popups = [];
         this.banners = [];
@@ -9062,6 +9247,10 @@
           vy: r ? -0.9 : -0.7,
         });
       }
+      // A PixelLab effect sheet played once at a spot (under = below fighters).
+      sheet(e, t, s, i = 1, r = !1) {
+        VFX[e] && this.sheets.push({ n: e, x: t, y: s, k: i, under: r, t: 0 });
+      }
       banner(e, t, s = 50, i) {
         (this.banners = this.banners.filter((r) => r.text !== e)),
           this.banners.push({ text: e, sub: i, life: s, max: s, color: t });
@@ -9142,6 +9331,10 @@
               break;
           }
         this.parts = this.parts.filter((e) => e.life > 0);
+        for (let e of this.sheets) e.t++;
+        this.sheets = this.sheets.filter(
+          (e) => vfxFrame(e.n, e.t) < VFX[e.n].n,
+        );
         for (let e of this.ghosts) e.life--;
         this.ghosts = this.ghosts.filter((e) => e.life > 0);
         for (let e of this.popups) e.life--, (e.y += e.vy), (e.vy *= 0.92);
@@ -9214,6 +9407,39 @@
       shadow: "rgba(8,10,14,0.38)",
     },
     Bt = null;
+  // ---- PixelLab effect sheets (assets/vfx.js) ----
+  var VFX = {};
+  // Draws frame f of an effect, anchored at (x, y); loops wrap, one-shots hold.
+  function vfxDraw(a, n, f, x, y, k = 1, l = 1, r = 0) {
+    let e = VFX[n];
+    if (!e) return !1;
+    f = e.loop ? ((f % e.n) + e.n) % e.n : Math.max(0, Math.min(e.n - 1, f));
+    return (
+      a.save(),
+      (a.globalAlpha *= l),
+      a.translate(Math.round(x), Math.round(y)),
+      r && a.rotate(r),
+      a.scale(k, k),
+      a.drawImage(
+        e.img,
+        (f % 4) * e.fw,
+        (f >> 2) * e.fh,
+        e.fw,
+        e.fh,
+        -e.ax,
+        -e.ay,
+        e.fw,
+        e.fh,
+      ),
+      a.restore(),
+      !0
+    );
+  }
+  var vfxFrame = (n, t) => Math.floor((t * (VFX[n]?.fps ?? 12)) / 60);
+  function sheetsDraw(a, e, t) {
+    for (let s of e.sheets)
+      !!s.under === t && vfxDraw(a, s.n, vfxFrame(s.n, s.t), s.x, s.y, s.k);
+  }
   // ---- PixelLab tile floors ----
   // Each arena has a 16px top-down Wang tileset: a 4x4 sheet whose cells are
   // keyed by their corners (NW, NE, SW, SE), 1 meaning the upper terrain.
@@ -9735,7 +9961,7 @@
     let t = e.tick;
     if (e.arena === 0) {
       a.save(), (a.globalCompositeOperation = "lighter");
-      for (let [s, i] of e.spotlights()) {
+      for (let [s, i, R] of e.spotlights()) {
         let r = a.createLinearGradient(0, B.y0 - 16, 0, i);
         r.addColorStop(0, "rgba(255,246,210,0.10)"),
           r.addColorStop(1, "rgba(255,246,210,0.02)"),
@@ -9743,24 +9969,16 @@
           a.beginPath(),
           a.moveTo(s - 6, B.y0 - 16),
           a.lineTo(s + 6, B.y0 - 16),
-          a.lineTo(s + STADIUM.spotR, i),
-          a.lineTo(s - STADIUM.spotR, i),
+          a.lineTo(s + R, i),
+          a.lineTo(s - R, i),
           a.fill();
-        let o = a.createRadialGradient(s, i, 0, s, i, STADIUM.spotR);
+        let o = a.createRadialGradient(s, i, 0, s, i, R);
         o.addColorStop(0, "rgba(255,246,210,0.42)"),
           o.addColorStop(0.75, "rgba(255,230,160,0.2)"),
           o.addColorStop(1, "rgba(255,230,160,0)"),
           (a.fillStyle = o),
           a.beginPath(),
-          a.ellipse(
-            s,
-            i,
-            STADIUM.spotR,
-            STADIUM.spotR / 1.5,
-            0,
-            0,
-            Math.PI * 2,
-          ),
+          a.ellipse(s, i, R, R / 1.5, 0, 0, Math.PI * 2),
           a.fill();
       }
       a.restore();
@@ -10016,7 +10234,17 @@
     for (let s of e.vents) {
       let i = s.t / CRATER.ventWarn,
         r = CRATER.ventR;
-      (a.globalAlpha = 0.25 + 0.5 * i),
+      // The vent swells into a bubbling pool before it blows.
+      vfxDraw(
+        a,
+        "vent",
+        vfxFrame("vent", t),
+        s.x,
+        s.y + 4,
+        0.35 + 0.6 * i,
+        0.5 + 0.5 * i,
+      );
+      (a.globalAlpha = 0.15 + 0.3 * i),
         (a.fillStyle = "#ff4a1a"),
         a.beginPath(),
         a.ellipse(s.x, s.y, r * i, r * i * 0.75, 0, 0, Math.PI * 2),
@@ -10056,16 +10284,270 @@
         a.stroke(),
         a.setLineDash([]),
         (a.globalAlpha = 1);
-      if (i > 0.6) {
-        let o = s.y - (1 - i) * 220 - 14;
-        (a.fillStyle = "#e9f6ff"),
+    }
+  }
+  // Pylon tops, where arcs run between (the pylon art is about 30px tall).
+  var pylonTops = (e) =>
+    e.rocks.filter((t) => t.pylon).map((t) => [t.x, t.y - 30, t.off > 0]);
+  // A jagged live bolt from (s, i) to (r, o): glow, body and a white core.
+  function boltLine(a, s, i, r, o, f) {
+    for (let [c, y, b] of [
+      ["rgba(248,208,48,0.35)", 6, 0],
+      ["#ffe866", 2, 1],
+      ["#ffffff", 1, 2],
+    ]) {
+      (a.strokeStyle = c), (a.lineWidth = y), a.beginPath(), a.moveTo(s, i);
+      for (let p = 1; p < 12; p++) {
+        let k = p / 12;
+        a.lineTo(
+          s + (r - s) * k + Math.sin(f * 1.7 + p * 2.3 + b) * 5,
+          i + (o - i) * k + Math.cos(f * 2.1 + p * 1.9 + b) * 5,
+        );
+      }
+      a.lineTo(r, o), a.stroke();
+    }
+  }
+  // Looming ground marks for falling rocks and meteors, and the surge set-pieces.
+  function surgeGround(a, e) {
+    let t = e.tick;
+    for (let s of e.drops) {
+      let i = s.t / SURGE.dropWarn,
+        r = s.kind === "meteor" ? SURGE.meteorR : SURGE.rockR,
+        o = i > 0.75 && t % 6 < 3;
+      // The shadow darkens and tightens as the thing above gets closer.
+      (a.globalAlpha = 0.15 + 0.45 * i),
+        (a.fillStyle = s.kind === "meteor" ? "#3a0d08" : "#1b160f"),
+        a.beginPath(),
+        a.ellipse(
+          s.x,
+          s.y,
+          r * (0.35 + 0.65 * i),
+          r * (0.35 + 0.65 * i) * 0.6,
+          0,
+          0,
+          Math.PI * 2,
+        ),
+        a.fill();
+      // Two dashed rings close in from outside onto the landing zone.
+      let l = r * (1 + 0.9 * (1 - i));
+      (a.globalAlpha = 0.55 + 0.45 * i),
+        (a.strokeStyle = o
+          ? "#ffffff"
+          : s.kind === "meteor"
+            ? "#ff7a2a"
+            : "#ffd25e"),
+        (a.lineWidth = 1.5),
+        a.setLineDash([5, 3]),
+        (a.lineDashOffset = -t * 0.6),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, l, l * 0.6, 0, 0, Math.PI * 2),
+        a.stroke(),
+        (a.lineDashOffset = t * 0.6),
+        (a.strokeStyle = s.kind === "meteor" ? "#ef5a4f" : "#c9a26b"),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, r, r * 0.6, 0, 0, Math.PI * 2),
+        a.stroke(),
+        a.setLineDash([]);
+      // Corner ticks of a target reticle.
+      a.fillStyle = a.strokeStyle;
+      for (let f of [0, 1, 2, 3]) {
+        let u = (f * Math.PI) / 2 + t * 0.03;
+        a.fillRect(
+          Math.round(s.x + Math.cos(u) * (l + 3)) - 1,
+          Math.round(s.y + Math.sin(u) * (l + 3) * 0.6) - 1,
+          3,
+          3,
+        );
+      }
+      a.globalAlpha = 1;
+    }
+    let s = e.surge;
+    if (!s) return;
+    let i = s.t / SURGE.warn,
+      r = s.t > SURGE.warn;
+    // Spotlight Finale: the big spot is drawn by arenaLive; while it is coming,
+    // a gold ring shrinks onto where it will land.
+    if (s.k === 0 && !r) {
+      let o = SURGE.spotR * (1 + 1.2 * (1 - i));
+      (a.globalAlpha = 0.4 + 0.6 * i),
+        (a.strokeStyle = t % 10 < 5 ? "#ffd25e" : "#fff4c2"),
+        (a.lineWidth = 2),
+        a.setLineDash([6, 4]),
+        (a.lineDashOffset = -t),
+        a.beginPath(),
+        a.ellipse(Se, Te, o, o / 1.5, 0, 0, Math.PI * 2),
+        a.stroke(),
+        a.setLineDash([]),
+        (a.globalAlpha = 1);
+    }
+    // Overload: all three lines flicker while it charges.
+    if (s.k === 4 && !r) {
+      let o = pylonTops(e);
+      (a.globalAlpha = t % 8 < 5 ? 1 : 0.45),
+        (a.strokeStyle = "#ffe866"),
+        (a.lineWidth = 1 + i),
+        a.setLineDash([5, 4]),
+        (a.lineDashOffset = -t);
+      for (let l = 0; l < o.length; l++) {
+        let f = o[l],
+          u = o[(l + 1) % o.length];
+        f[2] ||
+          u[2] ||
+          (a.beginPath(),
+          a.moveTo(f[0], f[1]),
+          a.lineTo(u[0], u[1]),
+          a.stroke());
+      }
+      a.setLineDash([]), (a.globalAlpha = 1);
+    }
+  }
+  // Things in the air over the fighters: falling rocks and meteors, Overload bolts,
+  // pylon crackle while any arc is charging.
+  function dropsAir(a, e) {
+    let t = e.tick;
+    for (let s of e.icicles) {
+      let i = s.t / FROST.icicleWarn;
+      // The icicle drops into view, speeding up, with a streak behind it.
+      if (i > 0.4) {
+        let l = (i - 0.4) / 0.6,
+          o = s.y - (1 - l) * (1 - l) * 230 - 18;
+        (a.globalAlpha = 0.35 * l),
+          (a.fillStyle = "#e9f6ff"),
+          a.fillRect(s.x - 1, o - 26 * l, 2, 26 * l),
+          (a.globalAlpha = 1),
+          (a.fillStyle = "#7c85bf"),
+          a.beginPath(),
+          a.moveTo(s.x - 5, o),
+          a.lineTo(s.x + 5, o),
+          a.lineTo(s.x, o + 18),
+          a.closePath(),
+          a.fill(),
+          (a.fillStyle = "#cfefff"),
           a.beginPath(),
           a.moveTo(s.x - 4, o),
-          a.lineTo(s.x + 4, o),
-          a.lineTo(s.x, o + 14),
+          a.lineTo(s.x + 1, o),
+          a.lineTo(s.x, o + 15),
           a.closePath(),
-          a.fill();
+          a.fill(),
+          (a.fillStyle = "#ffffff"),
+          a.fillRect(s.x - 3, o, 2, 6);
       }
+    }
+    for (let s of e.drops) {
+      let i = s.t / SURGE.dropWarn;
+      if (s.kind === "rock") {
+        if (i < 0.3) continue;
+        let r = (i - 0.3) / 0.7,
+          o = (1 - r) * (1 - r) * 150;
+        Rk || (Rk = Fk());
+        let l = Rk[(s.x | 0) % 2],
+          f = 0.5 + 0.2 * r;
+        (a.globalAlpha = Math.min(1, r * 3)),
+          a.drawImage(
+            l,
+            Math.round(s.x - 18 * f),
+            Math.round(s.y - 30 * f - o),
+            36 * f,
+            34 * f,
+          ),
+          (a.globalAlpha = 1);
+      } else {
+        if (i < 0.15) continue;
+        // Meteors come in steeply from the upper right.
+        let r = (i - 0.15) / 0.85,
+          o = 90 * (1 - r),
+          l = 150 * (1 - r);
+        vfxDraw(
+          a,
+          "meteor",
+          vfxFrame("meteor", t),
+          s.x + o,
+          s.y - l,
+          1,
+          Math.min(1, r * 4),
+          Math.atan2(150, -90),
+        );
+      }
+    }
+    let s = e.surge,
+      i = pylonTops(e);
+    if (s && s.k === 4) {
+      let r = s.t > SURGE.warn;
+      for (let [o, l, f] of i)
+        f ||
+          vfxDraw(a, "crackle", vfxFrame("crackle", t) + o, o, l, r ? 1.4 : 1);
+      if (r)
+        for (let o = 0; o < i.length; o++) {
+          let l = i[o],
+            f = i[(o + 1) % i.length];
+          l[2] || f[2] || boltLine(a, l[0], l[1], f[0], f[1], t + o * 7);
+        }
+    } else if (e.arc && e.arc.t <= PLANT.warn) {
+      let r = e.arcPoints();
+      r &&
+        (vfxDraw(a, "crackle", vfxFrame("crackle", t), r[0], r[1] - 30),
+        vfxDraw(a, "crackle", vfxFrame("crackle", t) + 5, r[2], r[3] - 30));
+    }
+  }
+  // Screen-space surge dressing: a coloured edge pulse and hazard stripes while
+  // a surge is coming, then weather over the whole view for the Blizzard.
+  function surgeScreen(a, e) {
+    let t = e.surge;
+    if (!t) return;
+    let s = e.tick,
+      i = t.t <= SURGE.warn,
+      r = SURGE.colors[t.k],
+      o = parseInt(r.slice(1), 16),
+      l = `${o >> 16},${(o >> 8) & 255},${o & 255}`;
+    if (i) {
+      let f = 0.5 + 0.5 * Math.sin(s * 0.25),
+        u = a.createRadialGradient(
+          Y / 2,
+          _ / 2,
+          _ * 0.4,
+          Y / 2,
+          _ / 2,
+          Y * 0.62,
+        );
+      u.addColorStop(0, `rgba(${l},0)`),
+        u.addColorStop(1, `rgba(${l},${0.18 + 0.22 * f})`),
+        (a.fillStyle = u),
+        a.fillRect(0, 0, Y, _);
+      // Scrolling hazard stripes along the bottom edge.
+      a.save(), a.beginPath(), a.rect(0, _ - 5, Y, 5), a.clip();
+      for (let h = -10 + ((s * 0.8) % 12); h < Y + 10; h += 12)
+        (a.fillStyle = r),
+          a.beginPath(),
+          a.moveTo(h, _),
+          a.lineTo(h + 6, _),
+          a.lineTo(h + 11, _ - 5),
+          a.lineTo(h + 5, _ - 5),
+          a.fill();
+      a.restore();
+    } else if (t.k === 3) {
+      // Blizzard: a white haze and snow streaks driven along by the wind.
+      (a.fillStyle = "rgba(170,196,230,0.22)"), a.fillRect(0, 0, Y, _);
+      let f = rt(7);
+      for (let u = 0; u < 140; u++) {
+        let h = f() * Y,
+          c = f() * _,
+          y = 3 + f() * 4,
+          b = ((((h + s * y * t.dir) % (Y + 40)) + Y + 40) % (Y + 40)) - 20,
+          p = (c + s * 0.5 * (0.5 + f())) % _,
+          w = Math.round(6 + y * 2);
+        (a.globalAlpha = 0.55 + f() * 0.4),
+          (a.fillStyle = "#6f86a6"),
+          a.fillRect(Math.round(b), Math.round(p) + 1, w, 1),
+          (a.fillStyle = "#ffffff"),
+          a.fillRect(Math.round(b), Math.round(p), w, 1);
+      }
+      a.globalAlpha = 1;
+    } else if (t.k === 2) {
+      let f = a.createLinearGradient(0, 0, 0, _);
+      f.addColorStop(0, "rgba(255,90,30,0.16)"),
+        f.addColorStop(0.5, "rgba(255,90,30,0)"),
+        (a.fillStyle = f),
+        a.fillRect(0, 0, Y, _);
     }
   }
   // Lightning between two pylons: a dashed warning, then a live jagged bolt.
@@ -10509,6 +10991,7 @@
     hazardGround(a, e);
     zoneGround(a, e);
     arenaLive(a, e);
+    surgeGround(a, e);
     lightPools(a, e);
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
@@ -10664,6 +11147,7 @@
         ),
         a.fill();
     ua(a, t, !0);
+    sheetsDraw(a, t, !0);
     for (let h of t.ghosts) {
       let c = h.anim.tints.get(h.color) ?? h.anim.white;
       (a.globalAlpha = (h.life / h.max) * 0.55),
@@ -11269,6 +11753,8 @@
         a.fillRect(c - 1, y - 1, 2, 2);
     }
     ua(a, t, !1);
+    sheetsDraw(a, t, !1);
+    dropsAir(a, e);
     for (let h of t.ambient)
       (a.globalAlpha = 0.18 + 0.14 * Math.sin(h.ph * 2)),
         (a.fillStyle = "#f4ead0"),
@@ -11298,6 +11784,7 @@
         (a.fillStyle = h),
         a.fillRect(0, 0, Y, _);
     }
+    surgeScreen(a, e);
     if (t.speed > 0) {
       let h = rt(e.tick >> 1);
       (a.strokeStyle = t.speedColor), (a.lineWidth = 1);
@@ -15554,6 +16041,14 @@
       heatWarn() {
         O() && I("p12", F(88), F(88), 0.04, 0.05);
       },
+      // Two-tone alarm for an arena surge.
+      siren() {
+        O() &&
+          [0, 0.24, 0.48].forEach((a) => {
+            I("p25", F(79), F(86), 0.16, 0.07, a),
+              I("p25", F(86), F(79), 0.08, 0.06, a + 0.16);
+          });
+      },
       shell() {
         O() &&
           (I("p50", 260, 160, 0.06, 0.14), X(0.05, "bandpass", 900, 2, 0.25));
@@ -16958,7 +17453,8 @@
           t.debris(n.x, n.y - 10, 3, 0, -0.4), t.dust(n.x, n.y, 2, 0, 0, 0.6);
           break;
         case "rockBreak":
-          S.wall(),
+          t.sheet("collapse", n.x, n.y, 0.55),
+            S.wall(),
             S.guardBreak(),
             t.shake(0, 1, 5),
             t.debris(n.x, n.y - 10, 16, 0, -0.6),
@@ -16966,7 +17462,8 @@
             t.ring(n.x, n.y, 8, 3, 16, "#c9bfa6", !0);
           break;
         case "collapse":
-          S.slam(),
+          t.sheet("collapse", n.x, n.y, 0.9),
+            S.slam(),
             t.shake(0, 1, 5),
             t.debris(n.x, n.y - 6, 22, 0, -0.4),
             t.dust(n.x, n.y, 18, 0, 0, 2.4),
@@ -17523,7 +18020,8 @@
         case "eruptHeat":
           break;
         case "erupt":
-          S.slam(),
+          t.sheet("eruption", n.x, n.y, 0.85),
+            S.slam(),
             t.shake(0, 1, 6),
             (t.impact = Math.max(t.impact, 2)),
             t.ring(n.x, n.y, 8, 3.4, 18, "#ff9a3a", !0);
@@ -17545,7 +18043,8 @@
           S.ui(!1);
           break;
         case "icicle":
-          S.wall(),
+          t.sheet("icicle", n.x, n.y, 0.7),
+            S.wall(),
             t.shake(0, 1, 2.5),
             t.debris(n.x, n.y - 6, 10, 0, -0.8),
             t.ring(n.x, n.y, 4, 2, 10, "#e9f6ff", !0);
@@ -17553,8 +18052,44 @@
         case "arcWarn":
           S.charge();
           break;
+        case "surgeWarn":
+          S.siren(),
+            t.banner(SURGE.names[n.k], SURGE.colors[n.k], 150, SURGE.subs[n.k]),
+            t.shake(0, 1, n.k === 1 ? 3 : 1.5);
+          break;
+        case "surgeStart":
+          if (n.k === 0)
+            t.sheet("beam", Se, Te, 1.2),
+              S.callout(1),
+              t.ring(Se, Te, 10, 3, 18, "#ffd25e", !0);
+          if (n.k === 1) S.slam(), t.shake(0, 1, 7);
+          if (n.k === 3)
+            S.overheat(), t.popup(Se, Te - 40, "WIND!", "#e9f6ff", !0);
+          if (n.k === 4) {
+            S.closeCall(), t.shake(0, 1, 4);
+            for (let [R, D, H] of pylonTops(e))
+              H || t.sheet("bolt", R, D + 30, 1);
+          }
+          break;
+        case "drop":
+          n.kind === "meteor"
+            ? (t.sheet("eruption", n.x, n.y, 0.7),
+              S.slam(),
+              t.shake(0, 1, 5),
+              t.embers(n.x, n.y, 10, 4))
+            : (t.sheet("collapse", n.x, n.y, 0.65),
+              S.wall(),
+              t.shake(0, 1, 4),
+              t.debris(n.x, n.y - 6, 10, 0, -0.6));
+          break;
+        case "refreeze":
+          t.sheet("icicle", n.x, n.y, 0.6),
+            t.ring(n.x, n.y, 8, 2.4, 16, "#e9f6ff", !0),
+            t.motes(n.x, n.y, 10, 12, "#ffffff", 1.2);
+          break;
         case "discharge":
-          S.closeCall(),
+          t.sheet("bolt", n.x, n.y, 1),
+            S.closeCall(),
             t.shake(0, 1, 5),
             t.ring(n.x, n.y - 20, 8, 4.5, 16, "#f8d030"),
             t.motes(n.x, n.y, 30, 18, "#ffe866", 2.4),

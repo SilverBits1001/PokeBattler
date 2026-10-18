@@ -530,3 +530,54 @@ Feedback: the camera should sit a little closer to the player.
 - At close range the fighters now fill noticeably more of the screen.
 - It still pulls back to the whole arena (1x) when fighters stand at opposite
   walls, so nobody leaves the screen; a 1.1x minimum was tried and cropped them.
+
+## Arena events: surges and PixelLab effects
+
+Feedback: matches needed bigger events, with better visuals and warnings that
+loom before they land. PixelLab's VFX tool was suggested.
+
+### Effects (PixelLab VFX workbench)
+
+Eight effects were built in PixelLab's VFX workbench and saved to the user's
+PixelLab "My effects". Their sprite sheets are in `assets/vfx/*.png`, embedded
+via `assets/vfx.js`:
+
+| Effect | Used for |
+| --- | --- |
+| Lava eruption | Crater vent eruptions and meteor impacts |
+| Vent warning | A bubbling pool that swells under a vent before it blows |
+| Icicle shatter | Icicle impacts and the Blizzard's refreeze |
+| Pylon bolt | Plant discharges and the start of Overload |
+| Pylon crackle | Pylons crackling while an arc charges |
+| Rubble collapse | Ruins collapses, boulder breaks and Tremor rocks |
+| Spotlight beam | The start of Spotlight Finale |
+| Meteor | Meteors falling in Meteor Shower |
+
+Looming warnings are drawn in code:
+
+- Rocks and meteors: a shadow darkens and tightens under them while two dashed
+  target rings close in and flash in the last moments. The rock or meteor is
+  visibly falling from above.
+- Icicles: they now visibly fall, speeding up, with a streak behind them, and
+  are drawn above the fighters.
+
+### Surges: one per arena
+
+A surge first comes 20 seconds into a fight, then every 30 seconds. Each is
+announced 2.5 seconds ahead with:
+
+- a siren;
+- a banner with the surge's name and what it does;
+- an edge glow in the arena's colour;
+- scrolling hazard stripes.
+
+| Arena | Surge | What happens |
+| --- | --- | --- |
+| Stadium | Spotlight Finale | A big centre spotlight (radius 64) for 8 seconds; a gold ring shrinks onto it first |
+| Ruins | Tremor | Two waves of falling rocks, one aimed near each fighter plus a stray (18 damage each) |
+| Cinder Crater | Meteor Shower | For 5 seconds, a meteor every 38 ticks, taking turns between fighters (22 damage, burn, leaves a heat vent) |
+| Frostfall Lake | Blizzard | 7 seconds of gale pushing every grounded fighter the same way; white-out haze; melted rinks refreeze at the end |
+| Power Plant | Overload | All three pylon lines arc at once for 1.7 seconds; Electric types absorb it |
+
+Each surge targets every fighter equally, and the CPU avoids drop zones and the
+Overload lines.
