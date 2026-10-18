@@ -857,3 +857,56 @@ Online play now uses rollback, as fighting games do.
   - Friend codes over the relay and with WebRTC UDP blocked: identical timelines.
   - Soak results are unchanged (same seeded sequences). Modes, challenge,
     hostile-presence and touch tests pass.
+
+## Online smoothness: why the opponent rubber-banded, and the fix
+
+Players saw the other fighter rubber-band and sometimes teleport. Measured on a
+replayable test setup (local MQTT brokers with configurable latency and jitter, plus
+a per-frame "jerk" metric for the rendered opponent), there were four causes:
+
+1. **Fixed 2-tick input delay.** At relay latencies the opponent was predicted
+   15+ ticks ahead, so a missed dodge or turn came back as a 50–100 px correction.
+2. **Hard snap at 48 px.** Large corrections were not smoothed at all: these were
+   the teleports.
+3. **Staggered start.** The host began on sending "go" and the guest on receiving
+   it, so every match started a full one-way trip out of step (20+ ticks). The
+   pacing took about 3 s to recover.
+4. **Head-of-line blocking.** The direct link was a reliable, ordered channel, so
+   one lost packet held up everything behind it.
+
+What other games do, and what the game now does:
+
+- **Adaptive input delay** (GGPO's advice, and how Smash and Brawlhalla behave
+  online). Each page estimates the one-way latency from how far both pages run
+  ahead of each other's inputs plus both input delays (both are now sent). It
+  sets its own delay to that latency minus 4 ticks, between 1 and 12. The other
+  page then predicts only about 4 ticks of our input. The delay changes one tick
+  at a time, at most every half second, by repeating or dropping a tick of input
+  (button presses carry over, so nothing is lost).
+- **Synchronised start.** The host waits half the measured round trip after sending
+  "go", so both clocks start together (within 2 ticks in tests).
+- **Firmer pacing.** The tick-sync correction is smoothed, proportional, and up to
+  30% (was 12%, all or nothing).
+- **Visual smoothing.** A corrected fighter is drawn where it was and eased to its
+  true spot (×0.86 per frame). Only corrections of 160 px or more, such as a swap
+  or respawn, snap.
+- **Unordered direct channel.** Every message repeats all unconfirmed inputs, so
+  losing one costs nothing.
+- **Hybrid transport.** Direct and relay links both stay open. The match uses the
+  direct link whenever it is up, even if it opens mid-match, and moves to the
+  relay within one message if it drops (tested by cutting it mid-match: no pause,
+  identical timelines). More public STUN servers improve the odds of a direct
+  link. Relay batching is 20 ms (was 33 ms).
+- **Protocol** version 4. A friend on an older cached copy gets "Different game
+  versions: both refresh".
+
+Results at about 160 ms one-way with jitter (relay), before → after:
+
+| | before | after |
+|---|---|---|
+| 90th-percentile correction | 52–70 px | 20–38 px |
+| corrections that snapped | about 15 per 30 s | none (they glide) |
+| 99th-percentile on-screen jump per frame | n/a | about 5–8 px |
+| ticks out of step at the start | 20+ | 0–2 |
+
+All timelines stayed identical, with no stalled frames.

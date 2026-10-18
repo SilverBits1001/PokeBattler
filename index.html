@@ -17712,8 +17712,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 3,
+  var NETV = 4,
     RB_MAX = 40,
+    RB_AIM = 4,
+    RB_DMAX = 12,
     NET_BUTTONS = {
       pressed: [
         "attack",
@@ -18209,10 +18211,13 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         (e.epoch = i.cfg.e),
         (e.phase = "ready"),
         netSet({ rd: e.epoch });
-    e.host &&
-      e.phase === "ready" &&
-      i.rd === e.epoch &&
-      (netSet({ go: e.epoch }), a.go());
+    // The guest starts when "go" reaches it, so the host waits half a round
+    // trip before starting too: both clocks begin at the same moment.
+    if (e.host && e.phase === "ready" && i.rd === e.epoch) {
+      e.goAt == null &&
+        (netSet({ go: e.epoch }), (e.goAt = s + (e.rtt ?? 0) / 2));
+      s >= e.goAt && ((e.goAt = null), a.go());
+    }
     !e.host && e.phase === "ready" && i.go === e.epoch && a.go();
     // Rematch: once both ask for one, the host sends new settings.
     e.phase === "results" &&
@@ -18255,6 +18260,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       other: "",
       via: "",
       noPeer: !1,
+      rtcUp: !1,
+      rq: [],
+      rqT: 0,
+      rqAt: 0,
       autoJoin: "",
     },
     P2P_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
@@ -18265,7 +18274,33 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   } catch {}
   // A local broker for tests: ?peer=host:port
   function p2pOpts() {
-    let a = { debug: 0 };
+    // Several public STUN servers give the direct link more ways through
+    // home routers; PeerJS's own TURN relay stays as a last resort.
+    let a = {
+      debug: 0,
+      config: {
+        iceServers: [
+          {
+            urls: [
+              "stun:stun.l.google.com:19302",
+              "stun:stun1.l.google.com:19302",
+              "stun:stun2.l.google.com:19302",
+            ],
+          },
+          { urls: "stun:stun.cloudflare.com:3478" },
+          { urls: "stun:global.stun.twilio.com:3478" },
+          {
+            urls: [
+              "turn:eu-0.turn.peerjs.com:3478",
+              "turn:us-0.turn.peerjs.com:3478",
+            ],
+            username: "peerjs",
+            credential: "peerjsp",
+          },
+        ],
+        sdpSemantics: "unified-plan",
+      },
+    };
     try {
       let e = new URLSearchParams(location.search).get("peer");
       if (e) {
@@ -18439,7 +18474,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       prev: null,
       noPeer: !1,
       hi: 0,
+      rtcUp: !1,
+      rq: [],
     }),
+      clearTimeout(P2P.rqT),
+      (P2P.rqT = 0),
       p2pInput(!1),
       a && p2pMsg(a);
   }
@@ -18579,6 +18618,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     return s;
   }
   // Handshake on the relay: the joiner says hi until the host answers ok.
+  // Once linked both ways stay open: the direct link carries the match
+  // whenever it is up (it may open later, mid-match), and the relay takes
+  // over the moment it drops.
   function p2pRelayMsg(a) {
     let e;
     try {
@@ -18592,40 +18634,48 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       (e.t && e.t !== P2P.me)
     )
       return;
-    if (e.k === "hi" && P2P.host) {
-      if (P2P.state === "waiting" || (P2P.via === "relay" && P2P.other === e.f))
-        P2P.relay.send({ f: P2P.me, t: e.f, k: "ok" }),
-          P2P.state === "waiting" && p2pRelayUp(e.f);
-    } else
-      e.k === "ok" && !P2P.host && P2P.state === "joining"
-        ? p2pRelayUp(e.f)
+    let t = P2P.state === "linked" && !P2P.other;
+    e.k === "hi" && P2P.host
+      ? (P2P.state === "waiting" || P2P.other === e.f || t) &&
+        (P2P.relay.send({ f: P2P.me, t: e.f, k: "ok" }),
+        (P2P.other = e.f),
+        P2P.state === "waiting" && p2pUp("relay"))
+      : e.k === "ok" && !P2P.host && (P2P.state === "joining" || t)
+        ? ((P2P.other = e.f), P2P.state === "joining" && p2pUp("relay"))
         : e.k === "d" &&
-          P2P.via === "relay" &&
+          P2P.state === "linked" &&
           e.f === P2P.other &&
           Array.isArray(e.d) &&
-          e.d.forEach((t) => P2P.shim?.recv(t));
+          e.d.forEach((s) => typeof s === "string" && P2P.shim?.recv(s));
   }
-  function p2pRelayUp(a) {
-    let e = [],
-      t = 0,
-      s = 0,
-      i = () => {
-        (t = 0),
-          (s = Date.now()),
-          P2P.via === "relay" &&
-            P2P.relay?.send({ f: P2P.me, t: a, k: "d", d: e }),
-          (e = []);
-      };
-    (P2P.other = a),
-      p2pUp("relay", {
-        open: !0,
-        // At most 30 sends a second (public brokers are shared), but never
-        // held back when the last send was a while ago.
-        send(r) {
-          e.push(r),
-            t || (t = setTimeout(i, Math.max(0, 33 - (Date.now() - s))));
-        },
-      });
+  // Relay sends are batched to at most 50 a second (public brokers are
+  // shared), but never held back when the last one went out a while ago.
+  function p2pRelaySend(a) {
+    P2P.rq.push(a),
+      P2P.rqT ||
+        (P2P.rqT = setTimeout(
+          () => {
+            (P2P.rqT = 0), (P2P.rqAt = Date.now());
+            let e = P2P.rq;
+            (P2P.rq = []),
+              P2P.other &&
+                P2P.relay?.send({ f: P2P.me, t: P2P.other, k: "d", d: e });
+          },
+          Math.max(0, 20 - (Date.now() - P2P.rqAt)),
+        ));
+  }
+  var P2P_LINK = {
+    open: !0,
+    send(a) {
+      if (P2P.rtcUp && P2P.conn?.open)
+        try {
+          return P2P.conn.send(a);
+        } catch {}
+      p2pRelaySend(a);
+    },
+  };
+  function p2pVia() {
+    P2P.via = P2P.rtcUp ? "rtc" : "relay";
   }
   function p2pPeer(a) {
     if (typeof Peer !== "function" || p2pFlag("nortc")) return null;
@@ -18642,7 +18692,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         s === "unavailable-id" && P2P.state === "opening"
           ? p2pHost()
           : P2P.state === "linked"
-            ? P2P.via === "rtc" && p2pStop("Lost the link to your friend")
+            ? 0 // the connection's own events decide
             : // The relay may still get through.
               (s === "peer-unavailable" &&
                 !P2P.noPeer &&
@@ -18683,7 +18733,12 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         P2P.peer === e && P2P.state === "opening" && (P2P.state = "waiting");
       }),
       e.on("connection", (t) => {
-        if (P2P.peer !== e || P2P.state !== "waiting") return void t.close();
+        if (
+          P2P.peer !== e ||
+          P2P.rtcUp ||
+          (P2P.state !== "waiting" && P2P.state !== "linked")
+        )
+          return void t.close();
         p2pRtc(t);
       })),
       p2pLater(() => {
@@ -18699,7 +18754,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           P2P.peer === e &&
             p2pRtc(
               e.connect(P2P_PREFIX + P2P.code, {
-                reliable: !0,
+                // Unordered: every message repeats all unconfirmed inputs,
+                // so a lost one must not hold up the ones behind it.
+                reliable: !1,
                 serialization: "raw",
               }),
             );
@@ -18717,52 +18774,44 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       }, 2e4);
   }
   function p2pSayHi() {
+    let a = () =>
+      P2P.state === "joining" || (P2P.state === "linked" && !P2P.other);
     P2P.hi ||
-      P2P.state !== "joining" ||
+      !a() ||
       ((P2P.hi = p2pLater(
-        () =>
-          P2P.state === "joining" &&
-          P2P.relay?.send({ f: P2P.me, t: "", k: "hi" }),
+        () => a() && P2P.relay?.send({ f: P2P.me, t: "", k: "hi" }),
         700,
         !0,
       )),
       P2P.relay?.send({ f: P2P.me, t: "", k: "hi" }));
   }
   function p2pRtc(a) {
-    (P2P.conn = a),
-      a.on("open", () => {
-        P2P.conn === a && P2P.state !== "linked"
-          ? p2pUp("rtc", {
-              get open() {
-                return a.open;
-              },
-              send: (e) => a.send(e),
-            })
-          : P2P.conn !== a && a.close();
-      }),
+    P2P.conn = a;
+    let e = () => {
+      if (P2P.conn !== a) return;
+      let t = P2P.rtcUp;
+      (P2P.rtcUp = !1), (P2P.conn = null);
+      P2P.state === "linked" &&
+        (p2pVia(),
+        t && !P2P.relay?.up() && p2pStop("Lost the link to your friend"));
+    };
+    a.on("open", () => {
+      if (P2P.conn !== a) return void a.close();
+      (P2P.rtcUp = !0), P2P.state === "linked" ? p2pVia() : p2pUp("rtc");
+    }),
       a.on(
         "data",
-        (e) => P2P.conn === a && P2P.via === "rtc" && P2P.shim?.recv(e),
+        (t) => P2P.conn === a && P2P.state === "linked" && P2P.shim?.recv(t),
       ),
-      a.on("close", () => {
-        P2P.conn === a &&
-          P2P.via === "rtc" &&
-          p2pStop("Your friend disconnected");
-      }),
-      a.on("error", () => {
-        P2P.conn === a &&
-          P2P.via === "rtc" &&
-          p2pStop("Lost the link to your friend");
-      });
+      a.on("close", e),
+      a.on("error", e);
   }
-  function p2pUp(a, e) {
+  function p2pUp(a) {
     for (let s of P2P.timers) clearTimeout(s), clearInterval(s);
-    (P2P.timers = []), (P2P.hi = 0), (P2P.via = a);
-    // The other way in is no longer needed.
-    a === "rtc"
-      ? (P2P.relay?.close(), (P2P.relay = null))
-      : P2P.conn && (P2P.conn.close(), (P2P.conn = null));
-    let t = p2pShim(e);
+    (P2P.timers = []), (P2P.hi = 0), p2pVia();
+    // Linked directly: still say hi on the relay so it is ready as a backup.
+    P2P.host || P2P.other || p2pSayHi();
+    let t = p2pShim(P2P_LINK);
     (P2P.shim = t),
       (P2P.state = "linked"),
       (P2P.prev = { room: NET.room, dead: NET.dead }),
@@ -19098,6 +19147,15 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           ? `Connecting to ${netOppName(16)}…`
           : `Starting the battle…`),
         (b = [["B", "Cancel"]]);
+    else if (
+      P2P.state === "linked" &&
+      NET.room
+        ?.peers()
+        .some(
+          (C) => !C.sameTab && C.presence?.v != null && C.presence.v !== NETV,
+        )
+    )
+      (y = "Different game versions: both refresh"), (b = [["B", "Back"]]);
     else if (NET.st === "search")
       (y = "Looking for an opponent…"), (b = [["B", "Cancel"]]);
     else if (NET.st === "challenge") {
@@ -19145,10 +19203,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     if (!t || t.phase !== "play") return;
     // Live latency from how far each page runs ahead of the other's inputs.
     if (t.sim > 60) {
-      let s = Math.max(
-          0,
-          Math.round(((t.sim - t.ackR + t.oppAv) / 2 + t.delay) * 2 * Ut),
-        ),
+      let s = Math.max(0, Math.round((t.lat ?? 0) * 2 * Ut)),
         i =
           P2P.state === "linked"
             ? P2P.via === "rtc"
@@ -19959,7 +20014,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       host(n) {
         let D = NET.m,
           // Rollback hides the rest of the latency: keep our own delay tiny.
-          R = n < 50 ? 1 : 2,
+          R = Math.max(
+            1,
+            Math.min(RB_DMAX, Math.round((n / 2 + 8) / Ut - RB_AIM)),
+          ),
           W = {};
         for (let T of Object.keys(A)) NET_LOCAL.includes(T) || (W[T] = A[T]);
         (D.epoch += 1),
@@ -20017,6 +20075,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           (n.rolls = 0),
           (n.guessAt = -1),
           (n.oppAv = 0),
+          (n.oppDl = null),
+          (n.lat = null),
+          (n.adjAt = 0),
+          (n.adv = 0),
           (n.vo = []),
           (n.rm = 0),
           (n.cur = [netDec(NET_IDLE), netDec(NET_IDLE)]),
@@ -20060,7 +20122,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           /^[A-Za-z0-9_-]*$/.test(R.d)
         ) {
           Number.isInteger(R.ak) && R.ak > D.oppAck && (D.oppAck = R.ak),
-            Number.isInteger(R.av) && Math.abs(R.av) < 1e4 && (D.oppAv = R.av);
+            Number.isInteger(R.av) && Math.abs(R.av) < 1e4 && (D.oppAv = R.av),
+            Number.isInteger(R.dl) &&
+              R.dl >= 0 &&
+              R.dl < 60 &&
+              (D.oppDl = R.dl);
           let T = R.d.length / 7;
           for (let Z = 0; Z < T; Z++) {
             let ne = R.b + Z;
@@ -20107,6 +20173,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           d: D.inL.slice(W, D.sched).join(""),
           ak: D.ackR,
           av: D.sim - D.ackR,
+          dl: D.sched - D.sim,
         },
       });
     }
@@ -20168,6 +20235,13 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       }
       D.evs.length > 64 && (D.evs = D.evs.filter((T) => T[0] >= D.chk));
     }
+    // One-way latency in ticks, from how far each page runs ahead of the
+    // other's inputs and the input delay each one uses, smoothed.
+    function netLatency(D) {
+      if (D.sim < 30 || D.oppDl == null) return 0;
+      let n = (D.sim - D.ackR + D.oppAv + (D.sched - D.sim) + D.oppDl) / 2;
+      return (D.lat = D.lat == null ? n : D.lat * 0.97 + n * 0.03);
+    }
     function netStep(n) {
       let D = NET.m;
       if (D.sim > D.ackR + RB_MAX) return D.stall++, !1;
@@ -20175,7 +20249,25 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         for (let T of D.pend) n.pressed.add(T);
         D.pend.clear();
       }
-      (D.stall = 0), (D.inL[D.sched++] = s.netMenu ? NET_IDLE : netEnc(n));
+      D.stall = 0;
+      // Input delay that follows the connection, as fighting games do: our
+      // own delay absorbs most of the one-way latency, so the other page only
+      // ever predicts about RB_AIM ticks of our input and its corrections stay
+      // small. One tick at a time, at most every half second.
+      let q = netLatency(D),
+        X = D.sched - D.sim,
+        ve = Math.max(1, Math.min(RB_DMAX, Math.round(q - RB_AIM)));
+      if (q > 0 && D.sim - D.adjAt > 30 && ve !== X) {
+        D.adjAt = D.sim;
+        if (ve > X) {
+          let Je = netDec(D.inL[D.sched - 1]);
+          (Je.pressed = new Set()), (D.inL[D.sched++] = netEnc(Je));
+        } else if (X > 1) {
+          for (let Je of n.pressed) D.pend.add(Je);
+          n = null;
+        }
+      }
+      n && (D.inL[D.sched++] = s.netMenu ? NET_IDLE : netEnc(n));
       let R = D.chk;
       for (; R < D.sim && D.inR[R] !== void 0 && D.inR[R] === D.used[R]; R++);
       if (R < D.sim && D.inR[R] !== void 0) {
@@ -20190,7 +20282,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           let ne = D.vo[Z] ?? [0, 0],
             q = ne[0] + T0[Z][0] - T.x,
             X = ne[1] + T0[Z][1] - T.y;
-          D.vo[Z] = Math.hypot(q, X) < 48 ? [q, X] : [0, 0];
+          (D.corrs ??= []).length > 300 && D.corrs.shift(),
+            (D.corrs ??= []).push(Math.hypot(T0[Z][0] - T.x, T0[Z][1] - T.y)),
+            (D.vo[Z] = Math.hypot(q, X) < 160 ? [q, X] : [0, 0]);
         });
       }
       return netVerify(D, R), s.playTicks++, netTick(D, D.sim, !1), D.sim++, !0;
@@ -22912,8 +23006,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       // it runs ahead of the inputs it has; the one further ahead eases off.
       let Mn = NET.m;
       if (Mn?.phase === "play" && Mn.sim > 60) {
-        let Fa = Mn.sim - Mn.ackR - Mn.oppAv;
-        Fa > 2 ? (De -= D * 0.12) : Fa < -2 && (De += D * 0.12);
+        let Fa = (Mn.sim - Mn.ackR - Mn.oppAv) / 2;
+        Mn.adv = Mn.adv * 0.9 + Fa * 0.1;
+        Math.abs(Mn.adv) > 1 &&
+          (De -= D * Math.max(-0.3, Math.min(0.3, Mn.adv * 0.04)));
       }
       let T = 0;
       for (; De >= Ut && T < 5; ) {
@@ -23030,8 +23126,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           let q = e.players[Je];
           q &&
             ((q.x -= ee[0]), (q.px -= ee[0]), (q.y -= ee[1]), (q.py -= ee[1])),
-            (ee[0] *= 0.78),
-            (ee[1] *= 0.78);
+            (ee[0] *= 0.86),
+            (ee[1] *= 0.86);
         }),
         Ca(u, e, t, s, h, Z, a),
         requestAnimationFrame(it);

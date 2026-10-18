@@ -34,9 +34,10 @@ to play the next trainer who is searching, or choose a trainer to challenge them
 
 **Friend codes (no claude.ai account needed).** On the Online screen pick **Create a
 friend code** and send the 5-letter code to a friend; they pick **Enter a friend code**
-and type it in. The two pages try to connect directly over WebRTC; if that has not
-opened within 4 seconds (mobile data and strict routers often block it), the match
-runs through free public MQTT relay servers instead. Either way it starts on its own. This works from any copy of the game. The public copy is
+and type it in. The two pages connect directly over WebRTC when they can, and through
+free public MQTT relay servers when they can't. Both stay open during a match: play
+moves to the direct link whenever it opens, and back to the relay instantly if it
+drops. This works from any copy of the game. The public copy is
 **https://silverbits1001.github.io/PokeBattler/**, served by GitHub Pages from the
 `gh-pages` branch (a built `index.html`). [PeerJS](https://peerjs.com)'s free public
 server only introduces the two pages to each other; it is bundled in `assets/vendor/`
@@ -48,8 +49,9 @@ claude.ai artifact link by people who have access to it.
 To update the public copy after a change: run `python3 tools/build.py`, copy
 `index.html` onto the `gh-pages` branch, and push it.
 
-Matches use rollback netcode. Your own input is applied two ticks after you press
-(about 33 ms). The other player's input is predicted until it arrives; when a guess was
+Matches use rollback netcode with an input delay that adapts to the connection (1 tick on
+a fast link, up to 12 on a slow one), so the other player only ever has to be predicted a
+few ticks ahead. The other player's input is predicted until it arrives; when a guess was
 wrong, the game rewinds and replays the missed ticks within the same frame. Both pages
 run the same deterministic simulation from the host's seed, a sync check runs every
 second, and a corner readout shows the link type (direct, relay or room) and the latency.
