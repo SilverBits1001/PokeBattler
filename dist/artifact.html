@@ -16172,6 +16172,18 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               (ve(R, n.iframe && n.t % 4 === 0 ? "#ffffff" : R.kit.color, 10),
               dodgeTrail(R, n.t)),
               W.kind === "shell" &&
+                (t.splash(
+                  R.x,
+                  R.y,
+                  2,
+                  3,
+                  Math.cos(R.dodgeDir),
+                  Math.sin(R.dodgeDir),
+                ),
+                n.t % 3 === 0 && t.ring(R.x, R.y, 6, 1.4, 10, "#8fd0f5", !0),
+                n.t % 2 === 0 &&
+                  t.slash(R, R.t * 0.9, 16, 2.2, 3, 1, "#bfe6ff", 6)),
+              W.kind === "shell" &&
                 n.t % 3 === 0 &&
                 t.dust(
                   R.x,
@@ -17437,8 +17449,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             t.ring(R, W - 10, 4, 2.2, 10, "#43c6ac"),
             t.wisps(R, W, 8, 6, "#43c6ac", 8))
           : D.includes(":wisp")
-            ? (t.wisps(R, W, 6, 8, "#7f6bff", 8),
-              t.ring(R, W - 10, 4, 2, 10, "#9f8cff"))
+            ? (t.wisps(R, W, 6, 14, "#7f6bff", 12),
+              t.wisps(R, W, 6, 6, "#43c6ac", 8),
+              t.flare(R, W, 12, 22, "#c9b8ff", 12),
+              t.ring(R, W - 10, 4, 2.6, 12, "#9f8cff"),
+              t.ring(R, W, 6, 2, 14, "#7f6bff", !0))
             : D.includes("boomburst")
               ? (t.arcWave(
                   R,
@@ -17722,6 +17737,12 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             2,
             "#7038f8",
           )));
+      n === "magnezone" &&
+        T.state === "attack" &&
+        T.combo === 2 &&
+        (t.slash(T, e.tick * 0.8, 24, 2.4, 4, 1, "#e9f1ff", 4),
+        t.slash(T, e.tick * 0.8 + Math.PI, 24, 2.4, 4, 1, "#9aa6b8", 4),
+        e.tick % 3 === 0 && t.motes(T.x, T.y, 10, 2, "#f8d030", 1.6));
       n === "magnezone" &&
         (e.tick % 14 === 0 &&
           t.bolt(
