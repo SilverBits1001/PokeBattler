@@ -495,21 +495,48 @@
         hurtR: 12,
         size: 0.94,
         tall: 29,
-        role: "Tank \xB7 control",
-        stats: { speed: 1, power: 4, defense: 5, range: 3, difficulty: 2 },
+        role: "Tank \xB7 artillery",
+        stats: { speed: 1, power: 4, defense: 5, range: 4, difficulty: 3 },
+        // Shell Bash -> Aqua Tail -> Body Slam. Only the slam is armored.
         basic: () => [
           {
             anim: "Attack",
-            startup: 9,
+            startup: 6,
+            active: 3,
+            recovery: 11,
+            lunge: 6,
+            dmg: 24,
+            kb: 2.4,
+            heavy: !1,
+            shape: "circle",
+            reach: 14,
+            radius: 13,
+          },
+          {
+            anim: "Swing",
+            startup: 6,
+            active: 4,
+            recovery: 12,
+            lunge: 6,
+            dmg: 28,
+            kb: 3,
+            heavy: !1,
+            shape: "circle",
+            reach: 15,
+            radius: 16,
+          },
+          {
+            anim: "Attack",
+            startup: 10,
             active: 4,
             recovery: 20,
-            lunge: 10,
+            lunge: 12,
             dmg: 46,
-            kb: 5.6,
+            kb: 5.8,
             heavy: !0,
             shape: "circle",
             reach: 15,
-            radius: 14,
+            radius: 15,
             armor: !0,
           },
         ],
@@ -536,10 +563,10 @@
           radius: 16,
           armor: !0,
         },
-        xName: "HYDRO PUMP",
-        yName: "WITHDRAW",
-        xCd: 110,
-        yCd: 90,
+        xName: "WATER PULSE",
+        yName: "HYDRO CANNON",
+        xCd: 40,
+        yCd: 150,
       },
       dragapult: {
         id: "dragapult",
@@ -716,7 +743,9 @@
           r = t.slot,
           o = e.item;
         if (s && t.kit.id !== "dragapult" && e.losBlocked(t.x, t.y, s.x, s.y))
-          i.pressed.delete("special1"), t.state === "move" && (this.holdX = 0);
+          i.pressed.delete("special1"),
+            t.kit.id === "blastoise" && i.pressed.delete("special2"),
+            t.state === "move" && (this.holdX = 0);
         if (o && t.state === "move" && !i.pressed.size) {
           this.berryId !== o.id &&
             ((this.berryId = o.id),
@@ -803,9 +832,12 @@
             this.spinOut && ((i.mx = Math.cos(b)), (i.my = Math.sin(b))),
             i
           );
-        if (t.state === "withdraw" && this.holdY === 0)
+        if (t.state === "withdraw" && this.guardHold <= 0)
           return (
-            this.spinOut && ((i.mx = Math.cos(b)), (i.my = Math.sin(b))), i
+            y < 80 &&
+              r() < 0.55 &&
+              ((i.mx = Math.cos(b)), (i.my = Math.sin(b))),
+            i
           );
         if (t.state === "launched") {
           if (
@@ -934,16 +966,11 @@
           o.kind === "player" &&
           o.state === "flyUp" &&
           o.t > 6 &&
-          u.cdY === 0 &&
-          t.state !== "withdraw" &&
+          p &&
+          e.canWithdraw(t) &&
           r() < s.dodge
         )
-          return (
-            i.pressed.add("special2"),
-            (this.holdY = 44 - o.t + 8),
-            (this.spinIntent = !1),
-            i
-          );
+          return i.held.add("guard"), (this.guardHold = 44 - o.t + 8), i;
         let w = o.kind === "player" ? o : null,
           U = t.kit.smash,
           re = U.reach + U.radius + U.lunge + 14;
@@ -1021,35 +1048,19 @@
               i
             );
           if (r() < s.dodge) {
-            if (f === "blastoise" && !se.dreepy) {
-              if (
-                u.cdY === 0 &&
-                (se.projectile ||
-                  !se.melee ||
-                  (o.kind === "player" && o.state.startsWith("fly")))
-              )
-                return (
-                  i.pressed.add("special2"),
-                  (this.holdY = 16 + Math.floor(r() * 12)),
-                  i
-                );
-              if (t.state === "hurt" && u.cdY === 0)
-                return (
-                  i.pressed.add("special2"),
-                  (this.holdY = 14),
-                  (this.spinIntent = !1),
-                  i
-                );
-              if (se.melee && y < 40 && p)
-                return (
-                  u.cdY === 0 && r() < 0.6
-                    ? (i.pressed.add("special2"),
-                      (this.holdY = 10),
-                      (this.spinIntent = !1))
-                    : i.pressed.add("attack"),
-                  i
-                );
-            }
+            // Blastoise answers pressure by Withdrawing when it stands in water.
+            if (
+              f === "blastoise" &&
+              !se.dreepy &&
+              p &&
+              e.canWithdraw(t) &&
+              (se.projectile || se.melee)
+            )
+              return (
+                i.held.add("guard"),
+                (this.guardHold = 10 + Math.floor(r() * 12)),
+                i
+              );
             if (u.cdDodge === 0) {
               let N = se.dir + (Math.PI / 2) * (r() < 0.5 ? 1 : -1),
                 J = Math.atan2(Te - t.y, Se - t.x);
@@ -1173,14 +1184,16 @@
                 i.pressed.add("dodge"))
               : y < 30 || (N && y < 50)
                 ? i.pressed.add("attack")
-                : u.cdX === 0 && y > 36 && y < 190 && r() < 0.45
-                  ? i.pressed.add("special1")
-                  : u.cdY === 0 &&
-                    y < 160 &&
-                    r() < 0.3 &&
-                    (i.pressed.add("special2"),
-                    (this.holdY = 6 + Math.floor(r() * 8)),
-                    (this.spinIntent = !0));
+                : u.cdY === 0 &&
+                    y < 120 &&
+                    (e.recovering(o.kind === "player" ? o : t) || r() < 0.2)
+                  ? i.pressed.add("special2")
+                  : u.cdX === 0 &&
+                    y > 40 &&
+                    y < 210 &&
+                    r() < 0.45 &&
+                    (i.pressed.add("special1"),
+                    (this.holdX = r() < 0.5 ? 20 : 0));
         }
         return i;
       }
@@ -1352,6 +1365,19 @@
     FLANK_COS = -0.3,
     // Flamethrower reach, and damage scale from point-blank down to the very tip.
     FLAME = { range: 108, near: 1.45, far: 0.35 },
+    // Blastoise artillery. Mega Launcher: shots fired from its own puddle hit harder
+    // and fly further. Withdraw is now guard pressed while standing in a puddle.
+    BLAST = {
+      pulseDmg: 14,
+      pulseSpeed: 3.6,
+      pulseLife: 60,
+      daze: 50,
+      cannonLen: 140,
+      cannonDmg: 11,
+      megaDmg: 1.25,
+      megaRange: 1.3,
+      withdrawCd: 60,
+    },
     PUNISH_GAP = 40;
   function Ua(a, e) {
     return a === "DRAGON" && e === "DRAGON"
@@ -1469,6 +1495,9 @@
           punishes: 0,
         };
         this.punishT = -99;
+        this.dazeT = 0;
+        this.pulseShots = 0;
+        this.mega = !1;
         this.brain = null;
         (this.slots = r.map((o) => {
           let l = xe[o];
@@ -1485,6 +1514,7 @@
             pfCd: 0,
             horns: ["loaded", "loaded"],
             guard: 100,
+            cdW: 0,
           };
         })),
           (this.mon = this.slots[0].mon),
@@ -1920,6 +1950,7 @@
         let s = e.kit,
           i = e.slot;
         (e.holdX = t.held.has("special1")),
+          (e.holdG = t.held.has("guard")),
           (e.holdY = t.held.has("special2")),
           (e.holdB = t.held.has("dodge"));
         let r = [
@@ -1960,6 +1991,7 @@
             v.cdY > 0 && v.cdY--,
             v.cdDodge > 0 && v.cdDodge--,
             v.pfCd > 0 && v.pfCd--,
+            v.cdW > 0 && v.cdW--,
             v.burnT > 0 &&
               (v.burnT--,
               v === i &&
@@ -1981,6 +2013,7 @@
           (e.switchCd > 0 && e.switchCd--,
           e.assistCd > 0 && e.assistCd--,
           e.seededT > 0 && e.seededT--,
+          e.dazeT > 0 && e.dazeT--,
           e.hitstop > 0)
         ) {
           e.hitstop--;
@@ -1989,7 +2022,7 @@
         for (let v of r) e.buf[v] && e.buf[v]--;
         e.t++;
         let h = this.intro <= 20 && this.match.phase === "fight",
-          c = e.seededT > 0 ? 0.5 : 1,
+          c = (e.seededT > 0 ? 0.5 : 1) * (e.dazeT > 0 ? 0.65 : 1),
           y = t.mx * c,
           b = t.my * c,
           p = Math.hypot(t.mx, t.my),
@@ -2071,9 +2104,9 @@
             e.state === "hurt" &&
             e.t >= A.hitstunDodgeCancel &&
             h &&
-            f("special2") &&
-            i.cdY === 0 &&
-            (u("special2"), this.startSpecial(e, "y", P)),
+            e.holdG &&
+            this.canWithdraw(e) &&
+            this.startWithdraw(e),
           e.state)
         ) {
           case "move":
@@ -2087,6 +2120,14 @@
             }
             if (!h) {
               this.locomote(e, 0, 0), M !== null && (e.facing = M);
+              break;
+            }
+            if (
+              t.held.has("guard") &&
+              e.state === "move" &&
+              this.canWithdraw(e)
+            ) {
+              u("guard"), this.startWithdraw(e);
               break;
             }
             if (t.held.has("guard") && e.state === "move") {
@@ -2150,6 +2191,9 @@
             break;
           case "pump":
             this.tickPump(e, p, k);
+            break;
+          case "pulse":
+            this.tickPulse(e, P);
             break;
           case "withdraw":
             this.tickWithdraw(e, p, k, M);
@@ -2332,9 +2376,9 @@
         }
         if (
           (e.state === "flame" && !e.flameEnd && (e.slot.cdX = i.xCd),
-          e.state === "pump" && (e.slot.cdX = i.xCd),
+          e.state === "pump" && (e.slot.cdY = i.yCd),
           (e.state === "withdraw" || e.state === "spin") &&
-            (e.slot.cdY = i.yCd),
+            (e.slot.cdW = BLAST.withdrawCd),
           (e.flameEnd = 0),
           (e.active = t),
           e.applyKit(),
@@ -2992,9 +3036,11 @@
               this.emit({ type: "flyUp", who: e });
           }
         else if (i.id === "blastoise")
-          t === "x"
-            ? ((e.state = "pump"), this.emit({ type: "pumpStart", who: e }))
-            : ((e.state = "withdraw"), this.emit({ type: "withdraw", who: e }));
+          (e.mega = this.inPuddle(e.x, e.y, e.team, !0)),
+            e.mega && this.emit({ type: "mega", who: e }),
+            t === "x"
+              ? ((e.state = "pulse"), (e.pulseShots = 0))
+              : ((e.state = "pump"), this.emit({ type: "pumpStart", who: e }));
         else if (i.id === "dragapult")
           if (t === "x") {
             if (!r.horns.includes("loaded")) {
@@ -3375,7 +3421,7 @@
       isPumping(e) {
         if (e.kind === "player") {
           let t = e;
-          return t.state === "pump" && t.t > 10 && t.t <= 36;
+          return t.state === "pump" && t.t > 14 && t.t <= 34;
         }
         if (e.kind === "assist") {
           let t = e;
@@ -3461,10 +3507,10 @@
           { x: e + r * l, y: t + o * l, len: l }
         );
       }
-      pumpBeam(e, t, s, i, r, o) {
+      pumpBeam(e, t, s, i, r, o, len = 230, push = 1.6) {
         let l = e.x + Math.cos(s) * 12,
           f = e.y + Math.sin(s) * 12,
-          u = this.beamEnd(l, f, s, 230),
+          u = this.beamEnd(l, f, s, len),
           h = u.x,
           c = u.y;
         for (let p of this.victimsFor(t)) {
@@ -3502,7 +3548,7 @@
           color: "#5aa9e6",
           rehit: 5,
           attackerStop: !1,
-          push: 1.6,
+          push: push,
           src: "pump",
         }),
           o % 6 === 0 && this.addPuddle(h, c, 13, t);
@@ -3513,16 +3559,95 @@
           : t > 0.3
             ? s
             : e.dir2;
-        (e.dir2 = e.t > 10 ? We(e.dir2, i, 0.035) : i),
+        (e.dir2 = e.t > 14 ? We(e.dir2, i, 0.03) : i),
           (e.facing = e.dir2),
-          e.t > 10 &&
-            e.t <= 36 &&
-            (this.pumpBeam(e, e.team, e.dir2, e.moveId, 9, e.t - 10),
-            (e.kvx -= Math.cos(e.dir2) * 0.12),
-            (e.kvy -= Math.sin(e.dir2) * 0.12)),
-          e.t === 37 && (e.slot.cdX = e.kit.xCd),
+          e.t > 14 &&
+            e.t <= 34 &&
+            (this.pumpBeam(
+              e,
+              e.team,
+              e.dir2,
+              e.moveId,
+              Math.round(BLAST.cannonDmg * (e.mega ? BLAST.megaDmg : 1)),
+              e.t - 14,
+              BLAST.cannonLen * (e.mega ? BLAST.megaRange : 1),
+              2.4,
+            ),
+            (e.kvx -= Math.cos(e.dir2) * 0.16),
+            (e.kvy -= Math.sin(e.dir2) * 0.16)),
+          e.t === 35 && (e.slot.cdY = e.kit.yCd),
           this.locomote(e, 0, 0),
-          e.t >= 50 && ((e.state = "move"), (e.t = 0));
+          e.t >= 62 && ((e.state = "move"), (e.t = 0));
+      }
+      canWithdraw(e) {
+        return (
+          e.kit.id === "blastoise" &&
+          !(e.slot.cdW > 0) &&
+          this.inPuddle(e.x, e.y, e.team, !0)
+        );
+      }
+      startWithdraw(e) {
+        (e.state = "withdraw"),
+          (e.t = 0),
+          (e.combo = 0),
+          (e.chainQueued = !1),
+          (e.armorUsed = 0),
+          (e.mvx *= 0.3),
+          (e.mvy *= 0.3),
+          this.emit({ type: "withdraw", who: e });
+      }
+      // Water Pulse: tap for one ring shot, keep holding for a three-shot volley.
+      tickPulse(e, t) {
+        e.t <= 3 && ((e.dir2 = this.aimAssist(e, t, 200)), (e.facing = e.dir2)),
+          e.t === 6 && (this.firePulse(e), (e.slot.cdX = e.kit.xCd)),
+          e.pulseShots < 3 &&
+            e.holdX &&
+            (e.t === 14 || e.t === 22) &&
+            ((e.dir2 = this.aimAssist(e, e.dir2, 200)),
+            (e.facing = e.dir2),
+            this.firePulse(e)),
+          this.locomote(e, 0, 0),
+          e.t >= (e.pulseShots > 1 ? 36 : 22) &&
+            ((e.state = "move"), (e.t = 0));
+      }
+      firePulse(e) {
+        let t = e.mega ? BLAST.megaDmg : 1,
+          s = e.mega ? BLAST.megaRange : 1,
+          i = Math.cos(e.dir2),
+          r = Math.sin(e.dir2);
+        e.pulseShots++,
+          this.projectiles.push({
+            id: this.nextId++,
+            team: e.team,
+            owner: e,
+            x: e.x + i * 12,
+            y: e.y + r * 12,
+            px: e.x,
+            py: e.y,
+            z: 12,
+            pz: 12,
+            vx: i * BLAST.pulseSpeed * (e.mega ? 1.2 : 1),
+            vy: r * BLAST.pulseSpeed * (e.mega ? 1.2 : 1),
+            r: 6,
+            life: Math.round(BLAST.pulseLife * s),
+            age: 0,
+            dmg: Math.round(BLAST.pulseDmg * t),
+            kb: 2.2,
+            hitstun: 14,
+            hitstop: 3,
+            kind: "pulse",
+            color: L.water,
+          }),
+          (e.kvx -= i * 0.6),
+          (e.kvy -= r * 0.6),
+          this.emit({ type: "pulse", who: e, dx: i, dy: r, mega: !!e.mega });
+      }
+      // Dazed: slower, wobbly movement for a moment. Leaves a splash puddle.
+      soak(e, t) {
+        e.kind === "player" &&
+          e.state !== "faint" &&
+          ((e.dazeT = BLAST.daze), this.emit({ type: "dazed", who: e })),
+          this.addPuddle(e.x, e.y + 2, 11, t);
       }
       tickWithdraw(e, t, s, i) {
         (e.spinRow = -1), this.locomote(e, 0, 0);
@@ -3532,11 +3657,11 @@
             r.kind === "seed" ||
             (Math.hypot(r.x - e.x, r.y - e.y) < e.hurtR + r.r + 6 &&
               this.block(r, e));
-        if ((!e.holdY && e.t >= 6) || e.t >= 100) {
+        if ((!e.holdG && e.t >= 6) || e.t >= 100) {
           if (t <= 0.3) {
             (e.state = "move"),
               (e.t = 0),
-              (e.slot.cdY = Math.round(e.kit.yCd * 0.6)),
+              (e.slot.cdW = BLAST.withdrawCd),
               (e.sqx = 1.25),
               (e.sqy = 0.8);
             return;
@@ -3557,7 +3682,7 @@
           (e.spinRow = -1),
             this.locomote(e, 0, 0),
             e.t >= 58 &&
-              ((e.state = "move"), (e.t = 0), (e.slot.cdY = e.kit.yCd));
+              ((e.state = "move"), (e.t = 0), (e.slot.cdW = BLAST.withdrawCd));
           return;
         }
         let i = Math.atan2(e.spinVY, e.spinVX),
@@ -3836,8 +3961,12 @@
                 ((e.animName = "Hurt"), (e.animFrame = 0));
             break;
           case "pump":
-            (e.animName = e.t <= 10 ? "Charge" : "Shoot"),
-              (e.animFrame = e.t <= 10 ? Math.floor(e.t / 2) : 2);
+            (e.animName = e.t <= 14 ? "Charge" : "Shoot"),
+              (e.animFrame = e.t <= 14 ? Math.floor(e.t / 2.8) : 2);
+            break;
+          case "pulse":
+            (e.animName = "Shoot"),
+              (e.animFrame = Math.min(3, Math.floor(((e.t - 2) % 8) / 2)));
             break;
           case "withdraw":
             (e.animName = "Withdraw"),
@@ -4283,7 +4412,9 @@
           case "flame":
             return !!e.flameEnd;
           case "pump":
-            return e.t > 36;
+            return e.t > 34;
+          case "pulse":
+            return e.t > (e.pulseShots > 1 ? 30 : 16);
           case "flySlam":
             return e.t >= 6;
           case "guardEnd":
@@ -4815,6 +4946,7 @@
                 this.srcLabel(e.owner, e.reflected ? "reflect" : e.kind),
               ),
                 e.kind === "wisp" && this.burn(t),
+                e.kind === "pulse" && this.soak(t, e.team),
                 this.emit({ type: "projDie", p: e, wall: !1 });
               break;
             }
@@ -4970,7 +5102,7 @@
               this.emit({ type: "faint", who: w, kit: w.kit });
           } else if (!E) {
             w.state === "flame" && !w.flameEnd && (U.cdX = w.kit.xCd),
-              w.state === "pump" && (U.cdX = w.kit.xCd),
+              w.state === "pump" && (U.cdY = w.kit.yCd),
               (w.flameEnd = 0);
             let N = p ? 1 : Math.max(0.45, 1 - ae.decay * (v - 1)),
               J = Math.round((w.rooted ? u * 0.5 : u) * N);
@@ -6596,6 +6728,17 @@
           a.stroke(),
           (a.globalAlpha = 1);
       }
+      if (h.dazeT > 0)
+        for (let p = 0; p < 3; p++) {
+          let k = e.tick * 0.2 + (p * Math.PI * 2) / 3;
+          (a.fillStyle = p % 2 ? "#8fd0f5" : "#ffffff"),
+            a.fillRect(
+              Math.round(c + Math.cos(k) * 9) - 1,
+              Math.round(y - h.kit.tall * Bz(h) + 2 + Math.sin(k) * 2.5),
+              2,
+              3,
+            );
+        }
       if (h.state === "stunned")
         for (let p = 0; p < 3; p++) {
           let k = e.tick * 0.14 + (p * Math.PI * 2) / 3;
@@ -6696,6 +6839,21 @@
           a.fill(),
           (a.fillStyle = "#e8ffd0"),
           a.fillRect(-3, 0, 6, 1),
+          a.restore();
+      } else if (h.kind === "pulse") {
+        let b = Math.atan2(h.vy, h.vx),
+          p = 1 + Math.sin(h.age * 0.7) * 0.18;
+        a.save(), a.translate(c, y), a.rotate(b);
+        for (let k = 2; k >= 0; k--)
+          (a.globalAlpha = k ? 0.22 / k : 1),
+            (a.strokeStyle = k ? L.water : "#bfe6ff"),
+            (a.lineWidth = k ? 1.5 : 2.2),
+            a.beginPath(),
+            a.ellipse(-k * 5, 0, 3.2 * p, 6.5 * p, 0, 0, Math.PI * 2),
+            a.stroke();
+        (a.globalAlpha = 1),
+          (a.fillStyle = "#ffffff"),
+          a.fillRect(1, -3, 1, 2),
           a.restore();
       } else {
         if (h.kind === "wisp") continue;
@@ -7714,6 +7872,8 @@
       {
         FLAMETHROWER: "Flame",
         "HYDRO PUMP": "Pump",
+        "WATER PULSE": "Pulse",
+        "HYDRO CANNON": "Cannon",
         "RAZOR LEAF": "Leaf",
         "LEECH SEED": "Seed",
         WITHDRAW: "Shell",
@@ -8295,8 +8455,8 @@
             : G("Stand still to root", v, E + 5.6, 5.8, g.dim)
           : f.id === "blastoise"
             ? a.inPuddle(t.x, t.y, t.team, !0)
-              ? ue("SWIFT SWIM", "#2f6fc0", v, E)
-              : G("Leaves puddles", v, E + 5.6, 5.8, g.dim)
+              ? ue("MEGA LAUNCHER", "#2f6fc0", v, E)
+              : G("Fire from puddles", v, E + 5.6, 5.8, g.dim)
             : f.id === "dragapult" &&
               (l.horns.forEach((w, U) =>
                 Oe(o.dreepy, "Normal", v + U * 9.5, E - 0.5, 8, {
@@ -9355,17 +9515,25 @@
       ["*", "Sprout", "Untouched seeds become healing grass."],
     ],
     blastoise: [
-      ["A", "Shell Bash", "Heavy hit that shrugs off one light hit."],
+      ["A", "Shell combo", "Bash, Aqua Tail, then an armored Body Slam."],
       ["RS", "Skull Bash", "Smash: armored headbutt rush. Hits hardest."],
       ["B", "Shell Slide", "Brief invincibility, then armored. Bumps enemies."],
-      ["X", "Hydro Pump", "Beam that shoves targets into walls."],
+      ["X", "Water Pulse", "Ring shot that dazes. Hold for a 3-shot volley."],
       [
         "Y",
-        "Withdraw",
-        "Hold to block. Time it to counter. Release + direction to spin.",
+        "Hydro Cannon",
+        "Plant and blast a short, heavy beam. Long recovery.",
       ],
-      ["*", "Puddles", "Water moves leave puddles you swim through faster."],
-      ["*", "Heavy", "Least knockback. Can Withdraw out of hitstun."],
+      [
+        "*",
+        "Mega Launcher",
+        "Shots fired from a puddle hit harder and fly further.",
+      ],
+      [
+        "*",
+        "Withdraw",
+        "Guard in a puddle to block and counter. Release to spin.",
+      ],
     ],
     dragapult: [
       [
@@ -11052,10 +11220,12 @@
         case "projDie":
           n.wall &&
             (S.fizzle(), t.ring(n.p.x, n.p.y - n.p.z, 2, 1.3, 8, n.p.color)),
-            n.p.kind === "leaf"
-              ? t.leaves(n.p.x, n.p.y, n.p.z, 4)
-              : (n.p.kind === "orb" || n.p.kind === "wisp") &&
-                t.motes(n.p.x, n.p.y, n.p.z, 10, n.p.color);
+            n.p.kind === "pulse"
+              ? t.splash(n.p.x, n.p.y, n.p.z, 6)
+              : n.p.kind === "leaf"
+                ? t.leaves(n.p.x, n.p.y, n.p.z, 4)
+                : (n.p.kind === "orb" || n.p.kind === "wisp") &&
+                  t.motes(n.p.x, n.p.y, n.p.z, 10, n.p.color);
           break;
         case "reflect":
           S.reflect(),
@@ -11226,7 +11396,36 @@
             t.popup(n.who.x, n.who.y - 38, "ROOTED", "#9be36b", !1));
           break;
         case "pumpStart":
-          S.charge(), t.motes(n.who.x, n.who.y, 12, 8, L.water);
+          S.charge(),
+            t.motes(n.who.x, n.who.y, 12, 8, L.water),
+            t.glint(n.who, n.who.kit.tall * Bz(n.who) * 0.8, "#8fd0f5");
+          break;
+        case "pulse":
+          S.splash(),
+            t.splash(
+              n.who.x + n.dx * 12,
+              n.who.y + n.dy * 12,
+              10,
+              n.mega ? 6 : 3,
+              n.dx,
+              n.dy,
+            ),
+            t.ring(
+              n.who.x + n.dx * 12,
+              n.who.y + n.dy * 12 - 10,
+              3,
+              1.6,
+              8,
+              n.mega ? L.gold : "#8fd0f5",
+            );
+          break;
+        case "mega":
+          t.ring(n.who.x, n.who.y, 6, 2.2, 14, L.gold, !0),
+            t.ring(n.who.x, n.who.y, 4, 1.6, 12, "#8fd0f5", !0);
+          break;
+        case "dazed":
+          t.popup(n.who.x, n.who.y - 46, "DAZED", "#8fd0f5", !1),
+            t.splash(n.who.x, n.who.y, 8, 6);
           break;
         case "withdraw":
           S.shell(), t.dust(n.who.x, n.who.y, 4, 0, 0, 1);

@@ -77,3 +77,19 @@ select screen with **Select** (Tab on keyboard).
   `src/game.js`). The CPU uses and respects the longer reach.
 - **Training: Pokémon tab** in the pause menu. Pick a lead and a partner and the training
   session restarts with that team. B undoes the last pick.
+
+## Blastoise: Artillery tank kit
+
+| Input | Move | Behaviour |
+| --- | --- | --- |
+| A | Shell Bash → Aqua Tail → Body Slam | 3-hit combo. Only the Body Slam is armored. |
+| R-stick | Skull Bash | Unchanged armored rush smash. |
+| B | Shell Slide | Unchanged. |
+| X | Water Pulse | Tap: one ring shot. Hold: three-shot volley. Hits daze (slower, wobbly movement for ~0.8 s) and leave a small puddle. |
+| Y | Hydro Cannon | Plants for a visible wind-up, then a short (140) heavy-push beam. Long recovery, so it can be punished. |
+| Guard in a puddle | Withdraw | Blocks shots, counters close hits, release with a direction to Rapid Spin. Own short cooldown. Also works out of hitstun. Guard on dry ground is the normal guard. |
+| Passive | Mega Launcher | Pulse and Cannon fired from your own puddle deal +25% and reach 30% further (Cannon 182). |
+
+Numbers live in `BLAST` in `src/game.js`. The CPU fires pulses and volleys at mid range,
+saves Hydro Cannon for close range or when you are recovering, and Withdraws only when it
+is standing in water.
