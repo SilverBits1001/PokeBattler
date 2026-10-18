@@ -9229,9 +9229,11 @@ window.__TILES__=["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAAC
               (f = Math.max(f, u.y));
           (t = (r + o) / 2),
             (s = (l + f) / 2 - 8),
+            // Frame every fighter with a snug margin, pulling back to the
+            // whole arena only when they are at opposite walls.
             (i = Math.max(
               1,
-              Math.min(1.5, Y / (o - r + 230), _ / (f - l + 170)),
+              Math.min(1.85, Y / (o - r + 160), _ / (f - l + 120)),
             ));
         }
         (this.camX += (t - this.camX) * 0.09),

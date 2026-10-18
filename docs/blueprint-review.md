@@ -520,3 +520,13 @@ Feedback: the arenas looked flat and noisy (random speckle on solid fills).
 - If the tiles fail to load, the old procedural floors are drawn instead.
 - Verified with screenshots of all five arenas, a soak run and the mode tests:
   no errors.
+
+## Camera: closer framing
+
+Feedback: the camera should sit a little closer to the player.
+
+- The fight camera still frames every fighter, but with tighter margins (160 by
+  120 px instead of 230 by 170), and it can zoom to 1.85x instead of 1.5x.
+- At close range the fighters now fill noticeably more of the screen.
+- It still pulls back to the whole arena (1x) when fighters stand at opposite
+  walls, so nobody leaves the screen; a 1.1x minimum was tried and cropped them.
