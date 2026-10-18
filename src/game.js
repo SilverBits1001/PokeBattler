@@ -13739,6 +13739,10 @@
       onlineScreen(s, o), ga(s), Lt(s);
       return;
     }
+    if (s.screen === "menu") {
+      menuScreen(s, o), ga(s), Lt(s);
+      return;
+    }
     let l = t.view,
       f = (c) => (c * l.z + l.ox) * ma,
       u = (c) => (c * l.z + l.oy) * ma,
@@ -13889,6 +13893,35 @@
   }
   var Pt = 204,
     ka = 46;
+  // The round timer between the two bars, with the series score below.
+  function hudTimer(a, e) {
+    let t = H / 2;
+    d.save(),
+      (d.fillStyle = "rgba(6,4,10,0.86)"),
+      d.beginPath(),
+      d.moveTo(m(t - 26), m(3)),
+      d.lineTo(m(t + 26), m(3)),
+      d.lineTo(m(t + 21), m(30)),
+      d.lineTo(m(t - 21), m(30)),
+      d.closePath(),
+      d.fill(),
+      (d.strokeStyle = "rgba(255,214,140,0.55)"),
+      (d.lineWidth = m(0.7)),
+      d.stroke(),
+      d.restore(),
+      V(Pa(a.ticks), t, 23, 17, "#fff1d6", {
+        align: "center",
+        outline: 2.6,
+        outlineColor: "#3a0d08",
+      }),
+      G(`ROUND ${a.round}`, t, 28.6, 4.8, "#ffcf7a", {
+        align: "center",
+        weight: 700,
+      }),
+      V(`${a.wins}`, t - 4, 41, 10, g.p1, { align: "right", outline: 2.4 }),
+      V("\u2013", t, 40, 8, g.haze, { align: "center", outline: 2 }),
+      V(`${a.losses}`, t + 4, 41, 10, g.cpu, { align: "left", outline: 2.4 });
+  }
   function Ja(a, e, t) {
     let s = a.player;
     d.save(),
@@ -13908,28 +13941,13 @@
       wa(a, e, i, H - 5 - Pt, 5, !0, t);
       a.players
         .slice(2)
-        .forEach((r, o) =>
-          miniPanel(a, r, H - 5 - 128, 5 + ka + 4 + o * 19, t),
-        );
+        .forEach((r, o) => miniPanel(a, r, H - 5 - 128, 58 + o * 19, t));
       a.zone && zoneHud(a);
       let r = a.match,
         o = 50,
         l = H / 2 - o / 2,
         f = 5;
-      Ae(l, f, o, 30, g.gold, { edge: "bottom", sk: 6 }),
-        V(Pa(r.ticks), H / 2, f + 17, 15, g.chalk, { align: "center" }),
-        G(`Round ${r.round}`, H / 2, f + 25.5, 5.6, g.haze, {
-          align: "center",
-        }),
-        V(`${r.wins}`, H / 2 - 5, f + 42, 11, g.p1, {
-          align: "right",
-          outline: 2.4,
-        }),
-        V("\u2013", H / 2, f + 41, 9, g.haze, { align: "center", outline: 2 }),
-        V(`${r.losses}`, H / 2 + 5, f + 42, 11, g.cpu, {
-          align: "left",
-          outline: 2.4,
-        });
+      hudTimer(r, e.frame);
     } else {
       let o = H - 5 - 140;
       Ae(o, 5, 140, 38, g.gold, { edge: "right" }),
@@ -13951,8 +13969,8 @@
         });
     }
     s.lock &&
-      (Pe("R1", 14, 60, 3.4),
-      G("Locked on", 22, 62.5, 7, s.kit.color, {
+      (Pe("R1", 14, 64, 3.4),
+      G("Locked on", 22, 66.5, 7, s.kit.color, {
         weight: 700,
         italic: !0,
         outline: 2,
@@ -14027,79 +14045,387 @@
         { align: "center", weight: 800, italic: !0, outline: 2 },
       );
   }
+  // ---- Battle HUD ----
+  // Fighting-game style: corner portrait and name plate, a long slanted energy
+  // bar running to the timer, Poke Balls for the team, the benched partner,
+  // cooldown buttons, and a thin glowing guard strip under the bar.
+  // A slanted bar shape; `r` mirrors it for the right-hand side.
+  function hudBarPath(a, e, t, s, i, r) {
+    d.beginPath(),
+      r
+        ? (d.moveTo(m(a), m(e)),
+          d.lineTo(m(a + t - i), m(e)),
+          d.lineTo(m(a + t), m(e + s)),
+          d.lineTo(m(a + i), m(e + s)))
+        : (d.moveTo(m(a + i), m(e)),
+          d.lineTo(m(a + t), m(e)),
+          d.lineTo(m(a + t - i), m(e + s)),
+          d.lineTo(m(a), m(e + s))),
+      d.closePath();
+  }
+  // The health bar: glowing energy that drains toward the fighter's corner.
+  function energyBar(a, e, t, s, i, r, o, l) {
+    let f = s * 0.7;
+    (i = Math.max(0, Math.min(1, i))), (r = Math.max(i, Math.min(1, r)));
+    // Frame and dark track.
+    d.save(),
+      hudBarPath(a - 1.6, e - 1.4, t + 3.2, s + 2.8, f, o),
+      (d.fillStyle = "rgba(6,4,10,0.85)"),
+      d.fill(),
+      (d.strokeStyle = "rgba(255,214,140,0.55)"),
+      (d.lineWidth = m(0.7)),
+      d.stroke();
+    let u = d.createLinearGradient(0, m(e), 0, m(e + s));
+    u.addColorStop(0, "#2a1418"),
+      u.addColorStop(1, "#140a0e"),
+      hudBarPath(a, e, t, s, f, o),
+      (d.fillStyle = u),
+      d.fill(),
+      d.clip();
+    let h = (C) => (o ? a + t - t * C : a),
+      c = i < 0.25,
+      y = c && Math.floor(l / 6) % 2 === 0;
+    // Recent damage: a hot red trail that drains a moment later.
+    r > i &&
+      ((d.fillStyle = "rgba(255,70,54,0.82)"),
+      d.fillRect(m(o ? a + t - t * r : a + t * i), m(e), m(t * (r - i)), m(s)));
+    if (i > 0) {
+      let C = o ? a + t - t * i : a,
+        x = t * i,
+        v = d.createLinearGradient(0, m(e), 0, m(e + s));
+      c
+        ? (v.addColorStop(0, y ? "#ffd6cc" : "#ffb0a0"),
+          v.addColorStop(0.45, "#ff4a3a"),
+          v.addColorStop(1, "#9a1410"))
+        : (v.addColorStop(0, "#fff7cf"),
+          v.addColorStop(0.35, "#ffd24a"),
+          v.addColorStop(0.75, "#ff9a1f"),
+          v.addColorStop(1, "#c4480c")),
+        (d.fillStyle = v),
+        d.fillRect(m(C), m(e), m(x), m(s)),
+        d.save(),
+        (d.globalCompositeOperation = "lighter");
+      // Energy: a soft bright core and a sheen that sweeps along the bar.
+      let E = d.createLinearGradient(0, m(e), 0, m(e + s));
+      E.addColorStop(0, "rgba(255,255,255,0)"),
+        E.addColorStop(
+          0.42,
+          c ? "rgba(255,120,100,0.45)" : "rgba(255,240,170,0.55)",
+        ),
+        E.addColorStop(0.62, "rgba(255,255,255,0)"),
+        (d.fillStyle = E),
+        d.fillRect(m(C), m(e), m(x), m(s));
+      let Q = ((l * 1.6) % (t + 60)) - 30,
+        ie = o ? a + t - Q : a + Q,
+        K = d.createLinearGradient(m(ie - 18), 0, m(ie + 18), 0);
+      K.addColorStop(0, "rgba(255,255,255,0)"),
+        K.addColorStop(0.5, "rgba(255,255,230,0.45)"),
+        K.addColorStop(1, "rgba(255,255,255,0)"),
+        (d.fillStyle = K),
+        d.fillRect(m(C), m(e), m(x), m(s));
+      // Moving energy streaks.
+      d.fillStyle = c ? "rgba(255,200,180,0.25)" : "rgba(255,255,220,0.22)";
+      for (let $ = 0; $ < 6; $++) {
+        let w =
+            (((($ * 37 + l * (1 + ($ % 3) * 0.4)) % (t + 20)) + t + 20) %
+              (t + 20)) -
+            10,
+          U = o ? a + t - w : a + w;
+        (o ? U >= C : U <= C + x) &&
+          d.fillRect(
+            m(U),
+            m(e + 1 + ($ % 3) * (s / 4)),
+            m(8 + ($ % 2) * 6),
+            m(0.7),
+          );
+      }
+      d.restore();
+      // A white-hot leading edge where the bar ends.
+      let $ = o ? C : C + x;
+      (d.fillStyle = "rgba(255,255,255,0.9)"),
+        d.fillRect(m($ - 0.6), m(e), m(1.2), m(s));
+    }
+    // Segment ticks.
+    d.fillStyle = "rgba(20,8,10,0.35)";
+    for (let C = 1; C < 8; C++)
+      d.fillRect(m(a + (t * C) / 8), m(e + s * 0.55), m(0.5), m(s * 0.45));
+    d.restore();
+    // Outer glow along the top edge.
+    i > 0 &&
+      (d.save(),
+      (d.globalCompositeOperation = "lighter"),
+      (d.shadowColor = c ? "rgba(255,70,50,0.9)" : "rgba(255,170,60,0.85)"),
+      (d.shadowBlur = m(5)),
+      (d.strokeStyle = c ? "rgba(255,120,100,0.5)" : "rgba(255,210,120,0.45)"),
+      (d.lineWidth = m(0.6)),
+      d.beginPath(),
+      o
+        ? (d.moveTo(m(a + t - t * i), m(e)), d.lineTo(m(a + t - f), m(e)))
+        : (d.moveTo(m(a + f), m(e)), d.lineTo(m(a + t * i), m(e))),
+      d.stroke(),
+      d.restore());
+  }
+  // A thin glowing meter (the guard strip under the health bar).
+  function glowStrip(a, e, t, s, i, r, o) {
+    let l = s * 0.7;
+    d.save(),
+      hudBarPath(a - 0.6, e - 0.6, t + 1.2, s + 1.2, l, o),
+      (d.fillStyle = "rgba(6,4,10,0.85)"),
+      d.fill(),
+      hudBarPath(a, e, t, s, l, o),
+      d.clip();
+    let f = t * Math.max(0, Math.min(1, i)),
+      u = o ? a + t - f : a;
+    (d.fillStyle = r),
+      (d.shadowColor = r),
+      (d.shadowBlur = m(4)),
+      d.fillRect(m(u), m(e), m(f), m(s)),
+      (d.shadowBlur = 0),
+      (d.fillStyle = "rgba(255,255,255,0.55)"),
+      d.fillRect(m(u), m(e), m(f), m(s * 0.35)),
+      d.restore();
+  }
+  // A Poke Ball team marker; grey once that Pokemon has fainted.
+  function hudBall(a, e, t, s) {
+    let i = s
+      ? ["#5d5780", "#3a3550", "#2a2638"]
+      : ["#ef3b3b", "#f4f2fb", "#1b1428"];
+    d.save(),
+      !s && ((d.shadowColor = "rgba(255,90,70,0.7)"), (d.shadowBlur = m(3))),
+      (d.fillStyle = i[2]),
+      d.beginPath(),
+      d.arc(m(a), m(e), m(t + 0.7), 0, Math.PI * 2),
+      d.fill(),
+      (d.shadowBlur = 0),
+      (d.fillStyle = i[0]),
+      d.beginPath(),
+      d.arc(m(a), m(e), m(t), Math.PI, 0),
+      d.fill(),
+      (d.fillStyle = i[1]),
+      d.beginPath(),
+      d.arc(m(a), m(e), m(t), 0, Math.PI),
+      d.fill(),
+      (d.fillStyle = i[2]),
+      d.fillRect(m(a - t), m(e - 0.45), m(t * 2), m(0.9)),
+      d.beginPath(),
+      d.arc(m(a), m(e), m(t * 0.42), 0, Math.PI * 2),
+      d.fill(),
+      (d.fillStyle = s ? "#5d5780" : "#ffffff"),
+      d.beginPath(),
+      d.arc(m(a), m(e), m(t * 0.24), 0, Math.PI * 2),
+      d.fill(),
+      !s &&
+        ((d.fillStyle = "rgba(255,255,255,0.55)"),
+        d.beginPath(),
+        d.arc(m(a - t * 0.35), m(e - t * 0.45), m(t * 0.22), 0, Math.PI * 2),
+        d.fill()),
+      d.restore();
+  }
+  // A cooldown button: the face glyph with a sweep while recharging.
+  function hudBtn(a, e, t, s, i) {
+    if (i > 0) {
+      let r = i / 16;
+      d.save(),
+        (d.globalAlpha = r),
+        (d.strokeStyle = g.chalk),
+        (d.lineWidth = m(1)),
+        d.beginPath(),
+        d.arc(m(a), m(e), m(4 + (1 - r) * 6), 0, Math.PI * 2),
+        d.stroke(),
+        d.restore();
+    }
+    s >= 1 &&
+      (d.save(),
+      (d.globalCompositeOperation = "lighter"),
+      (d.fillStyle = "rgba(255,255,255,0.12)"),
+      d.beginPath(),
+      d.arc(m(a), m(e), m(5.2), 0, Math.PI * 2),
+      d.fill(),
+      d.restore()),
+      Pe(t, a, e, 3.8, !1),
+      s < 1 &&
+        ((d.fillStyle = "rgba(11,9,24,0.74)"),
+        d.beginPath(),
+        d.moveTo(m(a), m(e)),
+        d.arc(
+          m(a),
+          m(e),
+          m(4),
+          -Math.PI / 2 + Math.PI * 2 * Math.max(0, s),
+          Math.PI * 1.5,
+        ),
+        d.closePath(),
+        d.fill());
+  }
   function wa(a, e, t, s, i, r, o) {
     let l = t.slot,
       f = l.kit,
-      u = r ? g.cpu : g.p1;
-    Ae(s, i, Pt, ka, u, { edge: r ? "right" : "left" });
-    let h = 40,
-      c = r ? s + Pt - h - 12 : s + 10;
-    Oe(o[f.id], Gt(a, t, t.active), c, i + 3, h, {
-      flip: r,
-      bg: f.color,
-      grey: t.state === "faint",
-      slash: !0,
-    }),
+      u = r ? g.cpu : g.p1,
+      X = (c, y = 0) => (r ? H - c - y : c),
+      h = e.frame;
+    // Corner portrait with a slanted frame.
+    let c = X(5, 36),
+      y = 5;
+    te(c - 1.5, y - 1.5, 39, 39, "rgba(6,4,10,0.85)", 5),
+      Oe(o[f.id], Gt(a, t, t.active), c, y, 36, {
+        flip: r,
+        bg: f.color,
+        grey: t.state === "faint",
+        slash: !0,
+      }),
+      (d.fillStyle = u),
+      d.fillRect(m(r ? c + 36 : c - 1.5), m(y - 1.5), m(1.5), m(39)),
       !r &&
         e.portraitFlash > 0 &&
         (d.save(),
         (d.globalAlpha = e.portraitFlash / 18),
-        te(c, i + 3, h, h, "#ff4a63"),
+        te(c, y, 36, 36, "#ff4a63"),
         d.restore(),
         e.portraitFlash--),
       l.hp < l.maxHp * 0.25 &&
         l.hp > 0 &&
         Math.floor(a.tick / 15) % 2 === 0 &&
-        (ze(c, i + 3, h, h),
+        (ze(c, y, 36, 36),
         (d.strokeStyle = g.hpLow),
         (d.lineWidth = m(1.2)),
         d.stroke()),
       ue(
         r ? (NET.m ? "RIVAL" : "CPU") : NET.m ? "YOU" : "1P",
         u,
-        r ? c + h - (NET.m ? 24 : 18) : c + 1,
-        i + ka - 9,
+        r ? c + 36 - 18 - (NET.m ? 6 : 0) : c + 1,
+        y + 29,
         {
           text: g.night,
-          size: 5.6,
+          size: 5.4,
         },
       );
-    let y = r ? s + 46 : s + 56,
-      b = 108;
-    V(f.name, y, i + 12.5, 12, g.chalk);
-    let p = `${Math.ceil(l.hp)}`;
-    V(p, y + b + 1, i + 12.5, 12, Sa(l.hp / l.maxHp)[0], { align: "right" });
-    let k = y + ye(f.name, 12, He, 900) + 3,
-      M = f.type2 ? [f.type, f.type2] : [f.type],
-      P = y + b - ye(p, 12, He, 900) - 3 - k,
-      C = M.reduce((w, U) => w + ye(U, 5.6, je, 700) + 6.5, 0);
-    for (let w of M)
-      k += ue(C > P ? w.slice(0, 3) : w, Rt[w] ?? "#888", k, i + 5.2) + 1.2;
-    let x = Qa(e, `${t.team}-${f.id}`, l.hp);
-    ot(y, i + 15.5, b, l.hp / l.maxHp, x / l.maxHp, 6);
-    let v = y,
-      E = i + 24.5;
+    // Name plate under the portrait.
+    let b = X(2, 74);
+    te(b, 43, 74, 10, "rgba(6,4,10,0.82)", 3),
+      (d.fillStyle = u),
+      d.fillRect(m(b + (r ? 72 : 1)), m(44), m(1.2), m(8)),
+      V(f.name, r ? b + 70 : b + 5, 51.3, 8.4, g.chalk, {
+        align: r ? "right" : "left",
+      });
+    // Types above the bar.
+    let p = f.type2 ? [f.type, f.type2] : [f.type],
+      k = r ? H - 50 : 50;
+    for (let C of p) {
+      let x = ba(C, 5) + 2;
+      r
+        ? ((k -= ue(C, Rt[C] ?? "#888", k, 3.2, { right: !0, size: 5 })),
+          (k -= 1.5))
+        : (k += ue(C, Rt[C] ?? "#888", k, 3.2, { size: 5 }) + 1.5);
+    }
+    // Team markers: one Poke Ball per Pokemon, greyed when it has fainted.
+    t.slots.forEach((C, x) => hudBall(X(206 - x * 9), 7, 3.3, C.hp <= 0));
+    // The energy bar and its guard strip.
+    let M = X(44, 170),
+      P = Qa(e, `${t.team}-${f.id}`, l.hp);
+    energyBar(M, 11, 170, 10, l.hp / l.maxHp, P / l.maxHp, r, h);
+    let C0 = Math.max(0, l.guard) / 100,
+      C1 = t.state === "stunned";
+    glowStrip(
+      X(50, 150),
+      23,
+      150,
+      2.4,
+      C0,
+      C1
+        ? h % 10 < 5
+          ? g.cpu
+          : g.gold
+        : C0 < 0.3
+          ? g.cpu
+          : t.state === "guard"
+            ? "#bff1ff"
+            : r
+              ? "#ff6a7a"
+              : "#5fb4ff",
+      r,
+    ),
+      G(`${Math.ceil(l.hp)}`, X(190), 8.8, 7.4, Sa(l.hp / l.maxHp)[1], {
+        align: r ? "left" : "right",
+        weight: 700,
+        outline: 2,
+      });
+    // The benched partner: mini portrait (grey once fainted) and its buttons.
+    let x0 = t.slots.findIndex((C, x) => x !== t.active);
+    if (x0 >= 0) {
+      let C = t.slots[x0],
+        x = C.hp <= 0,
+        v = X(80, 15);
+      te(v - 1, 27, 17, 17, "rgba(6,4,10,0.85)", 3),
+        Oe(o[C.kit.id], Gt(a, t, x0), v, 28, 15, {
+          flip: r,
+          bg: C.kit.color,
+          grey: x,
+          slash: !0,
+        }),
+        x
+          ? G("KO", v + 7.5, 39, 6, g.chalk, {
+              align: "center",
+              weight: 700,
+              outline: 2,
+            })
+          : ot(v, 44.6, 15, C.hp / C.maxHp, C.hp / C.maxHp, 1.8, !1);
+      let E = t.switchCd === 0 && !x,
+        Q = t.assistCd === 0 && !x;
+      Pe("L1", X(101), 31, 2.6, !E), Pe("L2", X(101), 39.5, 2.6, !Q);
+      if (!r && (e.chipFlash.assist ?? 0) > 0) {
+        let ie = e.chipFlash.assist / 16;
+        d.save(),
+          (d.globalAlpha = ie),
+          ze(
+            v - 2 - (1 - ie) * 3,
+            26 - (1 - ie) * 3,
+            19 + (1 - ie) * 6,
+            19 + (1 - ie) * 6,
+          ),
+          (d.strokeStyle = "#ffffff"),
+          (d.lineWidth = m(1)),
+          d.stroke(),
+          d.restore();
+      }
+    }
+    // Cooldowns: buttons only, no move names.
+    let Q = (C, x) => 1 - C / Math.max(1, x),
+      ie = r ? {} : e.chipFlash;
+    hudBtn(X(113), 35, "B", Q(l.cdDodge, f.dodge.cooldown), 0),
+      hudBtn(
+        X(124),
+        35,
+        "X",
+        f.id === "dragapult"
+          ? l.horns.includes("loaded") || l.horns.includes("out")
+            ? 1
+            : 0
+          : Q(l.cdX, f.xCd),
+        ie.x ?? 0,
+      ),
+      hudBtn(X(135), 35, "Y", Q(l.cdY, f.yCd), ie.y ?? 0);
+    // Statuses and each Pokemon's own meter.
+    let v = r ? H - 206 : 143,
+      E = 31.5,
+      y0 = v - 4;
     l.burnT > 0 && (v += ue("BRN", "#e0602e", v, E) + 1.5),
       (t.seededT ?? 0) > 0 && (v += ue("SEED", "#4c9a32", v, E) + 1.5),
       t.state === "stunned" &&
         (v +=
-          ue("DIZZY", e.frame % 10 < 5 ? g.cpu : g.gold, v, E, {
-            text: g.night,
-          }) + 1.5),
+          ue("DIZZY", h % 10 < 5 ? g.cpu : g.gold, v, E, { text: g.night }) +
+          1.5),
       f.id === "charizard"
         ? (l.hp < l.maxHp * 0.3 &&
-            (v +=
-              ue("BLAZE", e.frame % 20 < 10 ? "#e04020" : "#f08030", v, E) +
-              1.5),
+            (v += ue("BLAZE", h % 20 < 10 ? "#e04020" : "#f08030", v, E) + 1.5),
           G("Heat", v, E + 5.6, 5.8, "#ff9a5c", { weight: 700 }),
           (v += 14),
           Tt(
             v,
             E + 1.6,
-            Math.max(14, y + 74 - v),
+            Math.max(14, y0 + 62 - v),
             3.2,
             l.heat / 100,
-            l.heat > 85 && e.frame % 10 < 5
+            l.heat > 85 && h % 10 < 5
               ? "#fff4c2"
               : l.heat > 60
                 ? "#ff5a2a"
@@ -14111,7 +14437,7 @@
                 l.solar >= 1
                   ? "SOLAR READY"
                   : `SOLAR ${Math.round(l.solar * 100)}%`,
-                e.frame % 30 < 15 || l.solar < 1 ? "#b8901e" : "#e0b22e",
+                h % 30 < 15 || l.solar < 1 ? "#b8901e" : "#e0b22e",
                 v,
                 E,
               )
@@ -14124,12 +14450,7 @@
               : G("Fire from puddles", v, E + 5.6, 5.8, g.dim)
             : f.id === "magnezone"
               ? a.targetsFor(t.team).some((w) => w.lockT > 0 && w.lockBy === t)
-                ? ue(
-                    "TARGET LOCKED",
-                    e.frame % 16 < 8 ? "#d64538" : "#ef5a4f",
-                    v,
-                    E,
-                  )
+                ? ue("TARGET LOCKED", h % 16 < 8 ? "#d64538" : "#ef5a4f", v, E)
                 : G("Lock-On, then Zap Cannon", v, E + 5.6, 5.8, g.dim)
               : f.id === "snorlax"
                 ? t.state === "rest"
@@ -14166,79 +14487,6 @@
                       l.pfCd === 0
                         ? ue("PHANTOM", "#7b62d8", v, E)
                         : Tt(v, E + 1.6, 26, 3.2, 1 - l.pfCd / ut, "#7b62d8"));
-    {
-      let w = y + 80,
-        U = Math.max(0, l.guard) / 100,
-        re = t.state === "stunned";
-      Za(w, E + 3.3, U < 0.3 || re ? g.hpLow : "#5fb4ff"),
-        Tt(
-          w + 5,
-          E + 1.6,
-          22,
-          3.2,
-          U,
-          re
-            ? e.frame % 10 < 5
-              ? g.cpu
-              : g.gold
-            : U < 0.3
-              ? g.cpu
-              : t.state === "guard"
-                ? "#bff1ff"
-                : "#5fb4ff",
-        );
-    }
-    let Q = (w, U) => 1 - w / Math.max(1, U),
-      ie = r ? {} : e.chipFlash,
-      K = i + 33.5;
-    vt(y, K, "B", "Dodge", Q(l.cdDodge, f.dodge.cooldown), 0),
-      f.id === "dragapult"
-        ? vt(
-            y + 34,
-            K,
-            "X",
-            l.horns.includes("out") && l.horns.includes("loaded") === !1
-              ? "Recall"
-              : "Darts",
-            l.horns.includes("loaded") || l.horns.includes("out") ? 1 : 0,
-            ie.x ?? 0,
-          )
-        : vt(y + 34, K, "X", tt(f.xName), Q(l.cdX, f.xCd), ie.x ?? 0),
-      vt(y + 68, K, "Y", tt(f.yName), Q(l.cdY, f.yCd), ie.y ?? 0);
-    let $ = t.slots.findIndex((w, U) => U !== t.active);
-    if ($ >= 0) {
-      let w = t.slots[$],
-        U = w.hp <= 0,
-        re = r ? s + 12 : s + Pt - 34;
-      Oe(o[w.kit.id], Gt(a, t, $), re + 3, i + 5, 20, {
-        flip: r,
-        bg: w.kit.color,
-        grey: U,
-      }),
-        U && ue("FNT", "#5d5780", re + 6, i + 15),
-        ot(re + 1, i + 28, 23, w.hp / w.maxHp, w.hp / w.maxHp, 2.6, !1);
-      let se = t.switchCd === 0 && !U,
-        N = t.assistCd === 0 && !U;
-      if (
-        (Pe("L1", re + 6, i + 38, 2.9, !se),
-        Pe("L2", re + 19, i + 38, 2.9, !N),
-        !r && (e.chipFlash.assist ?? 0) > 0)
-      ) {
-        let J = e.chipFlash.assist / 16;
-        d.save(),
-          (d.globalAlpha = J),
-          ze(
-            re - (1 - J) * 3,
-            i + 2 - (1 - J) * 3,
-            30 + (1 - J) * 6,
-            42 + (1 - J) * 6,
-          ),
-          (d.strokeStyle = "#ffffff"),
-          (d.lineWidth = m(1)),
-          d.stroke(),
-          d.restore();
-      }
-    }
   }
   function Za(a, e, t) {
     (d.fillStyle = g.night),
@@ -14551,17 +14799,6 @@
         { align: "center" },
       );
   }
-  var Ge = { x: H / 2 - 76, y: 50, tile: 36, gap: 4 };
-  // Three tiles on top, two offset underneath.
-  function rs(a) {
-    let e = a % 4,
-      t = a < 4 ? 0 : 1;
-    return {
-      x: Ge.x + e * (Ge.tile + Ge.gap) - t * Ge.tile * ke * 0.5,
-      y: Ge.y + t * (Ge.tile + Ge.gap * 0.8),
-      s: Ge.tile,
-    };
-  }
   // Grid moves for the 4-over-4 roster.
   var RN = {
     left: [3, 0, 1, 2, 7, 4, 5, 6],
@@ -14640,12 +14877,202 @@
         te(t, s, 150, 64, g.cpu, 12),
         d.restore());
   }
+  // ---- Team select ----
+  // A versus layout: your side's card on the left, the opponent's on the right,
+  // the roster in three columns in the middle, and a VS emblem below it.
+  var RG = { x: H / 2 - 63, y: 36, tile: 38, gap: 6, pitch: 49 };
+  function rs(a) {
+    let e = Math.floor(a / 3),
+      t = a % 3,
+      s = e === 2 ? (RG.tile + RG.gap) / 2 : 0;
+    return {
+      x: RG.x + s + t * (RG.tile + RG.gap) - e * 2,
+      y: RG.y + e * RG.pitch,
+      s: RG.tile,
+    };
+  }
+  // Cursor moves for the 3-3-2 roster.
+  var RN3 = {
+    left: [2, 0, 1, 5, 3, 4, 7, 6],
+    right: [1, 2, 0, 4, 5, 3, 7, 6],
+    up: [6, 7, 7, 0, 1, 2, 3, 5],
+    down: [3, 4, 5, 6, 6, 7, 0, 2],
+  };
+  // One side's card: the lead large, the partner behind, on a team-coloured stage.
+  function selCard(a, e, t, s, i, r, o) {
+    let l = a.frame,
+      f = s ? g.cpu : g.p1,
+      u = s ? "255,74,99" : "51,214,255",
+      h = 140,
+      c = 136,
+      y = 34;
+    te(t + 2, y + 3, h, c, "rgba(0,0,0,0.5)", 14);
+    let b = d.createLinearGradient(0, m(y), 0, m(y + c));
+    b.addColorStop(0, s ? "#3a1020" : "#0c2140"),
+      b.addColorStop(1, s ? "#1a0610" : "#060c22"),
+      te(t, y, h, c, b, 14),
+      d.save(),
+      ze(t, y, h, c, 14),
+      d.clip();
+    // Diagonal light bands moving across the card.
+    for (let x = 0; x < 6; x++) {
+      let v = ((((x * 46 + l * (s ? -0.6 : 0.6)) % 280) + 280) % 280) - 70;
+      (d.fillStyle = `rgba(${u},${x % 2 ? 0.05 : 0.09})`),
+        d.beginPath(),
+        d.moveTo(m(t + v), m(y)),
+        d.lineTo(m(t + v + 18), m(y)),
+        d.lineTo(m(t + v - 22), m(y + c)),
+        d.lineTo(m(t + v - 40), m(y + c)),
+        d.closePath(),
+        d.fill();
+    }
+    let p = d.createRadialGradient(
+      m(t + h / 2),
+      m(y + 112),
+      0,
+      m(t + h / 2),
+      m(y + 112),
+      m(60),
+    );
+    p.addColorStop(0, `rgba(${u},0.5)`),
+      p.addColorStop(1, `rgba(${u},0)`),
+      (d.fillStyle = p),
+      d.fillRect(m(t), m(y), m(h), m(c));
+    let k = (x, v, E, Q, ie) => {
+      let K = e[x],
+        $ = K?.anims.Idle ?? K?.anims.Walk;
+      $ &&
+        (d.save(),
+        (d.globalAlpha = ie),
+        et(
+          d,
+          $,
+          Be($, l + Q * 9, 1),
+          s ? 6 : 2,
+          m(t + v),
+          m(y + 116),
+          E * Fe * (xe[x]?.size ?? 1),
+          K.ground,
+        ),
+        d.restore());
+    };
+    r[1] && k(r[1], s ? 30 : h - 30, 1.6, 1, 0.7),
+      r[0]
+        ? k(r[0], s ? h - 56 : 56, 2.7, 0, 1)
+        : o
+          ? (k(o, s ? h - 56 : 56, 2.7, 0, 0.5),
+            G("Lead?", t + h / 2, y + 129, 7, "rgba(255,255,255,0.6)", {
+              align: "center",
+              italic: !0,
+              weight: 700,
+            }))
+          : V("?", t + h / 2, y + 80, 48, `rgba(${u},0.35)`, {
+              align: "center",
+            });
+    d.restore(),
+      (d.strokeStyle = f),
+      (d.lineWidth = m(1.6)),
+      ze(t, y, h, c, 14),
+      d.stroke(),
+      d.save(),
+      (d.globalCompositeOperation = "lighter"),
+      (d.shadowColor = f),
+      (d.shadowBlur = m(8)),
+      (d.strokeStyle = `rgba(${u},0.5)`),
+      (d.lineWidth = m(0.8)),
+      d.stroke(),
+      d.restore();
+  }
+  // The plate under a card: who is playing and the team.
+  function selPlate(a, e, t, s, i, r, o) {
+    let l = s ? g.cpu : g.p1,
+      f = 140,
+      u = 174;
+    te(e - 2, u, f, 12, l, 4),
+      V(i, s ? e + f - 12 : e + 8, u + 9.6, 9, g.night, {
+        align: s ? "right" : "left",
+      }),
+      te(e - 4, u + 13, f, 52, "rgba(10,8,22,0.9)", 4);
+    let h = r[0] ?? o;
+    if (!h) {
+      G(s ? "Waiting…" : "Pick your lead", e + 8, u + 30, 7, g.haze, {
+        italic: !0,
+      });
+      return;
+    }
+    let c = xe[h];
+    V(c.name, e + 6, u + 26, 10, r[0] ? g.chalk : g.haze);
+    let y = e + 8 + ye(c.name, 10, He);
+    for (let p of c.type2 ? [c.type, c.type2] : [c.type])
+      y += ue(p, Rt[p] ?? "#888", y, u + 18.5, { size: 4.8 }) + 1.2;
+    // The role only when it fits beside the name and types.
+    ye(c.role.replace(" \xB7 ", ", "), 5.6) < e + f - 12 - y &&
+      G(c.role.replace(" \xB7 ", ", "), e + f - 10, u + 25.5, 5.6, g.haze, {
+        align: "right",
+        italic: !0,
+      });
+    let b = r[1]
+      ? `Partner: ${xe[r[1]].name}`
+      : r[0]
+        ? "Partner: choose one"
+        : "";
+    b && G(b, e + 6, u + 34, 5.8, r[1] ? "#cfcaea" : g.dim, { weight: 600 });
+    if (!s && a)
+      (Ra[h] ?? [])
+        .filter((p) => p[0] !== "*")
+        .slice(0, 3)
+        .forEach(([p, k, M], P, Q) => {
+          let C = u + 42 + P * 7.2,
+            v = Math.max(...Q.map((K) => ye(K[1], 5.6, je, 700))) + 18,
+            x = M.replace(/^Smash: /, ""),
+            E = x;
+          Pe(p, e + 9, C, 2.5),
+            G(k, e + 14, C + 2, 5.6, g.chalk, { weight: 700 });
+          // Trim the description to the room left after the longest name.
+          for (; E.length > 4 && ye(E + "…", 5.2) > f - 8 - v; )
+            E = E.slice(0, -1);
+          G(E === x ? x : E.trimEnd() + "…", e + v, C + 2, 5.2, g.haze);
+        });
+    else
+      Mt("Speed", c.stats.speed, e + 6, u + 40, "#33d6ff"),
+        Mt("Power", c.stats.power, e + 70, u + 40, "#ff8a3d"),
+        Mt("Guard", c.stats.defense, e + 6, u + 49, "#4df08a"),
+        Mt("Skill", c.stats.difficulty, e + 70, u + 49, "#b48cff");
+  }
   function ns(a, e) {
     let t = a.frame;
     a.selectT++, (a.pickBump *= 0.85), neonBg(t);
     let s = cpuSide();
-    V("Choose your team", 12, 25, 22, g.chalk, { skew: !0, outline: 2 }),
-      G("Pick two. Your first pick leads.", 14, 34, 6.6, g.haze, {
+    // Team-coloured glows on either side.
+    for (let [M, P] of [
+      [60, "51,214,255"],
+      [H - 60, "255,74,99"],
+    ]) {
+      let C = d.createRadialGradient(m(M), m(110), 0, m(M), m(110), m(170));
+      C.addColorStop(0, `rgba(${P},0.22)`),
+        C.addColorStop(1, `rgba(${P},0)`),
+        (d.fillStyle = C),
+        d.fillRect(0, 0, m(H), m(oe));
+    }
+    // Light lines running across the screen between the roster's rows.
+    d.save(), (d.globalCompositeOperation = "lighter");
+    for (let M = 0; M < 2; M++) {
+      let P = RG.y + RG.tile + 9 + M * RG.pitch + 1,
+        C = d.createLinearGradient(0, 0, m(H), 0);
+      C.addColorStop(0, "rgba(51,214,255,0)"),
+        C.addColorStop(0.3, "rgba(51,214,255,0.55)"),
+        C.addColorStop(0.5, "rgba(255,255,255,0.8)"),
+        C.addColorStop(0.7, "rgba(255,74,99,0.55)"),
+        C.addColorStop(1, "rgba(255,74,99,0)"),
+        (d.fillStyle = C),
+        d.fillRect(0, m(P), m(H), m(0.8));
+      let x = ((t * 3 + M * 170) % (H + 80)) - 40;
+      (d.fillStyle = "rgba(255,255,255,0.5)"),
+        d.fillRect(m(x), m(P - 0.4), m(30), m(1.6));
+    }
+    d.restore();
+    V("Choose your team", 12, 22, 16, g.chalk, { skew: !0, outline: 2 }),
+      G("Pick two. Your first pick leads.", 13, 29.5, 5.8, g.haze, {
         italic: !0,
       });
     let i = ["Easy", "Normal", "Hard"][A.cpuLevel],
@@ -14654,236 +15081,216 @@
         MODE_NAMES[A.gameMode] ?? "VS CPU",
         s ? g.cpu : A.gameMode === 5 ? g.p1 : g.dim,
         H - 12,
-        14,
-        {
-          right: !0,
-          size: 7,
-        },
+        10,
+        { right: !0, size: 6.4 },
       );
     s &&
-      ue(i.toUpperCase(), r, H - 14 - o, 14, {
+      ue(i.toUpperCase(), r, H - 14 - o, 10, {
         right: !0,
-        size: 7,
+        size: 6.4,
         text: g.night,
       });
     let l = ge[a.cursor],
-      f = a.picks.length;
-    for (let M = 0; M < 2; M++) {
-      let P = a.picks[M] ?? (M === f && !a.picks.includes(l) ? l : null),
-        C = a.picks[M] ? "locked" : P ? "hover" : "empty";
-      St(a, e, 8 - M * 6, 48 + M * 72, P, !1, M === 0 ? "Lead" : "Partner", C);
-    }
-    if (s)
-      for (let M = 0; M < 2; M++) {
-        let P = H - 158 - M * 6,
-          C = 48 + M * 72,
-          x = M === 0 ? "Lead" : "Partner";
-        a.cpuPicks[M]
-          ? St(a, e, P, C, a.cpuPicks[M], !0, x, "locked")
-          : a.roulette > 0
-            ? St(a, e, P, C, a.rouletteShow[M] ?? "charizard", !0, x, "roll")
-            : St(a, e, P, C, null, !0, x, "hidden");
-      }
-    else {
-      let M = H - 158;
+      f = a.picks.includes(l) ? null : l;
+    // Left: your team.
+    selCard(
+      a,
+      e,
+      8,
+      !1,
+      0,
+      [a.picks[0], a.picks[1]],
+      a.picks.length < 2 ? f : null,
+    ),
+      selPlate(!0, 10, 0, !1, "PLAYER 1", a.picks, f);
+    // Right: the CPU's team, or what this mode does instead.
+    let u = H - 148;
+    if (s) {
+      let M = a.roulette > 0 ? (a.rouletteShow ?? []) : a.cpuPicks;
+      selCard(a, e, u, !0, 0, [M[0], M[1]], null),
+        selPlate(
+          !1,
+          u + 2,
+          0,
+          !0,
+          `CPU \xB7 ${i.toUpperCase()}`,
+          a.cpuPicks,
+          null,
+        );
+    } else {
+      te(u + 2, 37, 140, 136, "rgba(0,0,0,0.5)", 14),
+        Ae(u, 34, 140, 136, A.gameMode === 5 ? g.p1 : g.dim, {
+          edge: "right",
+          sk: 14,
+        });
       if (A.gameMode === 5) {
-        Ae(M, 48, 150, 136, g.p1, { edge: "right" }),
-          V("Online", M + 18, 66, 15, g.chalk),
-          G("Battle another trainer who has", M + 18, 78, 6.6, g.haze),
-          G("this game open. Pick your team,", M + 18, 86, 6.6, g.haze),
-          G("then press Start to find one.", M + 18, 94, 6.6, g.haze);
-        // A broadcast signal: arcs pulsing out from a dot.
-        let P = M + 75,
-          C = 150;
+        V("Online", u + 20, 54, 15, g.chalk),
+          G("Battle another trainer who has", u + 20, 66, 6.4, g.haze),
+          G("this game open. Pick your team,", u + 20, 74, 6.4, g.haze),
+          G("then press Start to find one.", u + 20, 82, 6.4, g.haze);
+        let M = u + 75,
+          P = 140;
         (d.lineCap = "round"), (d.lineWidth = m(2.2));
-        for (let x = 0; x < 3; x++) {
-          let v = 10 + x * 10,
-            E = (t * 0.05 - x * 0.33) % 1;
+        for (let C = 0; C < 3; C++) {
+          let x = 10 + C * 10,
+            v = (t * 0.05 - C * 0.33) % 1;
           (d.strokeStyle = g.p1),
             (d.globalAlpha =
               0.35 +
-              0.65 * Math.max(0, Math.sin((E < 0 ? E + 1 : E) * Math.PI))),
+              0.65 * Math.max(0, Math.sin((v < 0 ? v + 1 : v) * Math.PI))),
             d.beginPath(),
-            d.arc(m(P), m(C), m(v), Math.PI * 1.22, Math.PI * 1.78),
+            d.arc(m(M), m(P), m(x), Math.PI * 1.22, Math.PI * 1.78),
             d.stroke();
         }
         (d.globalAlpha = 1),
           (d.lineCap = "butt"),
           (d.fillStyle = g.p1),
           d.beginPath(),
-          d.arc(m(P), m(C), m(3.2), 0, Math.PI * 2),
+          d.arc(m(M), m(P), m(3.2), 0, Math.PI * 2),
           d.fill();
       } else {
-        Ae(M, 48, 150, 136, g.dim, { edge: "right" }),
-          V("Training", M + 18, 66, 15, g.chalk),
-          G("Wobbuffet dummies take your hits", M + 18, 78, 6.6, g.haze),
-          G("and only fight back when set to", M + 18, 86, 6.6, g.haze),
-          G("Shooter in Options.", M + 18, 94, 6.6, g.haze);
-        let P = e.wobbuffet,
-          C = P.anims.Idle;
-        et(d, C, Be(C, t, 1), 6, m(M + 75), m(166), 2 * Fe, P.ground);
+        V("Training", u + 20, 54, 15, g.chalk),
+          G("Wobbuffet dummies take your hits", u + 20, 66, 6.4, g.haze),
+          G("and only fight back when set to", u + 20, 74, 6.4, g.haze),
+          G("Shooter in Options.", u + 20, 82, 6.4, g.haze);
+        let M = e.wobbuffet,
+          P = M.anims.Idle;
+        et(d, P, Be(P, t, 1), 6, m(u + 75), m(160), 2 * Fe, M.ground);
       }
     }
-    let u = (M, P, C) => {
-      M.forEach((x, v) => {
-        if (!x) return;
-        let E = P + v * 50,
-          Q = 236,
-          ie = xe[x].color,
-          K = d.createRadialGradient(m(E), m(Q), 0, m(E), m(Q), m(22));
-        K.addColorStop(0, ie + "77"),
-          K.addColorStop(1, ie + "00"),
-          (d.fillStyle = K),
-          d.beginPath(),
-          d.ellipse(m(E), m(Q), m(22), m(7), 0, 0, Math.PI * 2),
-          d.fill();
-        let $ = e[x],
-          w = $.anims.Idle ?? $.anims.Walk;
-        et(
-          d,
-          w,
-          Be(w, t + v * 13, 1),
-          C,
-          m(E),
-          m(Q),
-          1.5 * Fe * xe[x].size,
-          $.ground,
-        );
-      });
-    };
-    u([a.picks[0], a.picks[1]], 36, 2),
-      s && u([a.cpuPicks[1], a.cpuPicks[0]], H - 86, 6),
-      ge.forEach((M, P) => {
-        let { x: C, y: x, s: v } = rs(P),
-          E = xe[M],
-          Q = a.picks.indexOf(M),
-          ie = a.cpuPicks.includes(M),
-          K = P === a.cursor,
-          $ = K ? a.pickBump * 3 : 0;
-        if (
-          (te(
-            C - 1.6 - $,
-            x - 1.6 - $,
-            v + 3.2 + $ * 2,
-            v + 3.2 + $ * 2,
-            K ? g.p1 : g.night,
-          ),
-          Oe(
-            e[M],
-            K ? "Angry" : Q >= 0 || ie ? "Determined" : "Normal",
-            C - $,
-            x - $,
-            v + $ * 2,
-            { bg: E.color, frame: !1, slash: !0 },
-          ),
-          d.save(),
+    // The roster, three across.
+    ge.forEach((M, P) => {
+      let { x: C, y: x, s: v } = rs(P),
+        E = xe[M],
+        Q = a.picks.indexOf(M),
+        ie = a.cpuPicks.includes(M),
+        K = P === a.cursor,
+        $ = K ? a.pickBump * 3 : 0;
+      K &&
+        (d.save(),
+        (d.globalCompositeOperation = "lighter"),
+        (d.shadowColor = g.p1),
+        (d.shadowBlur = m(10)),
+        te(
+          C - 2 - $,
+          x - 2 - $,
+          v + 4 + $ * 2,
+          v + 4 + $ * 2,
+          "rgba(51,214,255,0.6)",
+        ),
+        d.restore()),
+        te(
+          C - 1.4 - $,
+          x - 1.4 - $,
+          v + 2.8 + $ * 2,
+          v + 2.8 + $ * 2,
+          K ? g.p1 : Q >= 0 ? "#1f6f8a" : ie ? "#7a1f30" : "rgba(10,8,22,0.95)",
+        ),
+        Oe(
+          e[M],
+          K ? "Angry" : Q >= 0 || ie ? "Determined" : "Normal",
+          C - $,
+          x - $,
+          v + $ * 2,
+          { bg: E.color, frame: !1, slash: !0 },
+        ),
+        (Q >= 0 || ie) &&
+          (d.save(),
           ze(C, x, v, v),
           d.clip(),
-          (d.fillStyle = "rgba(11,9,24,0.8)"),
-          d.fillRect(m(C), m(x + v - 11), m(v), m(11)),
-          Q >= 0 &&
-            ((d.fillStyle = "rgba(51,214,255,0.16)"),
-            d.fillRect(m(C), m(x), m(v), m(v))),
-          d.restore(),
-          V(E.name, C + v / 2 - 1, x + v - 2.6, 6.6, K ? g.p1 : g.chalk, {
-            align: "center",
+          (d.fillStyle =
+            Q >= 0 ? "rgba(51,214,255,0.18)" : "rgba(255,74,99,0.18)"),
+          d.fillRect(m(C), m(x), m(v), m(v)),
+          d.restore()),
+        V(
+          E.name,
+          C + v / 2 - 1,
+          x + v + 8,
+          6.4,
+          K ? g.p1 : Q >= 0 ? "#9fe6f2" : g.chalk,
+          { align: "center", outline: 1.6 },
+        ),
+        Q >= 0 &&
+          ue(`P${Q + 1}`, g.p1, C + v * ke + 1, x + 2, {
+            text: g.night,
+            size: 4.8,
           }),
-          Q >= 0 &&
-            ue(`P${Q + 1}`, g.p1, C + v * ke + 2, x + 3, { text: g.night }),
-          ie && ue("CPU", g.cpu, C + v - 4, x + 3, { right: !0 }),
-          K)
-        ) {
-          let w = 0.6 + 0.4 * Math.sin(t * 0.25);
-          d.save(),
-            (d.globalAlpha = w),
-            ze(C - 4, x - 4, v + 8, v + 8),
-            (d.strokeStyle = g.p1),
-            (d.lineWidth = m(1.2)),
-            d.stroke(),
-            d.restore();
-        }
-      });
-    let h = xe[l],
-      c = H / 2 - 106,
-      y = 172,
-      b = 188;
-    Ae(c, y, b, 56, h.color, { edge: "bottom" }),
-      V(h.name, c + 16, y + 12, 11, g.chalk),
-      G(h.role.replace(" \xB7 ", ", "), c + b - 8, y + 11.5, 6, g.haze, {
-        align: "right",
-        italic: !0,
-      }),
-      Ra[l]
-        .filter((M) => M[0] !== "*")
-        .slice(0, 5)
-        .forEach(([M, P, C], x, Q) => {
-          let v = y + 19 + x * 7.4,
-            K = Math.max(46, ...Q.map((w) => ye(w[1], 6, je, 700))) + 6,
-            ie = Math.floor((b - 30 - K) / 2.55);
-          Pe(M, c + 16 - x * 1.4, v, 2.7),
-            G(P, c + 23 - x * 1.4, v + 2.2, 6, g.chalk, { weight: 700 });
-          let E = C.replace(/^Smash: /, "");
-          G(
-            E.length > ie ? E.slice(0, ie - 1) + "\u2026" : E,
-            c + 23 + K - x * 1.4,
-            v + 2.2,
-            5.6,
-            g.haze,
-          );
-        });
-    let p = 242;
-    if (
-      (Pe("X", H / 2 - 118, p, 3.4),
-      G(
-        `Mode: ${["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online"][A.gameMode] ?? "VS CPU"}`,
-        H / 2 - 112,
-        p + 2.4,
-        7,
-        "#cfcaea",
-      ),
-      s &&
-        (Pe("Y", H / 2 - 40, p, 3.4),
-        G(`CPU: ${i}`, H / 2 - 34, p + 2.4, 7, r, { weight: 700 })),
-      G(
-        `Arena: ${ARENAS[A.arena]?.name ?? "Stadium"}`,
-        H / 2 + 36 + Pe("SELECT", H / 2 + 32, p, 3.4) / 2,
-        p + 2.4,
-        7,
+        ie && ue("CPU", g.cpu, C + v - 3, x + 2, { right: !0, size: 4.8 });
+    });
+    // Stage plate and the VS emblem.
+    let h = H / 2,
+      c = 194,
+      y =
         ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030"][A.arena] ??
-          "#cfcaea",
-        { weight: 700 },
-      ),
-      a.picks.length === 2 && (!s || a.cpuPicks.length === 2))
-    ) {
+        "#cfcaea";
+    te(h - 52, c - 9, 104, 18, "rgba(10,8,22,0.88)", 5),
+      G("BATTLE STAGE", h, c - 2.5, 4.6, g.haze, {
+        align: "center",
+        weight: 700,
+      }),
+      V(
+        (ARENAS[A.arena]?.name ?? "Stadium").toUpperCase(),
+        h,
+        c + 6.4,
+        7.6,
+        y,
+        { align: "center" },
+      );
+    let b = 230;
+    d.save();
+    for (let [M, P] of [
+      [0, "#33d6ff"],
+      [1, "#ff4a63"],
+    ])
+      d.save(),
+        d.beginPath(),
+        d.rect(m(M ? h : 0), 0, m(M ? H : h), m(oe)),
+        d.clip(),
+        (d.shadowColor = P),
+        (d.shadowBlur = m(10)),
+        V("VS", h + 1, b, 30, P, { align: "center", skew: !0, outline: 3.4 }),
+        d.restore();
+    d.restore(),
+      V("VS", h + 1, b, 30, "rgba(255,255,255,0.35)", {
+        align: "center",
+        skew: !0,
+      });
+    // Controls and the start prompt.
+    let p = 247;
+    if (a.picks.length === 2 && (!s || a.cpuPicks.length === 2)) {
       let M = 1 + 0.04 * Math.sin(t * 0.2);
       d.save(),
-        d.translate(m(H / 2), m(258)),
+        d.translate(m(h), m(p)),
         d.scale(M, M),
-        d.translate(-m(H / 2), -m(258)),
-        te(H / 2 - 72, 250, 144, 14, g.gold),
+        d.translate(-m(h), -m(p)),
+        te(h - 72, p - 7, 144, 14, g.gold),
         V(
           A.gameMode === 5
             ? "Press Start to go online"
             : "Press Start to battle",
-          H / 2,
-          261,
+          h,
+          p + 4,
           11,
           g.night,
-          {
-            align: "center",
-          },
+          { align: "center" },
         ),
         d.restore();
-    } else {
-      let M = H / 2 - 58;
-      for (let [P, C] of [
-        ["A", "Pick"],
-        ["B", a.picks.length ? "Undo" : "Title"],
-        ["START", "Battle"],
-      ]) {
-        let x = Pe(P, M + 4, 258, 3.4);
-        G(C, M + x + 1.5, 260.4, 7, "#cfcaea"), (M += x + ye(C, 7) + 14);
-      }
+    }
+    let k = 12;
+    for (let [M, P, C] of [
+      ["A", "Pick", "#cfcaea"],
+      ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
+      [
+        "X",
+        `Mode: ${["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online"][A.gameMode] ?? "VS CPU"}`,
+        "#cfcaea",
+      ],
+      ...(s ? [["Y", `CPU: ${i}`, r]] : []),
+      ["SELECT", "Arena", y],
+    ]) {
+      let x = Pe(M, k + 4, oe - 7, 3.2);
+      G(P, k + x + 1.5, oe - 4.6, 6.2, C, { weight: 600 }),
+        (k += x + ye(P, 6.2) + 10);
     }
   }
   // Results backdrop: a triangle lattice that ripples out from the winner,
@@ -17295,6 +17702,29 @@
     let e = NET.m;
     return e ? netShort(e.oppName, a) : "Rival";
   }
+  // What other pages send is untrusted: only real roster ids, sane numbers.
+  var netMon = (a) => typeof a === "string" && ge.includes(a),
+    netTeam = (a) =>
+      Array.isArray(a) && a.length === 2 && a.every(netMon) && a[0] !== a[1];
+  function netCfgOk(a) {
+    if (
+      !a ||
+      typeof a !== "object" ||
+      !Number.isInteger(a.e) ||
+      !Number.isInteger(a.seed) ||
+      !Number.isInteger(a.delay) ||
+      a.delay < 3 ||
+      a.delay > 15 ||
+      !Array.isArray(a.teams) ||
+      !a.teams.every(netTeam) ||
+      !a.tune ||
+      typeof a.tune !== "object"
+    )
+      return !1;
+    for (let [e, t] of Object.entries(a.tune))
+      if (!Object.hasOwn(A, e) || typeof t !== typeof A[e]) return !1;
+    return !0;
+  }
   function netHash(a) {
     let e = 2166136261;
     for (let t = 0; t < a.length; t++)
@@ -17418,11 +17848,20 @@
       }
     }
     let o0 = NET.st === "challenge" && e.find((i) => i.peer === NET.want);
-    if (o0 && (o0.presence.no ?? []).includes(a.peer))
+    if (o0 && Array.isArray(o0.presence.no) && o0.presence.no.includes(a.peer))
       return (
         (NET.st = "idle"),
         (NET.want = null),
         (NET.msg = `${netName(o0)} declined`),
+        (NET.msgT = 150),
+        netPresence(),
+        null
+      );
+    if (o0 && o0.presence.st === "busy" && o0.presence.want !== a.peer)
+      return (
+        (NET.st = "idle"),
+        (NET.want = null),
+        (NET.msg = `${netName(o0)} is in a battle`),
         (NET.msgT = 150),
         netPresence(),
         null
@@ -17449,6 +17888,7 @@
     if (!t) return;
     let s = t.peer < a.peer,
       i = `sb-${netHash([t.peer, a.peer].sort().join("|"))}`;
+    let o0 = NET.st === "search";
     (NET.st = "busy"), netPresence();
     let r = {
       name: i,
@@ -17467,6 +17907,7 @@
       pong: -1,
       seenAt: Date.now(),
       joinedAt: Date.now(),
+      wasSearch: o0,
       wins: 0,
       losses: 0,
       pres: {},
@@ -17476,7 +17917,7 @@
     try {
       r.room = await NET.room.join(i);
     } catch {
-      return netEnd("Could not open a match room");
+      return NET.m === r && netEnd("Could not open a match room");
     }
     if (NET.m !== r) return r.room.leave().catch(() => {});
     (r.phase = "hello"),
@@ -17531,15 +17972,22 @@
     if (!e?.room) return;
     let t = netOpp(),
       s = Date.now();
-    if (t) e.seenAt = s;
-    else if (s - e.seenAt > (e.phase === "play" ? 5e3 : 8e3))
+    if (t) (e.seenAt = s), (e.seen = !0);
+    else if (!e.seen && s - e.joinedAt > 6e3) {
+      // They paired with someone else: quietly go back to what we were doing.
+      let r = e.wasSearch;
+      return (
+        netEnd(r ? "" : "No answer"), r && ((NET.st = "search"), netPresence())
+      );
+    } else if (s - e.seenAt > (e.phase === "play" ? 5e3 : 8e3))
       return a.left(e.phase === "play" || e.phase === "results");
     if (!t) return;
     let i = t.presence ?? {};
     if (i.bye) return a.left(!0);
     i.h &&
       !e.oppTeam.length &&
-      ((e.oppTeam = i.h.team ?? []),
+      netTeam(i.h.team) &&
+      ((e.oppTeam = i.h.team),
       i.h.nick && !e.oppName && (e.oppName = i.h.nick));
     // Ping: the host times a few round trips to pick the input delay.
     if (e.host && e.phase === "hello" && e.oppTeam.length) {
@@ -17557,7 +18005,7 @@
       i.pi !== e.pong &&
       ((e.pong = i.pi), netSet({ po: i.pi }));
     // Settings and the start signal.
-    if (!e.host && i.cfg && i.cfg.e > e.epoch && i.cfg.v === NETV)
+    if (!e.host && i.cfg?.v === NETV && i.cfg.e > e.epoch && netCfgOk(i.cfg))
       (e.cfg = i.cfg),
         (e.epoch = i.cfg.e),
         (e.phase = "ready"),
@@ -17582,6 +18030,7 @@
   // in the room on the right, and a modal for searching and challenges.
   var NET_ST = {
     idle: ["IN LOBBY", "#9b94bd"],
+    away: ["AWAY", "#5d5780"],
     search: ["SEARCHING", "#ffc93c"],
     challenge: ["CHALLENGING", "#ff9a3d"],
     busy: ["IN BATTLE", "#ff4a63"],
@@ -17589,7 +18038,9 @@
   function netRows() {
     return [
       { kind: "quick" },
-      ...netLobbyPeers().map((a) => ({ kind: "peer", p: a })),
+      ...netLobbyPeers()
+        .filter((a) => a.presence.st !== "away")
+        .map((a) => ({ kind: "peer", p: a })),
       { kind: "back" },
     ];
   }
@@ -17643,7 +18094,8 @@
       );
     }
     let f = netRows();
-    a.netCursor = s ? Math.min(a.netCursor ?? 0, f.length - 1) : f.length - 1;
+    a.netCursor = Math.min(a.netCursor ?? 0, f.length - 1);
+    let cur = s ? a.netCursor : f.length - 1;
     let u = r + (s ? 26 : 92),
       h = 18,
       c = Math.max(0, Math.min((a.netCursor ?? 0) - 6, f.length - 8));
@@ -17652,7 +18104,7 @@
         E = u + x * (h + 2),
         Q = i + 12 - x * 1.2,
         ie = o - 30,
-        K = v === a.netCursor && !NET.incoming && NET.st === "idle" && !NET.m,
+        K = v === cur && !NET.incoming && NET.st === "idle" && !NET.m,
         $ = C.kind === "back" || (s && C.kind !== "back") || !s;
       if (C.kind === "quick" && !s) return;
       te(Q, E, ie, h, K ? g.p1 : "rgba(38,32,67,0.85)"),
@@ -17670,16 +18122,15 @@
         V("Back to team select", Q + 10, E + 13, 10.5, K ? g.night : g.chalk);
       else {
         let w = C.p.presence,
-          U = NET_ST[w.st] ?? NET_ST.idle,
+          U = (Object.hasOwn(NET_ST, w.st) && NET_ST[w.st]) || NET_ST.idle,
           re = C.p.isMe ? `${netName(C.p)} (your other tab)` : netName(C.p);
         V(re, Q + 10, E + 13, 10, K ? g.night : g.chalk),
           ue(U[0], K ? g.night : U[1], Q + 128, E + 5, {
             size: 5.4,
             text: K ? U[1] : g.night,
           });
-        (w.team ?? []).slice(0, 2).forEach((N, J) => {
-          xe[N] &&
-            e[N] &&
+        (Array.isArray(w.team) ? w.team : []).slice(0, 2).forEach((N, J) => {
+          netMon(N) &&
             Oe(e[N], "Normal", Q + ie - 40 + J * 17, E + 1.5, 15, {
               bg: xe[N].color,
               frame: !1,
@@ -17794,6 +18245,308 @@
           V(r, l + 45, 148, 11, f ? g.night : g.chalk, { align: "center" });
       });
   }
+  // ---- Main menu ----
+  // A column of slanted buttons with round icons on the left, the featured
+  // Pokemon on a turning sigil on the right, and a description strip below.
+  var MENU = [
+    {
+      id: "battle",
+      label: "Battle",
+      desc: "Fight the CPU with a team of two.",
+      mon: "charizard",
+      color: "#ff8a3d",
+    },
+    {
+      id: "online",
+      label: "Online",
+      desc: "Play another trainer who has the game open right now.",
+      mon: "lucario",
+      color: "#33d6ff",
+    },
+    {
+      id: "party",
+      label: "Party",
+      desc: "Four-fighter modes: Free-for-All, Team 2v2 and Zone Control.",
+      mon: "snorlax",
+      color: "#4df08a",
+    },
+    {
+      id: "training",
+      label: "Training",
+      desc: "Practise on Wobbuffet dummies with no timer.",
+      mon: "venusaur",
+      color: "#ffc93c",
+    },
+    {
+      id: "options",
+      label: "Options",
+      desc: "Sound, controls, match rules and accessibility.",
+      mon: "magnezone",
+      color: "#a184f5",
+    },
+  ];
+  var PARTY = [
+    [2, "Free-for-All"],
+    [3, "Team 2v2"],
+    [4, "Zone Control"],
+  ];
+  // Small line icons for the menu buttons.
+  function menuIcon(a, e, t, s, i) {
+    (d.strokeStyle = i),
+      (d.fillStyle = i),
+      (d.lineWidth = m(1.4)),
+      (d.lineCap = "round");
+    let r = (o, l, f, u) => {
+      d.beginPath(),
+        d.moveTo(m(e + o * s), m(t + l * s)),
+        d.lineTo(m(e + f * s), m(t + u * s)),
+        d.stroke();
+    };
+    if (a === "battle")
+      r(-0.7, 0.2, -0.1, -0.7), r(-0.3, 0.6, 0.3, -0.3), r(0.1, 0.8, 0.7, -0.1);
+    else if (a === "online") {
+      for (let o = 1; o <= 2; o++)
+        d.beginPath(),
+          d.arc(
+            m(e),
+            m(t + 0.45 * s),
+            m(o * 0.42 * s),
+            Math.PI * 1.2,
+            Math.PI * 1.8,
+          ),
+          d.stroke();
+      d.beginPath(),
+        d.arc(m(e), m(t + 0.45 * s), m(0.14 * s), 0, Math.PI * 2),
+        d.fill();
+    } else if (a === "party")
+      for (let [o, l] of [
+        [-0.45, 0.15],
+        [0.45, 0.15],
+        [0, -0.3],
+      ])
+        d.beginPath(),
+          d.arc(m(e + o * s), m(t + l * s), m(0.24 * s), 0, Math.PI * 2),
+          d.fill();
+    else if (a === "training") {
+      for (let o of [0.62, 0.32])
+        d.beginPath(), d.arc(m(e), m(t), m(o * s), 0, Math.PI * 2), d.stroke();
+      d.beginPath(), d.arc(m(e), m(t), m(0.1 * s), 0, Math.PI * 2), d.fill();
+    } else {
+      d.beginPath(), d.arc(m(e), m(t), m(0.32 * s), 0, Math.PI * 2), d.stroke();
+      for (let o = 0; o < 8; o++) {
+        let l = (o / 8) * Math.PI * 2;
+        r(
+          Math.cos(l) * 0.42,
+          Math.sin(l) * 0.42,
+          Math.cos(l) * 0.64,
+          Math.sin(l) * 0.64,
+        );
+      }
+    }
+    d.lineCap = "butt";
+  }
+  // A turning geometric sigil: rings, ticks and two counter-rotating polygons.
+  function menuSigil(a, e, t, s, i) {
+    d.save(), (d.globalCompositeOperation = "lighter"), (d.strokeStyle = s);
+    let r = (o, l, f) => {
+      (d.globalAlpha = f),
+        (d.lineWidth = m(l)),
+        d.beginPath(),
+        d.arc(m(a), m(e), m(o), 0, Math.PI * 2),
+        d.stroke();
+    };
+    r(t, 1.6, 0.35),
+      r(t * 0.92, 0.6, 0.3),
+      r(t * 0.62, 1, 0.28),
+      r(t * 0.3, 0.8, 0.25),
+      (d.lineWidth = m(0.8));
+    for (let o = 0; o < 48; o++) {
+      let l = (o / 48) * Math.PI * 2 + i * 0.002,
+        f = o % 4 === 0 ? 0.84 : 0.88;
+      (d.globalAlpha = 0.35),
+        d.beginPath(),
+        d.moveTo(m(a + Math.cos(l) * t * f), m(e + Math.sin(l) * t * f)),
+        d.lineTo(m(a + Math.cos(l) * t * 0.92), m(e + Math.sin(l) * t * 0.92)),
+        d.stroke();
+    }
+    for (let [o, l, f] of [
+      [3, 0.004, 0.86],
+      [3, -0.006, 0.86],
+      [6, 0.003, 0.6],
+    ]) {
+      (d.globalAlpha = 0.3), (d.lineWidth = m(1)), d.beginPath();
+      for (let u = 0; u <= o; u++) {
+        let h =
+          i * l + (u / o) * Math.PI * 2 + (o === 3 && l < 0 ? Math.PI : 0);
+        d[u ? "lineTo" : "moveTo"](
+          m(a + Math.cos(h) * t * f),
+          m(e + Math.sin(h) * t * f),
+        );
+      }
+      d.stroke();
+    }
+    d.restore();
+  }
+  function menuScreen(a, e) {
+    let t = a.frame,
+      s = MENU[a.menuIndex ?? 0],
+      i = Ee((a.menuT = (a.menuT ?? 0) + 1) / 16);
+    neonBg(t);
+    // A tint in the highlighted item's colour, and a slanted slab behind the list.
+    let r = parseInt(s.color.slice(1), 16),
+      o = `${r >> 16},${(r >> 8) & 255},${r & 255}`,
+      l = d.createRadialGradient(m(330), m(140), 0, m(330), m(140), m(230));
+    l.addColorStop(0, `rgba(${o},0.24)`),
+      l.addColorStop(1, `rgba(${o},0)`),
+      (d.fillStyle = l),
+      d.fillRect(0, 0, m(H), m(oe)),
+      d.save(),
+      (d.fillStyle = "rgba(8,6,18,0.72)"),
+      d.beginPath(),
+      d.moveTo(0, 0),
+      d.lineTo(m(70), 0),
+      d.lineTo(m(26), m(oe)),
+      d.lineTo(0, m(oe)),
+      d.closePath(),
+      d.fill(),
+      (d.fillStyle = s.color),
+      (d.globalAlpha = 0.85),
+      d.beginPath(),
+      d.moveTo(m(70), 0),
+      d.lineTo(m(73), 0),
+      d.lineTo(m(29), m(oe)),
+      d.lineTo(m(26), m(oe)),
+      d.closePath(),
+      d.fill(),
+      d.restore();
+    // The featured Pokemon on its sigil.
+    let f = 330,
+      u = 150;
+    menuSigil(f, u - 14, 112, s.color, t);
+    let h = d.createRadialGradient(m(f), m(u + 52), 0, m(f), m(u + 52), m(70));
+    h.addColorStop(0, `rgba(${o},0.55)`),
+      h.addColorStop(1, `rgba(${o},0)`),
+      (d.fillStyle = h),
+      d.beginPath(),
+      d.ellipse(m(f), m(u + 52), m(70), m(16), 0, 0, Math.PI * 2),
+      d.fill();
+    let c = e[s.mon],
+      y = c?.anims.Idle ?? c?.anims.Walk;
+    if (y) {
+      let p = Ee((a.menuSwap ?? 99) / 12);
+      d.save(),
+        (d.globalAlpha = p),
+        et(
+          d,
+          y,
+          Be(y, t, 1),
+          6,
+          m(f + (1 - p) * 30),
+          m(u + 52),
+          3.9 * Fe * Math.min(1.12, xe[s.mon]?.size ?? 1),
+          c.ground,
+        ),
+        d.restore();
+    }
+    a.menuSwap = (a.menuSwap ?? 99) + 1;
+    // Header with an emblem.
+    d.save(), d.translate(m((1 - i) * -40), 0), (d.globalAlpha = i);
+    let b = 30,
+      k = 30;
+    (d.fillStyle = "rgba(8,6,18,0.85)"),
+      d.beginPath(),
+      d.arc(m(b), m(k), m(19), 0, Math.PI * 2),
+      d.fill(),
+      (d.strokeStyle = g.gold),
+      (d.lineWidth = m(1.6)),
+      d.stroke(),
+      hudBall(b, k, 11, !1);
+    V("Main Menu", 54, 40, 28, g.chalk, { skew: !0, outline: 3 }),
+      (d.fillStyle = g.gold),
+      d.fillRect(m(54), m(45), m(150), m(1.4)),
+      d.restore();
+    // The buttons, staggered down and to the right.
+    MENU.forEach((p, M) => {
+      let P = M === (a.menuIndex ?? 0),
+        C = Ee((a.menuT - 4 - M * 2) / 12),
+        x = 60 + M * 31 + (M > (a.menuIndex ?? 0) ? 6 : 0),
+        v = 30 + M * 5 + (1 - C) * -60,
+        E = P ? 26 : 20,
+        Q = P ? 196 : 150;
+      d.save(), (d.globalAlpha = C);
+      if (P) {
+        let ie = d.createLinearGradient(m(v), 0, m(v + Q), 0);
+        ie.addColorStop(0, p.color),
+          ie.addColorStop(1, "rgba(255,255,255,0.15)"),
+          te(v + 1.5, x + 2, Q, E, "rgba(0,0,0,0.5)", 8),
+          te(v, x, Q, E, ie, 8),
+          d.save(),
+          (d.globalCompositeOperation = "lighter"),
+          (d.shadowColor = p.color),
+          (d.shadowBlur = m(8)),
+          te(v, x, Q, E, "rgba(255,255,255,0.08)", 8),
+          d.restore();
+      } else
+        te(v + 1.5, x + 2, Q, E, "rgba(0,0,0,0.5)", 6),
+          te(v, x, Q, E, "rgba(28,24,48,0.92)", 6),
+          (d.fillStyle = "rgba(255,255,255,0.08)"),
+          d.fillRect(m(v + 6), m(x), m(Q - 6), m(0.7));
+      let K = P ? 15 : 11,
+        $ = v - 2,
+        w = x + E / 2;
+      (d.fillStyle = "rgba(8,6,18,0.95)"),
+        d.beginPath(),
+        d.arc(m($), m(w), m(K), 0, Math.PI * 2),
+        d.fill(),
+        (d.strokeStyle = P ? p.color : "rgba(220,214,255,0.45)"),
+        (d.lineWidth = m(P ? 1.8 : 1)),
+        d.stroke(),
+        menuIcon(p.id, $, w, K * 0.62, P ? p.color : "#cfcaea");
+      let U = p.label;
+      p.id === "party" &&
+        P &&
+        (U = `Party ‹ ${(PARTY[a.partyIndex ?? 0] ?? PARTY[0])[1]} ›`),
+        V(
+          U,
+          v + K + 6,
+          x + E / 2 + (P ? 5.6 : 4),
+          P ? 15 : 11,
+          P ? g.night : g.chalk,
+        ),
+        d.restore();
+    });
+    // Description strip and controls.
+    te(-8, oe - 22, H + 16, 16, "rgba(8,6,18,0.82)", 0),
+      (d.fillStyle = s.color),
+      d.fillRect(0, m(oe - 22), m(H), m(0.8)),
+      G(s.desc, 14, oe - 11.5, 7, g.chalk);
+    let p = H - 46;
+    for (let [M, P] of [
+      ["B", "Back"],
+      ["A", "Confirm"],
+    ]) {
+      let C = ye(P, 6.6) + 4;
+      G(P, p, oe - 11.5, 6.6, "#cfcaea", { align: "right" }),
+        (p -= C + 4),
+        Pe(M, p - 3, oe - 14, 3.6),
+        (p -= 14);
+    }
+    a.menuOpts && menuOptions(a);
+  }
+  // Options from the main menu: the same settings list as the pause menu.
+  function menuOptions(a) {
+    (d.fillStyle = "rgba(6,5,14,0.55)"), d.fillRect(0, 0, m(H), m(oe));
+    let e = 120,
+      t = 36,
+      s = H - 140,
+      i = 200;
+    Ae(e, t, s, i, "#a184f5", { sk: 10, bright: !0 }),
+      d.save(),
+      ze(e, t, s, i, 10),
+      d.clip(),
+      us(a, e, t, s, i),
+      d.restore();
+  }
   var Ut = 1e3 / 60,
     be = "#a184f5";
   async function Ms() {
@@ -17876,7 +18629,7 @@
         !p &&
           ((p = !0),
           M(),
-          x(!1),
+          toMenu(),
           setTimeout(() => {
             Fa() || ie("Tap the screen once to turn on sound");
           }, 600));
@@ -17913,7 +18666,73 @@
         (e.dummies = []),
         S.back();
     }
+    // ---- Main menu ----
+    function toMenu() {
+      (s.screen = "menu"),
+        (s.paused = !1),
+        (s.menuT = 0),
+        (s.menuSwap = 99),
+        (s.menuOpts = !1),
+        (s.inContent = !1),
+        (s.flash = 6),
+        (l.hidden = !0),
+        (k = !0),
+        le(),
+        Me.play("title"),
+        Me.muffle(!1),
+        S.select();
+    }
+    function menuInput(n) {
+      if (s.menuOpts) {
+        w(n, (R) => {
+          R === "up" && N(-1),
+            R === "down" && N(1),
+            R === "left" && J(-1),
+            R === "right" && J(1);
+        }),
+          (n.pressed.has("back") || n.pressed.has("start")) &&
+            ((s.menuOpts = !1), (s.inContent = !1), S.back());
+        return;
+      }
+      let D = s.menuIndex ?? 0;
+      w(n, (R) => {
+        R === "up" || R === "down"
+          ? ((s.menuIndex =
+              (D + (R === "up" ? MENU.length - 1 : 1)) % MENU.length),
+            (D = s.menuIndex),
+            (s.menuSwap = 0),
+            S.ui(R === "down"))
+          : MENU[D].id === "party" &&
+            ((s.partyIndex =
+              ((s.partyIndex ?? 0) + (R === "left" ? 2 : 1)) % 3),
+            S.ui(R === "right"));
+      });
+      if (n.pressed.has("back")) return v();
+      if (!n.pressed.has("confirm") && !n.pressed.has("start")) return;
+      let R = MENU[D].id;
+      if (R === "options") {
+        (s.menuOpts = !0), (s.inContent = !0), S.select();
+        return;
+      }
+      (A.gameMode =
+        R === "battle"
+          ? 0
+          : R === "online"
+            ? 5
+            : R === "training"
+              ? 1
+              : PARTY[s.partyIndex ?? 0][0]),
+        Ze(),
+        x(!1);
+    }
     // ---- Online: lobby input, starting a match, lockstep stepping ----
+    // Off the online screen: hidden from other trainers' lists.
+    function netAway() {
+      (NET.st = "away"),
+        (NET.want = null),
+        (NET.incoming = null),
+        netPresence();
+    }
     function netToLobby() {
       (s.screen = "online"),
         (s.paused = !1),
@@ -17923,6 +18742,7 @@
         (k = !0),
         (e.localIdx = 0),
         (NET.team = [...s.picks]),
+        NET.st === "away" && (NET.st = "idle"),
         netInit(),
         netPresence(s.picks),
         Me.play("title"),
@@ -17962,16 +18782,17 @@
           S.ui(R === "down"));
       });
       if (n.pressed.has("back")) {
-        (s.screen = "select"), S.back();
+        (s.screen = "select"), netAway(), S.back();
         return;
       }
       if (!n.pressed.has("confirm")) return;
       let R = D[s.netCursor ?? 0];
       if (!R || R.kind === "back") {
-        (s.screen = "select"), S.back();
+        (s.screen = "select"), netAway(), S.back();
         return;
       }
-      if (!NET.room || NET.dead) return S.fizzle();
+      if (!NET.room || NET.dead)
+        return (s.screen = "select"), netAway(), S.back();
       R.kind === "quick"
         ? ((NET.st = "search"), (NET.want = null), (NET.wantT = 0), S.select())
         : R.p.presence.st === "busy"
@@ -18046,6 +18867,7 @@
           netSet({
             in: null,
             ck: null,
+            rm: null,
             go: n.host ? D.e : null,
             rd: n.host ? null : D.e,
           }),
@@ -18069,8 +18891,17 @@
       inputs(n) {
         let D = NET.m,
           R = n.in;
-        if (R && R.e === D.epoch) {
-          R.ak > D.oppAck && (D.oppAck = R.ak);
+        if (
+          R &&
+          R.e === D.epoch &&
+          typeof R.d === "string" &&
+          R.d.length % 7 === 0 &&
+          R.d.length <= 7 * 400 &&
+          Number.isInteger(R.b) &&
+          R.b >= 0 &&
+          /^[A-Za-z0-9_-]*$/.test(R.d)
+        ) {
+          Number.isInteger(R.ak) && R.ak > D.oppAck && (D.oppAck = R.ak);
           let T = R.d.length / 7;
           for (let Z = 0; Z < T; Z++) {
             let ne = R.b + Z;
@@ -18078,7 +18909,10 @@
           }
           for (; D.inR[D.ackR + 1] !== void 0; ) D.ackR++;
         }
-        n.ck && n.ck.e === D.epoch && (D.oppCks[n.ck.t] = n.ck.h);
+        n.ck &&
+          n.ck.e === D.epoch &&
+          Number.isInteger(n.ck.t) &&
+          (D.oppCks[n.ck.t] = n.ck.h);
       },
     };
     // Called once per frame, whatever the screen.
@@ -18170,7 +19004,8 @@
         }),
         (n.pressed.has("confirm") || n.pressed.has("start")) &&
           ((s.resultIndex ?? 0) === 0
-            ? D.rm !== D.epoch &&
+            ? D.phase === "results" &&
+              D.rm !== D.epoch &&
               ((D.rm = D.epoch), netSet({ rm: D.epoch }), S.select())
             : (netSet({ bye: 1 }), netEnd(""), netToLobby())));
     }
@@ -18197,7 +19032,7 @@
       }
       return ge.slice(0, 2);
     }
-    p && ((l.hidden = !0), (s.screen = "select")),
+    p && ((l.hidden = !0), (s.screen = "menu")),
       M(),
       l.addEventListener("pointerdown", () => {
         C(), P();
@@ -18236,7 +19071,7 @@
     function U(n) {
       let D = cpuSide();
       w(n, (W) => {
-        (s.cursor = RN[W][s.cursor] ?? s.cursor), S.ui(!0);
+        (s.cursor = RN3[W][s.cursor] ?? s.cursor), S.ui(!0);
       }),
         n.pressed.has("special1") &&
           ((A.gameMode = (A.gameMode + 1) % MODES.length),
@@ -18273,7 +19108,7 @@
           ? ((s.cpuPicks = []), (s.roulette = -1), s.picks.pop(), S.back())
           : s.picks.length
             ? (s.picks.pop(), S.back())
-            : v());
+            : toMenu());
     }
     function re() {
       s.roulette <= 0 ||
@@ -20882,7 +21717,8 @@
             : ee.pressed.has("start")
               ? ((s.netMenu = !0), (s.netMenuIndex = 0), S.pause(!0))
               : ee.pressed.forEach((Je) => Mn.pend.add(Je));
-          Mn.stall > 600 &&
+          Mn.stall === 1 && (Mn.stallAt = performance.now());
+          performance.now() - (Mn.stallAt ?? performance.now()) > 1e4 &&
             NET.m === Mn &&
             (netEnd("The connection timed out"), netToLobby());
           break;
@@ -20903,11 +21739,15 @@
               "dodge",
               "special1",
               "special2",
-            ].some((Je) => ee.pressed.has(Je)) && x(!1);
+            ].some((Je) => ee.pressed.has(Je)) && toMenu();
             continue;
           }
           if (s.screen === "online") {
             netLobbyInput(ee);
+            continue;
+          }
+          if (s.screen === "menu") {
+            menuInput(ee);
             continue;
           }
           if (s.screen === "select") {
@@ -20944,7 +21784,7 @@
         }
       }
       T === 5 && (De = 0);
-      let Z = W ? De / Ut : 1,
+      let Z = W ? Math.min(1, De / Ut) : 1,
         ne = s.screen === "play";
       !ne || e.match.phase !== "fight"
         ? t.follow([])

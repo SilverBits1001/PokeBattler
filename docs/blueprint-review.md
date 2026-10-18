@@ -652,3 +652,82 @@ in screenshots: title, team select, HUD, every pause tab, results and the online
   included, matched exactly. Challenge, decline, accept and a closed tab were also
   checked.
 - **Not yet tested:** the real claude.ai room with two people.
+
+### Online: independent review fixes
+
+A separate review confirmed the deterministic replay is sound. It found no
+simulation randomness, every simulation setting is synced, per-match engine state is
+reset, and no engine logic depends on which side is local. It then found seven
+issues, all now fixed:
+
+1. **Hostile presence.** Another page's presence could crash every lobby (a team id
+   such as `constructor`, or a team sent as a string). Everything read from other
+   pages is now type-checked: roster ids must be real, the host's settings are
+   validated (delay 3 to 15, known setting keys of the right type), and input packets
+   must be well-formed.
+2. **Rematch consent.** A double press could start the next rematch with only the
+   host agreeing. The rematch flag is cleared when a match starts, and confirming only
+   counts on the results screen.
+3. **Stall timeout.** The timeout counted frames, which is too short on 144 Hz and
+   240 Hz screens. It now uses time (10 seconds).
+4. **Stall jitter.** Rendering no longer extrapolates fighters past their last
+   position while waiting for the other page.
+5. **Late join failure.** A late failed room join no longer cancels a newer match.
+6. **Stale pairing.** With three or more people searching, a pairing the other side
+   has already left goes quietly back to searching instead of an error. Challenging
+   someone already in a battle says so at once.
+7. **Ghost lobby entries.** Leaving the online screen marks you away, and away
+   players are hidden from the list.
+
+Tested with a hostile-presence page, and with two pages at 80±40 ms latency and 10%
+dropped updates: a full match, a rematch and a leave, with 4,079 ticks of full
+engine state identical on both pages.
+
+## Battle HUD, main menu and team select redesign
+
+### Battle HUD (fighting-game style)
+
+Each side has:
+
+- **Portrait:** the active Pokémon in the corner, with its name plate below.
+- **Energy bar:** a long slanted bar to the timer, with:
+  - a glowing gold-to-orange core, a moving sheen and energy streaks;
+  - a white-hot leading edge and a red damage trail;
+  - a red flicker below 25% HP.
+- **Guard bar:** a thin glowing strip in the team's colour under the energy bar.
+- **Poké Balls:** one per team member beside the timer, greyed out once that Pokémon
+  has fainted.
+- **Benched partner:** a mini portrait, grey and marked KO once fainted, with its
+  switch and assist buttons.
+- **Cooldowns:** the B, X and Y buttons with radial sweeps and no move names.
+- **Status line:** each Pokémon's own meter and status chips.
+
+The timer sits on a slanted plate between the two bars, with the round number and
+series score.
+
+### Main menu
+
+The title screen now leads to a main menu:
+
+- **Header:** a big "Main Menu" with a Poké Ball emblem.
+- **Buttons:** a staggered column of slanted buttons with round icons for Battle,
+  Online, Party, Training and Options. The selected one grows and glows in its own
+  colour. Party cycles between Free-for-All, Team 2v2 and Zone Control.
+- **Featured Pokémon:** shown on the right on a turning geometric sigil, and changes
+  with the highlighted item.
+- **Bottom strip:** a description of the highlighted item and the controls.
+- **Options:** opens the full settings list in a panel.
+
+### Team select
+
+A versus layout:
+
+- **Player 1 card (left, blue):** the lead animated large with the partner behind it.
+  While a slot is still open, it previews the Pokémon under the cursor.
+- **Player 1 plate:** names, types and a compact move list.
+- **CPU card (right, red):** the CPU's picks, with the roulette. In Training and Online
+  this side shows those modes instead.
+- **Roster:** three columns (3, 3 and 2) in the centre, with glowing light lines
+  between the rows that run across the screen.
+- **Below the roster:** a "Battle stage" plate with the arena name and a split blue
+  and red VS emblem.
