@@ -7989,8 +7989,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         let l = await Qt(o.src),
           f = Zt(l.width, l.height);
         f.getContext("2d").drawImage(l, 0, 0);
-        let u = new Map();
+        // Tinted copies are made on first use, so any colour can tint a sprite.
+        let u = new Map(),
+          U = u.get.bind(u);
         for (let h of Ka) u.set(h, Jt(f, h));
+        u.get = (h) => (h && !u.has(h) && u.set(h, Jt(f, h)), U(h));
         s[r] = {
           name: r,
           img: f,
@@ -10036,7 +10039,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     for (let h of e.vines)
       h.y2 >= h.y1 && ca(a, h.x1, h.y1, h.x2, h.y2, h.ext, e.tick);
     for (let h of e.players) {
-      if (h.state === "faint" || h.vanished) continue;
+      if (h.state === "faint") continue;
+      if (h.vanished) {
+        stance(a, e, h, 0, 0);
+        continue;
+      }
       let c = o(h.px, h.x),
         y = o(h.py, h.y) - o(h.pz, h.z),
         b = h.isCpu ? "#ef5a4f" : "#6fd3e8";
@@ -11355,6 +11362,42 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
   function stance(a, e, h, c, y) {
     let t = e.tick,
       s = h.kit.tall * Bz(h);
+    if (
+      h.state === "phantom" ||
+      (h.state === "dodge" && h.kit.dodge.kind === "phantom" && h.holdB)
+    ) {
+      let i = h.lock ?? e.nearestTarget(h.team, h.x, h.y);
+      if (i && Math.hypot(i.x - h.x, i.y - h.y) < AMBUSH.range) {
+        let r = Math.atan2(i.y - h.y, i.x - h.x),
+          o = i.r + h.r + 6,
+          l = i.x + Math.cos(r) * o,
+          f = i.y + Math.sin(r) * o,
+          u = 0.5 + 0.5 * Math.sin(t * 0.5);
+        (a.globalAlpha = 0.3 + 0.3 * u),
+          (a.fillStyle = "#7f6bff"),
+          a.beginPath(),
+          a.ellipse(l, f, 10 + 2 * u, 4.5, 0, 0, Math.PI * 2),
+          a.fill(),
+          (a.globalAlpha = 0.85),
+          (a.strokeStyle = "#c9b8ff"),
+          (a.lineWidth = 1),
+          a.beginPath(),
+          a.ellipse(l, f, 12 + 3 * u, 5.5, 0, t * 0.2, t * 0.2 + 4.4),
+          a.stroke();
+        for (let c = 0; c < 3; c++) {
+          let y = (c - 1) * 4,
+            b = 8 + 5 * Math.sin(t * 0.7 + c * 2);
+          (a.globalAlpha = 0.7),
+            (a.fillStyle = c === 1 ? "#a184f5" : "#43c6ac"),
+            a.beginPath(),
+            a.moveTo(l + y, f - b),
+            a.quadraticCurveTo(l + y + 3, f - 2, l + y, f + 1),
+            a.quadraticCurveTo(l + y - 3, f - 2, l + y, f - b),
+            a.fill();
+        }
+        a.globalAlpha = 1;
+      }
+    }
     if (h.state === "detect" && h.t <= LUCA.detectWin) {
       let i = 1 - h.t / LUCA.detectWin,
         r = 15 + 3 * Math.sin(t * 0.8);
@@ -13942,6 +13985,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         "Hits build heat for more damage. At 100 you overheat.",
         "PASSIVE",
       ],
+      ["*", "Blaze", "+30% damage below 30% health.", "PASSIVE"],
     ],
     venusaur: [
       ["A", "Vine Whip", "Longest reach. Hit 2 yanks the target in.", "COMBO"],
@@ -14158,6 +14202,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         "Flies over lava, ice, puddles and ground shockwaves.",
         "PASSIVE",
       ],
+      ["*", "Infiltrator", "Boomburst goes straight through guard.", "PASSIVE"],
     ],
     lucario: [
       [
@@ -17017,6 +17062,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           t.embers(n.x, n.y, 10, 5), t.popup(n.x, n.y - 30, "4", "#ff8a3d", !1);
           break;
         case "phantom":
+          t.smoke(n.who.x, n.who.y, 8, 10),
+            t.wisps(n.who.x, n.who.y, 6, 10, "#7f6bff", 12),
+            t.ring(n.who.x, n.who.y, 14, -1.2, 10, "#7f6bff", !0);
           break;
         case "pfReappear":
           S.reappear(),
@@ -17337,7 +17385,18 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         : R === "venusaur"
           ? t.leaves(n.x, n.y, 6, 2, 0.8)
           : R === "magnezone"
-            ? t.bolt(
+            ? (t.bolt(
+                n.x - 8,
+                n.y,
+                n.x + 8,
+                n.y - n.z * 0.5,
+                "#fff6a0",
+                4,
+                0,
+                0.8,
+              ),
+              D % 4 === 0 && t.ring(n.x, n.y, 6, 0.8, 8, "#f8d030", !0),
+              t.bolt(
                 n.x - W * 10,
                 n.y - 8,
                 n.x - W * 22 + (Math.random() - 0.5) * 10,
@@ -17346,7 +17405,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 5,
                 n.z,
                 0.7,
-              )
+              ))
             : R === "noivern"
               ? (t.streaks(n.x, n.y - 10, -W, -T, 2, "#d9c8ff"),
                 D % 4 === 0 &&
@@ -17374,46 +17433,60 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       let D = n.src ?? "",
         R = n.victim.x,
         W = n.victim.y;
-      D.includes("dart")
-        ? (t.burst(R, W - 10, "#a184f5", 12), t.wisps(R, W, 8, 4, "#43c6ac", 6))
-        : D.includes(":wisp")
-          ? (t.wisps(R, W, 6, 8, "#7f6bff", 8),
-            t.ring(R, W - 10, 4, 2, 10, "#9f8cff"))
-          : D.includes("boomburst")
-            ? (t.arcWave(
-                R,
-                W - 10,
-                0,
-                Math.atan2(n.dy, n.dx),
-                2.4,
-                6,
-                2.6,
-                "#c9a6ff",
-                12,
-                2.6,
-              ),
-              t.flare(R, W, 12, 18, "#ffffff", 8))
-            : D.includes("dragonpulse")
-              ? (t.flare(R, W, 12, 26, "#b49cff", 14),
-                t.ring(R, W - 10, 6, 3, 14, "#7038f8"),
-                t.wisps(R, W, 6, 8, "#43c6ac", 8))
-              : D === "lucario:basic3"
-                ? (t.ring(R, W - 10, 4, 3, 12, "#4aa3ff"),
-                  t.flare(R, W, 12, 20, "#9fdcff", 10),
-                  t.wisps(R, W, 6, 6, "#4aa3ff", 8))
-                : D === "magnezone:basic3"
-                  ? (t.ring(R, W - 8, 6, 2.6, 12, "#c8d4e6"),
-                    t.motes(R, W, 10, 10, "#e9f1ff", 2))
-                  : D.includes(":leaf")
-                    ? (t.claw(
-                        R,
-                        W - 10,
-                        Math.atan2(n.dy, n.dx),
-                        0.8,
-                        "#9be36b",
-                      ),
-                      t.leaves(R, W, 8, 3, 1))
-                    : D.includes(":zap") && t.shockRing(R, W, 26, "#f8d030", 6);
+      D.includes(":solar")
+        ? (t.flare(R, W, 12, 34, "#fffbe6", 18),
+          t.ring(R, W - 10, 6, 3.4, 16, "#ffe27a"),
+          t.ring(R, W, 6, 2.6, 18, "#9cf28a", !0),
+          t.leaves(R, W, 10, 10, 2),
+          t.motes(R, W, 12, 14, "#ffe27a", 2))
+        : D.includes("dart")
+          ? (t.burst(R, W - 10, "#a184f5", 22),
+            t.flare(R, W, 10, 16, "#c9f5e6", 10),
+            t.ring(R, W - 10, 4, 2.2, 10, "#43c6ac"),
+            t.wisps(R, W, 8, 6, "#43c6ac", 8))
+          : D.includes(":wisp")
+            ? (t.wisps(R, W, 6, 8, "#7f6bff", 8),
+              t.ring(R, W - 10, 4, 2, 10, "#9f8cff"))
+            : D.includes("boomburst")
+              ? (t.arcWave(
+                  R,
+                  W - 10,
+                  0,
+                  Math.atan2(n.dy, n.dx),
+                  2.4,
+                  6,
+                  2.6,
+                  "#c9a6ff",
+                  12,
+                  2.6,
+                ),
+                t.flare(R, W, 12, 18, "#ffffff", 8))
+              : D.includes("dragonpulse")
+                ? (t.flare(R, W, 12, 26, "#b49cff", 14),
+                  t.ring(R, W - 10, 6, 3, 14, "#7038f8"),
+                  t.wisps(R, W, 6, 8, "#43c6ac", 8))
+                : D === "lucario:basic3"
+                  ? (t.ring(R, W - 10, 4, 3, 12, "#4aa3ff"),
+                    t.flare(R, W, 12, 20, "#9fdcff", 10),
+                    t.wisps(R, W, 6, 6, "#4aa3ff", 8))
+                  : D === "magnezone:basic3"
+                    ? (t.ring(R, W - 8, 6, 2.6, 12, "#c8d4e6"),
+                      t.motes(R, W, 10, 10, "#e9f1ff", 2))
+                    : D.includes(":leaf")
+                      ? (t.claw(
+                          R,
+                          W - 10,
+                          Math.atan2(n.dy, n.dx),
+                          0.8,
+                          "#9be36b",
+                        ),
+                        t.leaves(R, W, 8, 3, 1))
+                      : D.includes(":zap") &&
+                        (t.shockRing(R, W, 34, "#f8d030", 10),
+                        t.flare(R, W, 12, 30, "#fff6a0", 16),
+                        t.burst(R, W - 12, "#f8d030", 20),
+                        (t.screenFlash = 2),
+                        (t.screenFlashColor = "#fff6a0"));
     }
     // Impact bursts for projectiles that connect.
     function projBurst(n) {

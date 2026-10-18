@@ -230,7 +230,7 @@ a deliberate stage advantage.
 
 ### Magnezone (weak → polished)
 
-Weak points: slowest fighter, no answer to rushdown, Lock-On did nothing on its own, and all
+Weak points: second-slowest fighter (only Snorlax is slower), no answer to rushdown, Lock-On did nothing on its own, and all
 of its damage was Zap Cannon.
 
 - **Lock-On** now zaps for chip damage and applies **Magnet Pull** (target slowed for 1.5 s).
@@ -344,3 +344,35 @@ swap menu and move list handle eight.
 | Lucario | .41 | .43 | .36 | .53 | .51 | .45 |
 
 Remaining arena swings are stage matchups (fliers like Crater; Dragapult loses its edge there).
+
+### Independent review
+
+A separate reviewer graded every fighter against explicit criteria: design (archetype, weakness,
+typing, ability-based passive, tools at every range), balance (40–60% average, no arena below
+30% or above 75%), true sizes, and visuals (telegraph, distinct active effect, impact). It
+reviewed sheets of every move and frame strips of signature moves, twice. Fixes from that
+review:
+
+- **Typing gaps closed**: Venusaur is Grass/Poison (Power Whip poisons; Steel and Poison
+  types are immune). Noivern's fully charged Boomburst becomes **Dragon Pulse**, a
+  Dragon-typed beam. Charizard's low-health boost is now listed as **Blaze**, and Noivern's
+  through-guard Boomburst as **Infiltrator**.
+- **Identity**: Blastoise no longer shares Snorlax's armored brawler role. It is
+  "Artillery · counter" (no armored finisher, stronger Water Pulse).
+- **Visual fixes**:
+  - Sprite tints are now generated for any colour, so dodge afterimages and hit flashes
+    use each fighter's own palette instead of falling back to grey.
+  - Per-fighter dodge trails.
+  - Charge orbs that telegraph Zap Cannon, Flamethrower, Hydro Cannon, Boomburst and Yawn.
+  - A ghost-fire mark behind the target for the whole Phantom Force vanish.
+  - Impact bursts for Solar Beam, Zap Cannon, Dragon Darts, Will-O-Wisp, Boomburst,
+    Dragon Pulse, Force Palm, Gyro Ball and Razor Leaf.
+  - A lavender Yawn.
+  - Bigger razor leaves.
+  - A Power Whip crescent.
+  - Callouts moved above tags and HP bars.
+- **Verified in motion**: Belly Bounce reflecting a Zap Cannon back to paralyze Magnezone,
+  Solar Beam firing from a stored charge, Phantom Force's reappear mark, and Magnet Rise's
+  landing Discharge.
+- **Balance** (8 games per side per pairing per arena): averages .45–.52, every arena cell
+  .31–.73.
