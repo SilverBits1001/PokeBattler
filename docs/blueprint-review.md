@@ -68,3 +68,12 @@ select screen with **Select** (Tab on keyboard).
   lunge path. Heavy attacks and smashes flash a glint over the attacker as they start.
 - **Impacts.** Clean hits throw motion streaks along the knockback; heavy hits add a
   star burst.
+
+## Fourth pass
+
+- Team select backdrop no longer has hexagons; rails, grid, beams and speed lines stay.
+- **Flamethrower** reaches twice as far (108 px). Damage depends on distance from
+  Charizard: about 1.45x at point-blank down to 0.35x at the very tip (`FLAME` in
+  `src/game.js`). The CPU uses and respects the longer reach.
+- **Training: Pokémon tab** in the pause menu. Pick a lead and a partner and the training
+  session restarts with that team. B undoes the last pick.

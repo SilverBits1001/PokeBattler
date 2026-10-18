@@ -1158,7 +1158,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 i.pressed.add("dodge"))
               : y < 30 || (N && y < 55)
                 ? i.pressed.add("attack")
-                : u.cdX === 0 && y < 58 && u.heat < 55 && r() < 0.4
+                : u.cdX === 0 && y < 96 && u.heat < 55 && r() < 0.4
                   ? (i.pressed.add("special1"),
                     (this.holdX = 22 + Math.floor(r() * 28)))
                   : u.cdY === 0 &&
@@ -1265,7 +1265,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             i < o.kit.smash.reach + o.kit.smash.lunge + 30
           )
             return { dir: r, melee: !0, projectile: !1 };
-          if (e.isFlaming(o) && i < 66)
+          if (e.isFlaming(o) && i < FLAME.range + 12)
             return { dir: r, melee: !0, projectile: !1 };
           if (
             ((o.state === "flyUp" && o.t > 12) ||
@@ -1403,6 +1403,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     },
     // Hits from more than ~107 degrees off a guard's facing get through it.
     FLANK_COS = -0.3,
+    // Flamethrower reach, and damage scale from point-blank down to the very tip.
+    FLAME = { range: 108, near: 1.45, far: 0.35 },
     PUNISH_GAP = 40;
   function Ua(a, e) {
     return a === "DRAGON" && e === "DRAGON"
@@ -3360,7 +3362,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       flameBox(e, t, s, i, r) {
         let o = Math.cos(s),
           l = Math.sin(s),
-          f = Math.max(14, this.rayLen(e.x, e.y, s, 54) + 4);
+          f = Math.max(14, this.rayLen(e.x, e.y, s, FLAME.range) + 4);
         return {
           id: i,
           team: t,
@@ -3386,6 +3388,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           attackerStop: !1,
           fire: !0,
           src: "flame",
+          falloff: { x: e.x, y: e.y, len: FLAME.range },
         };
       }
       tickFlame(e, t, s, i, r) {
@@ -4744,7 +4747,24 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               (this.applyHit(
                 t,
                 e.owner,
-                h ? Math.round(e.dmg * e.hex) : e.dmg,
+                Math.round(
+                  (h ? e.dmg * e.hex : e.dmg) *
+                    (e.falloff
+                      ? FLAME.far +
+                        (FLAME.near - FLAME.far) *
+                          me(
+                            1 -
+                              (Math.hypot(
+                                t.x - e.falloff.x,
+                                t.y - e.falloff.y,
+                              ) -
+                                t.hurtR * 0.5) /
+                                e.falloff.len,
+                            0,
+                            1,
+                          )
+                      : 1),
+                ),
                 u,
                 s,
                 i,
@@ -5568,10 +5588,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           });
         }
       }
-      flame(e, t, s, i, f = 1 / 0) {
+      flame(e, t, s, i, f = 1 / 0, u = !1) {
         for (let r = 0; r < i; r++) {
-          let o = s + z(-0.22, 0.22),
-            l = z(3.2, 5.2);
+          let o = s + z(-0.2, 0.2),
+            l = u ? z(6, 9) : z(3.2, 5.2);
           this.add({
             kind: "fire",
             x: e + Math.cos(s) * z(4, 10),
@@ -5580,10 +5600,23 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             vx: Math.cos(o) * l,
             vy: Math.sin(o) * l,
             vz: z(0, 0.25),
-            life: Math.max(2, Math.min(z(10, 16), f / l)) | 0,
+            // Long throw slows with drag, so cap life by the ticks it needs to reach f.
+            life:
+              Math.max(
+                2,
+                u
+                  ? Math.min(
+                      z(14, 20),
+                      f * 0.05 < l
+                        ? Math.log(1 - (f * 0.05) / l) / Math.log(0.95)
+                        : 99,
+                    )
+                  : Math.min(z(10, 16), f / l),
+              ) | 0,
             size: z(2, 3.2),
             grow: 0.28,
             color: "#ff8a3d",
+            drag: u ? 0.95 : 0.9,
           });
         }
       }
@@ -5765,7 +5798,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               (e.vx *= 0.9), (e.vy *= 0.9);
               break;
             case "fire":
-              (e.vx *= 0.9), (e.vy *= 0.9), (e.size += e.grow ?? 0.2);
+              (e.vx *= e.drag ?? 0.9),
+                (e.vy *= e.drag ?? 0.9),
+                (e.size += e.grow ?? 0.2);
               break;
             case "drop":
               (e.vx *= 0.95),
@@ -7454,6 +7489,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       { id: "credits", label: "Credits" },
       { id: "quit", label: "Quit" },
     ],
+    VeP = [Ve[0], { id: "swap", label: "Pok\xE9mon" }, ...Ve.slice(1)],
+    tabsOf = (a) => (a.match.mode === "practice" ? VeP : Ve),
     At = ["Quit to title", "Change team", "Keep playing"],
     qa = ["Rematch", "Change team", "Quit to title"];
   function va(a) {
@@ -7461,6 +7498,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       screen: "title",
       paused: !1,
       tab: 0,
+      swapCursor: 0,
+      swapPicks: [],
       inContent: !1,
       tuneIndex: 1,
       moveKit: 0,
@@ -7822,33 +7861,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     return [s[0] + (i[0] - s[0]) * o, s[1] + (i[1] - s[1]) * o];
   }
   function nbBuild() {
-    let a = [],
-      e = 150,
+    let e = 150,
       t = H / 2,
-      s = 7.2,
-      i = ["#33d6ff", "#ff3fa4", "#8a6bff"],
-      // Honeycomb patches placed where the menu panels leave the wall visible.
-      R = [
-        [H / 2, e - 26, 4, 3, 7.2],
-        [H / 2 - 20, 22, 6, 2, 9],
-        [62, 214, 4, 3, 9],
-        [H - 52, 210, 4, 3, 9],
-      ],
-      o = rt(5);
-    for (let [l, f, u, h, c] of R)
-      for (let y = 0; y < h; y++)
-        for (let b = 0; b < u; b++) {
-          if (o() < 0.22) continue;
-          let p = l + (b - (u - 1) / 2 + (y % 2) * 0.5) * c * 1.75,
-            k = f + (y - (h - 1) / 2) * c * 1.52,
-            M = [];
-          for (let P = 0; P <= 6; P++) {
-            let C = (Math.PI / 3) * P + Math.PI / 6;
-            M.push([p + Math.cos(C) * c, k + Math.sin(C) * c]);
-          }
-          a.push(nbPath(M, i[(o() * 3) | 0]));
-        }
-    let r = [];
+      r = [];
     for (let o of [-1, 1]) {
       r.push(
         nbPath(
@@ -7875,7 +7890,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     let l = [];
     for (let o = 0; o < 26; o++)
       l.push([Math.random(), Math.random(), Math.random()]);
-    return { hex: a, rails: r, embers: l, horizon: e };
+    return { rails: r, embers: l, horizon: e };
   }
   function neonBg(a) {
     NB || (NB = nbBuild());
@@ -7935,6 +7950,12 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       d.stroke();
     let l = (u, h, c, y, b) => {
       for (let p = 0; p < 10; p++) {
+        // Skip the piece that would jump from the rail's end back to its start.
+        if (
+          Math.floor((h - (c * p) / 10) / u.len) !==
+          Math.floor((h - (c * (p + 1)) / 10) / u.len)
+        )
+          continue;
         let k = nbAt(u, h - (c * p) / 10),
           M = nbAt(u, h - (c * (p + 1)) / 10);
         (d.strokeStyle = y),
@@ -7946,37 +7967,20 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           d.stroke();
       }
     };
-    NB.hex.forEach((u, h) => {
-      (d.strokeStyle = u.color),
-        (d.globalAlpha = 0.4),
-        (d.lineWidth = m(0.8)),
-        d.beginPath(),
-        u.pts.forEach(([c, y], b) =>
-          b ? d.lineTo(m(c), m(y)) : d.moveTo(m(c), m(y)),
-        ),
-        d.stroke(),
-        (d.globalAlpha = 0.1),
-        (d.lineWidth = m(3)),
-        d.stroke(),
-        (d.fillStyle = u.color),
-        (d.globalAlpha = 0.04 + 0.04 * Math.sin(a * 0.05 + h)),
-        d.fill(),
-        l(u, a * 0.55 + h * 9, 22, u.color, 0.9);
-    }),
-      NB.rails.forEach((u, h) => {
-        r(u.pts[0][0], u.pts[0][1], u.pts[1][0], u.pts[1][1], u.color, 0.2);
-        for (let c = 1; c < u.pts.length - 1; c++)
-          r(
-            u.pts[c][0],
-            u.pts[c][1],
-            u.pts[c + 1][0],
-            u.pts[c + 1][1],
-            u.color,
-            0.2,
-          );
-        l(u, a * 1.6 + h * 70, 60, u.color, 1),
-          l(u, a * 1.6 + h * 70 + u.len / 2, 40, "#ffffff", 0.6);
-      });
+    NB.rails.forEach((u, h) => {
+      r(u.pts[0][0], u.pts[0][1], u.pts[1][0], u.pts[1][1], u.color, 0.2);
+      for (let c = 1; c < u.pts.length - 1; c++)
+        r(
+          u.pts[c][0],
+          u.pts[c][1],
+          u.pts[c + 1][0],
+          u.pts[c + 1][1],
+          u.color,
+          0.2,
+        );
+      l(u, a * 1.6 + h * 70, 60, u.color, 1),
+        l(u, a * 1.6 + h * 70 + u.len / 2, 40, "#ffffff", 0.6);
+    });
     for (let [u, h, c, y] of [
       [H * 0.78, 0.3, "255,63,164", 0.16],
       [H * 0.66, -0.25, "90,140,255", 0.14],
@@ -9247,7 +9251,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       V("Paused", 14, 25, 24, g.chalk, { skew: !0, outline: 2 });
     let i = H - 104,
       r = 38;
-    Ve.forEach((p, k) => {
+    tabsOf(a).forEach((p, k) => {
       let M = r + k * 19,
         P = k === e.tab,
         C = i - (P ? 8 : 0) - k * 2;
@@ -9266,12 +9270,13 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       f = H - 128,
       u = 210;
     Ae(o, l, f, u, g.p1, { sk: 10 });
-    let h = Ve[e.tab].id;
+    let h = tabsOf(a)[e.tab].id;
     d.save(),
       ze(o, l, f, u, 10),
       d.clip(),
       h === "resume" && cs(a, o, l, f, t),
       h === "moves" && ds(e, o, l, f, t),
+      h === "swap" && swapPane(a, e, o, l, f, t),
       h === "tuning" && us(e, o, l, f, u),
       h === "controls" && fs(o, l, f),
       h === "credits" &&
@@ -9298,6 +9303,48 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       G(k, y + M + 2, c + 2.4, 7, "#cfcaea"), (y += M + ye(k, 7) + 12);
     }
     d.restore();
+  }
+  // Training quick swap: 2x2 roster, pick a lead then a partner to restart.
+  function swapPane(a, e, t, s, i, r) {
+    V("Swap Pok\xE9mon", t + 16, s + 22, 14, g.chalk, { skew: !0 }),
+      G(
+        e.inContent
+          ? e.swapPicks?.length
+            ? "Now pick a partner"
+            : "Pick your lead"
+          : "Press A to choose a new training team",
+        t + 18,
+        s + 33,
+        7,
+        g.haze,
+      );
+    let o = (i - 44) / 2,
+      l = 64;
+    ge.forEach((f, u) => {
+      let h = xe[f],
+        c = t + 16 + (u % 2) * (o + 10),
+        y = s + 44 + Math.floor(u / 2) * (l + 8),
+        b = e.inContent && u === e.swapCursor,
+        p = e.swapPicks?.indexOf(f) ?? -1,
+        k = a.player.slots.some((C) => C.kit.id === f);
+      te(c + 1.2, y + 1.6, o, l, "rgba(0,0,0,0.5)", 4),
+        te(c, y, o, l, b ? h.color + "55" : g.plate2, 4),
+        b &&
+          ((d.strokeStyle = h.color),
+          (d.lineWidth = m(1.4)),
+          d.strokeRect(m(c), m(y), m(o), m(l))),
+        Oe(a.mons[f], "Normal", c + 6, y + 6, l - 12, { bg: h.color }),
+        V(h.name, c + l + 2, y + 20, 12, b ? g.chalk : "#d9d4f2", { skew: !0 }),
+        ue(h.type, Rt[h.type] ?? "#888", c + l + 2, y + 28, { size: 5.2 }),
+        G(h.role.replace(" \xB7 ", ", "), c + l + 2, y + 44, 6.2, g.haze);
+      let M = p === 0 ? "LEAD" : p === 1 ? "PARTNER" : k ? "IN TEAM" : "";
+      M &&
+        ue(M, p >= 0 ? g.gold : g.dim, c + o - 6, y + 8, {
+          right: !0,
+          size: 5,
+          text: g.night,
+        });
+    });
   }
   function cs(a, e, t, s, i) {
     let r = (s - 36) / 2,
@@ -9346,7 +9393,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       ["A", "Claw combo", "3 fast hits. The third is a spinning finisher."],
       ["RS", "Flare Blitz", "Smash: fiery charging tackle. Launches hard."],
       ["B", "Air dash", "Long dash with invincibility."],
-      ["X", "Flamethrower", "Hold for a cone of fire. Builds heat fast."],
+      ["X", "Flamethrower", "Long stream of fire. Hurts most up close."],
       ["Y", "Fly", "Rise, steer the marker, slam down. A or Y lands early."],
       ["*", "Heat", "Hits build heat for more damage. At 100 you overheat."],
       ["*", "Blaze", "Low HP: fire hits harder. Can't be burned."],
@@ -10664,13 +10711,14 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     }
     function we(n) {
       if (n.pressed.has("start")) return pe();
-      let D = Ve[s.tab].id;
+      let Vx = tabsOf(e),
+        D = Vx[s.tab].id;
       if (
         (w(n, (R) => {
           if (!s.inContent) {
             R === "up" &&
-              ((s.tab = (s.tab + Ve.length - 1) % Ve.length), S.ui(!0)),
-              R === "down" && ((s.tab = (s.tab + 1) % Ve.length), S.ui(!1));
+              ((s.tab = (s.tab + Vx.length - 1) % Vx.length), S.ui(!0)),
+              R === "down" && ((s.tab = (s.tab + 1) % Vx.length), S.ui(!1));
             return;
           }
           D === "tuning" &&
@@ -10678,6 +10726,12 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             R === "down" && N(1),
             R === "left" && J(-1),
             R === "right" && J(1)),
+            D === "swap" &&
+              ((s.swapCursor =
+                R === "left" || R === "right"
+                  ? (s.swapCursor ^ 1) & 3
+                  : (s.swapCursor ^ 2) & 3),
+              S.ui(R === "right" || R === "down")),
             D === "moves" &&
               (R === "left" || R === "right") &&
               ((s.moveKit =
@@ -10692,21 +10746,47 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         n.pressed.has("confirm"))
       )
         if (s.inContent)
-          D === "tuning"
-            ? fe()
-            : D === "quit" &&
-              (s.quitIndex === 0
-                ? v()
-                : s.quitIndex === 1
-                  ? x(!1)
-                  : ((s.inContent = !1), S.back()));
+          D === "swap"
+            ? (() => {
+                let R = ge[s.swapCursor];
+                if (s.swapPicks.includes(R)) return S.fizzle();
+                s.swapPicks.push(R), S.select(), S.cry(R, 0.05);
+                s.swapPicks.length === 2
+                  ? (e.startMatch("practice", s.swapPicks, []),
+                    (s.cards = []),
+                    (s.trail = {}),
+                    (s.hintT = 0),
+                    (s.swapPicks = []),
+                    (s.inContent = !1),
+                    pe(),
+                    ie("Training team swapped"))
+                  : (s.swapCursor = ge.findIndex(
+                      (W) => !s.swapPicks.includes(W),
+                    ));
+              })()
+            : D === "tuning"
+              ? fe()
+              : D === "quit" &&
+                (s.quitIndex === 0
+                  ? v()
+                  : s.quitIndex === 1
+                    ? x(!1)
+                    : ((s.inContent = !1), S.back()));
         else {
           if (D === "resume") return pe();
-          (D === "tuning" || D === "moves" || D === "quit") &&
-            ((s.inContent = !0), (s.quitIndex = 0), S.select());
+          (D === "tuning" || D === "moves" || D === "quit" || D === "swap") &&
+            ((s.inContent = !0),
+            (s.quitIndex = 0),
+            (s.swapPicks = []),
+            (s.swapCursor = Math.max(0, ge.indexOf(e.player.kit.id))),
+            S.select());
         }
       n.pressed.has("back") &&
-        (s.inContent ? ((s.inContent = !1), S.back()) : pe());
+        (s.inContent && D === "swap" && s.swapPicks?.length
+          ? (s.swapPicks.pop(), S.back())
+          : s.inContent
+            ? ((s.inContent = !1), S.back())
+            : pe());
     }
     function Yt(n) {
       s.resultsT < 50 ||
@@ -11513,8 +11593,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             T.x + Math.cos(ee) * 6,
             T.y + Math.sin(ee) * 6 - 2,
             ee,
-            3,
-            e.rayLen(T.x, T.y, ee, 1 / 0) + 4,
+            4,
+            e.rayLen(T.x, T.y, ee, 1 / 0) + 2,
+            !0,
           );
         }
         Z?.state === "qa" && e.tick % 2 === 0 && ve(Z, be, 8);
