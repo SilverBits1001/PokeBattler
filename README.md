@@ -12,7 +12,7 @@ Q switch, E assist).
 
 See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
 callouts, five arenas with hazards (Stadium, Ruins, Cinder Crater, Frostfall Lake,
-Power Plant), items (Sitrus Berry, X Attack, Smoke Bomb, Eject Button), Smash-style
+Power Plant), items (Sitrus Berry, X Attack, Poké Ball, Rocky Helmet, Choice Scarf), Smash-style
 move types, Magnezone, two battle themes plus victory/defeat music, and five modes
 (VS CPU, Training, Free-for-All, Team 2v2, Zone Control). Mode, arena and items can be
 switched in Options → Match, or with X / Select on team select. Accessibility options

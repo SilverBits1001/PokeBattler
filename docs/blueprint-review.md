@@ -410,3 +410,24 @@ five tints), about 724 MB of canvas memory before a match started — far past m
 Tinted copies are now made on demand in a least-recently-used cache with a pixel budget
 (peak 25–47 MB in a match), and the frame loop caps its catch-up backlog. Confirmed fixed on
 the player's device.
+
+## Pass: item review
+
+Each item scored 0–2 on five criteria, after what makes Smash items fun: a **meaningful
+choice** (is grabbing it a decision?), **counterplay** (can the other player answer it?),
+**readability** (can both players see what it does?), a **moment** (does it create a
+highlight?) and **theme** (Pokémon battle flavour).
+
+| Item | Choice | Counterplay | Readable | Moment | Theme | Total | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Sitrus Berry | 2 | 2 | 2 | 1 | 2 | 9 | Keep |
+| X Attack | 1 | 2 | 2 | 1 | 2 | 8 | Keep |
+| Smoke Bomb | 1 | 0 | 0 | 1 | 1 | 3 | **Removed**: switched off lock-on and homing with no answer, and hid the fight |
+| Eject Button | 0 | 0 | 1 | 1 | 1 | 3 | **Removed**: always good, never a decision, and erased the attacker's best combo payoff |
+| **Poké Ball** (new) | 2 | 2 | 2 | 2 | 2 | 10 | A Pokémon not in the match pops out ("GO, NOIVERN!") and uses its signature move for you |
+| **Rocky Helmet** (new) | 2 | 2 | 2 | 1 | 2 | 9 | 10 s of spikes: melee attackers take 25% of their damage back. Answer: fight at range |
+| **Choice Scarf** (new) | 1 | 2 | 2 | 1 | 2 | 8 | 8 s of +30% speed and quicker dodges, with a blue speed trail. Answer: stay out of reach |
+
+Smoke Bomb and Eject Button were removed completely (their targeting and invulnerability
+code included). Verified: the Poké Ball summons only Pokémon outside the match and they deal
+damage; the Rocky Helmet returns damage to melee attackers; the Choice Scarf is +30% speed.

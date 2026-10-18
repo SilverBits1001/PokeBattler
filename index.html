@@ -2130,11 +2130,15 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     ITEMS = [
       { kind: "sitrus", name: "SITRUS BERRY", color: "#9cf28a", w: 3 },
       { kind: "xatk", name: "X ATTACK", color: "#ff6a5a", w: 2 },
-      { kind: "smoke", name: "SMOKE BOMB", color: "#b9c0cc", w: 2 },
-      { kind: "eject", name: "EJECT BUTTON", color: "#ffd25e", w: 2 },
+      { kind: "pokeball", name: "POK\xC9 BALL", color: "#ef5a4f", w: 2 },
+      { kind: "helmet", name: "ROCKY HELMET", color: "#c9a26b", w: 2 },
+      { kind: "scarf", name: "CHOICE SCARF", color: "#5ab0ff", w: 2 },
     ],
     XATK = { ticks: 480, mult: 1.25 },
-    SMOKE = { r: 48, ticks: 360 },
+    // Rocky Helmet: melee attackers take a share of their damage back.
+    HELMET = { ticks: 600, recoil: 0.25 },
+    // Choice Scarf: a burst of speed and quicker dodges.
+    SCARF = { ticks: 480, speed: 1.3, dodgeCd: 0.6 },
     SITRUS = {
       firstAt: 900,
       every: 1200,
@@ -2438,7 +2442,6 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           (this.tintColor = e.color);
       }
       get invincible() {
-        if (this.ejectT > 0) return !0;
         return this.state === "dodge"
           ? this.t < this.kit.dodge.iframes
           : (this.state === "flyUp" && this.t >= 3 && this.t < FLY.safe) ||
@@ -2643,7 +2646,6 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         this.lava = [];
         this.ice = [];
         this.vents = [];
-        this.smokes = [];
         this.icicles = [];
         this.arc = null;
         this.item = null;
@@ -2753,7 +2755,6 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 }))
               : []),
           (this.vents = []),
-          (this.smokes = []),
           (this.ventT = CRATER.ventEvery[0]),
           (this.icicles = []),
           (this.icicleT = FROST.icicleEvery[0]),
@@ -2932,7 +2933,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         let i = null,
           r = 1 / 0;
         for (let o of this.targetsFor(e)) {
-          let l = Math.hypot(o.x - t, o.y - s) + (this.smoked(o) ? 400 : 0);
+          let l = Math.hypot(o.x - t, o.y - s);
           l < r && ((r = l), (i = o));
         }
         return i;
@@ -3085,7 +3086,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           e.magT > 0 && e.magT--,
           e.drowsyT > 0 && --e.drowsyT === 0 && this.fallAsleep(e),
           e.xatkT > 0 && e.xatkT--,
-          e.ejectT > 0 && e.ejectT--,
+          e.helmetT > 0 && e.helmetT--,
+          e.scarfT > 0 && e.scarfT--,
           e.lockT > 0 && e.lockT--,
           e.hitstop > 0)
         ) {
@@ -3459,8 +3461,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             this.emit({ type: "lock", who: e, target: null }));
           return;
         }
-        (i = i.filter((o) => !this.smoked(o))),
-          e.lock && !i.includes(e.lock) && (e.lock = null),
+        e.lock && !i.includes(e.lock) && (e.lock = null),
           !e.lock &&
             i.length &&
             ((e.lock = i.reduce((o, l) =>
@@ -3773,7 +3774,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           o = (A.meleeAssist * Math.PI) / 180;
         for (let l of this.targetsFor(e.team)) {
           let f = Math.hypot(l.x - e.x, l.y - e.y);
-          if (f > s || this.smoked(l)) continue;
+          if (f > s) continue;
           let u = Math.atan2(l.y - e.y, l.x - e.x),
             h = Math.abs($e(u, t));
           if (h > o && f > 40) continue;
@@ -3802,7 +3803,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           (e.facing = t),
           (e.dodgeId = this.nextId++),
           (e.armorUsed = 0),
-          (e.slot.cdDodge = s.cooldown),
+          (e.slot.cdDodge = Math.round(
+            s.cooldown * (e.scarfT > 0 ? SCARF.dodgeCd : 1),
+          )),
           (e.kvx *= 0.2),
           (e.kvy *= 0.2),
           (e.chainQueued = !1),
@@ -5632,17 +5635,38 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         }
         this.emit({ type: "discharge", x: e.x, y: e.y });
       }
-      ejectOut(e, t, s) {
-        (e.eject = !1),
-          (e.state = "move"),
-          (e.t = 0),
-          (e.hitstun = 0),
-          (e.kvx = e.kvy = 0),
-          (e.z = 0),
-          (e.spinRow = -1),
-          this.moveBody(e, t * 70, s * 70),
-          (e.ejectT = 20),
-          this.emit({ type: "eject", who: e });
+      // Poké Ball: a Pokémon outside the match pops out and uses its move for you.
+      pokeBall(e, t) {
+        let s = new Set(
+            this.players.flatMap((o) => o.slots.map((l) => l.kit.id)),
+          ),
+          i = ge.filter((o) => !s.has(o)),
+          r = (i.length ? i : ge)[
+            Math.floor(this.rand() * (i.length || ge.length))
+          ],
+          o = this.nearestTarget(e.team, e.x, e.y),
+          l = o ? Math.atan2(o.y - e.y, o.x - e.x) : e.facing,
+          f = new Ft(
+            this.mons[r],
+            xe[r],
+            0,
+            e,
+            me(t.x, B.x0 + 12, B.x1 - 12),
+            me(t.y, B.y0 + 8, B.y1 - 6),
+            l,
+            this.nextId++,
+          );
+        (f.fromBall = !0),
+          this.assists.push(f),
+          this.emit({
+            type: "pokeBall",
+            who: e,
+            kit: xe[r],
+            ball: f,
+            x: t.x,
+            y: t.y,
+          }),
+          this.emit({ type: "assist", kit: xe[r], who: f });
       }
       paralyze(e) {
         e.kind === "player" &&
@@ -6075,7 +6099,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
       locomote(e, t, s) {
         let i = e.kit,
-          r = i.speed * A.speedScale;
+          r = i.speed * A.speedScale * (e.scarfT > 0 ? SCARF.speed : 1);
         i.id === "blastoise" &&
           this.inPuddle(e.x, e.y, e.team, !0) &&
           (r *= 1.35),
@@ -6784,17 +6808,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           "arena",
         );
       }
-      smoked(e) {
-        return (
-          !!e &&
-          this.smokes.some(
-            (t) => Math.hypot(t.x - e.x, (t.y - e.y) * 1.3) < t.r,
-          )
-        );
-      }
       updateHazards() {
-        for (let t of this.smokes) t.t--;
-        this.smokes = this.smokes.filter((t) => t.t > 0);
         let e = (t) =>
           [...this.players, ...this.dummies].filter(
             (s) =>
@@ -6994,19 +7008,21 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             i = s.hp;
           e.kind === "xatk"
             ? (t.xatkT = XATK.ticks)
-            : e.kind === "smoke"
-              ? this.smokes.push({ x: e.x, y: e.y, r: SMOKE.r, t: SMOKE.ticks })
-              : e.kind === "eject"
-                ? (t.eject = !0)
-                : (s.hp = Math.min(
-                    s.maxHp,
-                    s.hp +
-                      Math.round(
-                        s.maxHp *
-                          SITRUS.heal *
-                          (t.kit.gluttony ? SNOR.gluttony : 1),
-                      ),
-                  )),
+            : e.kind === "pokeball"
+              ? this.pokeBall(t, e)
+              : e.kind === "helmet"
+                ? (t.helmetT = HELMET.ticks)
+                : e.kind === "scarf"
+                  ? (t.scarfT = SCARF.ticks)
+                  : (s.hp = Math.min(
+                      s.maxHp,
+                      s.hp +
+                        Math.round(
+                          s.maxHp *
+                            SITRUS.heal *
+                            (t.kit.gluttony ? SNOR.gluttony : 1),
+                        ),
+                    )),
             this.emit({
               type: "itemGet",
               who: t,
@@ -7373,7 +7389,6 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               e.kind === "zap" ||
               e.kind === "aura") &&
             e.target &&
-            !this.smoked(e.target) &&
             e.age > 4 &&
             this.targetsFor(e.team).includes(e.target)
           ) {
@@ -7922,6 +7937,25 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               ? (re = Math.round(K * 0.2))
               : w.rooted && (re = Math.round(K * 0.8));
           let se = U.hp;
+          w.helmetT > 0 &&
+            M &&
+            t &&
+            t.kind === "player" &&
+            t.team !== w.team &&
+            t.slot.hp > 1 &&
+            ((t.slot.hp = Math.max(
+              1,
+              t.slot.hp - Math.round(re * HELMET.recoil),
+            )),
+            (t.flash = 3),
+            this.emit({
+              type: "helmet",
+              who: w,
+              by: t,
+              x: t.x,
+              y: t.y,
+              dmg: Math.round(re * HELMET.recoil),
+            }));
           t &&
             t.kind === "player" &&
             C > 0 &&
@@ -8021,7 +8055,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                   y: w.y,
                   power: ce,
                 })),
-              w.eject && (l || C > 0) && this.ejectOut(w, r, o);
+              0;
           }
         }
         let $ = x
@@ -9804,6 +9838,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           S: "#d6dbe4",
           f: "#ff9a1f",
           c: "#bfe6ff",
+          C: "#3c8ad8",
         }[l[u]];
         h && ((a.fillStyle = h), a.fillRect(i - 5 + u, r - 6 + f, 1, 1));
       }
@@ -9835,29 +9870,41 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       "..bRRRRb..",
       "...bbbb...",
     ],
-    smoke: [
-      "......f...",
-      ".....f....",
-      "....bb....",
-      "..bssssb..",
-      ".bsSssssb.",
-      ".bsSssssb.",
-      ".bsssssbb.",
-      ".bssssssb.",
-      "..bssssb..",
+    pokeball: [
+      "...bbbb...",
+      "..brrrrb..",
+      ".brwrrrRb.",
+      ".brrrrrRb.",
+      "bbbbwwbbbb",
+      "bSSbwwbSSb",
+      ".bSSbbSSb.",
+      ".bSSSSSsb.",
+      "..bSSSsb..",
       "...bbbb...",
     ],
-    eject: [
+    helmet: [
+      "....w.....",
+      "...bob....",
+      "..bkooob..",
+      ".wbooooobw",
+      ".bkoooook.",
+      "bkoowooook",
+      "bkooooook.",
+      "bbkkkkkkbb",
+      ".w.b..b.w.",
       "..........",
-      "...rrrr...",
-      "..rwrrRr..",
-      ".rwrrrrRr.",
-      ".rrrrrrRr.",
-      ".bRRRRRRb.",
-      "bssssssssb",
-      "bSSSSSSSSb",
-      ".bbbbbbbb.",
+    ],
+    scarf: [
       "..........",
+      "..cCCCCc..",
+      ".cCCCCCCc.",
+      ".bcCCCCcb.",
+      "..bbccbb..",
+      "....cC....",
+      "....cCc...",
+      "...cCC....",
+      "...cC.....",
+      "....c.....",
     ],
   };
   // Tag and colour for a fighter: you, an ally, or one of up to three CPUs.
@@ -10310,26 +10357,6 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
     }
     e.arc && arcLayer(a, e);
-    for (let h of e.smokes ?? []) {
-      let c = Math.min(1, h.t / 40, (SMOKE.ticks - h.t) / 10 + 0.3),
-        y = rt(Math.round(h.x + h.y));
-      for (let b = 0; b < 14; b++) {
-        let p = y() * Math.PI * 2 + e.tick * 0.004 * (b % 2 ? 1 : -1),
-          k = Math.sqrt(y()) * h.r * 0.85;
-        (a.globalAlpha = 0.55 * c),
-          (a.fillStyle = b % 3 ? "#9aa3b2" : "#c9cfd8"),
-          a.beginPath(),
-          a.arc(
-            h.x + Math.cos(p) * k,
-            h.y - 10 + Math.sin(p) * k * 0.6,
-            10 + y() * 8,
-            0,
-            Math.PI * 2,
-          ),
-          a.fill();
-      }
-      a.globalAlpha = 1;
-    }
     for (let h of e.players) {
       if (h.state === "faint") continue;
       let c = Math.round(o(h.px, h.x)),
@@ -10344,7 +10371,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         (a.globalAlpha = 1));
       let b = [
         h.xatkT > 0 ? ["ATK+", "#ff6a5a"] : null,
-        h.eject ? ["EJECT", "#ffd25e"] : null,
+        h.helmetT > 0 ? ["HELMET", "#c9a26b"] : null,
+        h.scarfT > 0 ? ["SCARF", "#5ab0ff"] : null,
       ].filter(Boolean);
       (a.font = '700 6px "Barlow Semi Condensed", sans-serif'),
         (a.textAlign = "center");
@@ -10948,11 +10976,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       return;
     }
     if (
-      ((a.globalAlpha =
-        (e.alpha ?? 1) *
-        (x ? 0.6 : 1) *
-        v *
-        (t.smoked && e !== t.player && t.smoked(e) ? 0.22 : 1)),
+      ((a.globalAlpha = (e.alpha ?? 1) * (x ? 0.6 : 1) * v),
       a.drawImage(
         e.flash > 0 ? l.white : l.img,
         p,
@@ -11658,6 +11682,21 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         ),
         a.stroke(),
         (a.globalAlpha = 1);
+    }
+    if (h.helmetT > 0) {
+      a.globalAlpha = 0.85;
+      for (let i = 0; i < 10; i++) {
+        let r = (i / 10) * Math.PI * 2 + t * 0.03,
+          o = c + Math.cos(r) * 14,
+          l = y - s * 0.45 + Math.sin(r) * 12;
+        (a.fillStyle = i % 2 ? "#c9a26b" : "#8a6a3e"),
+          a.beginPath(),
+          a.moveTo(o + Math.cos(r) * 5, l + Math.sin(r) * 5),
+          a.lineTo(o + Math.cos(r + 1.6) * 2, l + Math.sin(r + 1.6) * 2),
+          a.lineTo(o + Math.cos(r - 1.6) * 2, l + Math.sin(r - 1.6) * 2),
+          a.fill();
+      }
+      a.globalAlpha = 1;
     }
     if (h.kit.aura) {
       let i = 1 - h.slot.hp / h.slot.maxHp;
@@ -16339,11 +16378,13 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             W = {
               sitrus: `+${n.amount} HP`,
               xatk: "ATTACK UP",
-              smoke: "SMOKE!",
-              eject: "EJECT READY",
+              pokeball: "GO!",
+              helmet: "SPIKES UP",
+              scarf: "SPEED UP",
             }[n.kind];
           n.kind === "sitrus" ? (S.heal(), t.heal(n.x, n.y, 10)) : S.cdReady(),
-            n.kind === "smoke" && (t.smoke(n.x, n.y, 30, 10), S.fizzle()),
+            n.kind === "helmet" && t.ring(n.x, n.y - 10, 4, 2, 12, "#c9a26b"),
+            n.kind === "scarf" && t.speedLines(n.x, n.y - 10, 8, "#5ab0ff"),
             t.ring(n.x, n.y, 6, 2.6, 16, R.color, !0),
             t.popup(n.x, n.y - 40, W, R.color, !0),
             n.who === D
@@ -16357,11 +16398,20 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 );
           break;
         }
-        case "eject":
-          S.dodge(),
-            t.ring(n.who.x, n.who.y - 10, 6, 3, 14, "#ffd25e"),
-            t.popup(n.who.x, n.who.y - 46, "EJECT!", "#ffd25e", !0),
-            t.motes(n.who.x, n.who.y, 10, 12, "#ffd25e", 1.6);
+        case "pokeBall": {
+          // The ball pops open in a flash of red-white light.
+          S.select(),
+            t.flare(n.x, n.y, 10, 30, "#ffffff", 16),
+            t.ring(n.x, n.y - 10, 4, 3.4, 16, "#ef5a4f"),
+            t.ring(n.x, n.y, 6, 2.6, 18, "#ffffff", !0),
+            t.motes(n.x, n.y, 14, 18, "#ff8b8b", 2),
+            t.popup(n.x, n.y - 52, `GO, ${n.kit.name}!`, n.kit.color, !0);
+          break;
+        }
+        case "helmet":
+          S.armor(),
+            t.popup(n.x, n.y - 44, `SPIKED -${n.dmg}`, "#c9a26b", !1),
+            t.hitSpark(n.x, n.y - 10, 0, -1, !1, "#c9a26b");
           break;
         case "itemGone":
           t.dust(n.x, n.y, 4, 0, 0, 0.6);
@@ -18032,6 +18082,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           e.tick % 2 === 0 &&
           ve(T, "#9fdcff", 6),
         T.state === "dodge" && e.tick % 1 === 0 && ve(T, "#4aa3ff", 9));
+      T.scarfT > 0 &&
+        Math.hypot(T.mvx, T.mvy) > 1 &&
+        e.tick % 2 === 0 &&
+        (t.streaks(T.x, T.y - 8, -T.mvx, -T.mvy, 1, "#5ab0ff"),
+        e.tick % 6 === 0 && ve(T, "#5ab0ff", 8));
       n === "charizard" &&
         (T.state === "smashCharge" &&
           T.kit.smash.blitz &&
