@@ -490,3 +490,7 @@ with no crash or dead feature. Its follow-ups are done:
 - The arc warning is brighter.
 - The top pylon and top lava pool sit clear of the HUD.
 - The ABSORBED popup shows once per arc.
+
+**Quick arena change:** a new **Arena** tab in the pause menu (every mode) shows a thumbnail
+of all five arenas with the highlighted one's hazard and benefit. Picking one restarts the
+match there with the same teams; the choice is saved for the next match too.

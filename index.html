@@ -12556,6 +12556,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     ke = 0.21,
     Ve = [
       { id: "resume", label: "Team" },
+      { id: "arena", label: "Arena" },
       { id: "moves", label: "Moves" },
       { id: "tuning", label: "Options" },
       { id: "controls", label: "Controls" },
@@ -12572,6 +12573,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       paused: !1,
       tab: 0,
       swapCursor: 0,
+      arenaCursor: 0,
       swapPicks: [],
       inContent: !1,
       tuneIndex: 1,
@@ -14523,6 +14525,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       h === "resume" && cs(a, o, l, f, t),
       h === "moves" && ds(e, o, l, f, t),
       h === "swap" && swapPane(a, e, o, l, f, t),
+      h === "arena" && arenaPane(a, e, o, l, f),
       h === "tuning" && us(e, o, l, f, u),
       h === "controls" && fs(o, l, f),
       h === "credits" &&
@@ -14549,6 +14552,110 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       G(k, y + M + 2, c + 2.4, 7, "#cfcaea"), (y += M + ye(k, 7) + 12);
     }
     d.restore();
+  }
+  // Quick arena change from the pause menu: thumbnails of all five, details for the
+  // highlighted one. Picking one restarts the match there with the same teams.
+  var ARENA_INFO = [
+    [
+      "Neutral tournament stage",
+      "No hazards",
+      "Spotlights recharge your specials 2\xD7",
+    ],
+    [
+      "Cover and ambush",
+      "Broken boulders collapse after a warning",
+      "Break cover for Ancient Power (+damage, +speed)",
+    ],
+    [
+      "Pressure",
+      "Lava pools and eruptions",
+      "Erupted vents run hot: +25% damage. Water crusts lava",
+    ],
+    [
+      "Momentum",
+      "Icicles drop near every fighter",
+      "Dodges slide further on ice. Fire melts, water freezes",
+    ],
+    [
+      "Control",
+      "Electric arcs between pylons",
+      "Live pylons recharge specials. Electric types absorb arcs",
+    ],
+  ];
+  var arenaThumbs = [];
+  function arenaPane(a, e, t, s, i) {
+    V("Change Arena", t + 16, s + 22, 14, g.chalk, { skew: !0 }),
+      G(
+        e.inContent
+          ? "Left/right to choose, A to play there (the match restarts)"
+          : "Press A to pick a new arena",
+        t + 18,
+        s + 33,
+        7,
+        g.haze,
+      );
+    let r = (i - 36 - 4 * 6) / 5,
+      o = r * 0.56,
+      l = s + 42,
+      f = e.inContent ? e.arenaCursor : a.arena;
+    ARENAS.forEach((h, c) => {
+      if (!arenaThumbs[c]) {
+        // Bake the live features (lava, ice, pylons) into the thumbnail.
+        let k = Va(c),
+          M = k.getContext("2d");
+        for (let [P, C, x, v] of c === 2 ? CRATER.pools : [])
+          (M.fillStyle = "#ff6a1a"),
+            M.beginPath(),
+            M.ellipse(P, C, x, v, 0, 0, Math.PI * 2),
+            M.fill();
+        for (let [P, C, x, v] of c === 3 ? FROST.rinks : [])
+          (M.fillStyle = "#a9d6f2"),
+            M.beginPath(),
+            M.ellipse(P, C, x, v, 0, 0, Math.PI * 2),
+            M.fill();
+        for (let [P, C] of c === 4 ? PLANT.pylons : [])
+          (M.fillStyle = "#ffd25e"), M.fillRect(P - 6, C - 14, 12, 18);
+        for (let [P, C] of c === 1 ? RUINS.spots : [])
+          (M.fillStyle = "#8a8477"),
+            M.beginPath(),
+            M.ellipse(P, C - 6, 14, 11, 0, 0, Math.PI * 2),
+            M.fill();
+        arenaThumbs[c] = k;
+      }
+      let y = t + 18 + c * (r + 6),
+        b = c === f;
+      te(y - 1, l - 1, r + 2, o + 2, b ? g.p1 : "#1b1730", 2),
+        d.drawImage(
+          arenaThumbs[c],
+          B.x0,
+          B.y0 - 30,
+          B.x1 - B.x0,
+          B.y1 - B.y0 + 30,
+          m(y),
+          m(l),
+          m(r),
+          m(o),
+        ),
+        c === a.arena &&
+          ue("NOW", g.gold, y + r - 2, l + 2, {
+            right: !0,
+            size: 4.6,
+            text: g.night,
+          }),
+        G(h.name, y + r / 2, l + o + 8, 5.6, b ? g.chalk : g.haze, {
+          align: "center",
+          weight: b ? 700 : 500,
+        });
+    });
+    let u = ARENA_INFO[f] ?? ARENA_INFO[0],
+      h = l + o + 22;
+    te(t + 16, h, i - 32, 62, g.plate2, 6),
+      V(ARENAS[f].name, t + 26, h + 16, 12, g.chalk, { skew: !0 }),
+      G(u[0], t + 26, h + 26, 6.4, g.haze, { italic: !0 }),
+      ue("HAZARD", "#ef5a4f", t + 26, h + 32, { size: 5, text: g.night }),
+      G(u[1], t + 60, h + 37, 6.4, g.chalk),
+      ue("BENEFIT", "#4df08a", t + 26, h + 44, { size: 5, text: g.night }),
+      G(u[2], t + 60, h + 49, 6.4, g.chalk);
   }
   // Training quick swap: 2x2 roster, pick a lead then a partner to restart.
   function swapPane(a, e, t, s, i, r) {
@@ -16502,6 +16609,12 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             D === "swap" &&
               ((s.swapCursor = RN[R][s.swapCursor] ?? s.swapCursor),
               S.ui(R === "right" || R === "down")),
+            D === "arena" &&
+              ((s.arenaCursor =
+                (s.arenaCursor +
+                  (R === "left" || R === "up" ? ARENAS.length - 1 : 1)) %
+                ARENAS.length),
+              S.ui(R === "right" || R === "down")),
             D === "moves" &&
               (R === "left" || R === "right") &&
               ((s.moveKit =
@@ -16534,18 +16647,40 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                       (W) => !s.swapPicks.includes(W),
                     ));
               })()
-            : D === "tuning"
-              ? fe()
-              : D === "quit" &&
-                (s.quitIndex === 0
-                  ? v()
-                  : s.quitIndex === 1
-                    ? x(!1)
-                    : ((s.inContent = !1), S.back()));
+            : D === "arena"
+              ? s.arenaCursor === e.arena
+                ? ((s.inContent = !1), pe())
+                : ((A.arena = s.arenaCursor),
+                  Ze(),
+                  e.startMatch(
+                    e.match.mode,
+                    e.match.you,
+                    e.match.mode === "practice" ? [] : e.match.cpu,
+                  ),
+                  (s.cards = []),
+                  (s.trail = {}),
+                  (s.hintT = 0),
+                  (s.inContent = !1),
+                  S.select(),
+                  pe(),
+                  ie(`Arena: ${ARENAS[A.arena].name}`))
+              : D === "tuning"
+                ? fe()
+                : D === "quit" &&
+                  (s.quitIndex === 0
+                    ? v()
+                    : s.quitIndex === 1
+                      ? x(!1)
+                      : ((s.inContent = !1), S.back()));
         else {
           if (D === "resume") return pe();
-          (D === "tuning" || D === "moves" || D === "quit" || D === "swap") &&
+          (D === "tuning" ||
+            D === "moves" ||
+            D === "quit" ||
+            D === "swap" ||
+            D === "arena") &&
             ((s.inContent = !0),
+            (s.arenaCursor = e.arena),
             (s.quitIndex = 0),
             (s.swapPicks = []),
             (s.swapCursor = Math.max(0, ge.indexOf(e.player.kit.id))),
