@@ -8808,7 +8808,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     return (
       Ue.clear(),
       ($a = r),
-      {
+      ((o) => (touchInput(o), o))({
         mx: e,
         my: t,
         ax: s,
@@ -8817,7 +8817,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         pressed: b,
         held: r,
         source: wt,
-      }
+      })
     );
   }
   var Ie = Math.random,
@@ -13798,19 +13798,19 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       (a.imageSmoothingEnabled = !1),
       s.screen === "title")
     ) {
-      is(s, o), Lt(s);
+      is(s, o), Lt(s), touchDraw(s, e);
       return;
     }
     if (s.screen === "select") {
-      ns(s, o), ga(s), Lt(s);
+      ns(s, o), ga(s), Lt(s), touchDraw(s, e);
       return;
     }
     if (s.screen === "online") {
-      onlineScreen(s, o), ga(s), Lt(s);
+      onlineScreen(s, o), ga(s), Lt(s), touchDraw(s, e);
       return;
     }
     if (s.screen === "menu") {
-      menuScreen(s, o), ga(s), Lt(s);
+      menuScreen(s, o), ga(s), Lt(s), touchDraw(s, e);
       return;
     }
     let l = t.view,
@@ -13926,6 +13926,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       ga(s),
       s.paused && hs(e, s, o),
       NET.m && netHud(e, s),
+      touchDraw(s, e),
       Lt(s);
   }
   function pa(a, e, t) {
@@ -14647,6 +14648,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     }
   }
   function ts(a, e) {
+    if (e.source === "touch") return;
     let t = a.player.kit,
       s = t.id === "dragapult" ? "Dodge (hold: Phantom)" : "Dodge",
       i =
@@ -15236,6 +15238,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         ie = a.cpuPicks.includes(M),
         K = P === a.cursor,
         $ = K ? a.pickBump * 3 : 0;
+      tapRect(C - 2, x - 2, v + 4, v + 12, () => {
+        (a.cursor = P), Ue.add("confirm");
+      });
       K &&
         (d.save(),
         (d.globalCompositeOperation = "lighter"),
@@ -15333,6 +15338,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         d.translate(m(h), m(p)),
         d.scale(M, M),
         d.translate(-m(h), -m(p)),
+        tapRect(h - 76, p - 9, 152, 18, () => Ue.add("start")),
         te(h - 72, p - 7, 144, 14, g.gold),
         V(
           A.gameMode === 5
@@ -15358,7 +15364,15 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       ...(s ? [["Y", `CPU: ${i}`, r]] : []),
       ["SELECT", "Arena", y],
     ]) {
-      let x = Pe(M, k + 4, oe - 7, 3.2);
+      let x = Pe(M, k + 4, oe - 7, 3.2),
+        v = {
+          A: "confirm",
+          B: "back",
+          X: "special1",
+          Y: "special2",
+          SELECT: "select",
+        }[M];
+      tapRect(k - 2, oe - 16, x + ye(P, 6.2) + 10, 16, () => Ue.add(v));
       G(P, k + x + 1.5, oe - 4.6, 6.2, C, { weight: 600 }),
         (k += x + ye(P, 6.2) + 10);
     }
@@ -15726,6 +15740,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         let ve = 228 + le * 86 - (1 - Le) * 20,
           Ce = 228,
           de = le === e.resultIndex;
+        tapRect(ve, Ce, 82, 22, () => {
+          (e.resultIndex = le), Ue.add("confirm");
+        });
         te(ve + 1.4, Ce + 2, 82, 22, "rgba(0,0,0,0.5)"),
           te(ve, Ce, 82, 22, de ? g.gold : g.plate2),
           V(q, ve + 82 / 2 - 1, Ce + 16, 12, de ? g.night : g.chalk, {
@@ -15779,6 +15796,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       let M = r + k * 19,
         P = k === e.tab,
         C = i - (P ? 8 : 0) - k * 2;
+      tapRect(C, M, 96, 15, () => {
+        e.inContent && Ue.add("back"), (e.tab = k), P && Ue.add("confirm");
+      });
       te(C + 1.2, M + 1.6, 96, 15, "rgba(0,0,0,0.5)"),
         te(C, M, 96, 15, P ? (e.inContent ? "#1f8fb0" : g.p1) : g.plate2),
         V(
@@ -16358,6 +16378,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       let u = Re[f],
         h = t + 16 + (f - l) * 12,
         c = a.inContent && f === a.tuneIndex;
+      u.kind !== "header" &&
+        tapRect(e + 8, h - 7, s - 16, 12, () => {
+          let y = a.tuneIndex === f && a.inContent;
+          (a.inContent = !0), (a.tuneIndex = f), y && Ue.add("right");
+        });
       if (u.kind === "header") {
         u.label &&
           (V(u.label, e + 16, h + 4, 10, g.p1, { skew: !0 }),
@@ -16434,6 +16459,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         let o = t + 60 + r * 22,
           l = e + 20 - r * 3,
           f = a.inContent && r === a.quitIndex;
+        tapRect(l, o, 120, 17, () => {
+          a.inContent
+            ? ((a.quitIndex = r), Ue.add("confirm"))
+            : (a.inContent = !0);
+        });
         te(l, o, 120, 17, f ? (r === 0 ? g.cpu : g.p1) : g.plate2),
           V(
             i,
@@ -18174,8 +18204,14 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         E = u + x * (h + 2),
         Q = i + 12 - x * 1.2,
         ie = o - 30,
-        K = v === cur && !NET.incoming && NET.st === "idle" && !NET.m,
-        $ = C.kind === "back" || (s && C.kind !== "back") || !s;
+        K = v === cur && !NET.incoming && NET.st === "idle" && !NET.m;
+      NET.incoming ||
+        NET.m ||
+        NET.st !== "idle" ||
+        tapRect(Q, E, ie, h, () => {
+          (a.netCursor = v), Ue.add("confirm");
+        });
+      let $ = C.kind === "back" || (s && C.kind !== "back") || !s;
       if (C.kind === "quick" && !s) return;
       te(Q, E, ie, h, K ? g.p1 : "rgba(38,32,67,0.85)"),
         (d.globalAlpha = $ ? 1 : 0.4);
@@ -18267,7 +18303,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       let Q = x + C / 2 - b.length * 34;
       b.forEach(([ie, K], $) => {
         let w = Q + $ * 70;
-        Pe(ie, w + 8, v + 56, 4.2), G(K, w + 16, v + 58.5, 7, g.chalk);
+        tapRect(w, v + 48, 66, 16, () =>
+          Ue.add(ie === "A" ? "confirm" : "back"),
+        ),
+          Pe(ie, w + 8, v + 56, 4.2),
+          G(K, w + 16, v + 58.5, 7, g.chalk);
       });
     }
     NET.msgT > 0 &&
@@ -18311,6 +18351,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       ["Keep playing", "Leave"].forEach((r, o) => {
         let l = i + 26 + o * 100,
           f = o === (e.netMenuIndex ?? 0);
+        tapRect(l, 134, 90, 20, () => {
+          (e.netMenuIndex = o), Ue.add("confirm");
+        });
         te(l, 134, 90, 20, f ? (o ? g.cpu : g.p1) : g.plate2),
           V(r, l + 45, 148, 11, f ? g.night : g.chalk, { align: "center" });
       });
@@ -18543,6 +18586,12 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         v = 30 + M * 5 + (1 - C) * -60,
         E = P ? 26 : 20,
         Q = P ? 196 : 150;
+      a.menuOpts ||
+        tapRect(v - 16, x, Q + 16, E, () =>
+          P
+            ? Ue.add("confirm")
+            : ((a.menuIndex = M), (a.menuSwap = 0), S.ui(!0)),
+        );
       d.save(), (d.globalAlpha = C);
       if (P) {
         let ie = d.createLinearGradient(m(v), 0, m(v + Q), 0);
@@ -18606,6 +18655,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   // Options from the main menu: the same settings list as the pause menu.
   function menuOptions(a) {
     (d.fillStyle = "rgba(6,5,14,0.55)"), d.fillRect(0, 0, m(H), m(oe));
+    tapRect(0, 0, 116, oe, () => Ue.add("back"));
     let e = 120,
       t = 36,
       s = H - 140,
@@ -18616,6 +18666,179 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       d.clip(),
       us(a, e, t, s, i),
       d.restore();
+  }
+  // ---- Touch controls ----
+  // Shown while touch is the last input used (a keyboard or controller hides
+  // them). A floating stick on the left, face buttons on the right; menus are
+  // tapped directly through hit areas each screen registers as it draws.
+  var TOUCH = {
+      stick: null,
+      btns: new Map(),
+      dir: [1, 0],
+      taps: [],
+      next: [],
+      btnList: [],
+    },
+    tapRect = (a, e, t, s, i) => {
+      wt === "touch" && TOUCH.next.push([a, e, t, s, i]);
+    },
+    touchOn = () => wt === "touch";
+  // The buttons for the current screen: [id, label, actions, x, y, radius].
+  function touchButtons(a, e) {
+    if (a.screen === "title") return [];
+    let t = [
+      ["confirm", "A", ["attack", "confirm"], H - 50, oe - 26, 12],
+      ["back", "B", ["dodge", "back"], H - 24, oe - 46, 10],
+    ];
+    return a.screen !== "play" ||
+      a.paused ||
+      a.netMenu ||
+      e.match.phase === "results"
+      ? t
+      : [
+          ["attack", "A", ["attack", "confirm"], 424, 236, 15],
+          ["dodge", "B", ["dodge", "back"], 455, 205, 12.5],
+          ["sp1", "X", ["special1"], 393, 205, 12.5],
+          ["sp2", "Y", ["special2"], 424, 175, 12.5],
+          ["guard", "GUARD", ["guard"], 458, 160, 8],
+          ["lock", "LOCK", ["lock"], 390, 160, 8],
+          ["smash", "SMASH", ["smash"], 370, 245, 9],
+          ["switch", "SWITCH", ["switch"], 30, 132, 8],
+          ["assist", "ASSIST", ["assist"], 78, 132, 8],
+          ["start", "II", ["start"], H / 2, 56, 7],
+        ];
+  }
+  function touchXY(a) {
+    let e = document.getElementById("stage").getBoundingClientRect();
+    return [
+      ((a.clientX - e.left) / e.width) * H,
+      ((a.clientY - e.top) / e.height) * oe,
+    ];
+  }
+  function touchInit(a, e) {
+    let t = (s) => s.pointerType === "touch" || s.pointerType === "pen";
+    addEventListener(
+      "pointerdown",
+      (s) => {
+        if (!t(s) || s.target?.id === "fs") return;
+        (wt = "touch"), Dt?.();
+        let [i, r] = touchXY(s);
+        // A tapped menu item wins over the on-screen buttons.
+        for (let l = TOUCH.taps.length - 1; l >= 0; l--) {
+          let [f, u, h, c, y] = TOUCH.taps[l];
+          if (i >= f && i <= f + h && r >= u && r <= u + c && y() !== !1)
+            return;
+        }
+        let o = TOUCH.btnList.find(
+          ([, , , l, f, u]) => Math.hypot(i - l, r - f) < u + 5,
+        );
+        if (o) {
+          TOUCH.btns.set(s.pointerId, o);
+          for (let l of o[2]) l !== "smash" && Ue.add(l);
+          return;
+        }
+        a().screen === "title" ||
+          TOUCH.stick ||
+          (i < H * 0.5 &&
+            r > 60 &&
+            (TOUCH.stick = { id: s.pointerId, bx: i, by: r, x: i, y: r }));
+      },
+      { passive: !0 },
+    ),
+      addEventListener(
+        "pointermove",
+        (s) => {
+          let i = TOUCH.stick;
+          i && i.id === s.pointerId && ([i.x, i.y] = touchXY(s));
+        },
+        { passive: !0 },
+      );
+    let s = (i) => {
+      TOUCH.btns.delete(i.pointerId),
+        TOUCH.stick?.id === i.pointerId && (TOUCH.stick = null);
+    };
+    addEventListener("pointerup", s, { passive: !0 }),
+      addEventListener("pointercancel", s, { passive: !0 });
+  }
+  // Folds the touch state into this tick's input.
+  function touchInput(a) {
+    if (wt !== "touch") return;
+    let e = TOUCH.stick;
+    if (e) {
+      let t = e.x - e.bx,
+        s = e.y - e.by,
+        i = Math.hypot(t, s);
+      // The base follows a thumb that drags too far, so the stick never sticks.
+      i > 26 && ((e.bx = e.x - (t / i) * 26), (e.by = e.y - (s / i) * 26)),
+        i > 3 &&
+          ((a.mx = (t / i) * Math.min(1, i / 22)),
+          (a.my = (s / i) * Math.min(1, i / 22)),
+          (TOUCH.dir = [t / i, s / i]));
+    }
+    for (let t of TOUCH.btns.values()) {
+      for (let s of t[2]) s !== "smash" && a.held.add(s);
+      t[0] === "smash" &&
+        ((a.ax = TOUCH.dir[0]), (a.ay = TOUCH.dir[1]), (a.aimHeld = !0));
+    }
+  }
+  function touchDraw(a, e) {
+    if (
+      ((TOUCH.btnList = touchButtons(a, e)),
+      (TOUCH.taps = TOUCH.next),
+      (TOUCH.next = []),
+      wt !== "touch")
+    )
+      return;
+    d.save();
+    let t = TOUCH.stick;
+    if (a.screen === "play" && !a.paused) {
+      let i = t ? t.bx : 64,
+        r = t ? t.by : 210;
+      (d.globalAlpha = t ? 0.75 : 0.35),
+        (d.fillStyle = "rgba(10,8,22,0.55)"),
+        d.beginPath(),
+        d.arc(m(i), m(r), m(26), 0, Math.PI * 2),
+        d.fill(),
+        (d.strokeStyle = "rgba(220,214,255,0.6)"),
+        (d.lineWidth = m(1.2)),
+        d.stroke();
+      let o = t ? Math.max(-1, Math.min(1, (t.x - t.bx) / 26)) * 22 : 0,
+        l = t ? Math.max(-1, Math.min(1, (t.y - t.by) / 26)) * 22 : 0;
+      (d.fillStyle = "rgba(240,236,255,0.85)"),
+        d.beginPath(),
+        d.arc(m(i + o), m(r + l), m(11), 0, Math.PI * 2),
+        d.fill(),
+        t || G("MOVE", i, r + 38, 6, g.chalk, { align: "center", weight: 700 });
+    }
+    let s = new Set([...TOUCH.btns.values()].map((i) => i[0]));
+    for (let [i, r, , o, l, f] of TOUCH.btnList) {
+      d.globalAlpha = s.has(i) ? 0.95 : r === "II" ? 0.85 : 0.55;
+      if (r === "II")
+        (d.fillStyle = "rgba(10,8,22,0.75)"),
+          d.beginPath(),
+          d.arc(m(o), m(l), m(f), 0, Math.PI * 2),
+          d.fill(),
+          (d.fillStyle = g.chalk),
+          d.fillRect(m(o - 2.6), m(l - 3.2), m(1.8), m(6.4)),
+          d.fillRect(m(o + 0.8), m(l - 3.2), m(1.8), m(6.4));
+      else if (r.length === 1) Pe(r, o, l, f);
+      else {
+        let u = ye(r, f * 0.75, je, 700) + f * 1.4;
+        te(
+          o - u / 2,
+          l - f * 0.75,
+          u,
+          f * 1.5,
+          s.has(i) ? g.p1 : "rgba(233,230,247,0.9)",
+          f * 0.3,
+        ),
+          G(r, o, l + f * 0.27, f * 0.75, g.night, {
+            align: "center",
+            weight: 700,
+          });
+      }
+    }
+    d.restore();
   }
   var Ut = 1e3 / 60,
     be = "#a184f5";
@@ -19102,7 +19325,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       }
       return ge.slice(0, 2);
     }
-    p && ((l.hidden = !0), (s.screen = "menu")),
+    touchInit(() => s),
+      p && ((l.hidden = !0), (s.screen = "menu")),
       M(),
       l.addEventListener("pointerdown", () => {
         C(), P();

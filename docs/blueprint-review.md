@@ -731,3 +731,27 @@ A versus layout:
   between the rows that run across the screen.
 - **Below the roster:** a "Battle stage" plate with the arena name and a split blue
   and red VS emblem.
+
+## Touch controls
+
+When no keyboard or controller is in use, the game now plays on a phone or tablet.
+
+- **Input source.** The first touch (or pen) event switches the input source to touch,
+  and the overlay appears. Pressing a key or a gamepad button switches back and hides
+  it, the same way the keyboard and gamepad hints already swap.
+- **Battle.** A floating stick starts wherever the left thumb lands on the left half
+  of the screen (below the HUD), and follows the thumb if it drags past the rim. The
+  right cluster mirrors a controller: A attack, B dodge, X and Y specials, with Guard,
+  Lock and Smash above and below it. Smash fires in the last stick direction. Switch
+  and Assist sit on the left above the stick, and a pause button sits under the
+  timer. Several fingers work at once, so you can move, guard and attack together.
+- **Menus.** Each screen registers its hit areas while it draws: main menu items,
+  options rows, roster tiles, the Start bar, the hint row, lobby rows and modal
+  buttons, results buttons, pause tabs and the quit prompt. Tapping one selects and
+  confirms it. A and B buttons in the corner act as Confirm and Back everywhere else.
+- **Online.** Touch feeds the same per-tick input as the keyboard, so lockstep play
+  is unchanged.
+- **Verification.** Phone emulation at 844×390 with touch: tapping through title,
+  menu, team pick and Start; the stick moving the fighter about 190 px; attacking
+  with a second finger while holding the stick; pausing. The soak, mode and network
+  duel regressions still pass with no errors.

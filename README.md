@@ -8,6 +8,12 @@ Open `index.html` in a browser. A gamepad is recommended; the keyboard works too
 (WASD move, J attack, K dodge, L and I specials, arrows smash, O guard, Shift lock,
 Q switch, E assist).
 
+On a phone or tablet, touch controls appear as soon as you touch the screen: drag
+anywhere on the left half for a floating stick, use the A/B/X/Y cluster on the right
+(attack, dodge, specials), plus Guard, Lock, Smash (aimed with the stick), Switch,
+Assist and a pause button. Menus, team select, the lobby and results are tap to
+select. The overlay hides again when a keyboard or controller is used.
+
 ## What's new
 
 See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
