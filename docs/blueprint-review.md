@@ -512,6 +512,11 @@ Feedback: the arenas looked flat and noisy (random speckle on solid fills).
   hurts. Lava pools and ice rinks are now filled with the tileset's own lava and
   ice textures, with a crust rim or snow bank around them. The pause-menu
   thumbnails use the same textures.
+- Follow-up polish: the PixelLab lava tile repeated as a visible grid of rings
+  every 16px, so the Crater pools now use a 64px seamless cracked-crust lava
+  texture made from the same palette (`assets/tiles/lava.png`). The Stadium clay
+  gets raked bands, two tiles wide, clipped to whole clay tiles so they never
+  bleed into the grass.
 - If the tiles fail to load, the old procedural floors are drawn instead.
 - Verified with screenshots of all five arenas, a soak run and the mode tests:
   no errors.

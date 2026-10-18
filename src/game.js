@@ -9296,6 +9296,9 @@
   // A repeating pattern of one terrain (lower or upper) for live hazards.
   function tilePat(a, kind, up) {
     let e = kind * 2 + (up ? 1 : 0);
+    // Crater lava uses its own larger texture so the pools do not show a grid.
+    if (kind === 2 && !up && TILESET[5])
+      return a.createPattern(TILESET[5], "repeat");
     if (!tilePats[e]) {
       let t = TILESET[kind];
       if (!t) return null;
@@ -9346,6 +9349,17 @@
         o + ((t() * (f - o)) | 0),
         ["#b39a6c", "#9d8458", "#a48a5d", "#b8a073"][(t() * 4) | 0],
       );
+    // A tiled Stadium pitch gets raked bands, like the stripes on the grass.
+    if (tiled && kind === 0) {
+      e.fillStyle = "rgba(110,60,25,0.13)";
+      for (let x = i.x0; x < i.x1; x += 16)
+        for (let v = i.y0; v < i.y1; v += 16)
+          ((x - i.x0) >> 5) % 2 === 0 &&
+            [0, 16].every(
+              (E) => floorUpper(0, x + E, v) && floorUpper(0, x + E, v + 16),
+            ) &&
+            e.fillRect(x, v, 16, 16);
+    }
     for (let x = r; x < (tiled ? r : l); x++)
       t() < 0.4 && s(x, o - 1, "#7f7a52"), t() < 0.4 && s(x, f, "#7f7a52");
     for (let x = o; x < (tiled ? o : f); x++)
