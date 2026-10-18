@@ -11,8 +11,11 @@ Q switch, E assist).
 ## What's new
 
 See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
-callouts, the Ruins arena with breakable boulders, and the Sitrus Berry pickup.
+callouts, five arenas with hazards (Stadium, Ruins, Cinder Crater, Frostfall Lake,
+Power Plant), the Sitrus Berry, Smash-style move types, Magnezone, and new music.
 Arena and items can be switched in Options → Match.
+
+Roster: Charizard, Venusaur, Blastoise, Dragapult, Magnezone.
 
 ## Layout
 

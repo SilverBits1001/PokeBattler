@@ -115,3 +115,42 @@ Every move now has a type, shown as a tag in the Moves list:
 with a chromatic run-down and stabs, then a driving A-minor verse over 16th-note octave bass
 and arpeggios, a brighter chorus with an octave-doubled lead, and a tense half-time bridge
 that climbs back into the chorus.
+
+## Magnezone, hazard arenas, and end-of-match music
+
+### Magnezone (Electric / Steel) — Controller · setup
+
+Lore: three Magnemite fused by a strange magnetic field; it floats; Lock-On followed by Zap
+Cannon is its classic combo; its abilities include Analytic (stronger when it moves last).
+
+| Input | Move | Type | Behaviour |
+| --- | --- | --- | --- |
+| A | Spark → Spark → Gyro Ball | Combo | Two sparks that tug the target in, then a spinning steel hit around itself. Gyro Ball hits harder the faster the target is. |
+| R-stick | Flash Cannon | Optional charge | Steel blast in front. |
+| X | Lock-On | **Setup** | Scan line; the first target it crosses is marked for 5 s (red reticle both players can see). |
+| Y | Zap Cannon | **Payoff** | Slow orb that paralyzes (slower, no dodging, 1.5 s). On a locked target it homes in and flies faster, then uses up the lock. |
+| B | Magnet Rise | Dodge | Floats over attacks and arena hazards. |
+| Passive | Analytic | — | +25% damage to targets stuck in recovery ("ANALYTIC!"). |
+| Passive | Conductor | — | Electric hits on someone in water charge the whole puddle, which keeps shocking anyone standing in it. |
+
+It is the slowest fighter, true to size (1.2 m, the smallest), and does not slide on ice.
+The type chart now covers Electric and Steel (Electric beats Water; Grass, Dragon and Electric
+resist it; Fire beats Steel; Steel resists Grass, Dragon and Steel). Its partner assist fires a
+Lock-On for you.
+
+### Arenas (Options → Match, or Select / Tab on team select)
+
+| Arena | Identity | Hazards and interactions |
+| --- | --- | --- |
+| Stadium | Baseline | None. |
+| Ruins | Cover | Breakable boulders. |
+| Cinder Crater | Hazard / pressure | Four lava pools (damage + burn). Telegraphed eruptions launch anyone in the ring. Water (puddles, Water Pulse, Hydro Cannon) cools a pool to safe crust for 6 s. |
+| Frostfall Lake | Momentum | Ice rinks: you slide and get knocked further. Fire melts a rink for 8 s. Telegraphed icicles stun. Magnezone floats over the ice. |
+| Power Plant | Control | Three pylons. Arcs jump between pairs after a warning (shock + brief paralysis) and charge puddles they cross. Electric hits overcharge a pylon into a discharge that hits your enemies; water shorts a pylon out for 8 s. |
+
+Every layout is point-symmetric. The CPU steers around lava, warnings and arcs.
+
+### Music
+
+Matches now end on a **victory** fanfare (C major, loops) or a slow **defeat** theme
+(A minor), switching the moment the round ends; Rematch returns to the battle theme.

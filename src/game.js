@@ -117,7 +117,13 @@
       kind: "choice",
       key: "arena",
       label: "Arena (next battle)",
-      options: ["Stadium", "Ruins"],
+      options: [
+        "Stadium",
+        "Ruins",
+        "Cinder Crater",
+        "Frostfall Lake",
+        "Power Plant",
+      ],
     },
     {
       kind: "choice",
@@ -323,6 +329,8 @@
       WATER: "#6890f0",
       DRAGON: "#7038f8",
       GHOST: "#705898",
+      ELECTRIC: "#f8d030",
+      STEEL: "#b8b8d0",
     },
     xe = {
       charizard: {
@@ -655,8 +663,97 @@
         xCd: 30,
         yCd: 150,
       },
+      // Three Magnemite fused by a strange magnetic field. Slow, floating, and
+      // built around setup: Lock-On marks a target so Zap Cannon cannot miss.
+      magnezone: {
+        id: "magnezone",
+        name: "MAGNEZONE",
+        type: "ELECTRIC",
+        type2: "STEEL",
+        color: "#f2d64b",
+        typeInk: "#2a2205",
+        hp: 1000,
+        speed: 2.05,
+        weight: 0.7,
+        r: 9,
+        hurtR: 11,
+        size: 0.71,
+        tall: 34,
+        role: "Controller \xB7 setup",
+        stats: { speed: 1, power: 4, defense: 4, range: 5, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 6,
+            active: 3,
+            recovery: 11,
+            lunge: 3,
+            dmg: 20,
+            kb: 2.2,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 14,
+            pull: !0,
+          },
+          {
+            anim: "Double",
+            startup: 6,
+            active: 3,
+            recovery: 12,
+            lunge: 3,
+            dmg: 22,
+            kb: 2.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 15,
+            pull: !0,
+          },
+          {
+            anim: "Swing",
+            startup: 10,
+            active: 6,
+            recovery: 20,
+            lunge: 2,
+            dmg: 40,
+            kb: 5.4,
+            heavy: !0,
+            shape: "circle",
+            reach: 0,
+            radius: 24,
+            gyro: !0,
+          },
+        ],
+        dodge: {
+          kind: "rise",
+          dist: 70,
+          ticks: 16,
+          iframes: 10,
+          cooldown: 38,
+          anim: "Hop",
+        },
+        smash: {
+          name: "FLASH CANNON",
+          anim: "Shoot",
+          windup: 9,
+          maxCharge: 50,
+          active: 5,
+          recovery: 28,
+          lunge: 0,
+          dmg: 62,
+          kb: 7.4,
+          shape: "circle",
+          reach: 26,
+          radius: 20,
+        },
+        xName: "LOCK-ON",
+        yName: "ZAP CANNON",
+        xCd: 50,
+        yCd: 150,
+      },
     },
-    ge = ["charizard", "venusaur", "blastoise", "dragapult"],
+    ge = ["charizard", "venusaur", "blastoise", "dragapult", "magnezone"],
     ut = 360,
     // Deliberate pacing: every move commits a little longer, so attacks can be
     // read and whiffs can be punished. Scales the per-kit frame data below.
@@ -746,7 +843,8 @@
           o = e.item;
         if (s && t.kit.id !== "dragapult" && e.losBlocked(t.x, t.y, s.x, s.y))
           i.pressed.delete("special1"),
-            t.kit.id === "blastoise" && i.pressed.delete("special2"),
+            (t.kit.id === "blastoise" || t.kit.id === "magnezone") &&
+              i.pressed.delete("special2"),
             t.state === "move" && (this.holdX = 0);
         if (o && t.state === "move" && !i.pressed.size) {
           this.berryId !== o.id &&
@@ -765,6 +863,16 @@
             (i.mx = (o.x - t.x) / u), (i.my = (o.y - t.y) / u);
           }
         }
+        // Zap Cannon is slow: dodge as it arrives, not when it is fired.
+        for (let f of e.projectiles)
+          f.kind === "zap" &&
+            f.team !== t.team &&
+            this.zapSeen !== f.id &&
+            Math.hypot(f.x - t.x, f.y - t.y) < 30 &&
+            r.cdDodge === 0 &&
+            ((this.zapSeen = f.id),
+            this.rand() < [0.3, 0.6, 0.85][this.level ?? A.cpuLevel] &&
+              (i.pressed.add("dodge"), (i.mx = -f.vy / 3), (i.my = f.vx / 3)));
         t.state === "solar" &&
           s &&
           Math.hypot(s.x - t.x, s.y - t.y) < 75 &&
@@ -781,6 +889,33 @@
           this.rand() < [0.2, 0.45, 0.65][this.level ?? A.cpuLevel] &&
             (this.holdA = 18 + Math.floor(this.rand() * 26)));
         this.holdA > 0 && (i.held.add("attack"), this.holdA--);
+        if (e.lava.length || e.ice.length || e.rocks.some((f) => f.pylon)) {
+          let f = Math.hypot(i.mx, i.my),
+            u = Math.atan2(i.my, i.mx);
+          if (
+            f > 0.2 &&
+            e.hazardAt(t.x + Math.cos(u) * 18, t.y + Math.sin(u) * 18)
+          ) {
+            let h = [0.8, -0.8, 1.6, -1.6, 2.4, -2.4].find(
+              (c) =>
+                !e.hazardAt(
+                  t.x + Math.cos(u + c) * 18,
+                  t.y + Math.sin(u + c) * 18,
+                ),
+            );
+            h === void 0
+              ? (i.mx = i.my = 0)
+              : ((i.mx = Math.cos(u + h) * f), (i.my = Math.sin(u + h) * f));
+          } else if (e.hazardAt(t.x, t.y)) {
+            for (let h = 0; h < 8; h++) {
+              let c = (h / 8) * Math.PI * 2;
+              if (!e.hazardAt(t.x + Math.cos(c) * 26, t.y + Math.sin(c) * 26)) {
+                (i.mx = Math.cos(c)), (i.my = Math.sin(c));
+                break;
+              }
+            }
+          }
+        }
         let l = Math.hypot(i.mx, i.my);
         if (l > 0.2 && e.rocks.length) {
           let f = i.mx / l,
@@ -938,7 +1073,9 @@
                   ? M === 0
                     ? 28
                     : 100
-                  : 20;
+                  : f === "magnezone"
+                    ? 95
+                    : 20;
         f === "venusaur" && this.plantT > 0
           ? (this.plantT--, (P = y))
           : f === "venusaur" &&
@@ -1208,6 +1345,23 @@
                       i.pressed.add("dodge"),
                       (this.holdB = 26),
                       (this.phantomAway = !1));
+          } else if (f === "magnezone") {
+            // Set up first: mark the target, then cash it in with Zap Cannon.
+            let J = o.lockT > 0 && o.lockBy === t,
+              fe = !e.losBlocked(t.x, t.y, o.x, o.y);
+            y < 26
+              ? r() < 0.35 && u.cdDodge === 0
+                ? ((i.mx = -Math.cos(b)),
+                  (i.my = -Math.sin(b)),
+                  i.pressed.add("dodge"))
+                : i.pressed.add("attack")
+              : J && u.cdY === 0 && fe
+                ? i.pressed.add("special2")
+                : !J && u.cdX === 0 && fe && y < 250 && r() < 0.6
+                  ? i.pressed.add("special1")
+                  : u.cdY === 0 && y > 70 && y < 170 && r() < 0.12
+                    ? i.pressed.add("special2")
+                    : y < 44 && r() < 0.6 && i.pressed.add("attack");
           } else
             y > 45 && y < 110 && u.cdDodge === 0 && r() < 0.3
               ? ((i.mx = Math.cos(b)),
@@ -1303,7 +1457,7 @@
             u = o.vx * o.vx + o.vy * o.vy;
           if (u < 0.01) continue;
           let h = (l * o.vx + f * o.vy) / u;
-          if (h <= 0 || h > (o.kind === "wisp" ? 30 : 16)) continue;
+          if (h <= 0 || h > (o.kind === "wisp" || o.kind === "zap" ? 32 : 16)) continue;
           let c = l - o.vx * h,
             y = f - o.vy * h;
           if (Math.hypot(c, y) < t.hurtR + o.r + 3)
@@ -1384,6 +1538,62 @@
         [Se + 214, Te],
       ],
     },
+    // Arenas. Every layout is point-symmetric so neither spawn has an edge.
+    ARENAS = [
+      { id: "stadium", name: "Stadium" },
+      { id: "ruins", name: "Ruins" },
+      { id: "crater", name: "Cinder Crater" },
+      { id: "frost", name: "Frostfall Lake" },
+      { id: "plant", name: "Power Plant" },
+    ],
+    // Cinder Crater: lava pools, telegraphed eruptions; water cools lava to crust.
+    CRATER = {
+      pools: [
+        [Se, Te - 90, 72, 22],
+        [Se, Te + 92, 72, 22],
+        [Se - 214, Te - 82, 40, 26],
+        [Se + 214, Te + 82, 40, 26],
+      ],
+      tickDmg: 7,
+      every: 12,
+      cool: 360,
+      ventEvery: [360, 540],
+      ventWarn: 90,
+      ventR: 34,
+      ventDmg: 34,
+    },
+    // Frostfall Lake: ice rinks you slide on; fire melts them; icicles fall.
+    FROST = {
+      rinks: [
+        [Se, Te, 112, 46],
+        [Se - 200, Te + 86, 52, 24],
+        [Se + 200, Te - 86, 52, 24],
+      ],
+      grip: 0.06,
+      slideFriction: 0.955,
+      melt: 480,
+      icicleEvery: [300, 420],
+      icicleWarn: 70,
+      icicleR: 16,
+      icicleDmg: 22,
+    },
+    // Power Plant: three pylons; arcs jump between pairs. Electric hits overcharge a
+    // pylon into a discharge; water shorts it out for a while.
+    PLANT = {
+      pylons: [
+        [Se, Te - 80],
+        [Se - 150, Te + 62],
+        [Se + 150, Te + 62],
+      ],
+      r: 12,
+      cycle: 420,
+      warn: 90,
+      live: 60,
+      arcDmg: 8,
+      dischargeR: 56,
+      dischargeDmg: 24,
+      short: 480,
+    },
     // Sitrus Berry: one contested heal at centre, announced before it lands.
     SITRUS = {
       firstAt: 900,
@@ -1407,6 +1617,18 @@
       minDmg: 18,
       maxDmg: 90,
     },
+    // Magnezone. Lock-On marks for lockTicks; Zap Cannon homes on a marked target,
+    // paralyzes, and electrifies puddles. Analytic boosts hits on recovering targets.
+    MAGNE = {
+      lockRange: 260,
+      lockTicks: 300,
+      zapDmg: 55,
+      zapSlow: 2,
+      zapFast: 3,
+      para: 90,
+      analytic: 1.25,
+      shock: 120,
+    },
     // Dragapult rapid claws: hold A after the second hit.
     FLURRY = { every: 4, dmg: 6, minTicks: 10, maxTicks: 50 },
     BLAST = {
@@ -1421,7 +1643,21 @@
       withdrawCd: 60,
     },
     PUNISH_GAP = 40;
+  // Electric and Steel: Electric beats Water, is resisted by Grass, Dragon and
+  // Electric; Fire beats Steel; Steel resists Grass, Dragon and Steel.
+  var TX = {
+    ELECTRIC: { WATER: 1, GRASS: -1, DRAGON: -1, ELECTRIC: -1 },
+    FIRE: { STEEL: 1 },
+    GRASS: { STEEL: -1 },
+    DRAGON: { STEEL: -1 },
+    STEEL: { WATER: -1, FIRE: -1, ELECTRIC: -1, STEEL: -1 },
+    WATER: { ELECTRIC: 0 },
+  };
   function Ua(a, e) {
+    let t = TX[a]?.[e];
+    if (t) return t > 0 ? yt.strong : yt.weak;
+    if (a === "ELECTRIC" || a === "STEEL" || e === "ELECTRIC" || e === "STEEL")
+      return 1;
     return a === "DRAGON" && e === "DRAGON"
       ? yt.strong
       : Wa[e]?.includes(a)
@@ -1776,6 +2012,11 @@
         this.mines = [];
         this.grass = [];
         this.rocks = [];
+        this.lava = [];
+        this.ice = [];
+        this.vents = [];
+        this.icicles = [];
+        this.arc = null;
         this.item = null;
         this.itemT = 0;
         this.arena = 0;
@@ -1846,7 +2087,49 @@
                   t: 0,
                   hitT: 0,
                 }))
+              : A.arena === 4
+                ? PLANT.pylons.map(([o, l]) => ({
+                    id: this.nextId++,
+                    x: o,
+                    y: l,
+                    r: PLANT.r,
+                    hp: 1 / 0,
+                    max: 1 / 0,
+                    state: "solid",
+                    t: 0,
+                    hitT: 0,
+                    pylon: !0,
+                    off: 0,
+                    charge: 0,
+                  }))
+                : []),
+          (this.lava =
+            A.arena === 2
+              ? CRATER.pools.map(([o, l, f, u]) => ({
+                  x: o,
+                  y: l,
+                  rx: f,
+                  ry: u,
+                  cool: 0,
+                }))
               : []),
+          (this.ice =
+            A.arena === 3
+              ? FROST.rinks.map(([o, l, f, u]) => ({
+                  x: o,
+                  y: l,
+                  rx: f,
+                  ry: u,
+                  melt: 0,
+                }))
+              : []),
+          (this.vents = []),
+          (this.ventT = CRATER.ventEvery[0]),
+          (this.icicles = []),
+          (this.icicleT = FROST.icicleEvery[0]),
+          (this.arc = null),
+          (this.arcT = PLANT.cycle / 2),
+          (this.arcPair = 0),
           (this.item = null),
           (this.itemT = SITRUS.firstAt),
           (this.assists = []),
@@ -2057,6 +2340,8 @@
           e.assistCd > 0 && e.assistCd--,
           e.seededT > 0 && e.seededT--,
           e.dazeT > 0 && e.dazeT--,
+          e.paraT > 0 && e.paraT--,
+          e.lockT > 0 && e.lockT--,
           e.hitstop > 0)
         ) {
           e.hitstop--;
@@ -2065,7 +2350,10 @@
         for (let v of r) e.buf[v] && e.buf[v]--;
         e.t++;
         let h = this.intro <= 20 && this.match.phase === "fight",
-          c = (e.seededT > 0 ? 0.5 : 1) * (e.dazeT > 0 ? 0.65 : 1),
+          c =
+            (e.seededT > 0 ? 0.5 : 1) *
+            (e.dazeT > 0 ? 0.65 : 1) *
+            (e.paraT > 0 ? 0.45 : 1),
           y = t.mx * c,
           b = t.my * c,
           p = Math.hypot(t.mx, t.my),
@@ -2138,6 +2426,7 @@
             h &&
             i.cdDodge === 0 &&
             !x &&
+            !(e.paraT > 0) &&
             (u("dodge"),
             this.startDodge(
               e,
@@ -2265,6 +2554,12 @@
             break;
           case "flurry":
             this.tickFlurry(e, P);
+            break;
+          case "lockon":
+            this.tickLockOn(e, P);
+            break;
+          case "zap":
+            this.tickZap(e, P);
             break;
           case "darts":
             this.tickDarts(e, P);
@@ -2616,6 +2911,7 @@
             dmg: r.dmg,
             kb: r.kb,
             kbMode: r.pull ? "pull" : "dir",
+            gyro: r.gyro,
             dx: o,
             dy: l,
             heavy: r.heavy,
@@ -2736,7 +3032,7 @@
           h = e.t <= o.ticks ? f * (u(e.t) - u(e.t - 1)) : 0;
         if (
           (this.moveBody(e, Math.cos(e.dodgeDir) * h, Math.sin(e.dodgeDir) * h),
-          o.kind === "air" &&
+          (o.kind === "air" || o.kind === "rise") &&
             e.t <= o.ticks &&
             (e.z = Math.sin(Math.min(1, e.t / o.ticks) * Math.PI) * 9),
           o.kind === "phantom" &&
@@ -3119,6 +3415,9 @@
                 (e.pumpAt = 0),
                 (e.cannonC = 0),
                 this.emit({ type: "pumpStart", who: e }));
+        else if (i.id === "magnezone")
+          (e.state = t === "x" ? "lockon" : "zap"),
+            t === "y" && this.emit({ type: "zapCharge", who: e });
         else if (i.id === "dragapult")
           if (t === "x") {
             if (!r.horns.includes("loaded")) {
@@ -3688,6 +3987,132 @@
           r === 21 && (e.slot.cdY = e.kit.yCd),
           r >= 48 && ((e.state = "move"), (e.t = 0));
       }
+      // Lock-On: a scan line; the first target it crosses is marked for MAGNE.lockTicks.
+      lockScan(e, t, s, i, r) {
+        let o = this.beamEnd(t, s, i, MAGNE.lockRange),
+          l = null,
+          f = o.len;
+        for (let u of this.targetsFor(e.team)) {
+          let h = (u.x - t) * Math.cos(i) + (u.y - s) * Math.sin(i);
+          if (h < 0 || h > f) continue;
+          Math.hypot(u.x - (t + Math.cos(i) * h), u.y - (s + Math.sin(i) * h)) <
+            u.hurtR + 6 && ((f = h), (l = u));
+        }
+        return (
+          this.beams.push({
+            x1: t,
+            y1: s,
+            x2: t + Math.cos(i) * f,
+            y2: s + Math.sin(i) * f,
+            owner: e,
+            age: 0,
+            scan: !0,
+          }),
+          l &&
+            ((l.lockT = MAGNE.lockTicks),
+            (l.lockBy = r),
+            this.emit({ type: "locked", who: l, by: r })),
+          l
+        );
+      }
+      tickLockOn(e, t) {
+        this.locomote(e, 0, 0),
+          e.t <= 4 &&
+            ((e.dir2 = this.aimAssist(e, t, MAGNE.lockRange)),
+            (e.facing = e.dir2)),
+          e.t === 6 &&
+            (this.lockScan(e, e.x, e.y, e.dir2, e), (e.slot.cdX = e.kit.xCd)),
+          e.t >= 18 && ((e.state = "move"), (e.t = 0));
+      }
+      tickZap(e, t) {
+        if ((this.locomote(e, 0, 0), e.t <= 14)) {
+          let s = this.targetsFor(e.team).find(
+            (i) => i.lockT > 0 && i.lockBy === e,
+          );
+          (e.dir2 = s
+            ? Math.atan2(s.y - e.y, s.x - e.x)
+            : this.aimAssist(e, t, 220)),
+            (e.facing = e.dir2);
+        }
+        if (e.t === 16) {
+          let s = this.targetsFor(e.team).find(
+              (o) => o.lockT > 0 && o.lockBy === e,
+            ),
+            i = s ? MAGNE.zapFast : MAGNE.zapSlow,
+            r = Math.cos(e.dir2),
+            o = Math.sin(e.dir2);
+          s && (s.lockT = 0),
+            this.projectiles.push({
+              id: this.nextId++,
+              team: e.team,
+              owner: e,
+              x: e.x + r * 14,
+              y: e.y + o * 14,
+              px: e.x,
+              py: e.y,
+              z: 14,
+              pz: 14,
+              vx: r * i,
+              vy: o * i,
+              r: 9,
+              life: 150,
+              age: 0,
+              dmg: MAGNE.zapDmg,
+              kb: 5,
+              hitstun: 24,
+              hitstop: 10,
+              kind: "zap",
+              color: "#f8d030",
+              target: s ?? null,
+              homing: s ? 0.09 : 0,
+            }),
+            (e.slot.cdY = e.kit.yCd),
+            this.emit({ type: "zapFire", who: e, locked: !!s });
+        }
+        e.t >= 42 && ((e.state = "move"), (e.t = 0));
+      }
+      // Overcharged pylon: blasts the hitter's enemies around it.
+      discharge(e, t) {
+        for (let s of this.targetsFor(t.team)) {
+          if (s.kind === "player" && (s.invincible || this.floating(s)))
+            continue;
+          let i = s.x - e.x,
+            r = s.y - e.y,
+            o = Math.hypot(i, r);
+          o < PLANT.dischargeR &&
+            this.applyHit(
+              s,
+              t,
+              PLANT.dischargeDmg,
+              4,
+              i / (o || 1),
+              r / (o || 1),
+              !0,
+              8,
+              20,
+              "#f8d030",
+              s.x,
+              s.y,
+              !1,
+              !1,
+              "pylon",
+            );
+        }
+        this.emit({ type: "discharge", x: e.x, y: e.y });
+      }
+      paralyze(e) {
+        e.kind === "player" &&
+          e.state !== "faint" &&
+          ((e.paraT = MAGNE.para), this.emit({ type: "paralyzed", who: e }));
+      }
+      // Conductor: electric damage in water charges the whole puddle for a while.
+      electrify(e, t, s) {
+        let i = !1;
+        for (let r of this.puddles)
+          Math.hypot(r.x - e, (r.y - t) * 1.6) < r.r + 8 &&
+            ((r.shock = MAGNE.shock), (r.shockTeam = s), (i = !0));
+        i && this.emit({ type: "electrify", x: e, y: t });
+      }
       storeSolar(e) {
         e.slot.solar = Math.max(e.slot.solar ?? 0, e.solarC ?? 0);
         e.slot.solar > 0.05 &&
@@ -4092,7 +4517,10 @@
           l = s * r,
           f = Math.hypot(o, l),
           u = Math.hypot(e.mvx, e.mvy);
-        if (f > 0.01) {
+        if (this.ice.length && this.onIce(e))
+          (e.mvx += (o - e.mvx) * FROST.grip),
+            (e.mvy += (l - e.mvy) * FROST.grip);
+        else if (f > 0.01) {
           let h = f >= u,
             c = r / (h ? A.accelTicks : A.decelTicks),
             y = h ? Math.min(f, u + c) : Math.max(f, u - c),
@@ -4194,6 +4622,17 @@
           case "flurry":
             (e.animName = e.t % 8 < 4 ? "Attack" : "Double"),
               (e.animFrame = Math.floor(e.t / 2) % 3);
+            break;
+          case "lockon":
+            (e.animName = "Shoot"),
+              (e.animFrame = Math.min(4, Math.floor(e.t / 3)));
+            break;
+          case "zap":
+            (e.animName = e.t < 16 ? "Charge" : "SpAttack"),
+              (e.animFrame =
+                e.t < 16
+                  ? Math.floor(e.t / 2) % 6
+                  : Math.min(8, Math.floor((e.t - 16) / 2)));
             break;
           case "pulse":
             (e.animName = "Shoot"),
@@ -4308,7 +4747,11 @@
             );
           }
           e.t === 22 && this.fireLeaves(e, t, e.x, e.y, e.dir, 3, 0.3, 12, s);
-        } else if (e.kit.id === "dragapult") {
+        } else if (e.kit.id === "magnezone")
+          (e.animName = e.t < 14 ? "Charge" : "Shoot"),
+            (e.animFrame = Math.floor(e.t / 3) % 5),
+            e.t === 14 && this.lockScan(e, e.x, e.y, e.dir, e.summoner);
+        else if (e.kit.id === "dragapult") {
           let i = e.dir + Math.PI / 2;
           e.t > 4 &&
             e.t < 50 &&
@@ -4326,6 +4769,7 @@
           e.t >= 60 && (e.done = !0);
       }
       updateDummy(e) {
+        e.lockT > 0 && e.lockT--;
         let t = this.player;
         if (e.hitstop > 0) {
           e.hitstop--;
@@ -4487,7 +4931,32 @@
           this.puddles.length > 20 && this.puddles.shift();
       }
       updateGround() {
-        for (let e of this.puddles) e.life--;
+        for (let e of this.puddles)
+          if ((e.life--, e.shock > 0 && (e.shock--, e.shock % 15 === 0)))
+            for (let t of [...this.players, ...this.dummies])
+              t.team === e.shockTeam ||
+                (t.kind === "player" &&
+                  (t.airborne || t.invincible || t.state === "faint")) ||
+                !this.canBeHit(t) ||
+                Math.hypot(e.x - t.x, (e.y - t.y) * 1.6) >= e.r ||
+                (this.applyHit(
+                  t,
+                  null,
+                  6,
+                  0.6,
+                  0,
+                  1,
+                  !1,
+                  2,
+                  10,
+                  "#f8d030",
+                  t.x,
+                  t.y,
+                  !1,
+                  !0,
+                  "shock",
+                ),
+                this.emit({ type: "shock", x: t.x, y: t.y }));
         this.puddles = this.puddles.filter((e) => e.life > 0);
         for (let e of this.grass) e.life--;
         this.grass = this.grass.filter((e) => e.life > 0);
@@ -4517,7 +4986,214 @@
         }
         this.mines = this.mines.filter((e) => e.age >= 0);
       }
+      inZone(e, t, s) {
+        let i = (e - s.x) / s.rx,
+          r = (t - s.y) / s.ry;
+        return i * i + r * r < 1;
+      }
+      // Floating over the ground: Magnet Rise, the air dash, Fly, launches.
+      floating(e) {
+        return (
+          e.kind === "player" &&
+          (e.airborne ||
+            e.state === "faint" ||
+            (e.state === "dodge" &&
+              (e.kit.dodge.kind === "air" || e.kit.dodge.kind === "rise")))
+        );
+      }
+      onIce(e) {
+        return (
+          !(e.kind === "player" && e.kit.id === "magnezone") &&
+          !this.floating(e) &&
+          this.ice.some((t) => t.melt <= 0 && this.inZone(e.x, e.y, t))
+        );
+      }
+      inLava(e, t) {
+        return this.lava.some((s) => s.cool <= 0 && this.inZone(e, t, s));
+      }
+      arcPoints() {
+        if (!this.arc) return null;
+        let e = this.rocks.filter((s) => s.pylon),
+          t = e[this.arc.a],
+          s = e[this.arc.b];
+        return t && s ? [t.x, t.y, s.x, s.y] : null;
+      }
+      nearArc(e, t, s = 10) {
+        let i = this.arcPoints();
+        if (!i) return !1;
+        let [r, o, l, f] = i,
+          u = l - r,
+          h = f - o,
+          c = me(((e - r) * u + (t - o) * h) / (u * u + h * h || 1), 0, 1);
+        return Math.hypot(e - (r + u * c), t - (o + h * c)) < s;
+      }
+      // Anything the CPU should not walk into.
+      hazardAt(e, t) {
+        return (
+          this.inLava(e, t) ||
+          this.vents.some(
+            (s) => Math.hypot(s.x - e, (s.y - t) * 1.3) < CRATER.ventR + 6,
+          ) ||
+          this.icicles.some(
+            (s) => Math.hypot(s.x - e, (s.y - t) * 1.3) < FROST.icicleR + 8,
+          ) ||
+          this.nearArc(e, t, 16)
+        );
+      }
+      // Hazard damage from the arena itself (no attacker, never counts as a combo).
+      envHit(e, t, s, i, r, o, l, f, u = !0) {
+        this.applyHit(
+          e,
+          null,
+          t,
+          s,
+          i,
+          r,
+          o,
+          l,
+          f,
+          "#ff9a5c",
+          e.x,
+          e.y,
+          !1,
+          u,
+          "arena",
+        );
+      }
+      updateHazards() {
+        let e = (t) =>
+          [...this.players, ...this.dummies].filter(
+            (s) =>
+              this.canBeHit(s) &&
+              !(s.kind === "player" && (s.invincible || s.state === "faint")) &&
+              !this.floating(s),
+          );
+        // Cinder Crater
+        if (this.lava.length) {
+          for (let t of this.lava) {
+            t.cool > 0 && t.cool--;
+            for (let s of this.puddles)
+              t.cool <= 0 &&
+                this.inZone(s.x, s.y, t) &&
+                ((t.cool = CRATER.cool),
+                (s.life = 0),
+                this.emit({ type: "cooled", x: s.x, y: s.y }));
+          }
+          if (this.tick % CRATER.every === 0)
+            for (let t of e())
+              this.inLava(t.x, t.y) &&
+                (this.envHit(t, CRATER.tickDmg, 0.4, 0, -1, !1, 2, 8),
+                this.burn(t),
+                this.emit({ type: "lavaBurn", x: t.x, y: t.y }));
+          if (
+            this.match.phase === "fight" &&
+            this.intro <= 0 &&
+            --this.ventT <= 0
+          ) {
+            this.ventT =
+              CRATER.ventEvery[0] +
+              Math.floor(
+                this.rand() * (CRATER.ventEvery[1] - CRATER.ventEvery[0]),
+              );
+            let t = B.x0 + 50 + this.rand() * (B.x1 - B.x0 - 100),
+              s = B.y0 + 40 + this.rand() * (B.y1 - B.y0 - 80);
+            this.vents.push({ x: t, y: s, t: 0 }),
+              this.emit({ type: "ventWarn", x: t, y: s });
+          }
+          for (let t of this.vents)
+            if (++t.t === CRATER.ventWarn) {
+              for (let s of e())
+                if (Math.hypot(s.x - t.x, (s.y - t.y) * 1.3) < CRATER.ventR) {
+                  let i = s.x - t.x,
+                    r = s.y - t.y,
+                    o = Math.hypot(i, r) || 1;
+                  this.envHit(
+                    s,
+                    CRATER.ventDmg,
+                    6.5,
+                    i / o,
+                    r / o,
+                    !0,
+                    10,
+                    24,
+                    !1,
+                  ),
+                    this.burn(s);
+                }
+              this.emit({ type: "erupt", x: t.x, y: t.y });
+            }
+          this.vents = this.vents.filter((t) => t.t < CRATER.ventWarn);
+        }
+        // Frostfall Lake
+        if (this.ice.length) {
+          for (let t of this.ice) t.melt > 0 && t.melt--;
+          if (
+            this.match.phase === "fight" &&
+            this.intro <= 0 &&
+            --this.icicleT <= 0
+          ) {
+            this.icicleT =
+              FROST.icicleEvery[0] +
+              Math.floor(
+                this.rand() * (FROST.icicleEvery[1] - FROST.icicleEvery[0]),
+              );
+            for (let t = 0; t < 2; t++) {
+              let s = B.x0 + 40 + this.rand() * (B.x1 - B.x0 - 80),
+                i = B.y0 + 30 + this.rand() * (B.y1 - B.y0 - 60);
+              this.icicles.push({ x: s, y: i, t: 0 });
+            }
+            this.emit({ type: "icicleWarn" });
+          }
+          for (let t of this.icicles)
+            if (++t.t === FROST.icicleWarn) {
+              for (let s of e())
+                Math.hypot(s.x - t.x, (s.y - t.y) * 1.3) < FROST.icicleR &&
+                  this.envHit(s, FROST.icicleDmg, 3, 0, 1, !1, 8, 28, !1);
+              this.emit({ type: "icicle", x: t.x, y: t.y });
+            }
+          this.icicles = this.icicles.filter((t) => t.t < FROST.icicleWarn);
+        }
+        // Power Plant
+        let t = this.rocks.filter((s) => s.pylon);
+        if (t.length) {
+          for (let s of t) s.off > 0 && s.off--, s.charge > 0 && s.charge--;
+          if (
+            !this.arc &&
+            this.match.phase === "fight" &&
+            this.intro <= 0 &&
+            --this.arcT <= 0
+          ) {
+            this.arcT = PLANT.cycle;
+            let s = this.arcPair % 3,
+              i = (s + 1) % 3;
+            (this.arcPair = s + 1),
+              t[s].off <= 0 &&
+                t[i].off <= 0 &&
+                ((this.arc = { a: s, b: i, t: 0 }),
+                this.emit({ type: "arcWarn" }));
+          }
+          if (this.arc) {
+            let s = this.arc;
+            if ((s.t++, t[s.a].off > 0 || t[s.b].off > 0)) this.arc = null;
+            else if (s.t > PLANT.warn) {
+              if (s.t % 10 === 1) {
+                for (let i of e())
+                  this.nearArc(i.x, i.y, 10) &&
+                    (this.envHit(i, PLANT.arcDmg, 1.5, 0, 1, !1, 4, 14),
+                    i.kind === "player" &&
+                      ((i.paraT = Math.max(i.paraT ?? 0, 30)),
+                      this.emit({ type: "shock", x: i.x, y: i.y })));
+                for (let i of this.puddles)
+                  this.nearArc(i.x, i.y, i.r + 4) &&
+                    ((i.shock = MAGNE.shock), (i.shockTeam = -1));
+              }
+              s.t > PLANT.warn + PLANT.live && (this.arc = null);
+            }
+          }
+        }
+      }
       updateArena() {
+        this.updateHazards();
         for (let e of this.rocks)
           if ((e.hitT > 0 && e.hitT--, e.state === "broken" && --e.t <= 0)) {
             // A rock never re-forms on top of someone; it waits for the spot to clear.
@@ -4583,7 +5259,17 @@
           (this.item = null),
           (this.itemT = SITRUS.every));
       }
-      hitRock(e, t, s, i) {
+      hitRock(e, t, s, i, r) {
+        if (e.pylon) {
+          let o = r ? this.attackerType(r) : "";
+          o === "ELECTRIC" && e.charge <= 0
+            ? ((e.charge = 240), this.discharge(e, r))
+            : o === "WATER" &&
+              e.off <= 0 &&
+              ((e.off = PLANT.short),
+              this.emit({ type: "short", x: e.x, y: e.y }));
+          return;
+        }
         e.state === "solid" &&
           ((e.hp -= t * ae.dmg),
           (e.hitT = 6),
@@ -4717,7 +5403,9 @@
           (e.kind === "dummy" && e.state === "ko") ||
           (e.kind === "player" && e.state === "faint")
             ? 0.93
-            : A.kbFriction;
+            : this.ice.length && this.onIce(e)
+              ? FROST.slideFriction
+              : A.kbFriction;
         (e.kvx *= s), (e.kvy *= s);
       }
       clampToArena(e, t) {
@@ -4857,7 +5545,7 @@
             continue;
           }
           if (
-            (e.kind === "leaf" || e.kind === "wisp") &&
+            (e.kind === "leaf" || e.kind === "wisp" || e.kind === "zap") &&
             e.target &&
             e.age > 4 &&
             this.targetsFor(e.team).includes(e.target)
@@ -4903,7 +5591,9 @@
             }
           }
           if (e.life <= 0) {
-            (e.dead = !0), this.emit({ type: "projDie", p: e, wall: !1 });
+            e.kind === "zap" && this.electrify(e.x, e.y, e.team),
+              (e.dead = !0),
+              this.emit({ type: "projDie", p: e, wall: !1 });
             continue;
           }
           // Will-O-Wisp is a ghost flame and drifts through cover.
@@ -4915,7 +5605,7 @@
                 Math.hypot(t.x - e.x, t.y - e.y) < t.r + e.r,
             );
           if (rk) {
-            this.hitRock(rk, e.dmg, e.x, e.y),
+            this.hitRock(rk, e.dmg, e.x, e.y, e.owner),
               (e.dead = !0),
               this.emit({ type: "projDie", p: e, wall: !0 });
             continue;
@@ -5060,6 +5750,15 @@
                 e.owner,
                 Math.round(
                   (h ? e.dmg * e.hex : e.dmg) *
+                    (e.gyro && t.kit && e.owner.kit
+                      ? 1 +
+                        me(
+                          (t.kit.speed - e.owner.kit.speed) / e.owner.kit.speed,
+                          0,
+                          0.5,
+                        ) *
+                          0.6
+                      : 1) *
                     (e.falloff
                       ? FLAME.far +
                         (FLAME.near - FLAME.far) *
@@ -5100,12 +5799,21 @@
               c.heat = Math.min(100, c.heat + e.heat);
             }
           }
+          if (e.fire && this.ice.length) {
+            let t = e.shape.kind === "circle" ? e.shape.x : e.shape.x2,
+              i = e.shape.kind === "circle" ? e.shape.y : e.shape.y2;
+            for (let r of this.ice)
+              r.melt <= 0 &&
+                this.inZone(t, i, r) &&
+                ((r.melt = FROST.melt),
+                this.emit({ type: "melt", x: t, y: i }));
+          }
           if (e.owner && e.owner.kind !== "dummy")
             for (let t of this.rocks)
               t.state === "solid" &&
                 this.shapeHits(e.shape, t.x, t.y, t.r) &&
                 this.canHitAgain(e, t) &&
-                this.hitRock(t, e.dmg);
+                this.hitRock(t, e.dmg, void 0, void 0, e.owner);
           if (e.melee)
             for (let t of this.dreepy)
               t.team === e.team ||
@@ -5180,6 +5888,7 @@
               ),
                 e.kind === "wisp" && this.burn(t),
                 e.kind === "pulse" && this.soak(t, e.team),
+                e.kind === "zap" && this.paralyze(t),
                 this.emit({ type: "projDie", p: e, wall: !1 });
               break;
             }
@@ -5243,9 +5952,27 @@
         let x = !1,
           v = 0,
           E = !1,
-          Q = e.kind === "player" ? Ua(this.attackerType(t), e.kit.type) : 1,
+          Q =
+            e.kind === "player"
+              ? Ua(this.attackerType(t), e.kit.type) *
+                (e.kit.type2 ? Ua(this.attackerType(t), e.kit.type2) : 1)
+              : 1,
           ie = M && t && t.kind === "player" && t.slot.burnT > 0 ? 0.7 : 1,
-          K = Math.round(s * ae.dmg * this.outgoingMult(t) * Q * ie);
+          an =
+            !!t &&
+            t.kind === "player" &&
+            t.kit.id === "magnezone" &&
+            e.kind === "player" &&
+            !p &&
+            this.recovering(e),
+          K = Math.round(
+            s *
+              ae.dmg *
+              this.outgoingMult(t) *
+              Q *
+              ie *
+              (an ? MAGNE.analytic : 1),
+          );
         let pun =
           e.kind === "player" &&
           !p &&
@@ -5389,11 +6116,22 @@
           (e.sqx = 1 + U * w - U * 0.6 * (1 - w)),
             (e.sqy = 1 + U * (1 - w) - U * 0.6 * w);
         }
+        t &&
+          this.attackerType(t) === "ELECTRIC" &&
+          this.inPuddle(e.x, e.y) &&
+          this.electrify(e.x, e.y, t.team);
         if (pun && this.tick - e.punishT > PUNISH_GAP) {
           e.punishT = this.tick;
           let w = t.kind === "player" ? t : (t.summoner ?? null);
           w && w.stats && w.stats.punishes++,
-            this.emit({ type: "punish", who: e, by: w, x: e.x, y: e.y });
+            this.emit({
+              type: "punish",
+              who: e,
+              by: w,
+              x: e.x,
+              y: e.y,
+              analytic: an,
+            });
         }
         x && this.slow(28, 0.25),
           t &&
@@ -6314,7 +7052,68 @@
         e.fillRect(i.x0 + x, i.y0, 1, i.y1 - i.y0),
         e.fillRect(i.x1 - 1 - x, i.y0, 1, i.y1 - i.y0);
     kind === 1 && Ka2(e, t, s);
+    kind >= 2 && Kfloor(e, t, s, kind);
     return a;
+  }
+  // Floors for the hazard arenas, painted over the pitch inside the walls.
+  function Kfloor(e, t, s, i) {
+    let r = B,
+      o = {
+        2: ["#3b302c", ["#463a35", "#2f2623", "#52443d", "#3f3330"]],
+        3: ["#dfe8f0", ["#cfdbe6", "#eaf1f7", "#c3d2df", "#f4f8fb"]],
+        4: ["#3c4652", ["#36404b", "#434e5b", "#3a4450", "#475360"]],
+      }[i];
+    (e.fillStyle = o[0]), e.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+    for (let l = 0; l < 3600; l++)
+      s(
+        r.x0 + ((t() * (r.x1 - r.x0)) | 0),
+        r.y0 + ((t() * (r.y1 - r.y0)) | 0),
+        o[1][(t() * o[1].length) | 0],
+      );
+    if (i === 2)
+      for (let l = 0; l < 14; l++) {
+        let f = r.x0 + 20 + t() * (r.x1 - r.x0 - 40),
+          u = r.y0 + 14 + t() * (r.y1 - r.y0 - 28);
+        for (let h = 0; h < 9; h++)
+          (f += (t() - 0.5) * 6 + 2),
+            (u += (t() - 0.5) * 4),
+            s(f | 0, u | 0, t() < 0.3 ? "#ff7a2a" : "#5b2414");
+      }
+    if (i === 3)
+      for (let l = 0; l < 26; l++) {
+        let f = r.x0 + 10 + t() * (r.x1 - r.x0 - 20),
+          u = r.y0 + 10 + t() * (r.y1 - r.y0 - 20);
+        s(f | 0, u | 0, "#b9c9d8"), s((f | 0) + 2, (u | 0) + 1, "#b9c9d8");
+      }
+    if (i === 4) {
+      e.fillStyle = "#2e363f";
+      for (let l = r.x0; l < r.x1; l += 32) e.fillRect(l, r.y0, 1, r.y1 - r.y0);
+      for (let l = r.y0; l < r.y1; l += 24) e.fillRect(r.x0, l, r.x1 - r.x0, 1);
+      for (let l = r.x0; l < r.x1; l += 32)
+        for (let f = r.y0; f < r.y1; f += 24)
+          s(l + 3, f + 3, "#5b6774"), s(l + 28, f + 20, "#5b6774");
+      for (let l = r.x0; l < r.x1; l += 8)
+        (e.fillStyle = (l / 8) % 2 ? "#e0b22e" : "#22262c"),
+          e.fillRect(l, r.y0, 8, 3),
+          e.fillRect(l, r.y1 - 3, 8, 3);
+      e.fillStyle = "#262c33";
+      let [l, f, u] = PLANT.pylons;
+      for (let [h, c] of [
+        [l, f],
+        [f, u],
+        [u, l],
+      ])
+        for (let y = 0; y <= 1; y += 0.01)
+          e.fillRect(
+            (h[0] + (c[0] - h[0]) * y) | 0,
+            ((h[1] + (c[1] - h[1]) * y) | 0) + 4,
+            2,
+            2,
+          );
+    }
+    for (let l = 0; l < 8; l++)
+      (e.fillStyle = `rgba(10,14,12,${0.32 - l * 0.04})`),
+        e.fillRect(r.x0, r.y0 + l, r.x1 - r.x0, 1);
   }
   // Ruins floor: a worn flagstone plinth under every boulder spot, so a broken
   // rock still marks where it will rise again, plus a few cracked slabs and moss.
@@ -6398,7 +7197,33 @@
     }
     return a;
   }
+  function pylonArt(a, e, t) {
+    let s = Math.round(e.x),
+      i = Math.round(e.y),
+      r = e.off > 0,
+      o = e.charge > 0;
+    (a.fillStyle = "#2b3038"), a.fillRect(s - 9, i - 6, 18, 8);
+    (a.fillStyle = "#59636f"), a.fillRect(s - 5, i - 34, 10, 30);
+    (a.fillStyle = "#7c8794"), a.fillRect(s - 5, i - 34, 3, 30);
+    (a.fillStyle = "#3a414b"),
+      a.fillRect(s - 7, i - 14, 14, 3),
+      a.fillRect(s - 7, i - 24, 14, 3);
+    let l = r ? "#5a5f66" : o || t % 20 < 10 ? "#ffe866" : "#e0b22e";
+    (a.fillStyle = "#2b3038"),
+      a.beginPath(),
+      a.arc(s, i - 36, 6, 0, Math.PI * 2),
+      a.fill(),
+      (a.fillStyle = l),
+      a.beginPath(),
+      a.arc(s, i - 36, 4, 0, Math.PI * 2),
+      a.fill(),
+      r &&
+        t % 30 < 15 &&
+        ((a.fillStyle = "rgba(90,90,100,0.6)"),
+        a.fillRect(s - 3, i - 48 - ((t / 3) % 6), 3, 3));
+  }
   function ht2(a, e, t) {
+    if (e.pylon) return pylonArt(a, e, t);
     Rk || (Rk = Fk());
     let s = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
       i = Math.round(e.x - 18 + s),
@@ -6427,6 +7252,173 @@
   }
   // Ground layer for a rock: contact shadow, rubble while broken, and a pulsing
   // warning ring for the last two seconds before it rises again.
+  function hazardGround(a, e) {
+    let t = e.tick;
+    for (let s of e.lava) {
+      let i = s.cool > 0;
+      (a.fillStyle = i ? "#2a2321" : "#5b1a0c"),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, s.rx + 3, s.ry + 2, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = i ? "#3a2f2c" : "#ff6a1a"),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
+        a.fill();
+      let r = rt(Math.round(s.x * 7 + s.y));
+      for (let o = 0; o < 18; o++) {
+        let l = r() * Math.PI * 2,
+          f = Math.sqrt(r()) * 0.85,
+          u = s.x + Math.cos(l) * s.rx * f,
+          h = s.y + Math.sin(l) * s.ry * f,
+          c = Math.sin(t * 0.08 + o) > 0;
+        (a.fillStyle = i
+          ? c
+            ? "#ff7a2a"
+            : "#4a3a35"
+          : c
+            ? "#ffd25e"
+            : "#ff9a3a"),
+          a.fillRect(Math.round(u), Math.round(h), i ? 2 : 3, 1);
+      }
+      i &&
+        s.cool < 90 &&
+        t % 10 < 5 &&
+        ((a.strokeStyle = "#ff9a3a"),
+        (a.lineWidth = 1),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
+        a.stroke());
+    }
+    for (let s of e.ice) {
+      let i = s.melt > 0;
+      (a.globalAlpha = i ? 0.55 : 0.85),
+        (a.fillStyle = i ? "#6d9fc4" : "#a9d6f2"),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 1),
+        (a.strokeStyle = i ? "#4f86b0" : "#e9f6ff"),
+        (a.lineWidth = 1),
+        a.stroke();
+      if (!i) {
+        a.fillStyle = "#ffffff";
+        for (let r = -2; r <= 2; r++)
+          a.fillRect(
+            Math.round(s.x + r * s.rx * 0.32 - 6),
+            Math.round(s.y - s.ry * 0.3 + r * 3),
+            10,
+            1,
+          );
+      }
+      i &&
+        s.melt < 90 &&
+        t % 10 < 5 &&
+        ((a.strokeStyle = "#ffffff"), a.stroke());
+    }
+    for (let s of e.vents) {
+      let i = s.t / CRATER.ventWarn,
+        r = CRATER.ventR;
+      (a.globalAlpha = 0.25 + 0.5 * i),
+        (a.fillStyle = "#ff4a1a"),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, r * i, r * i * 0.75, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(t * 0.3))),
+        (a.strokeStyle = "#ffb347"),
+        (a.lineWidth = 1.5),
+        a.setLineDash([3, 3]),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, r, r * 0.75, 0, 0, Math.PI * 2),
+        a.stroke(),
+        a.setLineDash([]),
+        (a.globalAlpha = 1);
+    }
+    for (let s of e.icicles) {
+      let i = s.t / FROST.icicleWarn,
+        r = FROST.icicleR;
+      (a.globalAlpha = 0.2 + 0.45 * i),
+        (a.fillStyle = "#1b2a3a"),
+        a.beginPath(),
+        a.ellipse(
+          s.x,
+          s.y,
+          r * (0.3 + 0.7 * i),
+          r * (0.3 + 0.7 * i) * 0.75,
+          0,
+          0,
+          Math.PI * 2,
+        ),
+        a.fill(),
+        (a.globalAlpha = 0.8),
+        (a.strokeStyle = "#e9f6ff"),
+        (a.lineWidth = 1),
+        a.setLineDash([2, 3]),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, r, r * 0.75, 0, 0, Math.PI * 2),
+        a.stroke(),
+        a.setLineDash([]),
+        (a.globalAlpha = 1);
+      if (i > 0.6) {
+        let o = s.y - (1 - i) * 220 - 14;
+        (a.fillStyle = "#e9f6ff"),
+          a.beginPath(),
+          a.moveTo(s.x - 4, o),
+          a.lineTo(s.x + 4, o),
+          a.lineTo(s.x, o + 14),
+          a.closePath(),
+          a.fill();
+      }
+    }
+  }
+  // Lightning between two pylons: a dashed warning, then a live jagged bolt.
+  function arcLayer(a, e) {
+    let t = e.arcPoints();
+    if (!t) return;
+    let [s, i, r, o] = t,
+      l = e.arc.t > PLANT.warn,
+      f = e.tick;
+    if (((i -= 30), (o -= 30), !l)) {
+      (a.globalAlpha = f % 8 < 5 ? 0.85 : 0.35),
+        (a.strokeStyle = "#f8d030"),
+        (a.lineWidth = 1),
+        a.setLineDash([4, 4]),
+        (a.lineDashOffset = -f),
+        a.beginPath(),
+        a.moveTo(s, i),
+        a.lineTo(r, o),
+        a.stroke(),
+        a.setLineDash([]),
+        (a.globalAlpha = 0.25),
+        (a.fillStyle = "#f8d030");
+      let c = r - s,
+        y = o - i,
+        b = Math.hypot(c, y) || 1;
+      a.beginPath(),
+        a.moveTo(s + (-y / b) * 10, i + 30 + (c / b) * 4),
+        a.lineTo(r + (-y / b) * 10, o + 30 + (c / b) * 4),
+        a.lineTo(r - (-y / b) * 10, o + 30 - (c / b) * 4),
+        a.lineTo(s - (-y / b) * 10, i + 30 - (c / b) * 4),
+        a.closePath(),
+        a.fill(),
+        (a.globalAlpha = 1);
+      return;
+    }
+    for (let [c, y, b] of [
+      ["rgba(248,208,48,0.35)", 6, 0],
+      ["#ffe866", 2, 1],
+      ["#ffffff", 1, 2],
+    ]) {
+      (a.strokeStyle = c), (a.lineWidth = y), a.beginPath(), a.moveTo(s, i);
+      for (let p = 1; p < 12; p++) {
+        let k = p / 12;
+        a.lineTo(
+          s + (r - s) * k + Math.sin(f * 1.7 + p * 2.3 + b) * 5,
+          i + (o - i) * k + Math.cos(f * 2.1 + p * 1.9 + b) * 5,
+        );
+      }
+      a.lineTo(r, o), a.stroke();
+    }
+  }
   function rockGround(a, e, t) {
     if (e.state === "solid") {
       (a.fillStyle = "rgba(8,10,14,0.42)"),
@@ -6689,10 +7681,20 @@
       let c = Math.min(1, (h.max - h.life) / 8),
         y = Math.min(1, h.life / 60);
       (a.globalAlpha = 0.6 * y),
-        (a.fillStyle = "#3f7fb5"),
+        (a.fillStyle = h.shock > 0 ? "#b39a2a" : "#3f7fb5"),
         a.beginPath(),
         a.ellipse(h.x, h.y, h.r * c, h.r * 0.5 * c, 0, 0, Math.PI * 2),
         a.fill(),
+        h.shock > 0 &&
+          e.tick % 3 !== 0 &&
+          ((a.strokeStyle = "#fff6a0"),
+          (a.lineWidth = 1),
+          a.beginPath(),
+          a.moveTo(h.x - h.r * 0.6, h.y + ((e.tick * 7) % 5) - 2),
+          a.lineTo(h.x - h.r * 0.1, h.y - 2),
+          a.lineTo(h.x + h.r * 0.2, h.y + 2),
+          a.lineTo(h.x + h.r * 0.6, h.y - ((e.tick * 5) % 4)),
+          a.stroke()),
         (a.globalAlpha = 0.7 * y),
         (a.fillStyle = "#8fd0f5");
       let b = Math.sin(e.tick * 0.08 + h.id) * 2;
@@ -6731,6 +7733,7 @@
           a.stroke(),
           (a.globalAlpha = 1));
     }
+    hazardGround(a, e);
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
     for (let h of e.players) dzone(a, e, h);
@@ -6962,6 +7965,18 @@
           a.stroke(),
           (a.globalAlpha = 1);
       }
+      if (h.paraT > 0 && e.tick % 4 < 2)
+        (a.strokeStyle = "#f8d030"),
+          (a.lineWidth = 1),
+          a.beginPath(),
+          a.moveTo(c - 8, y - 8),
+          a.lineTo(c - 3, y - 14),
+          a.lineTo(c - 6, y - 16),
+          a.lineTo(c + 1, y - 22),
+          a.moveTo(c + 9, y - 6),
+          a.lineTo(c + 4, y - 12),
+          a.lineTo(c + 8, y - 14),
+          a.stroke();
       if (h.dazeT > 0)
         for (let p = 0; p < 3; p++) {
           let k = e.tick * 0.2 + (p * Math.PI * 2) / 3;
@@ -6985,6 +8000,26 @@
             );
         }
     }
+    for (let h of [...e.players, ...e.dummies]) {
+      if (!(h.lockT > 0) || h.hidden || h.state === "faint") continue;
+      let c = o(h.px, h.x),
+        y = o(h.py, h.y) - o(h.pz, h.z) - 14,
+        b = 13 + Math.sin(e.tick * 0.3) * 1.5,
+        p = -e.tick * 0.06;
+      (a.strokeStyle = h.lockT < 60 && e.tick % 6 < 3 ? "#ffd2cc" : "#ef5a4f"),
+        (a.lineWidth = 1.5),
+        a.beginPath(),
+        a.arc(c, y, b, 0, Math.PI * 2),
+        a.stroke();
+      for (let k = 0; k < 4; k++) {
+        let M = p + (k * Math.PI) / 2;
+        a.beginPath(),
+          a.moveTo(c + Math.cos(M) * (b - 4), y + Math.sin(M) * (b - 4)),
+          a.lineTo(c + Math.cos(M) * (b + 4), y + Math.sin(M) * (b + 4)),
+          a.stroke();
+      }
+    }
+    e.arc && arcLayer(a, e);
     // Smash-style player tags: a coloured "P1" / "CPU" flag with a pointer over each fighter.
     for (let h of e.players) {
       if (h.state === "faint" || (h.vanished && h.isCpu)) continue;
@@ -7019,6 +8054,19 @@
         (a.textAlign = "start");
     }
     for (let h of e.beams) {
+      if (h.scan) {
+        (a.strokeStyle = "rgba(239,90,79,0.9)"),
+          (a.lineWidth = 1),
+          a.setLineDash([4, 2]),
+          a.beginPath(),
+          a.moveTo(h.x1, h.y1 - 12),
+          a.lineTo(h.x2, h.y2 - 12),
+          a.stroke(),
+          a.setLineDash([]),
+          (a.fillStyle = "#ef5a4f"),
+          a.fillRect(Math.round(h.x2) - 1, Math.round(h.y2) - 13, 3, 3);
+        continue;
+      }
       if (h.solar !== void 0) {
         let C = Math.max(0, 1 - h.age / 14),
           x = (6 + 10 * h.solar) * (0.4 + 0.6 * C) + (e.tick % 2);
@@ -7111,6 +8159,34 @@
           a.restore();
       } else {
         if (h.kind === "wisp") continue;
+        if (h.kind === "zap") {
+          let b = 1 + Math.sin(e.tick * 0.6) * 0.15;
+          (a.globalAlpha = 0.3),
+            (a.fillStyle = "#f8d030"),
+            a.beginPath(),
+            a.arc(c, y, 14 * b, 0, Math.PI * 2),
+            a.fill(),
+            (a.globalAlpha = 1),
+            (a.fillStyle = "#ffe866"),
+            a.beginPath(),
+            a.arc(c, y, 7, 0, Math.PI * 2),
+            a.fill(),
+            (a.fillStyle = "#ffffff"),
+            a.beginPath(),
+            a.arc(c, y, 3.5, 0, Math.PI * 2),
+            a.fill(),
+            (a.strokeStyle = "#fff6a0"),
+            (a.lineWidth = 1),
+            a.beginPath();
+          for (let p = 0; p < 4; p++) {
+            let k = e.tick * 0.9 + p * 1.6,
+              M = 9 + ((e.tick + p * 3) % 5);
+            a.moveTo(c + Math.cos(k) * 6, y + Math.sin(k) * 6),
+              a.lineTo(c + Math.cos(k + 0.3) * M, y + Math.sin(k + 0.3) * M);
+          }
+          a.stroke();
+          continue;
+        }
         if (h.kind === "seed")
           (a.fillStyle = "#7a5a2c"),
             a.fillRect(c - 2, y - 2, 4, 4),
@@ -8128,6 +9204,8 @@
         "HYDRO PUMP": "Pump",
         "WATER PULSE": "Pulse",
         "SOLAR BEAM": "Solar",
+        "LOCK-ON": "Lock",
+        "ZAP CANNON": "Zap",
         "HYDRO CANNON": "Cannon",
         "RAZOR LEAF": "Leaf",
         "LEECH SEED": "Seed",
@@ -8721,17 +9799,26 @@
             ? a.inPuddle(t.x, t.y, t.team, !0)
               ? ue("MEGA LAUNCHER", "#2f6fc0", v, E)
               : G("Fire from puddles", v, E + 5.6, 5.8, g.dim)
-            : f.id === "dragapult" &&
-              (l.horns.forEach((w, U) =>
-                Oe(o.dreepy, "Normal", v + U * 9.5, E - 0.5, 8, {
-                  bg: "#7fd1a8",
-                  grey: w !== "loaded",
-                }),
-              ),
-              (v += 21),
-              l.pfCd === 0
-                ? ue("PHANTOM", "#7b62d8", v, E)
-                : Tt(v, E + 1.6, 26, 3.2, 1 - l.pfCd / ut, "#7b62d8"));
+            : f.id === "magnezone"
+              ? a.targetsFor(t.team).some((w) => w.lockT > 0 && w.lockBy === t)
+                ? ue(
+                    "TARGET LOCKED",
+                    e.frame % 16 < 8 ? "#d64538" : "#ef5a4f",
+                    v,
+                    E,
+                  )
+                : G("Lock-On, then Zap Cannon", v, E + 5.6, 5.8, g.dim)
+              : f.id === "dragapult" &&
+                (l.horns.forEach((w, U) =>
+                  Oe(o.dreepy, "Normal", v + U * 9.5, E - 0.5, 8, {
+                    bg: "#7fd1a8",
+                    grey: w !== "loaded",
+                  }),
+                ),
+                (v += 21),
+                l.pfCd === 0
+                  ? ue("PHANTOM", "#7b62d8", v, E)
+                  : Tt(v, E + 1.6, 26, 3.2, 1 - l.pfCd / ut, "#7b62d8"));
     {
       let w = y + 80,
         U = Math.max(0, l.guard) / 100,
@@ -9054,10 +10141,11 @@
         { align: "right", italic: !0, weight: 600 },
       ),
       [
-        [H / 2 - 150, "venusaur"],
-        [H / 2 - 50, "charizard"],
-        [H / 2 + 50, "blastoise"],
-        [H / 2 + 150, "dragapult"],
+        [H / 2 - 176, "venusaur"],
+        [H / 2 - 88, "charizard"],
+        [H / 2, "magnezone"],
+        [H / 2 + 88, "blastoise"],
+        [H / 2 + 176, "dragapult"],
       ].forEach(([o, l], f) => {
         let u = xe[l],
           h = u.color,
@@ -9113,16 +10201,24 @@
         { align: "center" },
       );
   }
-  var Ge = { x: H / 2 - 60, y: 46, tile: 56, gap: 8 };
+  var Ge = { x: H / 2 - 72, y: 50, tile: 44, gap: 6 };
+  // Three tiles on top, two offset underneath.
   function rs(a) {
-    let e = a % 2,
-      t = Math.floor(a / 2);
+    let e = a < 3 ? a : a - 3 + 0.5,
+      t = a < 3 ? 0 : 1;
     return {
       x: Ge.x + e * (Ge.tile + Ge.gap) - t * Ge.tile * ke * 0.5,
-      y: Ge.y + t * (Ge.tile + Ge.gap * 0.6),
+      y: Ge.y + t * (Ge.tile + Ge.gap * 0.8),
       s: Ge.tile,
     };
   }
+  // Grid moves for the 3-over-2 roster.
+  var RN = {
+    left: [2, 0, 1, 4, 3],
+    right: [1, 2, 0, 4, 3],
+    up: [3, 4, 4, 0, 2],
+    down: [3, 3, 4, 0, 2],
+  };
   function Mt(a, e, t, s, i) {
     G(a, t, s + 4, 5.4, g.haze, { weight: 600 });
     for (let r = 0; r < 5; r++)
@@ -9362,11 +10458,12 @@
         (Pe("Y", H / 2 - 40, p, 3.4),
         G(`CPU: ${i}`, H / 2 - 34, p + 2.4, 7, r, { weight: 700 })),
       G(
-        `Arena: ${A.arena === 1 ? "Ruins" : "Stadium"}`,
+        `Arena: ${ARENAS[A.arena]?.name ?? "Stadium"}`,
         H / 2 + 36 + Pe("SELECT", H / 2 + 32, p, 3.4) / 2,
         p + 2.4,
         7,
-        A.arena === 1 ? "#c9bfa6" : "#cfcaea",
+        ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030"][A.arena] ??
+          "#cfcaea",
         { weight: 700 },
       ),
       a.picks.length === 2 && (!s || a.cpuPicks.length === 2))
@@ -9689,12 +10786,12 @@
         7,
         g.haze,
       );
-    let o = (i - 44) / 2,
-      l = 64;
+    let o = (i - 52) / 3,
+      l = 56;
     ge.forEach((f, u) => {
       let h = xe[f],
-        c = t + 16 + (u % 2) * (o + 10),
-        y = s + 44 + Math.floor(u / 2) * (l + 8),
+        c = t + 16 + (u < 3 ? u : u - 3 + 0.5) * (o + 10),
+        y = s + 44 + (u < 3 ? 0 : 1) * (l + 10),
         b = e.inContent && u === e.swapCursor,
         p = e.swapPicks?.indexOf(f) ?? -1,
         k = a.player.slots.some((C) => C.kit.id === f);
@@ -9893,12 +10990,41 @@
       ],
       ["*", "Hex", "Darts deal +30% to burned targets.", "PASSIVE"],
     ],
+    magnezone: [
+      [
+        "A",
+        "Spark combo",
+        "2 magnetic sparks that tug, then a Gyro Ball spin.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Flash Cannon",
+        "Steel blast in front. Charge it for more power.",
+        "OPTIONAL CHARGE",
+      ],
+      ["X", "Lock-On", "Scan line that marks a target for 5 seconds.", "SETUP"],
+      [
+        "Y",
+        "Zap Cannon",
+        "Slow orb that paralyzes. Homes in on a locked target.",
+        "PAYOFF",
+      ],
+      ["B", "Magnet Rise", "Float up and over attacks and hazards.", "DODGE"],
+      ["*", "Analytic", "+25% damage to targets stuck in recovery.", "PASSIVE"],
+      [
+        "*",
+        "Conductor",
+        "Electric hits charge any puddle they land in.",
+        "PASSIVE",
+      ],
+    ],
   };
   function ds(a, e, t, s, i) {
     let r = ge[a.moveKit],
       o = xe[r];
     ge.forEach((l, f) => {
-      let u = (s - 40) / 4,
+      let u = (s - 40) / ge.length,
         h = e + 18 + f * u,
         c = f === a.moveKit;
       te(h, t + 8, u - 4, 17, c ? xe[l].color : g.plate2),
@@ -10763,7 +11889,72 @@
         { bass: "pump", arp: "roll" },
       ],
     ),
+    // Victory: a bright fanfare into a bouncing C-major loop.
+    Vf = dt(
+      [
+        "C5 - E5 - G5 - C6 - - - G5 - C6 - - -",
+        "E5 - G5 - C6 - - - B5 - A5 - G5 - - -",
+        "F5 - A5 - C6 - - - A5 - G5 - F5 - - -",
+        "G5 - B5 - D6 - - - C6 - B5 - A5 - G5 -",
+        "E5 - G5 - C6 - - - - - - - G5 - C6 -",
+        "A5 - C6 - E6 - - - D6 - C6 - A5 - - -",
+        "F5 - A5 - D6 - - - C6 - A5 - F5 - - -",
+        "G5 - - - B5 - - - D6 - - - G6 - - -",
+        "C6 - - - - - - - G5 - E5 - C5 - - -",
+      ],
+      ["C", "C", "F", "G", "C", "Am", "Dm", "G", "C"],
+      [
+        "intro",
+        "title",
+        "title",
+        "title",
+        "title",
+        "title",
+        "title",
+        "tfill",
+        "title",
+      ],
+      [
+        { bass: "pedal", arp: "off" },
+        { bass: "drive", arp: "up" },
+        { bass: "drive", arp: "up" },
+        { bass: "drive", arp: "up" },
+        { bass: "drive", arp: "up" },
+        { bass: "drive", arp: "up" },
+        { bass: "drive", arp: "up" },
+        { bass: "walk", arp: "up" },
+        { bass: "half", arp: "up" },
+      ],
+    ),
+    // Defeat: a slow, quiet A-minor loop.
+    Df = dt(
+      [
+        "A4 - - - - - - - C5 - - - B4 - - -",
+        "A4 - - - - - - - G4 - - - E4 - - -",
+        "F4 - - - - - - - A4 - - - C5 - - -",
+        "B4 - - - - - - - G#4 - - - E4 - - -",
+      ],
+      ["Am", "Em", "F", "E"],
+      ["half", "half", "half", "none"],
+      Array(4).fill({ bass: "half", arp: "roll" }),
+    ),
     ws = {
+      victory: {
+        bpm: 140,
+        bars: Vf,
+        loopFrom: 1,
+        lead: "p50",
+        leadVol: 0.1,
+        arpVol: 0.03,
+      },
+      defeat: {
+        bpm: 76,
+        bars: Df,
+        loopFrom: 0,
+        lead: "p25",
+        leadVol: 0.07,
+        arpVol: 0.025,
+      },
       battle: {
         bpm: 176,
         bars: [...Bi, ...Bv, ...Bc, ...Bv, ...Bb2, ...Bc],
@@ -11163,11 +12354,7 @@
     function U(n) {
       let D = A.gameMode !== 1;
       w(n, (W) => {
-        let T = s.cursor % 2,
-          Z = Math.floor(s.cursor / 2),
-          ne = W === "left" || W === "right" ? (T + 1) % 2 : T,
-          ee = W === "up" || W === "down" ? (Z + 1) % 2 : Z;
-        (s.cursor = ee * 2 + ne), S.ui(!0);
+        (s.cursor = RN[W][s.cursor] ?? s.cursor), S.ui(!0);
       }),
         n.pressed.has("special1") &&
           ((A.gameMode = D ? 1 : 0),
@@ -11180,7 +12367,7 @@
           D &&
           ((A.cpuLevel = (A.cpuLevel + 1) % 3), Ze(), S.ui(!0)),
         n.pressed.has("select") &&
-          ((A.arena = (A.arena + 1) % 2), Ze(), S.ui(!0));
+          ((A.arena = (A.arena + 1) % ARENAS.length), Ze(), S.ui(!0));
       let R =
         s.picks.length === 2 && (A.gameMode === 1 || s.cpuPicks.length === 2);
       if ((n.pressed.has("start") || n.pressed.has("confirm")) && R) {
@@ -11298,10 +12485,7 @@
             R === "left" && J(-1),
             R === "right" && J(1)),
             D === "swap" &&
-              ((s.swapCursor =
-                R === "left" || R === "right"
-                  ? (s.swapCursor ^ 1) & 3
-                  : (s.swapCursor ^ 2) & 3),
+              ((s.swapCursor = RN[R][s.swapCursor] ?? s.swapCursor),
               S.ui(R === "right" || R === "down")),
             D === "moves" &&
               (R === "left" || R === "right") &&
@@ -11541,7 +12725,7 @@
           t.popup(
             n.x,
             n.y - 56,
-            "PUNISH!",
+            n.analytic ? "ANALYTIC!" : "PUNISH!",
             n.who === D ? "#ef5a4f" : L.gold,
             !1,
           ),
@@ -11829,6 +13013,7 @@
           break;
         case "roundEnd":
           le(),
+            Me.play(n.result === "win" ? "victory" : "defeat"),
             n.result === "win"
               ? (t.banner(
                   "VICTORY!",
@@ -11896,6 +13081,89 @@
           );
           break;
         }
+        case "cooled":
+          S.splash(),
+            t.smoke(n.x, n.y, 10, 6),
+            t.popup(n.x, n.y - 20, "COOLED", "#bfe6ff", !1);
+          break;
+        case "lavaBurn":
+          t.embers(n.x, n.y, 6, 3);
+          break;
+        case "ventWarn":
+          S.heatWarn();
+          break;
+        case "erupt":
+          S.slam(),
+            t.shake(0, 1, 6),
+            (t.impact = Math.max(t.impact, 2)),
+            t.ring(n.x, n.y, 8, 3.4, 18, "#ff9a3a", !0);
+          for (let R = 0; R < 14; R++)
+            t.flame(
+              n.x,
+              n.y - 4,
+              -Math.PI / 2 + (Math.random() - 0.5) * 2.4,
+              1,
+            );
+          t.debris(n.x, n.y - 8, 12, 0, -1), t.smoke(n.x, n.y, 14, 6);
+          break;
+        case "melt":
+          t.splash(n.x, n.y, 6, 6),
+            t.smoke(n.x, n.y, 8, 3),
+            t.popup(n.x, n.y - 20, "MELTED", "#ffb37a", !1);
+          break;
+        case "icicleWarn":
+          S.ui(!1);
+          break;
+        case "icicle":
+          S.wall(),
+            t.shake(0, 1, 2.5),
+            t.debris(n.x, n.y - 6, 10, 0, -0.8),
+            t.ring(n.x, n.y, 4, 2, 10, "#e9f6ff", !0);
+          break;
+        case "arcWarn":
+          S.charge();
+          break;
+        case "discharge":
+          S.closeCall(),
+            t.shake(0, 1, 5),
+            t.ring(n.x, n.y - 20, 8, 4.5, 16, "#f8d030"),
+            t.motes(n.x, n.y, 30, 18, "#ffe866", 2.4),
+            t.popup(n.x, n.y - 56, "OVERCHARGE!", "#f8d030", !0);
+          break;
+        case "short":
+          S.fizzle(),
+            t.smoke(n.x, n.y - 34, 10, 6),
+            t.popup(n.x, n.y - 56, "SHORTED", "#8fd0f5", !1);
+          break;
+        case "locked":
+          S.lock(!0),
+            t.popup(n.who.x, n.who.y - 50, "LOCKED ON", "#ef5a4f", !1),
+            t.ring(n.who.x, n.who.y - 12, 16, -1.2, 12, "#ef5a4f");
+          break;
+        case "zapCharge":
+          S.charge(),
+            t.glint(n.who, n.who.kit.tall * Bz(n.who) * 0.8, "#f8d030"),
+            t.motes(n.who.x, n.who.y, 16, 8, "#f8d030", 1);
+          break;
+        case "zapFire":
+          S.orb(),
+            t.ring(n.who.x, n.who.y - 12, 6, 2.6, 12, "#f8d030"),
+            n.locked &&
+              t.popup(n.who.x, n.who.y - 50, "LOCK-ON ZAP!", "#f8d030", !0);
+          break;
+        case "paralyzed":
+          S.guardBreak(),
+            t.popup(n.who.x, n.who.y - 46, "PARALYZED", "#f8d030", !0),
+            t.motes(n.who.x, n.who.y, 14, 12, "#f8d030", 1.6);
+          break;
+        case "electrify":
+          S.closeCall(),
+            t.ring(n.x, n.y, 6, 3, 14, "#f8d030", !0),
+            t.motes(n.x, n.y, 4, 12, "#f8d030", 1.4);
+          break;
+        case "shock":
+          t.motes(n.x, n.y, 10, 5, "#fff6a0", 1.2);
+          break;
         case "pulse":
           S.splash(),
             t.splash(
@@ -12109,7 +13377,18 @@
             Z = n.combo % 2 ? -1 : 1,
             ne = R.x + n.dx * (n.reach + 2),
             ee = R.y + n.dy * (n.reach + 2) - 10;
-          if (n.kit === "charizard")
+          if (n.kit === "magnezone")
+            n.smash
+              ? (t.slash(R, W, T + 4, 1.1, 10, 1, "#d7dde6", 11),
+                t.burst(ne, ee, "#f8d030", 14),
+                t.motes(ne, ee + 10, 10, 10, "#f8d030", 1.4))
+              : n.last
+                ? (t.slash(R, W, 22, 3.14, 6, 1, "#d7dde6", 12),
+                  t.slash(R, W + Math.PI, 22, 3.14, 6, 1, "#9aa6b8", 12),
+                  t.motes(R.x, R.y, 10, 10, "#d7dde6", 1.6))
+                : (t.motes(ne, ee + 10, 10, 8, "#f8d030", 1.2),
+                  t.slash(R, W, T, 0.6, 3, Z, "#f8d030", 7));
+          else if (n.kit === "charizard")
             n.smash
               ? (t.slash(R, W, T + 4, 1.7, 9, 1, "#ff8a3d", 13),
                 t.slash(R, W, T - 3, 1.5, 4, 1, "#ffd25e", 11),
