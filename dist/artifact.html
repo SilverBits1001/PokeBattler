@@ -18151,7 +18151,14 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       state: "idle", // idle | opening | waiting | entering | joining | linked
       shim: null,
       prev: null,
-      timer: 0,
+      timers: [],
+      relay: null,
+      me: "",
+      host: !1,
+      hi: 0,
+      other: "",
+      via: "",
+      noPeer: !1,
       autoJoin: "",
     },
     P2P_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
@@ -18305,7 +18312,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     (NET.msg = a), (NET.msgT = 240);
   }
   function p2pStop(a) {
-    clearTimeout(P2P.timer), clearInterval(P2P.timer);
+    for (let t of P2P.timers) clearTimeout(t), clearInterval(t);
+    P2P.timers = [];
     let e = P2P.state === "linked";
     try {
       P2P.conn?.close();
@@ -18313,6 +18321,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     try {
       P2P.peer?.destroy();
     } catch {}
+    P2P.relay?.close();
     e && (P2P.shim?.drop(), NET.m && netEnd());
     e &&
       P2P.prev &&
@@ -18324,32 +18333,229 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     Object.assign(P2P, {
       peer: null,
       conn: null,
+      relay: null,
+      other: "",
+      via: "",
       code: "",
       typed: "",
       state: "idle",
       shim: null,
       prev: null,
+      noPeer: !1,
+      hi: 0,
     }),
       p2pInput(!1),
       a && p2pMsg(a);
   }
+  function p2pLater(a, e, t) {
+    let s = t ? setInterval(a, e) : setTimeout(a, e);
+    return P2P.timers.push(s), s;
+  }
+  function p2pFlag(a) {
+    try {
+      return new URLSearchParams(location.search).get(a);
+    } catch {
+      return null;
+    }
+  }
+  // Public MQTT brokers over WebSocket carry the match when the direct link
+  // cannot open (carrier-grade NAT, strict routers). Every page talks to all
+  // of them at once, so two pages only need one broker in common; copies of a
+  // message are harmless because the room stand-in drops repeats.
+  var P2P_BROKERS = [
+    "wss://broker.emqx.io:8084/mqtt",
+    "wss://broker.hivemq.com:8884/mqtt",
+    "wss://test.mosquitto.org:8081/mqtt",
+  ];
+  // A minimal MQTT 3.1.1 client: connect, subscribe, QoS 0 publish, ping.
+  function mqttOpen(a, e, t, s) {
+    let i = new TextEncoder(),
+      r = new TextDecoder(),
+      o = !1,
+      l = new Uint8Array(0),
+      f = 0,
+      u,
+      h = (b) => {
+        let p = i.encode(b);
+        return [p.length >> 8, p.length & 255, ...p];
+      },
+      c = (b, p) => {
+        let k = p.length,
+          M = [];
+        do {
+          let x = k % 128;
+          (k = Math.floor(k / 128)), M.push(k ? x | 128 : x);
+        } while (k);
+        let C = new Uint8Array(1 + M.length + p.length);
+        return C.set([b, ...M]), C.set(p, 1 + M.length), C;
+      },
+      y = (b) => {
+        try {
+          u.readyState === 1 && u.send(b);
+        } catch {}
+      };
+    try {
+      u = new WebSocket(a, "mqtt");
+    } catch {
+      return null;
+    }
+    return (
+      (u.binaryType = "arraybuffer"),
+      (u.onopen = () =>
+        y(
+          c(16, [
+            ...h("MQTT"),
+            4,
+            2,
+            0,
+            60,
+            ...h("sb" + Math.random().toString(36).slice(2, 14)),
+          ]),
+        )),
+      (u.onmessage = (b) => {
+        let p = new Uint8Array(b.data),
+          k = new Uint8Array(l.length + p.length);
+        k.set(l), k.set(p, l.length), (l = k);
+        for (;;) {
+          let M = 0,
+            C = 1,
+            x = 1;
+          for (; C < 5; C++) {
+            if (C >= l.length) return;
+            if (((M += (l[C] & 127) * x), (x *= 128), !(l[C] & 128))) break;
+          }
+          if (C === 5) return u.close();
+          let v = C + 1;
+          if (l.length < v + M) return;
+          let E = l[0],
+            Q = l.subarray(v, v + M);
+          if (((l = l.slice(v + M)), E >> 4 === 2))
+            Q[1] === 0
+              ? (y(c(130, [0, 1, ...h(e), 0])),
+                (f = setInterval(() => y(new Uint8Array([192, 0])), 25e3)))
+              : u.close();
+          else if (E >> 4 === 9) (o = !0), s();
+          else if (E >> 4 === 3) {
+            let ie = (Q[0] << 8) | Q[1],
+              K = 2 + ie + ((E >> 1) & 3 ? 2 : 0);
+            try {
+              t(r.decode(Q.subarray(K)));
+            } catch {}
+          }
+        }
+      }),
+      (u.onclose = () => {
+        (o = !1), clearInterval(f);
+      }),
+      {
+        get up() {
+          return o && u.readyState === 1;
+        },
+        send: (b) => o && y(c(48, [...h(e), ...i.encode(b)])),
+        close() {
+          clearInterval(f);
+          try {
+            u.close();
+          } catch {}
+        },
+      }
+    );
+  }
+  function p2pRelay(a) {
+    let e = p2pFlag("mqtt"),
+      t = (e ? e.split(",") : P2P_BROKERS)
+        .map((i) =>
+          mqttOpen(i, "starterbrawl/v2/" + a, p2pRelayMsg, () =>
+            P2P.state === "opening" && P2P.relay === s
+              ? (P2P.state = "waiting")
+              : 0,
+          ),
+        )
+        .filter(Boolean),
+      s = {
+        up: () => t.some((i) => i.up),
+        send: (i) => {
+          let r = JSON.stringify(i);
+          for (let o of t) o.send(r);
+        },
+        close: () => t.forEach((i) => i.close()),
+      };
+    return s;
+  }
+  // Handshake on the relay: the joiner says hi until the host answers ok.
+  function p2pRelayMsg(a) {
+    let e;
+    try {
+      e = a.length < 65536 && JSON.parse(a);
+    } catch {}
+    if (
+      !e ||
+      typeof e !== "object" ||
+      typeof e.f !== "string" ||
+      e.f === P2P.me ||
+      (e.t && e.t !== P2P.me)
+    )
+      return;
+    if (e.k === "hi" && P2P.host) {
+      if (P2P.state === "waiting" || (P2P.via === "relay" && P2P.other === e.f))
+        P2P.relay.send({ f: P2P.me, t: e.f, k: "ok" }),
+          P2P.state === "waiting" && p2pRelayUp(e.f);
+    } else
+      e.k === "ok" && !P2P.host && P2P.state === "joining"
+        ? p2pRelayUp(e.f)
+        : e.k === "d" &&
+          P2P.via === "relay" &&
+          e.f === P2P.other &&
+          Array.isArray(e.d) &&
+          e.d.forEach((t) => P2P.shim?.recv(t));
+  }
+  function p2pRelayUp(a) {
+    let e = [],
+      t = 0,
+      s = 0,
+      i = () => {
+        (t = 0),
+          (s = Date.now()),
+          P2P.via === "relay" &&
+            P2P.relay?.send({ f: P2P.me, t: a, k: "d", d: e }),
+          (e = []);
+      };
+    (P2P.other = a),
+      p2pUp("relay", {
+        open: !0,
+        // At most 30 sends a second (public brokers are shared), but never
+        // held back when the last send was a while ago.
+        send(r) {
+          e.push(r),
+            t || (t = setTimeout(i, Math.max(0, 33 - (Date.now() - s))));
+        },
+      });
+  }
   function p2pPeer(a) {
-    if (typeof Peer !== "function")
-      return p2pStop("Friend codes need an internet connection"), null;
-    let e = a ? new Peer(P2P_PREFIX + a, p2pOpts()) : new Peer(p2pOpts());
+    if (typeof Peer !== "function" || p2pFlag("nortc")) return null;
+    let e;
+    try {
+      e = a ? new Peer(P2P_PREFIX + a, p2pOpts()) : new Peer(p2pOpts());
+    } catch {
+      return null;
+    }
     return (
       e.on("error", (t) => {
         if (P2P.peer !== e) return;
         let s = t?.type;
         s === "unavailable-id" && P2P.state === "opening"
-          ? (e.destroy(), p2pHost())
-          : p2pStop(
-              s === "peer-unavailable"
-                ? "No game with that code. Check it and try again"
-                : P2P.state === "linked"
-                  ? "Lost the link to your friend"
-                  : "Could not reach the matchmaking server",
-            );
+          ? p2pHost()
+          : P2P.state === "linked"
+            ? P2P.via === "rtc" && p2pStop("Lost the link to your friend")
+            : // The relay may still get through.
+              (s === "peer-unavailable" &&
+                !P2P.noPeer &&
+                ((P2P.noPeer = !0),
+                p2pLater(() => {
+                  P2P.state === "joining" &&
+                    p2pStop("No game with that code. Check it and try again");
+                }, 6e3)),
+              p2pSayHi());
       }),
       e.on("disconnected", () => {
         // Losing the broker is fine once linked; before that, try again.
@@ -18362,79 +18568,133 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       e
     );
   }
+  function p2pFresh(a, e) {
+    p2pStop(),
+      (P2P.me = "f" + Math.random().toString(36).slice(2, 12)),
+      (P2P.host = a),
+      (P2P.code = e),
+      (P2P.state = a ? "opening" : "joining"),
+      (P2P.relay = p2pRelay(e));
+  }
   function p2pHost() {
     let a = "";
     for (let t = 0; t < 5; t++)
       a += P2P_ABC[Math.floor(Math.random() * P2P_ABC.length)];
-    (P2P.state = "opening"), (P2P.code = a);
+    p2pFresh(!0, a);
     let e = p2pPeer(a);
     e &&
       (e.on("open", () => {
-        P2P.peer === e && (P2P.state = "waiting");
+        P2P.peer === e && P2P.state === "opening" && (P2P.state = "waiting");
       }),
       e.on("connection", (t) => {
-        if (P2P.peer !== e || P2P.conn) return void t.close();
-        p2pLink(t);
-      }));
+        if (P2P.peer !== e || P2P.state !== "waiting") return void t.close();
+        p2pRtc(t);
+      })),
+      p2pLater(() => {
+        P2P.state === "opening" &&
+          p2pStop("Could not reach the matchmaking servers");
+      }, 12e3);
   }
   function p2pJoin(a) {
-    (a = String(a).toUpperCase()), (P2P.state = "joining"), (P2P.code = a);
+    p2pFresh(!1, String(a).toUpperCase());
     let e = p2pPeer();
-    e &&
-      (e.on("open", () => {
-        P2P.peer === e &&
-          p2pLink(
-            e.connect(P2P_PREFIX + a, {
-              reliable: !0,
-              serialization: "raw",
-            }),
+    e
+      ? e.on("open", () => {
+          P2P.peer === e &&
+            p2pRtc(
+              e.connect(P2P_PREFIX + P2P.code, {
+                reliable: !0,
+                serialization: "raw",
+              }),
+            );
+        })
+      : p2pSayHi(),
+      // Give the direct link a head start, then ask over the relay too.
+      p2pLater(p2pSayHi, 4e3),
+      p2pLater(() => {
+        P2P.state === "joining" &&
+          p2pStop(
+            P2P.noPeer || P2P.relay?.up()
+              ? "No game with that code. Check it and try again"
+              : "Could not connect. Check your internet and try again",
           );
-      }),
-      clearTimeout(P2P.timer),
-      (P2P.timer = setTimeout(() => {
-        P2P.peer === e &&
-          P2P.state === "joining" &&
-          p2pStop("Could not connect. Check the code and try again");
-      }, 2e4)));
+      }, 2e4);
   }
-  function p2pLink(a) {
+  function p2pSayHi() {
+    P2P.hi ||
+      P2P.state !== "joining" ||
+      ((P2P.hi = p2pLater(
+        () =>
+          P2P.state === "joining" &&
+          P2P.relay?.send({ f: P2P.me, t: "", k: "hi" }),
+        700,
+        !0,
+      )),
+      P2P.relay?.send({ f: P2P.me, t: "", k: "hi" }));
+  }
+  function p2pRtc(a) {
     (P2P.conn = a),
       a.on("open", () => {
-        if (P2P.conn !== a) return;
-        clearTimeout(P2P.timer);
-        let e = p2pShim(a);
-        (P2P.shim = e),
-          (P2P.state = "linked"),
-          (P2P.prev = { room: NET.room, dead: NET.dead }),
-          // Leave the claude.ai lobby while playing a friend.
-          NET.room &&
-            !NET.dead &&
-            NET.room.presence({ st: "away", want: null }).catch(() => {}),
-          (NET.room = e.lobby),
-          (NET.dead = !1),
-          (NET.sent = ""),
-          (NET.declined = new Set()),
-          (NET.incoming = null),
-          // Two people, one lobby: start looking for each other at once.
-          (NET.st = "search"),
-          (NET.want = null),
-          (NET.wantT = 0),
-          netPresence(NET.team ?? []),
-          p2pMsg("Linked with your friend!"),
-          // A timer, not the frame loop, so a page in the background (the
-          // player switched apps to send the code) still answers.
-          (P2P.timer = setInterval(() => {
-            e.ping(),
-              Date.now() - e.last > 15e3 && p2pStop("Your friend disconnected");
-          }, 2e3));
+        P2P.conn === a && P2P.state !== "linked"
+          ? p2pUp("rtc", {
+              get open() {
+                return a.open;
+              },
+              send: (e) => a.send(e),
+            })
+          : P2P.conn !== a && a.close();
       }),
-      a.on("data", (e) => P2P.conn === a && P2P.shim?.recv(e)),
+      a.on(
+        "data",
+        (e) => P2P.conn === a && P2P.via === "rtc" && P2P.shim?.recv(e),
+      ),
       a.on("close", () => {
-        P2P.conn === a && p2pStop("Your friend disconnected");
+        P2P.conn === a &&
+          P2P.via === "rtc" &&
+          p2pStop("Your friend disconnected");
       }),
       a.on("error", () => {
-        P2P.conn === a && p2pStop("Lost the link to your friend");
+        P2P.conn === a &&
+          P2P.via === "rtc" &&
+          p2pStop("Lost the link to your friend");
       });
+  }
+  function p2pUp(a, e) {
+    for (let s of P2P.timers) clearTimeout(s), clearInterval(s);
+    (P2P.timers = []), (P2P.hi = 0), (P2P.via = a);
+    // The other way in is no longer needed.
+    a === "rtc"
+      ? (P2P.relay?.close(), (P2P.relay = null))
+      : P2P.conn && (P2P.conn.close(), (P2P.conn = null));
+    let t = p2pShim(e);
+    (P2P.shim = t),
+      (P2P.state = "linked"),
+      (P2P.prev = { room: NET.room, dead: NET.dead }),
+      // Leave the claude.ai lobby while playing a friend.
+      NET.room &&
+        !NET.dead &&
+        NET.room.presence({ st: "away", want: null }).catch(() => {}),
+      (NET.room = t.lobby),
+      (NET.dead = !1),
+      (NET.sent = ""),
+      (NET.declined = new Set()),
+      (NET.incoming = null),
+      // Two people, one lobby: start looking for each other at once.
+      (NET.st = "search"),
+      (NET.want = null),
+      (NET.wantT = 0),
+      netPresence(NET.team ?? []),
+      p2pMsg("Linked with your friend!"),
+      // A timer, not the frame loop, so a page in the background (the
+      // player switched apps to send the code) still answers.
+      p2pLater(
+        () => {
+          t.ping(),
+            Date.now() - t.last > 15e3 && p2pStop("Your friend disconnected");
+        },
+        2e3,
+        !0,
+      );
   }
   // The code box: a real text field over the canvas, so phones show their
   // keyboard. Its keys never reach the game's own controls.

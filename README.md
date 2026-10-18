@@ -34,8 +34,9 @@ to play the next trainer who is searching, or choose a trainer to challenge them
 
 **Friend codes (no claude.ai account needed).** On the Online screen pick **Create a
 friend code** and send the 5-letter code to a friend; they pick **Enter a friend code**
-and type it in. The two pages connect directly over WebRTC, and the match starts on
-its own. This works from any copy of the game. The public copy is
+and type it in. The two pages try to connect directly over WebRTC; if that has not
+opened within 4 seconds (mobile data and strict routers often block it), the match
+runs through free public MQTT relay servers instead. Either way it starts on its own. This works from any copy of the game. The public copy is
 **https://silverbits1001.github.io/PokeBattler/**, served by GitHub Pages from the
 `gh-pages` branch (a built `index.html`). [PeerJS](https://peerjs.com)'s free public
 server only introduces the two pages to each other; it is bundled in `assets/vendor/`

@@ -787,3 +787,34 @@ friend opening a public link saw the lobby as offline. Friend codes fix that.
   wrong code, then the right one, a 25 s bot match with 1,208 identical ticks on both
   pages, and a closed tab detected. Soak, modes, room duel (80±40 ms, 10% drops),
   challenge, hostile-presence and touch tests still pass with no errors.
+
+### Relay fallback
+
+The first real test failed: the code reached the other page, but the direct WebRTC
+link never opened and the join timed out. That is typical on mobile data and behind
+strict routers, where a TURN relay is needed and PeerJS's free TURN servers are
+often down.
+
+- **Relay.** Both pages now also connect to three free public MQTT brokers over
+  secure WebSockets (EMQX, HiveMQ and Mosquitto), all on the topic
+  `starterbrawl/v2/<code>`. A small MQTT 3.1.1 client is built in (connect,
+  subscribe, QoS 0 publish, ping). Every message goes to every broker, so two
+  pages only need one broker in common. Duplicates are harmless because the room
+  stand-in already drops repeated presence by sequence number.
+- **Choosing a path.** The joiner gives the direct link a 4 s head start, then says
+  `hi` on the relay every 0.7 s until the host answers `ok`. Whichever path links
+  first wins, and the other is closed. The host shows its code as soon as either
+  the PeerJS broker or any MQTT broker is reachable.
+- **Traffic.** Relay sends are capped at 30 a second, since public brokers are
+  shared. A send goes out immediately when nothing went out in the last 33 ms, so
+  the batching adds little delay. The input delay adapts to the slower path (9
+  ticks against 5 in local tests).
+- **Errors.** A code the PeerJS broker does not know fails after about 11 s. If
+  nothing answers at all, the join gives up after 20 s with an internet-check
+  message.
+- **Verification.** Local PeerJS and two local MQTT brokers, three ways: direct
+  only (rtc, 849 identical ticks), relay only (812), and WebRTC UDP blocked in the
+  browser so the direct link starts but never opens, which is the reported case
+  (relay took over, 852 identical ticks). All three include a wrong code and
+  disconnect detection. Mode, room duel, challenge, hostile-presence and touch
+  tests still pass.
