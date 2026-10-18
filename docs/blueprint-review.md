@@ -376,3 +376,8 @@ review:
   landing Discharge.
 - **Balance** (8 games per side per pairing per arena): averages .45–.52, every arena cell
   .31–.73.
+
+**Final independent grade:** A (design), B (balance: 12 games per side, averages .46–.55, every
+arena .39–.64), C (sizes) and D (every move shows a telegraph, a palette effect and impact)
+all PASS. Minor notes left open: Venusaur's "Rooted" and Noivern's "Flight" are lore-based rather
+than real abilities; Solar Beam's scorch trail is a plain tan band; balance is CPU-vs-CPU only.
