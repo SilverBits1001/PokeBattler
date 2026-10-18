@@ -27,8 +27,10 @@ Roster: Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern, 
 | `src/game.js` | Game code (engine, CPU, rendering, audio, menus) |
 | `src/page.html` | Page markup, styles and embedded fonts |
 | `assets/sprites.js` | Sprite sheets and portraits as data URIs (`window.__ASSETS__`) |
+| `assets/tiles.js` | Arena floor tilesets as data URIs (`window.__TILES__`); source PNGs in `assets/tiles/` |
 | `tools/build.py` | Assembles `index.html` and `dist/artifact.html` |
 
 After editing anything in `src/` or `assets/`, run `python3 tools/build.py`.
 
 Sprites and portraits: PMD Sprite Repository (sprites.pmdcollab.org).
+Arena floor tiles: generated with PixelLab (16px top-down Wang tilesets, recoloured).

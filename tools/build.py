@@ -11,9 +11,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 page = (ROOT / "src/page.html").read_text(encoding="utf-8").rstrip("\n")
 sprites = (ROOT / "assets/sprites.js").read_text(encoding="utf-8").rstrip("\n")
+tiles = (ROOT / "assets/tiles.js").read_text(encoding="utf-8").rstrip("\n")
 game = (ROOT / "src/game.js").read_text(encoding="utf-8").rstrip("\n")
 
-body = f"{page}\n<script>{sprites}</script>\n<script>\n{game}\n</script>\n"
+body = f"{page}\n<script>{sprites}</script>\n<script>{tiles}</script>\n<script>\n{game}\n</script>\n"
 
 skeleton_head = (
     "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"

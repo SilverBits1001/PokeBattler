@@ -494,3 +494,24 @@ with no crash or dead feature. Its follow-ups are done:
 **Quick arena change:** a new **Arena** tab in the pause menu (every mode) shows a thumbnail
 of all five arenas with the highlighted one's hazard and benefit. Picking one restarts the
 match there with the same teams; the choice is saved for the next match too.
+
+## Arena floors: pixel-art tiles
+
+Feedback: the arenas looked flat and noisy (random speckle on solid fills).
+
+- Each arena now has a 16px top-down Wang tileset generated with PixelLab
+  (`assets/tiles/*.png`, embedded via `assets/tiles.js`). The floor is
+  pre-rendered from a 16px corner grid, so terrain edges join cleanly.
+  - Stadium: clay pitch on grass, with the pitch lines and emblem kept.
+  - Ruins: flagstone plazas under every boulder spot and a cross path, with moss
+    between (the grass was recoloured from neon to a muted moss).
+  - Cinder Crater: basalt. Frostfall Lake: snow.
+  - Power Plant: a steel deck with a T of coolant linking the pylons (the
+    coolant was recoloured from green to cyan).
+- The hazards still use their exact ellipses, so what you see matches what
+  hurts. Lava pools and ice rinks are now filled with the tileset's own lava and
+  ice textures, with a crust rim or snow bank around them. The pause-menu
+  thumbnails use the same textures.
+- If the tiles fail to load, the old procedural floors are drawn instead.
+- Verified with screenshots of all five arenas, a soak run and the mode tests:
+  no errors.

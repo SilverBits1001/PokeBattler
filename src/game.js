@@ -8327,6 +8327,7 @@
         portraits: i,
       };
     }
+    for (let e of window.__TILES__ ?? []) TILESET.push(await Qt(e));
     return a;
   }
   // Canvas memory is tight on phones and tablets, so tinted sprite sheets live in
@@ -9211,6 +9212,102 @@
       shadow: "rgba(8,10,14,0.38)",
     },
     Bt = null;
+  // ---- PixelLab tile floors ----
+  // Each arena has a 16px top-down Wang tileset: a 4x4 sheet whose cells are
+  // keyed by their corners (NW, NE, SW, SE), 1 meaning the upper terrain.
+  var TILESET = [],
+    WANG = [
+      "1101",
+      "1010",
+      "0100",
+      "1100",
+      "0110",
+      "1000",
+      "0000",
+      "0001",
+      "1011",
+      "0011",
+      "0010",
+      "0101",
+      "1111",
+      "1110",
+      "1001",
+      "0111",
+    ],
+    tilePats = {};
+  // Which terrain each arena paints at a corner: true = upper.
+  //   Stadium: clay pitch (upper) on a grass surround.
+  //   Ruins: flagstone plazas round the boulders and a cross path, moss between.
+  //   Crater: basalt; Frost: snow (lava and ice are drawn live, see tilePat).
+  //   Power Plant: steel deck with coolant channels linking the pylons.
+  function floorUpper(kind, x, y) {
+    let r = B;
+    if (kind === 0)
+      return x > r.x0 + 30 && x < r.x1 - 30 && y > r.y0 + 22 && y < r.y1 - 18;
+    if (kind === 1) {
+      if (Math.abs(y - Te) < 14 || Math.abs(x - Se) < 20) return !0;
+      if (Math.hypot((x - Se) / 52, (y - Te) / 34) < 1) return !0;
+      return RUINS.spots.some(
+        ([s, i]) => Math.hypot((x - s) / 40, (y - i) / 28) < 1,
+      );
+    }
+    if (kind === 4) {
+      // A T of coolant: along the two lower pylons and up to the top one,
+      // with a sump round each pylon base.
+      let [s, i, o] = PLANT.pylons;
+      if (Math.abs(y - i[1]) < 12 && x > i[0] - 24 && x < o[0] + 24) return !1;
+      if (Math.abs(x - s[0]) < 16 && y > s[1] && y < i[1]) return !1;
+      return !PLANT.pylons.some(
+        ([l, f]) => Math.hypot((x - l) / 30, (y - f) / 22) < 1,
+      );
+    }
+    return !0;
+  }
+  // Paints the arena floor from the tileset; false if it has not loaded.
+  function wangFloor(e, kind, t) {
+    let a = TILESET[kind];
+    if (!a) return !1;
+    let r = B,
+      s = Math.ceil((r.x1 - r.x0) / 16),
+      i = Math.ceil((r.y1 - r.y0) / 16),
+      o = (l, f) =>
+        floorUpper(kind, r.x0 + l * 16, r.y0 + f * 16) ? "1" : "0";
+    e.save(),
+      e.beginPath(),
+      e.rect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0),
+      e.clip();
+    for (let l = 0; l < i; l++)
+      for (let f = 0; f < s; f++) {
+        let u = o(f, l) + o(f + 1, l) + o(f, l + 1) + o(f + 1, l + 1),
+          h = WANG.indexOf(u),
+          c = r.x0 + f * 16,
+          y = r.y0 + l * 16;
+        // Plain cells are mirrored at random so the repeat is less obvious.
+        (u === "0000" || u === "1111") && t() < 0.5
+          ? (e.save(),
+            e.translate(c + 16, y),
+            e.scale(-1, 1),
+            e.drawImage(a, (h % 4) * 16, (h >> 2) * 16, 16, 16, 0, 0, 16, 16),
+            e.restore())
+          : e.drawImage(a, (h % 4) * 16, (h >> 2) * 16, 16, 16, c, y, 16, 16);
+      }
+    return e.restore(), !0;
+  }
+  // A repeating pattern of one terrain (lower or upper) for live hazards.
+  function tilePat(a, kind, up) {
+    let e = kind * 2 + (up ? 1 : 0);
+    if (!tilePats[e]) {
+      let t = TILESET[kind];
+      if (!t) return null;
+      let s = Zt(16, 16),
+        i = WANG.indexOf(up ? "1111" : "0000");
+      s
+        .getContext("2d")
+        .drawImage(t, (i % 4) * 16, (i >> 2) * 16, 16, 16, 0, 0, 16, 16),
+        (tilePats[e] = s);
+    }
+    return a.createPattern(tilePats[e], "repeat");
+  }
   function Va(kind = 0) {
     let a = document.createElement("canvas");
     (a.width = Y), (a.height = _);
@@ -9223,14 +9320,17 @@
     (e.fillStyle = "#2a2f37"), e.fillRect(0, 0, Y, _);
     for (let x = 0; x < 1400; x++)
       s((t() * Y) | 0, (t() * _) | 0, t() < 0.5 ? "#323843" : "#242830");
-    (e.fillStyle = "#3d5a3a"), e.fillRect(i.x0, i.y0, i.x1 - i.x0, i.y1 - i.y0);
-    for (let x = 0; x < 2600; x++)
+    let tiled = wangFloor(e, kind, t);
+    tiled ||
+      ((e.fillStyle = "#3d5a3a"),
+      e.fillRect(i.x0, i.y0, i.x1 - i.x0, i.y1 - i.y0));
+    for (let x = 0; x < (tiled ? 0 : 2600); x++)
       s(
         i.x0 + ((t() * (i.x1 - i.x0)) | 0),
         i.y0 + ((t() * (i.y1 - i.y0)) | 0),
         ["#456641", "#36502f", "#4b6e45", "#3a5636"][(t() * 4) | 0],
       );
-    for (let x = 0; x < 70; x++) {
+    for (let x = 0; x < (tiled ? 0 : 70); x++) {
       let v = i.x0 + 4 + ((t() * (i.x1 - i.x0 - 8)) | 0),
         E = i.y0 + 6 + ((t() * (i.y1 - i.y0 - 10)) | 0);
       s(v, E, "#5d8452"), s(v + 2, E, "#5d8452"), s(v + 1, E - 1, "#6f9a60");
@@ -9239,19 +9339,20 @@
       o = i.y0 + 16,
       l = i.x1 - 22,
       f = i.y1 - 14;
-    (e.fillStyle = "#a98f62"), e.fillRect(r, o, l - r, f - o);
-    for (let x = 0; x < 3400; x++)
+    tiled || ((e.fillStyle = "#a98f62"), e.fillRect(r, o, l - r, f - o));
+    for (let x = 0; x < (tiled ? 0 : 3400); x++)
       s(
         r + ((t() * (l - r)) | 0),
         o + ((t() * (f - o)) | 0),
         ["#b39a6c", "#9d8458", "#a48a5d", "#b8a073"][(t() * 4) | 0],
       );
-    for (let x = r; x < l; x++)
+    for (let x = r; x < (tiled ? r : l); x++)
       t() < 0.4 && s(x, o - 1, "#7f7a52"), t() < 0.4 && s(x, f, "#7f7a52");
-    for (let x = o; x < f; x++)
+    for (let x = o; x < (tiled ? o : f); x++)
       t() < 0.4 && s(r - 1, x, "#7f7a52"), t() < 0.4 && s(l, x, "#7f7a52");
+    // Pitch markings: only the Stadium keeps them once the tiles are down.
     let u = "#ece6cf",
-      h = (x) => t() > x,
+      h = (x) => (tiled && kind ? !1 : t() > x),
       c = r + 8,
       y = o + 7,
       b = l - 8,
@@ -9325,8 +9426,8 @@
         e.fillRect(i.x0 + x, i.y0, 1, i.y1 - i.y0),
         e.fillRect(i.x1 - 1 - x, i.y0, 1, i.y1 - i.y0);
     kind === 0 && stadiumFloor(e, t, s);
-    kind === 1 && Ka2(e, t, s);
-    kind >= 2 && Kfloor(e, t, s, kind);
+    kind === 1 && !tiled && Ka2(e, t, s);
+    kind >= 2 && Kfloor(e, t, s, kind, tiled);
     return a;
   }
   // Stadium: a Poké Ball emblem painted into the centre circle.
@@ -9347,21 +9448,22 @@
       e.fillRect(Se - 3, Te - 2, 6, 4);
   }
   // Floors for the hazard arenas, painted over the pitch inside the walls.
-  function Kfloor(e, t, s, i) {
+  function Kfloor(e, t, s, i, tiled) {
     let r = B,
       o = {
         2: ["#3b302c", ["#463a35", "#2f2623", "#52443d", "#3f3330"]],
         3: ["#dfe8f0", ["#cfdbe6", "#eaf1f7", "#c3d2df", "#f4f8fb"]],
         4: ["#3c4652", ["#36404b", "#434e5b", "#3a4450", "#475360"]],
       }[i];
-    (e.fillStyle = o[0]), e.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
-    for (let l = 0; l < 3600; l++)
+    tiled ||
+      ((e.fillStyle = o[0]), e.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0));
+    for (let l = 0; l < (tiled ? 0 : 3600); l++)
       s(
         r.x0 + ((t() * (r.x1 - r.x0)) | 0),
         r.y0 + ((t() * (r.y1 - r.y0)) | 0),
         o[1][(t() * o[1].length) | 0],
       );
-    if (i === 2)
+    if (i === 2 && !tiled)
       for (let l = 0; l < 14; l++) {
         let f = r.x0 + 20 + t() * (r.x1 - r.x0 - 40),
           u = r.y0 + 14 + t() * (r.y1 - r.y0 - 28);
@@ -9370,23 +9472,19 @@
             (u += (t() - 0.5) * 4),
             s(f | 0, u | 0, t() < 0.3 ? "#ff7a2a" : "#5b2414");
       }
-    if (i === 3)
+    if (i === 3 && !tiled)
       for (let l = 0; l < 26; l++) {
         let f = r.x0 + 10 + t() * (r.x1 - r.x0 - 20),
           u = r.y0 + 10 + t() * (r.y1 - r.y0 - 20);
         s(f | 0, u | 0, "#b9c9d8"), s((f | 0) + 2, (u | 0) + 1, "#b9c9d8");
       }
-    if (i === 4) {
+    if (i === 4 && !tiled) {
       e.fillStyle = "#2e363f";
       for (let l = r.x0; l < r.x1; l += 32) e.fillRect(l, r.y0, 1, r.y1 - r.y0);
       for (let l = r.y0; l < r.y1; l += 24) e.fillRect(r.x0, l, r.x1 - r.x0, 1);
       for (let l = r.x0; l < r.x1; l += 32)
         for (let f = r.y0; f < r.y1; f += 24)
           s(l + 3, f + 3, "#5b6774"), s(l + 28, f + 20, "#5b6774");
-      for (let l = r.x0; l < r.x1; l += 8)
-        (e.fillStyle = (l / 8) % 2 ? "#e0b22e" : "#22262c"),
-          e.fillRect(l, r.y0, 8, 3),
-          e.fillRect(l, r.y1 - 3, 8, 3);
       e.fillStyle = "#262c33";
       let [l, f, u] = PLANT.pylons;
       for (let [h, c] of [
@@ -9402,6 +9500,11 @@
             2,
           );
     }
+    if (i === 4)
+      for (let l = r.x0; l < r.x1; l += 8)
+        (e.fillStyle = (l / 8) % 2 ? "#e0b22e" : "#22262c"),
+          e.fillRect(l, r.y0, 8, 3),
+          e.fillRect(l, r.y1 - 3, 8, 3);
     for (let l = 0; l < 8; l++)
       (e.fillStyle = `rgba(10,14,12,${0.32 - l * 0.04})`),
         e.fillRect(r.x0, r.y0 + l, r.x1 - r.x0, 1);
@@ -9820,11 +9923,18 @@
     let t = e.tick;
     for (let s of e.lava) {
       let i = s.cool > 0;
-      (a.fillStyle = i ? "#2a2321" : "#5b1a0c"),
+      // Black crust rim with a red glowing lip, then the tiled lava itself.
+      (a.fillStyle = i ? "#2a2321" : "#1b102d"),
         a.beginPath(),
-        a.ellipse(s.x, s.y, s.rx + 3, s.ry + 2, 0, 0, Math.PI * 2),
+        a.ellipse(s.x, s.y + 1, s.rx + 4, s.ry + 3, 0, 0, Math.PI * 2),
         a.fill(),
-        (a.fillStyle = i ? "#3a2f2c" : "#ff6a1a"),
+        i ||
+          ((a.fillStyle = "#d12f31"),
+          a.beginPath(),
+          a.ellipse(s.x, s.y, s.rx + 1.5, s.ry + 1, 0, 0, Math.PI * 2),
+          a.fill()),
+        (a.fillStyle =
+          (!i && tilePat(a, 2, !1)) || (i ? "#3a2f2c" : "#ff6a1a")),
         a.beginPath(),
         a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
         a.fill();
@@ -9856,8 +9966,15 @@
     for (let s of e.ice) {
       if (s.life !== void 0 && s.life < 90 && t % 10 < 5) continue;
       let i = s.melt > 0;
-      (a.globalAlpha = i ? 0.55 : 0.85),
-        (a.fillStyle = i ? "#6d9fc4" : "#a9d6f2"),
+      // A shadowed snow bank on the near side, then the tiled ice.
+      i ||
+        ((a.fillStyle = "#848dc6"),
+        a.beginPath(),
+        a.ellipse(s.x, s.y + 2, s.rx + 1, s.ry + 1, 0, 0, Math.PI * 2),
+        a.fill());
+      (a.globalAlpha = i ? 0.55 : 1),
+        (a.fillStyle =
+          (!i && tilePat(a, 3, !1)) || (i ? "#6d9fc4" : "#a9d6f2")),
         a.beginPath(),
         a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
         a.fill(),
@@ -14543,12 +14660,12 @@
         let k = Va(c),
           M = k.getContext("2d");
         for (let [P, C, x, v] of c === 2 ? CRATER.pools : [])
-          (M.fillStyle = "#ff6a1a"),
+          (M.fillStyle = tilePat(M, 2, !1) || "#ff6a1a"),
             M.beginPath(),
             M.ellipse(P, C, x, v, 0, 0, Math.PI * 2),
             M.fill();
         for (let [P, C, x, v] of c === 3 ? FROST.rinks : [])
-          (M.fillStyle = "#a9d6f2"),
+          (M.fillStyle = tilePat(M, 3, !1) || "#a9d6f2"),
             M.beginPath(),
             M.ellipse(P, C, x, v, 0, 0, Math.PI * 2),
             M.fill();
