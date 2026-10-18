@@ -2059,8 +2059,8 @@
     // Cinder Crater: lava pools, telegraphed eruptions; water cools lava to crust.
     CRATER = {
       pools: [
-        [Se, Te - 92, 54, 18],
-        [Se, Te + 94, 54, 18],
+        [Se, Te - 86, 54, 18],
+        [Se, Te + 86, 54, 18],
         [Se - 214, Te - 82, 40, 26],
         [Se + 214, Te + 82, 40, 26],
       ],
@@ -2099,7 +2099,7 @@
     // pylon into a discharge; water shorts it out for a while.
     PLANT = {
       pylons: [
-        [Se, Te - 80],
+        [Se, Te - 70],
         [Se - 150, Te + 62],
         [Se + 150, Te + 62],
       ],
@@ -7065,7 +7065,14 @@
                       ? // Electric types soak the arc up instead and recharge.
                         ((i.slot.cdX = Math.max(0, i.slot.cdX - 30)),
                         (i.slot.cdY = Math.max(0, i.slot.cdY - 30)),
-                        this.emit({ type: "absorb", who: i, x: i.x, y: i.y }))
+                        this.tick - (i.absorbT ?? -999) > 70 &&
+                          ((i.absorbT = this.tick),
+                          this.emit({
+                            type: "absorb",
+                            who: i,
+                            x: i.x,
+                            y: i.y,
+                          })))
                       : (this.envHit(i, PLANT.arcDmg, 1.5, 0, 1, !1, 4, 14),
                         i.kind === "player" &&
                           ((i.paraT = Math.max(i.paraT ?? 0, 30)),
@@ -9936,10 +9943,10 @@
       l = e.arc.t > PLANT.warn,
       f = e.tick;
     if (((i -= 30), (o -= 30), !l)) {
-      (a.globalAlpha = f % 8 < 5 ? 0.85 : 0.35),
-        (a.strokeStyle = "#f8d030"),
-        (a.lineWidth = 1),
-        a.setLineDash([4, 4]),
+      (a.globalAlpha = f % 8 < 5 ? 1 : 0.5),
+        (a.strokeStyle = "#ffe866"),
+        (a.lineWidth = 2),
+        a.setLineDash([5, 4]),
         (a.lineDashOffset = -f),
         a.beginPath(),
         a.moveTo(s, i),
@@ -11916,6 +11923,24 @@
   function stance(a, e, h, c, y) {
     let t = e.tick,
       s = h.kit.tall * Bz(h);
+    // Standing in an arena bonus zone: a ring under your feet while it lasts.
+    if (h.state !== "faint" && !h.vanished) {
+      let i = e.cdBoost(h) > 1,
+        r = e.heatVents?.length && e.inHeatVent(h);
+      if (i || r) {
+        (a.globalAlpha = 0.55 + 0.35 * Math.sin(t * 0.3)),
+          (a.strokeStyle = r
+            ? "#ffb347"
+            : e.arena === 0
+              ? "#fff4c2"
+              : "#7fe3ff"),
+          (a.lineWidth = 1.6),
+          a.beginPath(),
+          a.ellipse(h.x, h.y, 15, 6, 0, 0, Math.PI * 2),
+          a.stroke(),
+          (a.globalAlpha = 1);
+      }
+    }
     if (
       h.state === "phantom" ||
       (h.state === "dodge" && h.kit.dodge.kind === "phantom" && h.holdB)

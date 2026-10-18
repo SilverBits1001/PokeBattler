@@ -435,8 +435,9 @@ damage; the Rocky Helmet returns damage to melee attackers; the Choice Scarf is 
 ## Pass: arena overhaul
 
 **Goal:** every arena has its own identity, a telegraphed hazard you can avoid, a benefit you
-can deliberately use, and a type interaction. Layouts stay point-symmetric, and no arena should
-favour one fighter too much.
+can deliberately use, and a type interaction. Layouts are point-symmetric (Power Plant's three
+pylons are mirror-symmetric left to right, which is fair because fighters spawn left and right
+and the arcs rotate through all three pairs), and no arena should favour one fighter too much.
 
 **Measured before the change** (CPU round-robins, all 8 fighters):
 
