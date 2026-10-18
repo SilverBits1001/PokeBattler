@@ -7011,7 +7011,12 @@
           if (++t.t === SURGE.dropWarn) {
             let s = t.kind === "meteor",
               i = s ? SURGE.meteorR : SURGE.rockR;
-            for (let r of e()) {
+            // These fall from the sky, so fliers are not safe from them.
+            for (let r of [...this.players, ...this.dummies].filter(
+              (l) =>
+                this.canBeHit(l) &&
+                !(l.kind === "player" && (l.invincible || l.state === "faint")),
+            )) {
               let o = r.x - t.x,
                 l = r.y - t.y,
                 f = Math.hypot(o, l * 1.3);
