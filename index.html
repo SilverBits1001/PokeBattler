@@ -62,7 +62,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
 "use strict";
 (() => {
   var Xt = {
-      speedScale: 1,
+      speedScale: 0.85,
       accelTicks: 2,
       decelTicks: 4,
       walkAnimRate: 2.6,
@@ -86,8 +86,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       kbFriction: 0.86,
       shake: 1,
       closeCallWindow: 6,
-      switchCooldown: 40,
-      assistCooldown: 420,
+      switchCooldown: 60,
+      assistCooldown: 540,
       bufferTicks: 5,
       deadzone: 0.2,
       gameMode: 0,
@@ -103,7 +103,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       slowmo: 0,
     },
     A = { ...Xt },
-    $t = "starter-brawl-tuning-v4",
+    $t = "starter-brawl-tuning-v5",
     La = [
       "music",
       "volume",
@@ -114,6 +114,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       "showHitboxes",
       "swapFace",
       "slowmo",
+      "arena",
+      "items",
     ];
   function Vt() {
     try {
@@ -123,6 +125,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         return;
       }
       let e =
+        localStorage.getItem("starter-brawl-tuning-v4") ??
         localStorage.getItem("starter-brawl-tuning-v3") ??
         localStorage.getItem("starter-brawl-tuning-v2");
       if (e) {
@@ -394,6 +397,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         weight: 1.05,
         r: 9,
         hurtR: 11,
+        size: 1,
+        tall: 29,
         role: "Rushdown \xB7 fragile",
         stats: { speed: 4, power: 4, defense: 2, range: 2, difficulty: 3 },
         basic: () => [
@@ -476,8 +481,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         hp: 1020,
         speed: 2.35,
         weight: 0.85,
-        r: 10,
-        hurtR: 12,
+        r: 11,
+        hurtR: 13,
+        size: 1.32,
+        tall: 25,
         role: "Zoner \xB7 trapper",
         stats: { speed: 2, power: 3, defense: 3, range: 5, difficulty: 3 },
         basic: () => [
@@ -547,6 +554,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         weight: 0.6,
         r: 10,
         hurtR: 12,
+        size: 0.94,
+        tall: 29,
         role: "Tank \xB7 control",
         stats: { speed: 1, power: 4, defense: 5, range: 3, difficulty: 2 },
         basic: () => [
@@ -604,7 +613,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         speed: 3.25,
         weight: 1.2,
         r: 8,
-        hurtR: 11,
+        hurtR: 12,
+        size: 1.24,
+        tall: 41,
         role: "Skirmisher \xB7 summoner",
         stats: { speed: 5, power: 3, defense: 1, range: 4, difficulty: 5 },
         basic: () => [
@@ -679,13 +690,30 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       },
     },
     ge = ["charizard", "venusaur", "blastoise", "dragapult"],
-    ut = 360;
+    ut = 360,
+    // Deliberate pacing: every move commits a little longer, so attacks can be
+    // read and whiffs can be punished. Scales the per-kit frame data below.
+    PACE = { startup: 1.3, recovery: 1.35, windup: 1.25, cooldown: 1.3 };
+  for (let a of Object.values(xe)) {
+    let e = a.basic;
+    (a.basic = () =>
+      e().map((t) => ({
+        ...t,
+        startup: Math.round(t.startup * PACE.startup),
+        recovery: Math.round(t.recovery * PACE.recovery),
+      }))),
+      (a.smash.windup = Math.round(a.smash.windup * PACE.windup)),
+      (a.smash.recovery = Math.round(a.smash.recovery * PACE.recovery)),
+      (a.dodge.cooldown = Math.round(a.dodge.cooldown * PACE.cooldown)),
+      (a.xCd = Math.round(a.xCd * PACE.cooldown)),
+      (a.yCd = Math.round(a.yCd * PACE.cooldown));
+  }
   var qt = [
       {
-        react: 26,
+        react: 32,
         dodge: 0.1,
-        aggr: 0.42,
-        think: 18,
+        aggr: 0.38,
+        think: 24,
         chain: 0.4,
         mistake: 0.3,
         guard: 0.3,
@@ -693,10 +721,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         tech: 0.1,
       },
       {
-        react: 17,
+        react: 22,
         dodge: 0.3,
-        aggr: 0.58,
-        think: 12,
+        aggr: 0.52,
+        think: 17,
         chain: 0.62,
         mistake: 0.17,
         guard: 0.5,
@@ -704,10 +732,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         tech: 0.35,
       },
       {
-        react: 11,
+        react: 15,
         dodge: 0.5,
-        aggr: 0.7,
-        think: 9,
+        aggr: 0.62,
+        think: 13,
         chain: 0.8,
         mistake: 0.1,
         guard: 0.6,
@@ -1334,10 +1362,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       clawHex: 1.4,
     },
     ae = {
-      dmg: 1.6,
+      dmg: 1.3,
       launchAt: 6.4,
-      whiffLag: 8,
-      dodgeLag: 8,
+      whiffLag: 12,
+      dodgeLag: 11,
       decay: 0.12,
       guardDrain: 0.16,
       guardRegen: 0.35,
@@ -1360,7 +1388,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     // Symmetric: four around the contested centre, one guarding each flank.
     RUINS = {
       r: 15,
-      hp: 150,
+      hp: 125,
       respawn: 720,
       warn: 120,
       spots: [
@@ -5566,8 +5594,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           under: l,
         });
       }
-      ghost(e, t, s, i, r, o, l = 10) {
+      ghost(e, t, s, i, r, o, l = 10, f = 1) {
         this.ghosts.push({
+          k: f,
           anim: e,
           frame: t,
           row: s,
@@ -6055,6 +6084,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
     });
   }
+  // Drawn scale for a body: its Pokémon's true size relative to Charizard.
+  function Bz(a) {
+    return a.kind === "dummy" ? 0.93 : (a.kit?.size ?? 1);
+  }
   function Ht(a) {
     return a.mon.anims[a.animName] ?? a.mon.anims.Idle ?? a.mon.anims.Walk;
   }
@@ -6295,6 +6328,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         p =
           (h.kind === "dummy" ? 7 : 9) *
           (h.scale ?? 1) *
+          Bz(h) *
           Math.max(0.45, 1 - b / 70);
       (a.fillStyle = L.shadow),
         (a.globalAlpha = (h.alpha ?? 1) * Math.max(0.5, 1 - b / 80)),
@@ -6326,10 +6360,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           h.row * h.anim.fh,
           h.anim.fw,
           h.anim.fh,
-          Math.round(h.x - h.anim.fw / 2),
-          Math.round(h.y - h.anim.fh / 2),
-          h.anim.fw,
-          h.anim.fh,
+          Math.round(h.x - (h.anim.fw * h.k) / 2),
+          Math.round(h.y - (h.anim.fh * h.k) / 2),
+          h.anim.fw * h.k,
+          h.anim.fh * h.k,
         );
     }
     a.globalAlpha = 1;
@@ -6413,6 +6447,39 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               3,
             );
         }
+    }
+    // Smash-style player tags: a coloured "P1" / "CPU" flag with a pointer over each fighter.
+    for (let h of e.players) {
+      if (h.state === "faint" || (h.vanished && h.isCpu)) continue;
+      let c = Math.round(o(h.px, h.x)),
+        y = Math.round(
+          o(h.py, h.y) -
+            o(h.pz, h.z) -
+            h.kit.tall * Bz(h) -
+            17 +
+            Math.sin(e.tick * 0.08) * 1.2,
+        ),
+        b = h.isCpu ? "CPU" : "P1",
+        p = h.isCpu ? "#ef5a4f" : "#33d6ff";
+      (a.font = '900 8px "Big Shoulders Display", sans-serif'),
+        (a.textAlign = "center"),
+        (a.textBaseline = "alphabetic");
+      let k = Math.ceil(a.measureText(b).width) + 6;
+      (a.globalAlpha = h.vanished ? 0.5 : 1),
+        (a.fillStyle = "rgba(8,10,14,0.55)"),
+        a.fillRect(c - k / 2 + 1, y - 8, k, 9),
+        (a.fillStyle = p),
+        a.fillRect(c - k / 2, y - 9, k, 9),
+        a.beginPath(),
+        a.moveTo(c - 3, y),
+        a.lineTo(c + 3, y),
+        a.lineTo(c, y + 3),
+        a.closePath(),
+        a.fill(),
+        (a.fillStyle = h.isCpu ? "#2e0507" : "#031730"),
+        a.fillText(b, c, y - 1.5),
+        (a.globalAlpha = 1),
+        (a.textAlign = "start");
     }
     for (let h of e.beams) {
       let y = e.tick % 2,
@@ -6721,7 +6788,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       (h = (t.tick % 2 ? 1 : -1) * (c.smashCharge > 0.5 ? 1 : 0));
     let y = 1;
     c && c.state === "down" && (y = 0.72);
-    let b = e.scale ?? 1;
+    let b = (e.scale ?? 1) * Bz(e);
     a.save(),
       a.translate(Math.round(s) + h, Math.round(i - r)),
       a.scale(e.sqx * b * (2 - y), e.sqy * b * y);
@@ -7442,6 +7509,244 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     }
     d.restore();
   }
+  // ---- Team select backdrop: a neon arena hall. Perspective floor and wall grid,
+  // a honeycomb wall with light running around the hexagons, sweeping stage
+  // beams, manga speed lines at the edges and drifting embers.
+  var NB = null;
+  function nbPath(a, e) {
+    let t = [0];
+    for (let s = 1; s < a.length; s++)
+      t.push(
+        t[s - 1] + Math.hypot(a[s][0] - a[s - 1][0], a[s][1] - a[s - 1][1]),
+      );
+    return { pts: a, cum: t, len: t[t.length - 1], color: e };
+  }
+  function nbAt(a, e) {
+    e = ((e % a.len) + a.len) % a.len;
+    let t = 1;
+    for (; t < a.cum.length - 1 && a.cum[t] < e; ) t++;
+    let s = a.pts[t - 1],
+      i = a.pts[t],
+      r = a.cum[t] - a.cum[t - 1] || 1,
+      o = (e - a.cum[t - 1]) / r;
+    return [s[0] + (i[0] - s[0]) * o, s[1] + (i[1] - s[1]) * o];
+  }
+  function nbBuild() {
+    let a = [],
+      e = 150,
+      t = H / 2,
+      s = 7.2,
+      i = ["#33d6ff", "#ff3fa4", "#8a6bff"],
+      // Honeycomb patches placed where the menu panels leave the wall visible.
+      R = [
+        [H / 2, e - 26, 4, 3, 7.2],
+        [H / 2 - 20, 22, 6, 2, 9],
+        [62, 214, 4, 3, 9],
+        [H - 52, 210, 4, 3, 9],
+      ],
+      o = rt(5);
+    for (let [l, f, u, h, c] of R)
+      for (let y = 0; y < h; y++)
+        for (let b = 0; b < u; b++) {
+          if (o() < 0.22) continue;
+          let p = l + (b - (u - 1) / 2 + (y % 2) * 0.5) * c * 1.75,
+            k = f + (y - (h - 1) / 2) * c * 1.52,
+            M = [];
+          for (let P = 0; P <= 6; P++) {
+            let C = (Math.PI / 3) * P + Math.PI / 6;
+            M.push([p + Math.cos(C) * c, k + Math.sin(C) * c]);
+          }
+          a.push(nbPath(M, i[(o() * 3) | 0]));
+        }
+    let r = [];
+    for (let o of [-1, 1]) {
+      r.push(
+        nbPath(
+          [
+            [t + o * 40, e - 70],
+            [t + o * 150, e - 70],
+            [t + o * 150, e - 4],
+            [t + o * 215, e + 8],
+          ],
+          o < 0 ? "#33d6ff" : "#ff3fa4",
+        ),
+      );
+      r.push(
+        nbPath(
+          [
+            [t + o * 20, e + 4],
+            [t + o * 205, e + 4],
+            [t + o * 260, e + 16],
+          ],
+          "#33d6ff",
+        ),
+      );
+    }
+    let l = [];
+    for (let o = 0; o < 26; o++)
+      l.push([Math.random(), Math.random(), Math.random()]);
+    return { hex: a, rails: r, embers: l, horizon: e };
+  }
+  function neonBg(a) {
+    NB || (NB = nbBuild());
+    let e = NB.horizon,
+      t = H / 2,
+      s = d.createLinearGradient(0, 0, 0, m(oe));
+    s.addColorStop(0, "#050816"),
+      s.addColorStop(0.55, "#0b1434"),
+      s.addColorStop(1, "#070b1d"),
+      (d.fillStyle = s),
+      d.fillRect(0, 0, m(H), m(oe));
+    let i = d.createRadialGradient(m(t), m(e - 20), 0, m(t), m(e - 20), m(260));
+    i.addColorStop(0, "rgba(64,120,255,0.28)"),
+      i.addColorStop(1, "rgba(64,120,255,0)"),
+      (d.fillStyle = i),
+      d.fillRect(0, 0, m(H), m(oe)),
+      d.save(),
+      (d.globalCompositeOperation = "lighter"),
+      (d.lineCap = "round");
+    let r = (u, h, c, y, b, p) => {
+      (d.strokeStyle = b),
+        (d.globalAlpha = p),
+        (d.lineWidth = m(0.6)),
+        d.beginPath(),
+        d.moveTo(m(u), m(h)),
+        d.lineTo(m(c), m(y)),
+        d.stroke();
+    };
+    for (let u = -6; u <= 6; u++)
+      r(t + u * 34, 18, t + u * 34, e, "#33d6ff", 0.13);
+    for (let u = 0; u < 4; u++)
+      r(0, 30 + u * 32, H, 30 + u * 32, "#33d6ff", 0.08);
+    for (let u = -14; u <= 14; u++)
+      r(t + u * 6, e, t + u * 46, oe, "#33d6ff", 0.16);
+    let o = (a * 0.012) % 1;
+    for (let u = 0; u < 9; u++) {
+      let h = (u + o) / 9,
+        c = e + (oe - e) * h * h;
+      r(0, c, H, c, "#33d6ff", 0.05 + 0.2 * h);
+    }
+    (d.strokeStyle = "#33d6ff"),
+      (d.lineWidth = m(1.4)),
+      (d.globalAlpha = 0.55),
+      d.beginPath(),
+      d.ellipse(
+        m(t),
+        m(oe + 40),
+        m(300),
+        m(110),
+        0,
+        Math.PI * 1.06,
+        Math.PI * 1.94,
+      ),
+      d.stroke(),
+      (d.globalAlpha = 0.18),
+      (d.lineWidth = m(5)),
+      d.stroke();
+    let l = (u, h, c, y, b) => {
+      for (let p = 0; p < 10; p++) {
+        let k = nbAt(u, h - (c * p) / 10),
+          M = nbAt(u, h - (c * (p + 1)) / 10);
+        (d.strokeStyle = y),
+          (d.globalAlpha = b * (1 - p / 10)),
+          (d.lineWidth = m(p === 0 ? 1.8 : 1.2)),
+          d.beginPath(),
+          d.moveTo(m(k[0]), m(k[1])),
+          d.lineTo(m(M[0]), m(M[1])),
+          d.stroke();
+      }
+    };
+    NB.hex.forEach((u, h) => {
+      (d.strokeStyle = u.color),
+        (d.globalAlpha = 0.4),
+        (d.lineWidth = m(0.8)),
+        d.beginPath(),
+        u.pts.forEach(([c, y], b) =>
+          b ? d.lineTo(m(c), m(y)) : d.moveTo(m(c), m(y)),
+        ),
+        d.stroke(),
+        (d.globalAlpha = 0.1),
+        (d.lineWidth = m(3)),
+        d.stroke(),
+        (d.fillStyle = u.color),
+        (d.globalAlpha = 0.04 + 0.04 * Math.sin(a * 0.05 + h)),
+        d.fill(),
+        l(u, a * 0.55 + h * 9, 22, u.color, 0.9);
+    }),
+      NB.rails.forEach((u, h) => {
+        r(u.pts[0][0], u.pts[0][1], u.pts[1][0], u.pts[1][1], u.color, 0.2);
+        for (let c = 1; c < u.pts.length - 1; c++)
+          r(
+            u.pts[c][0],
+            u.pts[c][1],
+            u.pts[c + 1][0],
+            u.pts[c + 1][1],
+            u.color,
+            0.2,
+          );
+        l(u, a * 1.6 + h * 70, 60, u.color, 1),
+          l(u, a * 1.6 + h * 70 + u.len / 2, 40, "#ffffff", 0.6);
+      });
+    for (let [u, h, c, y] of [
+      [H * 0.78, 0.3, "255,63,164", 0.16],
+      [H * 0.66, -0.25, "90,140,255", 0.14],
+      [H * 0.9, 0.12, "160,110,255", 0.12],
+    ]) {
+      let b = u + Math.sin(a * 0.01 + h * 10) * 18,
+        p = d.createLinearGradient(m(b), 0, m(b - 60), m(oe));
+      p.addColorStop(0, `rgba(${c},${y})`),
+        p.addColorStop(1, `rgba(${c},0)`),
+        (d.fillStyle = p),
+        (d.globalAlpha = 1),
+        d.beginPath(),
+        d.moveTo(m(b - 6), 0),
+        d.lineTo(m(b + 8), 0),
+        d.lineTo(m(b - 40 + h * 120), m(oe)),
+        d.lineTo(m(b - 120 + h * 120), m(oe)),
+        d.closePath(),
+        d.fill();
+    }
+    for (let u of NB.embers) {
+      let h = (u[1] - a * (0.0015 + u[2] * 0.002)) % 1,
+        c = h < 0 ? h + 1 : h,
+        y = 10 + u[0] * 150 + Math.sin(a * 0.03 + u[2] * 9) * 6,
+        b = oe * c;
+      (d.globalAlpha = 0.25 + 0.6 * (1 - c) * u[2]),
+        (d.fillStyle = u[2] > 0.5 ? "#ffb347" : "#ff6a2a"),
+        d.fillRect(m(y), m(b), m(1 + u[2]), m(1 + u[2]));
+    }
+    d.restore(), d.save(), (d.lineCap = "butt");
+    let f = Math.floor(a / 3);
+    for (let u = 0; u < 70; u++) {
+      let h = (u / 70) * Math.PI * 2 + ((f * 7 + u * 13) % 11) * 0.004,
+        c = Math.cos(h),
+        y = Math.sin(h),
+        b = Math.max(Math.abs(c) / (H / 2), Math.abs(y) / (oe / 2)),
+        p = 1 / b,
+        k = p * (0.72 + (((u * 37 + f * 5) % 17) / 17) * 0.16);
+      (d.strokeStyle = u % 3 ? "rgba(0,0,0,0.85)" : "rgba(200,225,255,0.35)"),
+        (d.lineWidth = m(u % 3 ? 1.6 : 0.5)),
+        (d.globalAlpha = 0.5),
+        d.beginPath(),
+        d.moveTo(m(t + c * p), m(oe / 2 + y * p)),
+        d.lineTo(m(t + c * k), m(oe / 2 + y * k)),
+        d.stroke();
+    }
+    let k = d.createRadialGradient(
+      m(t),
+      m(oe / 2),
+      m(120),
+      m(t),
+      m(oe / 2),
+      m(300),
+    );
+    k.addColorStop(0, "rgba(0,0,0,0)"),
+      k.addColorStop(1, "rgba(0,0,0,0.55)"),
+      (d.fillStyle = k),
+      (d.globalAlpha = 1),
+      d.fillRect(0, 0, m(H), m(oe)),
+      d.restore();
+  }
   function Ca(a, e, t, s, i, r, o) {
     if (
       ((d = a),
@@ -8105,7 +8410,16 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           d.fill();
         let b = e[l],
           p = b.anims.Idle ?? b.anims.Walk;
-        et(d, p, Be(p, t + f * 11, 1), 0, m(o), m(c), 2.3 * Fe, b.ground),
+        et(
+          d,
+          p,
+          Be(p, t + f * 11, 1),
+          0,
+          m(o),
+          m(c),
+          1.95 * Fe * u.size,
+          b.ground,
+        ),
           V(u.name, o, c + 17, 11, h, {
             align: "center",
             outline: 2.4,
@@ -8217,7 +8531,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
   }
   function ns(a, e) {
     let t = a.frame;
-    a.selectT++, (a.pickBump *= 0.85), Aa(t);
+    a.selectT++, (a.pickBump *= 0.85), neonBg(t);
     let s = A.gameMode !== 1;
     V("Choose your team", 12, 25, 22, g.chalk, { skew: !0, outline: 2 }),
       G("Pick two. Your first pick leads.", 14, 34, 6.6, g.haze, {
@@ -8279,7 +8593,16 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           d.fill();
         let $ = e[x],
           w = $.anims.Idle ?? $.anims.Walk;
-        et(d, w, Be(w, t + v * 13, 1), C, m(E), m(Q), 1.5 * Fe, $.ground);
+        et(
+          d,
+          w,
+          Be(w, t + v * 13, 1),
+          C,
+          m(E),
+          m(Q),
+          1.5 * Fe * xe[x].size,
+          $.ground,
+        );
       });
     };
     u([a.picks[0], a.picks[1]], 36, 2),
@@ -10783,7 +11106,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     function ve(n, D, R) {
       let W = Ht(n),
         T = n.spinRow >= 0 ? n.spinRow : Math.min(nt(n.facing), W.rows - 1);
-      t.ghost(W, zt(n, W, e), T, n.x, n.y - n.z - n.mon.ground, D, R);
+      let k = Bz(n);
+      t.ghost(W, zt(n, W, e), T, n.x, n.y - n.z - n.mon.ground * k, D, R, k);
     }
     let Ce = -999,
       de = { x: !0, y: !0, assist: !0, kit: "" };

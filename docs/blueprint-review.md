@@ -40,3 +40,19 @@ select screen with **Select** (Tab on keyboard).
 - How often players get flanked while guarding, and whether it feels fair or random.
 - Whether the berry swings matches (it heals 15%; tune `SITRUS.heal` in `src/game.js`).
 - Whether boulders get broken too fast (tune `RUINS.hp` and `RUINS.respawn`).
+
+## Second pass: pace, player tags, sizes, select screen
+
+- **Slower, more deliberate fights.** Every move's wind-up is 30% longer and its
+  recovery 35% longer, smash wind-ups 25% longer, and special and dodge cooldowns 30%
+  longer (`PACE` in `src/game.js`). Walking speed is 85%, whiffs and dodges leave you
+  open longer, and hits deal about 20% less, so matches run longer and there is time to
+  read the opponent. The CPU reacts and decides more slowly at every level. Saved
+  options from older versions keep only sound, controls and mode settings, so the new
+  pace applies to everyone.
+- **P1 / CPU tags** float over each fighter, Smash-style.
+- **True relative sizes.** Each Pokémon is drawn at its official height relative to
+  Charizard (1.7 m): Blastoise 1.6 m, Venusaur 2.0 m, Dragapult 3.0 m. Venusaur's and
+  Dragapult's hurtboxes grew slightly to match.
+- **Team select backdrop:** a neon arena hall with light running around honeycomb
+  panels and rails, a moving perspective floor, stage beams, speed lines and embers.
