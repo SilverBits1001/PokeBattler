@@ -795,8 +795,9 @@ link never opened and the join timed out. That is typical on mobile data and beh
 strict routers, where a TURN relay is needed and PeerJS's free TURN servers are
 often down.
 
-- **Relay.** Both pages now also connect to three free public MQTT brokers over
-  secure WebSockets (EMQX, HiveMQ and Mosquitto), all on the topic
+- **Relay.** Both pages now also connect to four free public MQTT brokers over
+  secure WebSockets (EMQX, HiveMQ, Mosquitto, and Eclipse on port 443 for networks
+  that block unusual ports), all on the topic
   `starterbrawl/v2/<code>`. A small MQTT 3.1.1 client is built in (connect,
   subscribe, QoS 0 publish, ping). Every message goes to every broker, so two
   pages only need one broker in common. Duplicates are harmless because the room

@@ -18423,6 +18423,8 @@
     "wss://broker.emqx.io:8084/mqtt",
     "wss://broker.hivemq.com:8884/mqtt",
     "wss://test.mosquitto.org:8081/mqtt",
+    // Port 443 gets through networks that block the others.
+    "wss://mqtt.eclipseprojects.io:443/mqtt",
   ];
   // A minimal MQTT 3.1.1 client: connect, subscribe, QoS 0 publish, ping.
   function mqttOpen(a, e, t, s) {
