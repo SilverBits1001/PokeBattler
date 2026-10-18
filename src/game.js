@@ -6817,8 +6817,9 @@
       nearPylonLine(e, t, s) {
         let i = this.rocks.filter((r) => r.pylon);
         return i.some((r, o) => {
-          let l = i[(o + 1) % i.length],
-            f = l.x - r.x,
+          let l = i[(o + 1) % i.length];
+          if (r.off > 0 || l.off > 0) return !1;
+          let f = l.x - r.x,
             u = l.y - r.y,
             h = me(
               ((e - r.x) * f + (t - r.y) * u) / (f * f + u * u || 1),
@@ -7227,6 +7228,7 @@
           for (let s of t) s.off > 0 && s.off--, s.charge > 0 && s.charge--;
           if (
             !this.arc &&
+            !this.surge &&
             this.match.phase === "fight" &&
             this.intro <= 0 &&
             --this.arcT <= 0
@@ -7244,7 +7246,8 @@
             let s = this.arc;
             if ((s.t++, t[s.a].off > 0 || t[s.b].off > 0)) this.arc = null;
             else if (s.t > PLANT.warn) {
-              if (s.t % 10 === 1) {
+              // During Overload the surge does the zapping, so no double hits.
+              if (s.t % 10 === 1 && !this.surgeLive(4)) {
                 for (let i of e())
                   this.nearArc(i.x, i.y, PLANT.arcW) &&
                     (i.kind === "player" &&
@@ -10498,7 +10501,7 @@
   // a surge is coming, then weather over the whole view for the Blizzard.
   function surgeScreen(a, e) {
     let t = e.surge;
-    if (!t) return;
+    if (!t || e.match.phase !== "fight") return;
     let s = e.tick,
       i = t.t <= SURGE.warn,
       r = SURGE.colors[t.k],
