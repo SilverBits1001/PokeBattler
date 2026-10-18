@@ -56,3 +56,15 @@ select screen with **Select** (Tab on keyboard).
   Dragapult's hurtboxes grew slightly to match.
 - **Team select backdrop:** a neon arena hall with light running around honeycomb
   panels and rails, a moving perspective floor, stage beams, speed lines and embers.
+
+## Third pass: hit readability and juice
+
+- **Slash arcs.** Every melee attack draws a crescent that sweeps the way the move
+  swings, styled per Pokémon: Charizard claw swipes with rake marks and a wide fiery
+  finisher, Venusaur's whip crack at the vine tip with leaves, Blastoise's heavy water
+  arcs, Dragapult's thin double ghost slashes and a wide sweep on the finisher.
+- **Wind-up warnings.** While an attack or smash winds up, the spot it will hit fills in
+  on the ground (red for the CPU, your colour for you). Smash charges also show the
+  lunge path. Heavy attacks and smashes flash a glint over the attacker as they start.
+- **Impacts.** Clean hits throw motion streaks along the knockback; heavy hits add a
+  star burst.

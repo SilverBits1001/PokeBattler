@@ -2532,6 +2532,20 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               owner: e,
             });
         }
+        e.t === r.startup + 1 &&
+          this.emit({
+            type: "strike",
+            who: e,
+            kit: e.kit.id,
+            dx: o,
+            dy: l,
+            reach: r.reach,
+            radius: r.radius,
+            heavy: r.heavy,
+            combo: e.combo,
+            last: e.combo === i.length - 1 && i.length > 1,
+            smash: !1,
+          });
         if (e.t > r.startup && e.t <= r.startup + r.active) {
           let u =
             r.shape === "vine"
@@ -2955,6 +2969,21 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               owner: e,
             });
         }
+        e.t === r + 1 &&
+          this.emit({
+            type: "strike",
+            who: e,
+            kit: e.kit.id,
+            dx: o,
+            dy: l,
+            reach: s.reach,
+            radius: s.radius,
+            heavy: !0,
+            combo: 0,
+            last: !1,
+            smash: !0,
+            charge: i,
+          });
         if (e.t > r && e.t <= r + s.active) {
           let f =
             s.shape === "vine"
@@ -5443,6 +5472,77 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           });
         }
       }
+      // Crescent that sweeps around a fighter (follows it while it lunges).
+      slash(e, t, s, i, r, o, l, f = 10, u = -10) {
+        this.add({
+          kind: "slash",
+          who: e,
+          x: e.x,
+          y: e.y,
+          ang: t,
+          rad: s,
+          span: i,
+          w: r,
+          dir: o,
+          color: l,
+          life: f,
+          lift: u,
+        });
+      }
+      // Three parallel rake marks across a point.
+      claw(e, t, s, i, r) {
+        for (let o = -1; o <= 1; o++)
+          this.add({
+            kind: "claw",
+            x: e + Math.cos(s + Math.PI / 2) * o * 4,
+            y: t + Math.sin(s + Math.PI / 2) * o * 4,
+            ang: s + i,
+            len: 15 - Math.abs(o) * 3,
+            color: r,
+            life: 9,
+            delay: o + 1,
+          });
+      }
+      burst(e, t, s, i = 14) {
+        this.add({
+          kind: "burst",
+          x: e,
+          y: t,
+          z: 8,
+          size: i,
+          color: s,
+          life: 7,
+        });
+      }
+      streaks(e, t, s, i, r, o) {
+        let l = Math.atan2(i, s);
+        for (let f = 0; f < r; f++) {
+          let u = z(-7, 7);
+          this.add({
+            kind: "streak",
+            x: e + Math.cos(l + Math.PI / 2) * u,
+            y: t + Math.sin(l + Math.PI / 2) * u,
+            z: 8,
+            ang: l,
+            len: z(10, 20),
+            vx: Math.cos(l) * 1.5,
+            vy: Math.sin(l) * 1.5,
+            color: f % 2 ? "#ffffff" : o,
+            life: z(6, 10) | 0,
+          });
+        }
+      }
+      glint(e, t, s) {
+        this.add({
+          kind: "glint",
+          who: e,
+          x: e.x,
+          y: e.y,
+          z: t,
+          color: s,
+          life: 12,
+        });
+      }
       embers(e, t, s, i) {
         for (let r = 0; r < i; r++)
           this.add({
@@ -5658,6 +5758,13 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               break;
             case "ring":
               e.size += e.grow ?? 1;
+              break;
+            case "slash":
+            case "glint":
+              e.who && ((e.x = e.who.x), (e.y = e.who.y - (e.who.z ?? 0)));
+              break;
+            case "streak":
+              (e.vx *= 0.8), (e.vy *= 0.8);
               break;
             case "smoke":
               (e.vx *= 0.95), (e.vy *= 0.95), (e.size += 0.15);
@@ -6023,6 +6130,84 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         (a.globalAlpha = 1);
     }
   }
+  // Wind-up warning: while an attack or smash charges, the ground under where it
+  // will land fills in. Red for the CPU's moves, the fighter's colour for yours.
+  function dzone(a, e, t) {
+    let s = t.kit,
+      i,
+      r,
+      o,
+      l,
+      f = 0,
+      u = !1;
+    if (t.state === "attack") {
+      let b = s.basic()[t.combo];
+      if (t.t > b.startup || b.startup < 3) return;
+      (f = t.t / b.startup),
+        (i = b),
+        (r = b.reach),
+        (o = b.radius),
+        (l = b.lunge * 0.6);
+    } else if (t.state === "smashCharge") {
+      let b = s.smash;
+      (f = Math.min(1, t.t / (b.windup + 8))),
+        (i = b),
+        (r = b.reach),
+        (o = b.radius),
+        (l = b.lunge * (b.shape === "vine" ? 0 : 0.8)),
+        (u = !0);
+    } else return;
+    let c = Math.cos(t.atkDir),
+      y = Math.sin(t.atkDir),
+      b = t.isCpu
+        ? "239,90,79"
+        : t.kit.id === "dragapult"
+          ? "161,132,245"
+          : "111,211,232",
+      p =
+        (0.1 + 0.28 * f) *
+        (u && t.smashCharge >= 1 && e.tick % 6 < 3 ? 1.5 : 1);
+    if (
+      (a.save(),
+      (a.fillStyle = `rgba(${b},${p})`),
+      (a.strokeStyle = `rgba(${b},${0.35 + 0.5 * f})`),
+      (a.lineWidth = 1),
+      i.shape === "vine")
+    )
+      (a.lineCap = "round"),
+        (a.lineWidth = o * 2 * (0.6 + 0.4 * f)),
+        (a.strokeStyle = `rgba(${b},${p})`),
+        a.beginPath(),
+        a.moveTo(t.x + c * 10, t.y + y * 10),
+        a.lineTo(t.x + c * r, t.y + y * r),
+        a.stroke(),
+        (a.lineWidth = 1),
+        (a.strokeStyle = `rgba(${b},${0.35 + 0.5 * f})`),
+        a.beginPath(),
+        a.arc(t.x + c * r, t.y + y * r, o, 0, Math.PI * 2),
+        a.stroke();
+    else {
+      let k = t.x + c * (r + 2 + l),
+        M = t.y + y * (r + 2 + l),
+        P = o * 1.2 * (0.55 + 0.45 * f);
+      l > 6 &&
+        ((a.lineWidth = 2),
+        a.setLineDash([3, 3]),
+        a.beginPath(),
+        a.moveTo(t.x + c * 8, t.y + y * 8),
+        a.lineTo(k - c * P, M - y * P),
+        a.stroke(),
+        a.setLineDash([]),
+        (a.lineWidth = 1)),
+        a.beginPath(),
+        a.arc(k, M, P, 0, Math.PI * 2),
+        a.fill(),
+        a.beginPath(),
+        a.arc(k, M, o * 1.2, 0, Math.PI * 2),
+        a.stroke();
+    }
+    a.restore();
+  }
   function dt2(a, e, t) {
     if (e.state === "warn") {
       let l = e.t / SITRUS.warn,
@@ -6208,6 +6393,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     }
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
+    for (let h of e.players) dzone(a, e, h);
     for (let h of e.dummies) {
       if (h.state !== "charge") continue;
       let c = h.t >= 15,
@@ -7080,6 +7266,118 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             ),
             a.fill();
           break;
+        case "slash": {
+          // A filled crescent: the head races ahead in the first frames, the tail
+          // chases it, thickest just behind the head with a bright inner edge.
+          let l = 1 - i,
+            f = Math.min(1, l * 2.6),
+            u = Math.max(0, (l - 0.35) / 0.65),
+            h = s.ang - s.dir * s.span,
+            c = 22,
+            y = (k) => {
+              let M = [],
+                P = [];
+              for (let C = 0; C <= c; C++) {
+                let x = C / c,
+                  v = u + (f - u) * x,
+                  E = h + s.dir * 2 * s.span * v,
+                  Q =
+                    s.w *
+                    1.5 *
+                    k *
+                    Math.pow(x, 0.7) *
+                    (x > 0.88 ? 1 - (x - 0.88) * 6 : 1);
+                M.push([
+                  r + Math.cos(E) * (s.rad + Q / 2),
+                  o + Math.sin(E) * (s.rad + Q / 2) * 0.78,
+                ]),
+                  P.push([
+                    r + Math.cos(E) * (s.rad - Q / 2),
+                    o + Math.sin(E) * (s.rad - Q / 2) * 0.78,
+                  ]);
+              }
+              a.beginPath(),
+                M.forEach(([C, x], v) => (v ? a.lineTo(C, x) : a.moveTo(C, x)));
+              for (let C = P.length - 1; C >= 0; C--)
+                a.lineTo(P[C][0], P[C][1]);
+              a.closePath(), a.fill();
+            };
+          if (f - u < 0.02) break;
+          (o += s.lift),
+            (a.globalAlpha = Math.min(1, i * 1.8) * 0.9),
+            (a.fillStyle = s.color),
+            y(1),
+            (a.globalAlpha = Math.min(1, i * 2)),
+            (a.fillStyle = "#ffffff"),
+            y(0.32);
+          break;
+        }
+        case "claw": {
+          let l = s.max - s.life - s.delay;
+          if (l < 0) break;
+          let f = Math.min(1, l / 3),
+            u = Math.cos(s.ang) * s.len * 0.5,
+            h = Math.sin(s.ang) * s.len * 0.5;
+          (a.globalAlpha = Math.min(1, i * 1.8)),
+            (a.lineCap = "round"),
+            (a.strokeStyle = s.color),
+            (a.lineWidth = 2.4 * i + 0.6),
+            a.beginPath(),
+            a.moveTo(r - u, o - h),
+            a.lineTo(r - u + 2 * u * f, o - h + 2 * h * f),
+            a.stroke(),
+            (a.strokeStyle = "#ffffff"),
+            (a.lineWidth = 0.8),
+            a.stroke(),
+            (a.lineCap = "butt");
+          break;
+        }
+        case "burst": {
+          let l = s.size * (1.1 - i * 0.4);
+          (a.globalAlpha = Math.min(1, i * 1.5)),
+            (a.fillStyle = s.color),
+            a.beginPath();
+          for (let f = 0; f < 16; f++) {
+            let u = (f / 16) * Math.PI * 2 + 0.2,
+              h = f % 2 ? l * 0.38 : l * (f % 4 ? 0.8 : 1);
+            a.lineTo(r + Math.cos(u) * h, o + Math.sin(u) * h);
+          }
+          a.closePath(),
+            a.fill(),
+            (a.fillStyle = "#ffffff"),
+            a.beginPath(),
+            a.arc(r, o, l * 0.32, 0, Math.PI * 2),
+            a.fill();
+          break;
+        }
+        case "streak":
+          (a.globalAlpha = Math.min(1, i * 1.6)),
+            (a.strokeStyle = s.color),
+            (a.lineWidth = 1.2),
+            a.beginPath(),
+            a.moveTo(r, o),
+            a.lineTo(
+              r - Math.cos(s.ang) * s.len * i,
+              o - Math.sin(s.ang) * s.len * i,
+            ),
+            a.stroke();
+          break;
+        case "glint": {
+          let l = Math.sin((1 - i) * Math.PI) * 7,
+            f = r + 7,
+            u = o - s.z;
+          (a.globalAlpha = 1), (a.fillStyle = s.color), a.beginPath();
+          for (let h = 0; h < 8; h++) {
+            let c = (h / 8) * Math.PI * 2,
+              y = h % 2 ? l * 0.22 : l;
+            a.lineTo(f + Math.cos(c) * y, u + Math.sin(c) * y);
+          }
+          a.closePath(),
+            a.fill(),
+            (a.fillStyle = "#ffffff"),
+            a.fillRect(Math.round(f) - 1, Math.round(u) - 1, 2, 2);
+          break;
+        }
       }
     }
     a.globalAlpha = 1;
@@ -10477,6 +10775,16 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 R ? L.cool : n.color,
               ),
               t.shake(n.dx, n.dy, n.ko ? 9 : n.heavy ? 5 : R ? 4 : 2.2),
+              t.streaks(
+                n.victim.x,
+                n.victim.y - 10,
+                n.dx,
+                n.dy,
+                n.heavy ? 6 : 3,
+                R ? "#ff8b8b" : n.color,
+              ),
+              n.heavy &&
+                t.burst(n.x, n.y - T, R ? "#ff8b8b" : n.color, n.ko ? 22 : 15),
               n.heavy &&
                 (t.punch(n.x, n.y, n.ko ? 0.09 : 0.045),
                 (t.impact = n.ko ? 4 : 2)),
@@ -10633,7 +10941,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           t.dust(n.x, n.y, 4, 0, 0, 0.6);
           break;
         case "swing":
-          S.swing(n.heavy),
+          n.heavy &&
+            n.who.kind === "player" &&
+            n.who.state === "attack" &&
+            t.glint(n.who, n.who.kit.tall * Bz(n.who) * 0.8, "#ffffff"),
+            S.swing(n.heavy),
             t.dust(
               n.who.x - n.dx * 4,
               n.who.y,
@@ -11072,8 +11384,67 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             t.popup(n.who.x, n.who.y - 44, `WALL SPLAT! ${n.dmg}`, L.gold, !0);
           break;
         case "smashStart":
-          S.smashCharge(), t.dust(n.who.x, n.who.y, 3, 0, 0, 0.6);
+          S.smashCharge(),
+            t.dust(n.who.x, n.who.y, 3, 0, 0, 0.6),
+            t.glint(n.who, n.who.kit.tall * Bz(n.who) * 0.8, L.gold);
           break;
+        case "strike": {
+          let R = n.who,
+            W = Math.atan2(n.dy, n.dx),
+            T = n.reach + n.radius * 0.55,
+            Z = n.combo % 2 ? -1 : 1,
+            ne = R.x + n.dx * (n.reach + 2),
+            ee = R.y + n.dy * (n.reach + 2) - 10;
+          if (n.kit === "charizard")
+            n.smash
+              ? (t.slash(R, W, T + 4, 1.7, 9, 1, "#ff8a3d", 13),
+                t.slash(R, W, T - 3, 1.5, 4, 1, "#ffd25e", 11),
+                t.flame(ne, ee + 6, W, 6))
+              : n.last
+                ? t.slash(R, W, T + 2, 2.9, 7, -1, "#ffb347", 12)
+                : (t.slash(R, W, T, 0.8, 4, Z, "#ff8a3d", 8),
+                  t.claw(ne, ee, W, Z * 0.9, "#ffd25e"));
+          else if (n.kit === "venusaur") {
+            let J = R.x + n.dx * n.reach,
+              Ye2 = R.y + n.dy * n.reach - 8;
+            t.slash(
+              R,
+              W,
+              n.reach,
+              n.smash ? 0.5 : 0.32,
+              n.smash ? 8 : 5,
+              Z,
+              "#9be36b",
+              9,
+              -8,
+            ),
+              t.ring(J, Ye2, 3, n.smash ? 2.6 : 1.8, 9, "#d6ff8a"),
+              t.leaves(J, Ye2 + 8, 6, n.smash ? 6 : 3);
+          } else
+            n.kit === "blastoise"
+              ? (t.slash(
+                  R,
+                  W,
+                  T + (n.smash ? 4 : 0),
+                  n.smash ? 1.4 : 1.05,
+                  n.smash ? 12 : 9,
+                  Z,
+                  "#8fd0f5",
+                  11,
+                ),
+                t.splash(ne, ee + 10, 6, n.smash ? 10 : 5, n.dx, n.dy),
+                n.smash && t.ring(ne, ee + 10, 6, 3, 14, "#8fd0f5", !0))
+              : n.kit === "dragapult" &&
+                (n.smash
+                  ? (t.streaks(R.x, R.y - 10, n.dx, n.dy, 9, be),
+                    t.slash(R, W, T, 0.7, 6, 1, "#c9b6ff", 10))
+                  : n.last
+                    ? (t.slash(R, W, T + 3, 2.6, 6, 1, be, 12),
+                      t.slash(R, W, T - 4, 2.2, 2, 1, "#ffffff", 10))
+                    : (t.slash(R, W, T, 0.95, 4, Z, "#c9b6ff", 8),
+                      t.slash(R, W + Z * 0.25, T - 5, 0.8, 2, Z, be, 8)));
+          break;
+        }
         case "smashFull":
           S.smashFull(),
             t.ring(n.who.x, n.who.y - 12, 18, -1.2, 12, L.gold),
