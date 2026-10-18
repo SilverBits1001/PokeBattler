@@ -18,7 +18,7 @@ move types, Magnezone, two battle themes plus victory/defeat music, and five mod
 switched in Options → Match, or with X / Select on team select. Accessibility options
 (reduced effects, high-contrast team colours, swapped specials) are in Options.
 
-Roster: Charizard, Venusaur, Blastoise, Dragapult, Magnezone.
+Roster: Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern, Lucario.
 
 ## Layout
 

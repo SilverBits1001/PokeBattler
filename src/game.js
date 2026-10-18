@@ -370,6 +370,9 @@
       GHOST: "#705898",
       ELECTRIC: "#f8d030",
       STEEL: "#b8b8d0",
+      NORMAL: "#a8a878",
+      FLYING: "#a890f0",
+      FIGHTING: "#c03028",
     },
     xe = {
       charizard: {
@@ -464,7 +467,7 @@
         type: "GRASS",
         color: "#6cc04a",
         typeInk: "#0f2a08",
-        hp: 1020,
+        hp: 1080,
         speed: 2.35,
         weight: 0.85,
         r: 11,
@@ -536,7 +539,7 @@
         type: "WATER",
         color: "#5aa9e6",
         typeInk: "#06203a",
-        hp: 1120,
+        hp: 1180,
         speed: 2.15,
         weight: 0.6,
         r: 10,
@@ -553,7 +556,7 @@
             active: 3,
             recovery: 11,
             lunge: 6,
-            dmg: 24,
+            dmg: 26,
             kb: 2.4,
             heavy: !1,
             shape: "circle",
@@ -566,7 +569,7 @@
             active: 4,
             recovery: 12,
             lunge: 6,
-            dmg: 28,
+            dmg: 31,
             kb: 3,
             heavy: !1,
             shape: "circle",
@@ -579,7 +582,7 @@
             active: 4,
             recovery: 20,
             lunge: 12,
-            dmg: 46,
+            dmg: 51,
             kb: 5.8,
             heavy: !0,
             shape: "circle",
@@ -623,7 +626,7 @@
         type2: "GHOST",
         color: "#a184f5",
         typeInk: "#170c33",
-        hp: 780,
+        hp: 740,
         speed: 3.25,
         weight: 1.2,
         r: 8,
@@ -631,6 +634,7 @@
         size: 1.24,
         tall: 41,
         role: "Skirmisher \xB7 summoner",
+        infiltrator: !0,
         stats: { speed: 5, power: 3, defense: 1, range: 4, difficulty: 5 },
         basic: () => [
           {
@@ -639,7 +643,7 @@
             active: 3,
             recovery: 7,
             lunge: 7,
-            dmg: 18,
+            dmg: 21,
             kb: 1.4,
             heavy: !1,
             shape: "circle",
@@ -652,7 +656,7 @@
             active: 3,
             recovery: 9,
             lunge: 8,
-            dmg: 20,
+            dmg: 23,
             kb: 1.8,
             heavy: !1,
             shape: "circle",
@@ -665,7 +669,7 @@
             active: 4,
             recovery: 15,
             lunge: 10,
-            dmg: 34,
+            dmg: 38,
             kb: 6,
             heavy: !0,
             shape: "circle",
@@ -678,8 +682,8 @@
           kind: "phantom",
           dist: 70,
           ticks: 12,
-          iframes: 11,
-          cooldown: 34,
+          iframes: 8,
+          cooldown: 42,
           anim: "Walk",
         },
         smash: {
@@ -690,7 +694,7 @@
           active: 9,
           recovery: 30,
           lunge: 78,
-          dmg: 40,
+          dmg: 34,
           kb: 7,
           shape: "circle",
           reach: 4,
@@ -712,22 +716,23 @@
         color: "#f2d64b",
         typeInk: "#2a2205",
         hp: 1000,
-        speed: 2.05,
+        speed: 2.25,
         weight: 0.7,
         r: 9,
         hurtR: 11,
         size: 0.71,
         tall: 34,
         role: "Controller \xB7 setup",
+        sturdy: !0,
         stats: { speed: 1, power: 4, defense: 4, range: 5, difficulty: 4 },
         basic: () => [
           {
             anim: "Attack",
-            startup: 6,
+            startup: 5,
             active: 3,
             recovery: 11,
-            lunge: 3,
-            dmg: 20,
+            lunge: 4,
+            dmg: 24,
             kb: 2.2,
             heavy: !1,
             shape: "circle",
@@ -737,11 +742,11 @@
           },
           {
             anim: "Double",
-            startup: 6,
+            startup: 5,
             active: 3,
             recovery: 12,
-            lunge: 3,
-            dmg: 22,
+            lunge: 4,
+            dmg: 26,
             kb: 2.6,
             heavy: !1,
             shape: "circle",
@@ -751,11 +756,11 @@
           },
           {
             anim: "Swing",
-            startup: 10,
+            startup: 9,
             active: 6,
             recovery: 20,
             lunge: 2,
-            dmg: 40,
+            dmg: 46,
             kb: 5.4,
             heavy: !0,
             shape: "circle",
@@ -780,19 +785,300 @@
           active: 5,
           recovery: 28,
           lunge: 0,
-          dmg: 62,
-          kb: 7.4,
+          dmg: 36,
+          kb: 6.6,
           shape: "circle",
           reach: 26,
           radius: 20,
+          beam: { len: 70, grow: 55, r: 9, style: "steel" },
         },
         xName: "LOCK-ON",
         yName: "ZAP CANNON",
         xCd: 50,
         yCd: 150,
       },
+
+      // The 460 kg sleeper. A super-heavyweight that soaks hits with armor, lands
+      // huge single blows, puts foes to sleep with Yawn and naps to heal (Rest).
+      snorlax: {
+        id: "snorlax",
+        name: "SNORLAX",
+        type: "NORMAL",
+        color: "#3f8f9e",
+        typeInk: "#1f1f12",
+        hp: 1400,
+        speed: 1.85,
+        weight: 0.45,
+        r: 13,
+        hurtR: 15,
+        size: 1.12,
+        tall: 32,
+        role: "Heavyweight \xB7 tank",
+        thickFat: !0,
+        gluttony: !0,
+        stats: { speed: 1, power: 5, defense: 5, range: 2, difficulty: 2 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 6,
+            active: 3,
+            recovery: 11,
+            lunge: 6,
+            dmg: 24,
+            kb: 2.2,
+            heavy: !1,
+            armor: !0,
+            shape: "circle",
+            reach: 18,
+            radius: 16,
+          },
+          {
+            anim: "Double",
+            startup: 6,
+            active: 3,
+            recovery: 12,
+            lunge: 6,
+            dmg: 26,
+            kb: 2.6,
+            heavy: !1,
+            armor: !0,
+            shape: "circle",
+            reach: 18,
+            radius: 17,
+          },
+          {
+            anim: "Stomp",
+            startup: 11,
+            active: 5,
+            recovery: 22,
+            lunge: 16,
+            dmg: 50,
+            kb: 7,
+            heavy: !0,
+            armor: !0,
+            shape: "circle",
+            reach: 12,
+            radius: 24,
+            slam: !0,
+          },
+        ],
+        dodge: {
+          kind: "bounce",
+          dist: 44,
+          ticks: 16,
+          iframes: 10,
+          cooldown: 48,
+          anim: "Hop",
+        },
+        smash: {
+          name: "HEAVY SLAM",
+          anim: "Hop",
+          windup: 10,
+          maxCharge: 50,
+          active: 6,
+          recovery: 24,
+          lunge: 70,
+          dmg: 52,
+          kb: 7.6,
+          shape: "circle",
+          reach: 0,
+          radius: 30,
+          armor: !0,
+          leap: { dist: 40, grow: 70, air: 22, r: 30, grow2: 14 },
+        },
+        xName: "YAWN",
+        yName: "REST",
+        xCd: 240,
+        yCd: 600,
+      },
+      // The sound wyvern. Flies over hazards, hits and runs with wide wing
+      // strikes, blasts point-blank Boomburst through guard and conjures Hurricanes.
+      noivern: {
+        id: "noivern",
+        name: "NOIVERN",
+        type: "FLYING",
+        type2: "DRAGON",
+        color: "#8a5ccf",
+        typeInk: "#1c1033",
+        hp: 860,
+        speed: 3.1,
+        weight: 1.15,
+        r: 9,
+        hurtR: 12,
+        size: 0.8,
+        tall: 34,
+        role: "Aerial \xB7 sonic",
+        flier: !0,
+        infiltrator: !0,
+        stats: { speed: 5, power: 3, defense: 2, range: 4, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 4,
+            active: 3,
+            recovery: 8,
+            lunge: 9,
+            dmg: 22,
+            kb: 1.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 16,
+            radius: 17,
+          },
+          {
+            anim: "Double",
+            startup: 4,
+            active: 3,
+            recovery: 9,
+            lunge: 10,
+            dmg: 20,
+            kb: 2,
+            heavy: !1,
+            shape: "circle",
+            reach: 16,
+            radius: 18,
+          },
+          {
+            anim: "Strike",
+            startup: 7,
+            active: 4,
+            recovery: 15,
+            lunge: 22,
+            dmg: 36,
+            kb: 6.2,
+            heavy: !0,
+            shape: "circle",
+            reach: 16,
+            radius: 17,
+          },
+        ],
+        dodge: {
+          kind: "air",
+          dist: 86,
+          ticks: 14,
+          iframes: 10,
+          cooldown: 32,
+          anim: "Walk",
+        },
+        smash: {
+          name: "AIR SLASH",
+          anim: "Swing",
+          windup: 8,
+          maxCharge: 44,
+          active: 4,
+          recovery: 24,
+          lunge: 0,
+          dmg: 32,
+          kb: 6,
+          shape: "circle",
+          reach: 90,
+          radius: 10,
+          proj: !0,
+        },
+        xName: "BOOMBURST",
+        yName: "HURRICANE",
+        xCd: 110,
+        yCd: 300,
+      },
+      // The Aura Pokémon. A technical martial artist: chargeable, storable Aura
+      // Sphere, a Detect counter, Meteor Mash, and Aura that grows as it is hurt.
+      lucario: {
+        id: "lucario",
+        name: "LUCARIO",
+        type: "FIGHTING",
+        type2: "STEEL",
+        color: "#4a7fd6",
+        typeInk: "#0e1a33",
+        hp: 940,
+        speed: 3.05,
+        weight: 1,
+        r: 8,
+        hurtR: 10,
+        size: 0.71,
+        tall: 29,
+        role: "Fighter \xB7 counter",
+        aura: !0,
+        stats: { speed: 4, power: 4, defense: 3, range: 3, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 4,
+            active: 3,
+            recovery: 8,
+            lunge: 8,
+            dmg: 22,
+            kb: 1.5,
+            heavy: !1,
+            shape: "circle",
+            reach: 16,
+            radius: 13,
+          },
+          {
+            anim: "Double",
+            startup: 4,
+            active: 3,
+            recovery: 9,
+            lunge: 9,
+            dmg: 24,
+            kb: 1.9,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 14,
+          },
+          {
+            anim: "Strike",
+            startup: 7,
+            active: 4,
+            recovery: 15,
+            lunge: 6,
+            dmg: 38,
+            kb: 6,
+            heavy: !0,
+            shape: "circle",
+            reach: 20,
+            radius: 16,
+            palm: !0,
+          },
+        ],
+        dodge: {
+          kind: "dash",
+          dist: 92,
+          ticks: 10,
+          iframes: 8,
+          cooldown: 34,
+          anim: "Walk",
+        },
+        smash: {
+          name: "METEOR MASH",
+          anim: "QuickStrike",
+          windup: 9,
+          maxCharge: 44,
+          active: 6,
+          recovery: 26,
+          lunge: 34,
+          dmg: 48,
+          kb: 7,
+          shape: "circle",
+          reach: 10,
+          radius: 16,
+        },
+        xName: "AURA SPHERE",
+        yName: "DETECT",
+        xCd: 70,
+        yCd: 210,
+      },
     },
-    ge = ["charizard", "venusaur", "blastoise", "dragapult", "magnezone"],
+    ge = [
+      "charizard",
+      "venusaur",
+      "blastoise",
+      "dragapult",
+      "magnezone",
+      "snorlax",
+      "noivern",
+      "lucario",
+    ],
     ut = 360,
     // Deliberate pacing: every move commits a little longer, so attacks can be
     // read and whiffs can be punished. Scales the per-kit frame data below.
@@ -1075,6 +1361,25 @@
               : (this.smashHold = 0),
             i
           );
+        // Lucario reads an incoming attack and answers with Detect.
+        if (
+          f === "lucario" &&
+          p &&
+          u.cdY === 0 &&
+          o.kind === "player" &&
+          ((o.state === "attack" &&
+            o.t <= o.kit.basic()[o.combo].startup &&
+            y <
+              o.kit.basic()[o.combo].reach +
+                o.kit.basic()[o.combo].radius +
+                24) ||
+            (o.state === "smashCharge" && y < 90) ||
+            (o.state === "flame" && y < 70)) &&
+          r() < 0.05 + 0.07 * s.punish
+        )
+          return i.pressed.add("special2"), i;
+        if (t.state === "sphere" && y < 46 && r() < 0.5)
+          return (this.holdX = 0), i.held.add("guard"), i;
         if (this.guardHold > 0) {
           if (
             (this.guardHold--,
@@ -1131,7 +1436,13 @@
                     : 100
                   : f === "magnezone"
                     ? 95
-                    : 20;
+                    : f === "noivern"
+                      ? 44
+                      : f === "lucario"
+                        ? (u.sphere ?? 0) > 0.5
+                          ? 90
+                          : 26
+                        : 20;
         f === "venusaur" && this.plantT > 0
           ? (this.plantT--, (P = y))
           : f === "venusaur" &&
@@ -1184,7 +1495,8 @@
           return i.held.add("guard"), (this.guardHold = 44 - o.t + 8), i;
         let w = o.kind === "player" ? o : null,
           U = t.kit.smash,
-          re = U.reach + U.radius + U.lunge + 14;
+          re =
+            U.reach + U.radius + U.lunge + 14 + (U.beam ? U.beam.len * 0.8 : 0);
         if (
           w &&
           w.state === "smashCharge" &&
@@ -1252,6 +1564,14 @@
               i
             );
           }
+          if (
+            f === "lucario" &&
+            se.melee &&
+            p &&
+            u.cdY === 0 &&
+            r() < 0.4 + 0.4 * s.punish
+          )
+            return i.pressed.add("special2"), i;
           if (!se.dreepy && p && u.guard > 35 && r() < s.dodge * s.guard * 1.4)
             return (
               i.held.add("guard"),
@@ -1395,29 +1715,90 @@
                       u.cdDodge === 0 &&
                       y > 60 &&
                       y < 150 &&
-                      r() < 0.12 &&
+                      r() < 0.22 &&
                       ((i.mx = Math.cos(b)),
                       (i.my = Math.sin(b)),
                       i.pressed.add("dodge"),
                       (this.holdB = 26),
                       (this.phantomAway = !1));
+          } else if (f === "snorlax") {
+            // Wall of a Pokémon: brawl up close, Yawn at range, nap when safe,
+            // and cash in a fully charged Heavy Slam on a sleeping target.
+            let J = (o.asleepUntil ?? 0) > l,
+              fe = !e.losBlocked(t.x, t.y, o.x, o.y);
+            J && y < 150
+              ? ((this.smashHold = 40 + Math.floor(r() * 20)),
+                (i.ax = Math.cos(b)),
+                (i.ay = Math.sin(b)))
+              : u.cdY === 0 && u.hp < u.maxHp * 0.5 && y > 110 && r() < 0.5
+                ? (i.pressed.add("special2"),
+                  (this.holdY = 60 + Math.floor(r() * 120)))
+                : y < 34 || (N && y < 50)
+                  ? i.pressed.add("attack")
+                  : u.cdX === 0 && fe && y > 50 && y < 210 && r() < 0.4
+                    ? i.pressed.add("special1")
+                    : y > 60 &&
+                      y < 125 &&
+                      r() < 0.08 &&
+                      ((this.smashHold = 6 + Math.floor(r() * 30)),
+                      (i.ax = Math.cos(b)),
+                      (i.ay = Math.sin(b)));
+          } else if (f === "noivern") {
+            // Hit and run: Boomburst point-blank, Hurricane to zone, Air Slash poke.
+            let fe = !e.losBlocked(t.x, t.y, o.x, o.y);
+            y < 30
+              ? u.cdX === 0 && r() < 0.35
+                ? (i.pressed.add("special1"), (this.holdX = 0))
+                : i.pressed.add("attack")
+              : u.cdX === 0 && y < 80 && r() < 0.45
+                ? (i.pressed.add("special1"),
+                  (this.holdX = r() < 0.5 ? 0 : Math.floor(r() * 36)))
+                : u.cdY === 0 && y > 60 && y < 220 && r() < 0.3
+                  ? i.pressed.add("special2")
+                  : y > 70 && y < 210 && fe && r() < 0.18
+                    ? ((this.smashHold = 4 + Math.floor(r() * 28)),
+                      (i.ax = Math.cos(b)),
+                      (i.ay = Math.sin(b)))
+                    : y < 52 && r() < 0.5 && i.pressed.add("attack");
+          } else if (f === "lucario") {
+            // Charge and store Aura Sphere at range, fire it when it lands,
+            // fight up close, Meteor Mash from mid range.
+            let J = u.sphere ?? 0,
+              fe = !e.losBlocked(t.x, t.y, o.x, o.y);
+            J > 0.5 && u.cdX === 0 && fe && y < 220 && r() < 0.55
+              ? i.pressed.add("special1")
+              : y < 30 || (N && y < 46)
+                ? i.pressed.add("attack")
+                : u.cdX === 0 && J < 0.9 && y > 85 && r() < 0.5
+                  ? (i.pressed.add("special1"),
+                    (this.holdX = 30 + Math.floor(r() * 60)))
+                  : y > 36 &&
+                    y < 80 &&
+                    r() < 0.22 &&
+                    ((this.smashHold = 4 + Math.floor(r() * 26)),
+                    (i.ax = Math.cos(b)),
+                    (i.ay = Math.sin(b)));
           } else if (f === "magnezone") {
             // Set up first: mark the target, then cash it in with Zap Cannon.
             let J = o.lockT > 0 && o.lockBy === t,
               fe = !e.losBlocked(t.x, t.y, o.x, o.y);
-            y < 26
-              ? r() < 0.35 && u.cdDodge === 0
-                ? ((i.mx = -Math.cos(b)),
-                  (i.my = -Math.sin(b)),
+            y < 30
+              ? r() < 0.5 && u.cdDodge === 0
+                ? ((i.mx = Math.cos(b) * 0.3),
+                  (i.my = Math.sin(b) * 0.3),
                   i.pressed.add("dodge"))
                 : i.pressed.add("attack")
-              : J && u.cdY === 0 && fe
-                ? i.pressed.add("special2")
-                : !J && u.cdX === 0 && fe && y < 250 && r() < 0.6
-                  ? i.pressed.add("special1")
-                  : u.cdY === 0 && y > 70 && y < 170 && r() < 0.12
-                    ? i.pressed.add("special2")
-                    : y < 44 && r() < 0.6 && i.pressed.add("attack");
+              : y > 50 && y < 100 && fe && r() < 0.1
+                ? ((this.smashHold = 4 + Math.floor(r() * 30)),
+                  (i.ax = Math.cos(b)),
+                  (i.ay = Math.sin(b)))
+                : J && u.cdY === 0 && fe
+                  ? i.pressed.add("special2")
+                  : !J && u.cdX === 0 && fe && y < 250 && r() < 0.6
+                    ? i.pressed.add("special1")
+                    : u.cdY === 0 && y > 70 && y < 170 && r() < 0.12
+                      ? i.pressed.add("special2")
+                      : y < 44 && r() < 0.6 && i.pressed.add("attack");
           } else
             y > 45 && y < 110 && u.cdDodge === 0 && r() < 0.3
               ? ((i.mx = Math.cos(b)),
@@ -1458,7 +1839,8 @@
               o.kit.smash.reach +
                 o.kit.smash.radius +
                 o.kit.smash.lunge +
-                t.hurtR
+                t.hurtR +
+                (o.kit.smash.beam ? o.kit.smash.beam.len : 0)
           )
             return { dir: r, melee: !0, projectile: !1 };
           if (
@@ -1554,11 +1936,11 @@
     // Zone Control: hold the ring alone to fill your meter; it relocates on a telegraph.
     ZONE = { r: 44, goal: 100, rate: 100 / (60 * 20), every: 720, warn: 150 },
     he = {
-      base: 11,
+      base: 10,
       per: 0.04,
-      cap: 17,
+      cap: 14,
       back: 0.6,
-      hex: 1.3,
+      hex: 1.15,
       stun: 10,
       kb: 1.8,
       burn: 240,
@@ -1705,15 +2087,67 @@
     MAGNE = {
       lockRange: 260,
       lockTicks: 300,
-      zapDmg: 55,
-      zapSlow: 2,
+      zapDmg: 50,
+      zapSlow: 2.4,
+      // Magnet Pull: Lock-On's scan tugs on steel and slows the target.
+      pullT: 90,
+      pullSlow: 0.72,
+      scanDmg: 10,
+      // Magnet Rise lands with a Discharge ring: an answer to rushdown.
+      landR: 32,
+      landDmg: 16,
       zapFast: 3,
       para: 90,
       analytic: 1.25,
       shock: 120,
     },
+    // Snorlax: Yawn puts a foe to sleep after a delay; Rest heals while snoring.
+    SNOR = {
+      yawnSpeed: 1.5,
+      drowsy: 100,
+      sleep: 75,
+      restMin: 40,
+      restMax: 210,
+      restHeal: 0.0012,
+      restTaken: 1.2,
+      snoreEvery: 45,
+      snoreR: 34,
+      snoreDmg: 12,
+      thickFat: 0.7,
+      gluttony: 2,
+    },
+    // Noivern: Boomburst cone (tap or charge), Hurricane vortex, Air Slash blade.
+    NOIV = {
+      boomRange: 86,
+      boomGrow: 50,
+      boomCone: 0.75,
+      boomDmg: 32,
+      boomCharge: 40,
+      hurSpeed: 1.3,
+      hurLife: 160,
+      hurR: 22,
+      hurPull: 52,
+      hurEvery: 12,
+      hurDmg: 6,
+      hurEnd: 26,
+      slashSpeed: 4.6,
+    },
+    // Lucario: Aura Sphere (charge, store, fire), Detect counter, Aura passive.
+    LUCA = {
+      sphereCharge: 70,
+      sphereMin: 14,
+      sphereMax: 46,
+      sphereSpeed: 3.4,
+      detectWin: 22,
+      detectLag: 26,
+      counterMult: 1.3,
+      counterMin: 30,
+      aura: 0.4,
+    },
     // Dragapult rapid claws: hold A after the second hit.
-    FLURRY = { every: 4, dmg: 6, minTicks: 10, maxTicks: 50 },
+    FLURRY = { every: 4, dmg: 7, minTicks: 10, maxTicks: 50 },
+    // Phantom Force crosses up: reappear behind a nearby foe for an ambush.
+    AMBUSH = { range: 120, mult: 1.2 },
     BLAST = {
       pulseDmg: 14,
       pulseSpeed: 3.6,
@@ -1735,11 +2169,19 @@
     DRAGON: { STEEL: -1 },
     STEEL: { WATER: -1, FIRE: -1, ELECTRIC: -1, STEEL: -1 },
     WATER: { ELECTRIC: 0 },
+    NORMAL: { STEEL: -1, GHOST: -1 },
+    FIGHTING: { NORMAL: 1, STEEL: 1, FLYING: -1, GHOST: -1 },
+    FLYING: { GRASS: 1, FIGHTING: 1, ELECTRIC: -1, STEEL: -1 },
+    GHOST: { NORMAL: -1 },
   };
+  TX.ELECTRIC.FLYING = 1;
   function Ua(a, e) {
     let t = TX[a]?.[e];
     if (t) return t > 0 ? yt.strong : yt.weak;
-    if (a === "ELECTRIC" || a === "STEEL" || e === "ELECTRIC" || e === "STEEL")
+    if (
+      ["ELECTRIC", "STEEL", "NORMAL", "FLYING", "FIGHTING"].includes(a) ||
+      ["ELECTRIC", "STEEL", "NORMAL", "FLYING", "FIGHTING"].includes(e)
+    )
       return 1;
     return a === "DRAGON" && e === "DRAGON"
       ? yt.strong
@@ -1907,6 +2349,7 @@
               (this.state === "flySlam" && this.t < 5) ||
               this.state === "faint" ||
               this.state === "phantom" ||
+              this.state === "counter" ||
               (this.state === "pfStrike" && this.t < 3) ||
               this.state === "down" ||
               (this.state === "getup" && this.t < ae.getupT);
@@ -1937,8 +2380,13 @@
           let e = this.kit.basic()[this.combo];
           return e.armor && this.t <= e.startup + e.active ? 1 : 0;
         }
+        if (this.state === "rest") return 1 / 0;
         return (this.state === "smashCharge" ||
-          (this.state === "smash" && this.t <= this.kit.smash.active + 2)) &&
+          (this.state === "smash" &&
+            this.t <=
+              (this.kit.smash.leap
+                ? this.kit.smash.leap.air
+                : this.kit.smash.active + 2))) &&
           this.kit.smash.armor
           ? 1
           : 0;
@@ -2529,6 +2977,8 @@
           e.seededT > 0 && e.seededT--,
           e.dazeT > 0 && e.dazeT--,
           e.paraT > 0 && e.paraT--,
+          e.magT > 0 && e.magT--,
+          e.drowsyT > 0 && --e.drowsyT === 0 && this.fallAsleep(e),
           e.xatkT > 0 && e.xatkT--,
           e.ejectT > 0 && e.ejectT--,
           e.lockT > 0 && e.lockT--,
@@ -2543,7 +2993,8 @@
           c =
             (e.seededT > 0 ? 0.5 : 1) *
             (e.dazeT > 0 ? 0.65 : 1) *
-            (e.paraT > 0 ? 0.45 : 1),
+            (e.paraT > 0 ? 0.45 : 1) *
+            (e.magT > 0 ? MAGNE.pullSlow : 1),
           y = t.mx * c,
           b = t.my * c,
           p = Math.hypot(t.mx, t.my),
@@ -2575,6 +3026,9 @@
             "phantom",
             "pfStrike",
             "qa",
+            "rest",
+            "restWake",
+            "counter",
             "stunned",
             "launched",
             "down",
@@ -2601,6 +3055,9 @@
             "phantom",
             "pfStrike",
             "qa",
+            "rest",
+            "restWake",
+            "counter",
             "stunned",
             "launched",
             "down",
@@ -2747,6 +3204,38 @@
             break;
           case "lockon":
             this.tickLockOn(e, P);
+            break;
+          case "yawn":
+            this.tickYawn(e, P);
+            break;
+          case "rest":
+            this.tickRest(e);
+            break;
+          case "restWake":
+            this.locomote(e, 0, 0),
+              e.t >= 16 && ((e.state = "move"), (e.t = 0));
+            break;
+          case "boom":
+            this.tickBoom(e, P);
+            break;
+          case "boomFire":
+            this.tickBoomFire(e);
+            break;
+          case "hurCast":
+            this.tickHurCast(e, P);
+            break;
+          case "sphere":
+            this.tickSphere(e, P);
+            break;
+          case "sphereFire":
+            this.locomote(e, 0, 0),
+              e.t >= 16 && ((e.state = "move"), (e.t = 0));
+            break;
+          case "detect":
+            this.tickDetect(e);
+            break;
+          case "counter":
+            this.tickCounter(e);
             break;
           case "zap":
             this.tickZap(e, P);
@@ -3198,7 +3687,8 @@
         return o;
       }
       startDodge(e, t) {
-        e.state === "solar" && this.storeSolar(e);
+        e.state === "solar" && this.storeSolar(e),
+          e.state === "sphere" && this.storeSphere(e);
         let s = e.kit.dodge;
         (e.state = "dodge"),
           (e.t = 0),
@@ -3235,7 +3725,7 @@
           h = e.t <= o.ticks ? f * (u(e.t) - u(e.t - 1)) : 0;
         if (
           (this.moveBody(e, Math.cos(e.dodgeDir) * h, Math.sin(e.dodgeDir) * h),
-          (o.kind === "air" || o.kind === "rise") &&
+          (o.kind === "air" || o.kind === "rise" || o.kind === "bounce") &&
             e.t <= o.ticks &&
             (e.z = Math.sin(Math.min(1, e.t / o.ticks) * Math.PI) * 9),
           o.kind === "phantom" &&
@@ -3248,6 +3738,34 @@
             (e.lock = e.lock);
           return;
         }
+        o.kind === "rise" &&
+          e.t === o.ticks &&
+          (this.hitboxes.push({
+            id: e.dodgeId,
+            team: e.team,
+            owner: e,
+            shape: { kind: "circle", x: e.x, y: e.y, r: MAGNE.landR },
+            dmg: MAGNE.landDmg,
+            kb: 3.4,
+            kbMode: "away",
+            dx: Math.cos(e.dodgeDir),
+            dy: Math.sin(e.dodgeDir),
+            heavy: !1,
+            hitstop: 5,
+            hitstun: 18,
+            color: "#f8d030",
+            rehit: 0,
+            attackerStop: !1,
+            src: "discharge",
+            melee: !1,
+          }),
+          this.emit({
+            type: "riseShock",
+            who: e,
+            x: e.x,
+            y: e.y,
+            r: MAGNE.landR,
+          }));
         o.kind === "shell" &&
           e.t <= o.ticks &&
           ((e.spinRow = Math.floor(e.t / 2) % 8),
@@ -3495,6 +4013,7 @@
             }));
       }
       tickSmash(e, t) {
+        if (e.kit.smash.leap) return this.tickHeavySlam(e);
         let s = e.kit.smash,
           i = e.smashCharge,
           r = 2,
@@ -3543,29 +4062,64 @@
             smash: !0,
             charge: i,
           });
-        if (e.t > r && e.t <= r + s.active) {
-          let f =
-            s.shape === "vine"
+        if (s.beam && e.t > r && e.t <= r + s.active) {
+          let f = s.beam.len + s.beam.grow * i,
+            u = e.x + o * 10,
+            h = e.y + l * 10,
+            c = this.beamEnd(u, h, e.atkDir, f);
+          this.beams.push({
+            x1: u,
+            y1: h,
+            x2: c.x,
+            y2: c.y,
+            owner: e,
+            age: e.t - r - 1,
+            life: s.active,
+            style: s.beam.style,
+            w: s.beam.r * (1 + 0.5 * i),
+          });
+        }
+        s.proj && e.t === r + 1 && this.fireAirSlash(e, i);
+        if (!s.proj && e.t > r && e.t <= r + s.active) {
+          let bm = s.beam
+              ? this.beamEnd(
+                  e.x + o * 10,
+                  e.y + l * 10,
+                  e.atkDir,
+                  s.beam.len + s.beam.grow * i,
+                )
+              : null,
+            f = bm
               ? {
                   kind: "capsule",
                   x1: e.x + o * 10,
                   y1: e.y + l * 10,
-                  x2: e.x + o * s.reach,
-                  y2: e.y + l * s.reach,
-                  r: s.radius,
+                  x2: bm.x,
+                  y2: bm.y,
+                  r: s.beam.r * (1 + 0.5 * i),
                 }
-              : {
-                  kind: "circle",
-                  x: e.x + o * (s.reach + 2),
-                  y: e.y + l * (s.reach + 2),
-                  r: s.radius * 1.2,
-                };
+              : s.shape === "vine"
+                ? {
+                    kind: "capsule",
+                    x1: e.x + o * 10,
+                    y1: e.y + l * 10,
+                    x2: e.x + o * s.reach,
+                    y2: e.y + l * s.reach,
+                    r: s.radius,
+                  }
+                : {
+                    kind: "circle",
+                    x: e.x + o * (s.reach + 2),
+                    y: e.y + l * (s.reach + 2),
+                    r: s.radius * 1.2,
+                  };
           this.hitboxes.push({
             id: e.swingId,
             team: e.team,
             owner: e,
             shape: f,
             dmg: Math.round(s.dmg * (1 + 0.6 * i)),
+            reflects: !s.beam,
             kb: s.kb * (1 + 0.35 * i),
             kbMode: "dir",
             dx: o,
@@ -3576,7 +4130,6 @@
             color: e.kit.color,
             rehit: 0,
             attackerStop: !0,
-            reflects: !0,
             fire: e.kit.id === "charizard",
             src: "smash",
             melee: !0,
@@ -3618,6 +4171,30 @@
                 (e.pumpAt = 0),
                 (e.cannonC = 0),
                 this.emit({ type: "pumpStart", who: e }));
+        else if (i.id === "snorlax")
+          t === "x"
+            ? (e.state = "yawn")
+            : r.hp >= r.maxHp
+              ? ((e.state = "move"),
+                this.emit({ type: "dartsEmpty", who: e, msg: "FULL HP" }))
+              : ((e.state = "rest"),
+                (e.restHealed = 0),
+                (r.cdY = i.yCd),
+                this.emit({ type: "restStart", who: e }));
+        else if (i.id === "noivern")
+          t === "x"
+            ? ((e.state = "boom"), (e.boomC = 0))
+            : (e.state = "hurCast");
+        else if (i.id === "lucario")
+          t === "x"
+            ? (r.sphere ?? 0) > 0.05
+              ? this.fireSphere(e, r.sphere)
+              : ((e.state = "sphere"),
+                (e.sphereC = 0),
+                this.emit({ type: "sphereStart", who: e }))
+            : ((e.state = "detect"),
+              (r.cdY = i.yCd),
+              this.emit({ type: "detect", who: e }));
         else if (i.id === "magnezone")
           (e.state = t === "x" ? "lockon" : "zap"),
             t === "y" && this.emit({ type: "zapCharge", who: e });
@@ -3656,6 +4233,522 @@
               : ((e.state = "solar"),
                 (e.solarC = 0),
                 this.emit({ type: "solarStart", who: e }));
+      }
+
+      // ---- Snorlax -------------------------------------------------------
+      tickYawn(e, t) {
+        this.locomote(e, 0, 0),
+          e.t <= 6 &&
+            ((e.dir2 = this.aimAssist(e, t, 200)), (e.facing = e.dir2));
+        if (e.t === 12) {
+          let s = Math.cos(e.dir2),
+            i = Math.sin(e.dir2);
+          this.projectiles.push({
+            id: this.nextId++,
+            team: e.team,
+            owner: e,
+            x: e.x + s * 14,
+            y: e.y + i * 14,
+            px: e.x,
+            py: e.y,
+            z: 18,
+            pz: 18,
+            vx: s * SNOR.yawnSpeed,
+            vy: i * SNOR.yawnSpeed,
+            r: 11,
+            life: 150,
+            age: 0,
+            dmg: 0,
+            kb: 0,
+            hitstun: 0,
+            hitstop: 0,
+            kind: "yawn",
+            color: "#cfe3ff",
+            ghost: !0,
+          }),
+            (e.slot.cdX = e.kit.xCd),
+            this.emit({ type: "yawn", who: e, dx: s, dy: i });
+        }
+        e.t >= 28 && ((e.state = "move"), (e.t = 0));
+      }
+      drowse(e) {
+        e.kind !== "player" ||
+          e.state === "faint" ||
+          e.drowsyT > 0 ||
+          ((e.drowsyT = SNOR.drowsy), this.emit({ type: "drowsy", who: e }));
+      }
+      fallAsleep(e) {
+        ["faint", "launched", "down", "getup", "stunned"].includes(e.state) ||
+          (e.state === "solar" && this.storeSolar(e),
+          e.state === "sphere" && this.storeSphere(e),
+          (e.state = "stunned"),
+          (e.t = 0),
+          (e.hitstun = SNOR.sleep),
+          (e.combo = 0),
+          (e.flameEnd = 0),
+          (e.mvx = e.mvy = 0),
+          (e.asleepUntil = this.tick + SNOR.sleep),
+          this.emit({ type: "asleep", who: e }));
+      }
+      tickRest(e) {
+        this.locomote(e, 0, 0);
+        let t = e.slot;
+        if (e.t > 10) {
+          let s = t.hp;
+          (t.hp = Math.min(t.maxHp, t.hp + t.maxHp * SNOR.restHeal)),
+            (e.restHealed += t.hp - s),
+            (e.t - 10) % SNOR.snoreEvery === 0 && this.snore(e);
+        }
+        ((!e.holdY && e.t >= SNOR.restMin) ||
+          e.t >= SNOR.restMax ||
+          t.hp >= t.maxHp) &&
+          ((e.state = "restWake"),
+          (e.t = 0),
+          this.emit({
+            type: "restWake",
+            who: e,
+            healed: Math.round(e.restHealed),
+          }));
+      }
+      snore(e) {
+        this.hitboxes.push({
+          id: this.nextId++,
+          team: e.team,
+          owner: e,
+          shape: { kind: "circle", x: e.x, y: e.y, r: SNOR.snoreR },
+          dmg: SNOR.snoreDmg,
+          kb: 3.2,
+          kbMode: "away",
+          dx: Math.cos(e.facing),
+          dy: Math.sin(e.facing),
+          heavy: !1,
+          hitstop: 4,
+          hitstun: 16,
+          color: "#cfe3ff",
+          rehit: 0,
+          attackerStop: !1,
+          src: "snore",
+          melee: !1,
+        }),
+          this.emit({ type: "snore", who: e, x: e.x, y: e.y, r: SNOR.snoreR });
+      }
+      tickHeavySlam(e) {
+        let t = e.kit.smash,
+          s = t.leap,
+          i = e.smashCharge,
+          r = s.air,
+          o = Math.cos(e.atkDir),
+          l = Math.sin(e.atkDir),
+          f = s.dist + s.grow * i;
+        if (e.t <= r) {
+          let u = (c) => 1 - Math.pow(1 - me(c, 0, 1), 2),
+            h = f * (u(e.t / r) - u((e.t - 1) / r));
+          this.moveBody(e, o * h, l * h),
+            (e.z = Math.sin(Math.min(1, e.t / r) * Math.PI) * (22 + 14 * i));
+        }
+        if (e.t === r) {
+          e.z = 0;
+          let u = s.r + s.grow2 * i;
+          for (let h of this.victimsFor(e.team)) {
+            if (this.floating(h)) continue;
+            let c = h.x - e.x,
+              y = h.y - e.y,
+              b = Math.hypot(c, y);
+            b < u + h.hurtR &&
+              this.applyHit(
+                h,
+                e,
+                Math.round(t.dmg * (1 + 0.6 * i) * (b < u * 0.55 ? 1 : 0.8)),
+                t.kb * (1 + 0.35 * i),
+                c / (b || 1),
+                y / (b || 1),
+                !0,
+                A.hitstopHeavy + Math.round(6 * i),
+                A.hitstunHeavy,
+                e.kit.color,
+                h.x,
+                h.y,
+                !0,
+                !1,
+                this.srcLabel(e, "smash"),
+                !0,
+                !1,
+                Math.max(0.01, i),
+              );
+          }
+          for (let h of this.rocks)
+            h.state === "solid" &&
+              Math.hypot(h.x - e.x, h.y - e.y) < u + h.r &&
+              this.hitRock(h, t.dmg, void 0, void 0, e);
+          this.emit({ type: "heavySlam", who: e, x: e.x, y: e.y, r: u, c: i });
+        }
+        e.t >= r + t.recovery + (e.swingHit ? 0 : ae.whiffLag) &&
+          ((e.state = "move"), (e.t = 0), (e.z = 0)),
+          e.t > r && this.locomote(e, 0, 0);
+      }
+      // ---- Noivern -------------------------------------------------------
+      fireAirSlash(e, t) {
+        let s = e.kit.smash,
+          i = Math.cos(e.atkDir),
+          r = Math.sin(e.atkDir);
+        this.projectiles.push({
+          id: this.nextId++,
+          team: e.team,
+          owner: e,
+          x: e.x + i * 14,
+          y: e.y + r * 14,
+          px: e.x,
+          py: e.y,
+          z: 12,
+          pz: 12,
+          vx: i * NOIV.slashSpeed * (1 + 0.25 * t),
+          vy: r * NOIV.slashSpeed * (1 + 0.25 * t),
+          r: 9 + 4 * t,
+          life: 34 + Math.round(22 * t),
+          age: 0,
+          dmg: Math.round(s.dmg * (1 + 0.6 * t)),
+          kb: s.kb * (1 + 0.35 * t),
+          hitstun: A.hitstunHeavy,
+          hitstop: A.hitstopHeavy + Math.round(4 * t),
+          heavy: t > 0.3,
+          kind: "airslash",
+          color: "#d9c8ff",
+          pierce: !0,
+          hits: [],
+          charge: t,
+        }),
+          this.emit({ type: "airSlash", who: e, c: t, dx: i, dy: r });
+      }
+      tickBoom(e, t) {
+        this.locomote(e, 0, 0),
+          (e.t <= 3 || e.holdX) &&
+            ((e.dir2 = this.aimAssist(e, t, NOIV.boomRange + 40)),
+            (e.facing = e.dir2)),
+          (e.boomC = me((e.t - 8) / NOIV.boomCharge, 0, 1)),
+          ((!e.holdX && e.t >= 6) || e.t >= 8 + NOIV.boomCharge + 24) &&
+            ((e.state = "boomFire"),
+            (e.t = 0),
+            (e.moveId = this.nextId++),
+            (e.slot.cdX = e.kit.xCd),
+            this.emit({
+              type: "boomFire",
+              who: e,
+              c: e.boomC,
+              dx: Math.cos(e.dir2),
+              dy: Math.sin(e.dir2),
+            }));
+      }
+      tickBoomFire(e) {
+        this.locomote(e, 0, 0);
+        let t = e.boomC,
+          s = NOIV.boomRange + NOIV.boomGrow * t,
+          i = Math.min(1, e.t / 8);
+        if (e.t >= 1 && e.t <= 8) {
+          let r = { id: e.moveId, rehit: 0 };
+          for (let o of this.victimsFor(e.team)) {
+            let l = o.x - e.x,
+              f = o.y - e.y,
+              u = Math.hypot(l, f);
+            if (
+              u > s * i + o.hurtR ||
+              Math.abs($e(Math.atan2(f, l), e.dir2)) > NOIV.boomCone ||
+              !this.canHitAgain(r, o)
+            )
+              continue;
+            let h = 1 - 0.4 * me(u / s, 0, 1);
+            this.applyHit(
+              o,
+              e,
+              Math.round(NOIV.boomDmg * (1 + 0.55 * t) * h),
+              3.4 + 2.6 * t,
+              l / (u || 1),
+              f / (u || 1),
+              t > 0.6,
+              6 + Math.round(4 * t),
+              18 + Math.round(8 * t),
+              "#c9a6ff",
+              o.x,
+              o.y,
+              !1,
+              !1,
+              this.srcLabel(e, "boomburst"),
+              !1,
+              !!e.kit.infiltrator,
+            );
+          }
+        }
+        e.t >= 26 && ((e.state = "move"), (e.t = 0));
+      }
+      tickHurCast(e, t) {
+        this.locomote(e, 0, 0),
+          e.t <= 6 &&
+            ((e.dir2 = this.aimAssist(e, t, 220)), (e.facing = e.dir2));
+        if (e.t === 12) {
+          let s = Math.cos(e.dir2),
+            i = Math.sin(e.dir2);
+          this.projectiles.push({
+            id: this.nextId++,
+            team: e.team,
+            owner: e,
+            x: e.x + s * 22,
+            y: e.y + i * 22,
+            px: e.x + s * 22,
+            py: e.y + i * 22,
+            z: 0,
+            pz: 0,
+            vx: s * NOIV.hurSpeed,
+            vy: i * NOIV.hurSpeed,
+            r: NOIV.hurR,
+            life: NOIV.hurLife,
+            age: 0,
+            dmg: NOIV.hurDmg,
+            kb: 0.5,
+            hitstun: 14,
+            hitstop: 1,
+            kind: "hurricane",
+            color: "#c9a6ff",
+          }),
+            (e.slot.cdY = e.kit.yCd),
+            this.emit({
+              type: "hurricane",
+              who: e,
+              x: e.x + s * 22,
+              y: e.y + i * 22,
+            });
+        }
+        e.t >= 26 && ((e.state = "move"), (e.t = 0));
+      }
+      tickHurricane(e) {
+        let t = this.nearestTarget(e.team, e.x, e.y);
+        if (t && e.age > 10) {
+          let r = Math.hypot(e.vx, e.vy),
+            o = We(
+              Math.atan2(e.vy, e.vx),
+              Math.atan2(t.y - e.y, t.x - e.x),
+              0.025,
+            );
+          (e.vx = Math.cos(o) * r), (e.vy = Math.sin(o) * r);
+        }
+        (e.x = me(e.x + e.vx, B.x0 + 10, B.x1 - 10)),
+          (e.y = me(e.y + e.vy, B.y0 + 8, B.y1 - 6)),
+          e.life--;
+        let s = { id: e.id, rehit: NOIV.hurEvery - 1 };
+        for (let r of this.targetsFor(e.team)) {
+          if (r.kind === "player" && (r.invincible || r.state === "faint"))
+            continue;
+          let o = e.x - r.x,
+            l = e.y - r.y,
+            f = Math.hypot(o, l);
+          f < NOIV.hurPull &&
+            f > 3 &&
+            ((r.kvx += (o / f) * 0.32), (r.kvy += (l / f) * 0.32)),
+            f < e.r + r.hurtR &&
+              e.life > 0 &&
+              this.canHitAgain(s, r) &&
+              this.applyHit(
+                r,
+                e.owner,
+                e.dmg,
+                e.kb,
+                -o / (f || 1),
+                -l / (f || 1),
+                !1,
+                e.hitstop,
+                e.hitstun,
+                e.color,
+                r.x,
+                r.y,
+                !1,
+                !0,
+                this.srcLabel(e.owner, "hurricane"),
+              );
+        }
+        for (let r of this.projectiles)
+          r !== e &&
+            !r.dead &&
+            r.team !== e.team &&
+            r.kind !== "hurricane" &&
+            Math.hypot(r.x - e.x, r.y - e.y) < e.r + r.r &&
+            ((r.dead = !0), this.emit({ type: "projDie", p: r, wall: !1 }));
+        if (e.life <= 0) {
+          e.dead = !0;
+          for (let r of this.victimsFor(e.team)) {
+            let o = r.x - e.x,
+              l = r.y - e.y,
+              f = Math.hypot(o, l);
+            f < e.r + 12 + r.hurtR &&
+              this.applyHit(
+                r,
+                e.owner,
+                NOIV.hurEnd,
+                6,
+                o / (f || 1),
+                l / (f || 1),
+                !0,
+                8,
+                24,
+                e.color,
+                r.x,
+                r.y,
+                !1,
+                !1,
+                this.srcLabel(e.owner, "hurricane-burst"),
+              );
+          }
+          this.emit({ type: "hurricaneEnd", x: e.x, y: e.y });
+        }
+      }
+      // ---- Lucario -------------------------------------------------------
+      tickSphere(e, t) {
+        this.locomote(e, 0, 0),
+          (e.dir2 = this.aimAssist(e, t, 240)),
+          (e.facing = e.dir2);
+        let s = e.sphereC;
+        (e.sphereC = me((e.t - 4) / LUCA.sphereCharge, 0, 1)),
+          e.sphereC >= 1 && s < 1 && this.emit({ type: "sphereFull", who: e });
+        if (e.t > 6 && e.holdG) {
+          this.storeSphere(e), (e.state = "move"), (e.t = 0);
+          return;
+        }
+        ((!e.holdX && e.t >= 8) || e.t >= 4 + LUCA.sphereCharge + 50) &&
+          this.fireSphere(e, e.sphereC);
+      }
+      storeSphere(e) {
+        let t = e.slot;
+        (t.sphere = Math.max(t.sphere ?? 0, e.sphereC ?? 0)),
+          (t.cdX = Math.max(t.cdX, 12)),
+          t.sphere > 0.05 &&
+            this.emit({ type: "sphereStore", who: e, c: t.sphere });
+      }
+      fireSphere(e, t) {
+        (e.state = "sphereFire"), (e.t = 0);
+        let s =
+            e.lock ??
+            this.nearestInCone(e.team, e.x, e.y, e.dir2 ?? e.facing, 0.9, 300),
+          i = s ? Math.atan2(s.y - e.y, s.x - e.x) : (e.dir2 ?? e.facing),
+          r = Math.cos(i),
+          o = Math.sin(i);
+        (e.facing = e.dir2 = i),
+          this.projectiles.push({
+            id: this.nextId++,
+            team: e.team,
+            owner: e,
+            x: e.x + r * 12,
+            y: e.y + o * 12,
+            px: e.x,
+            py: e.y,
+            z: 14,
+            pz: 14,
+            vx: r * LUCA.sphereSpeed * (1 + 0.2 * t),
+            vy: o * LUCA.sphereSpeed * (1 + 0.2 * t),
+            r: 5 + 6 * t,
+            life: 110,
+            age: 0,
+            dmg: Math.round(
+              LUCA.sphereMin + (LUCA.sphereMax - LUCA.sphereMin) * t,
+            ),
+            kb: 2 + 4.2 * t,
+            hitstun: 14 + Math.round(12 * t),
+            hitstop: 4 + Math.round(6 * t),
+            heavy: t > 0.7,
+            kind: "aura",
+            color: "#4aa3ff",
+            target: s,
+            homing: 0.035,
+            charge: t,
+          }),
+          (e.slot.sphere = 0),
+          (e.slot.cdX = e.kit.xCd),
+          this.emit({ type: "sphereFire", who: e, c: t, dx: r, dy: o });
+      }
+      tickDetect(e) {
+        this.locomote(e, 0, 0),
+          e.t >= LUCA.detectWin + LUCA.detectLag &&
+            ((e.state = "move"), (e.t = 0));
+      }
+      counter(e, t, s) {
+        let i = t.kind === "assist" ? t.summoner : t;
+        (e.state = "counter"),
+          (e.t = 0),
+          (e.counterDmg = Math.max(
+            LUCA.counterMin,
+            Math.round(s * LUCA.counterMult),
+          )),
+          (e.counterOn = i),
+          (e.moveId = this.nextId++),
+          (e.hitstop = 8),
+          i && (i.hitstop = Math.max(i.hitstop ?? 0, 14)),
+          this.slow(16, 0.3),
+          this.emit({ type: "detectHit", who: e, by: i, x: e.x, y: e.y });
+      }
+      tickCounter(e) {
+        this.locomote(e, 0, 0);
+        let t = e.counterOn;
+        if (
+          e.t === 5 &&
+          t &&
+          t.state !== "faint" &&
+          Math.hypot(t.x - e.x, t.y - e.y) < 170
+        ) {
+          let s = Math.atan2(t.y - e.y, t.x - e.x),
+            i = e.x,
+            r = e.y,
+            o = (t.r ?? 9) + e.r + 6;
+          this.moveBody(
+            e,
+            t.x + Math.cos(s) * o - e.x,
+            t.y + Math.sin(s) * o - e.y,
+          ),
+            (e.px = e.x),
+            (e.py = e.y),
+            (e.facing = Math.atan2(t.y - e.y, t.x - e.x)),
+            this.emit({
+              type: "counterBlink",
+              who: e,
+              x1: i,
+              y1: r,
+              x2: e.x,
+              y2: e.y,
+            });
+        }
+        if (e.t === 8) {
+          let s = Math.cos(e.facing),
+            i = Math.sin(e.facing);
+          this.hitboxes.push({
+            id: e.moveId,
+            team: e.team,
+            owner: e,
+            shape: { kind: "circle", x: e.x + s * 12, y: e.y + i * 12, r: 22 },
+            dmg: e.counterDmg,
+            kb: 6.6,
+            kbMode: "dir",
+            dx: s,
+            dy: i,
+            heavy: !0,
+            hitstop: A.hitstopHeavy + 4,
+            hitstun: A.hitstunHeavy,
+            color: "#4aa3ff",
+            rehit: 0,
+            attackerStop: !0,
+            src: "counter",
+            melee: !0,
+            pierceGuard: !0,
+          }),
+            this.emit({
+              type: "counterStrike",
+              who: e,
+              x: e.x,
+              y: e.y,
+              dx: s,
+              dy: i,
+            });
+        }
+        e.t >= 26 && ((e.state = "move"), (e.t = 0));
+      }
+      auraMult(e) {
+        if (!e.kit.aura) return 1;
+        let t = e.slot;
+        return 1 + LUCA.aura * (1 - t.hp / t.maxHp);
       }
       tickDarts(e, t) {
         if ((e.t <= 1 && ((e.dir2 = t), (e.facing = t)), e.t === 2)) {
@@ -3877,10 +4970,33 @@
             (e.t = 0),
             (e.moveId = this.nextId++);
           let l = e.lock ?? this.nearestTarget(e.team, e.x, e.y);
-          l &&
-            Math.hypot(l.x - e.x, l.y - e.y) < 70 &&
-            (e.facing = Math.atan2(l.y - e.y, l.x - e.x)),
-            this.emit({ type: "pfReappear", who: e, x: e.x, y: e.y });
+          if (
+            ((e.ambush = !1),
+            l && Math.hypot(l.x - e.x, l.y - e.y) < AMBUSH.range)
+          ) {
+            let f = Math.atan2(l.y - e.y, l.x - e.x),
+              u = l.r + e.r + 6,
+              h = e.x,
+              c = e.y;
+            this.moveBody(
+              e,
+              l.x + Math.cos(f) * u - e.x,
+              l.y + Math.sin(f) * u - e.y,
+            ),
+              (e.px = e.x),
+              (e.py = e.y),
+              (e.facing = Math.atan2(l.y - e.y, l.x - e.x)),
+              (e.ambush = !0),
+              this.emit({
+                type: "ambush",
+                who: e,
+                x1: h,
+                y1: c,
+                x2: e.x,
+                y2: e.y,
+              });
+          }
+          this.emit({ type: "pfReappear", who: e, x: e.x, y: e.y });
         }
       }
       tickPfStrike(e) {
@@ -3892,7 +5008,8 @@
             team: e.team,
             owner: e,
             shape: { kind: "circle", x: e.x + t * 8, y: e.y + s * 8, r: 26 },
-            dmg: 46,
+            dmg: Math.round(46 * (e.ambush ? AMBUSH.mult : 1)),
+            pierceGuard: !!e.kit.infiltrator,
             kb: 5.2,
             kbMode: "away",
             dx: t,
@@ -4214,6 +5331,26 @@
           l &&
             ((l.lockT = MAGNE.lockTicks),
             (l.lockBy = r),
+            (l.magT = MAGNE.pullT),
+            l.kind === "player" &&
+              !l.invincible &&
+              this.applyHit(
+                l,
+                e,
+                MAGNE.scanDmg,
+                0.6,
+                Math.cos(i),
+                Math.sin(i),
+                !1,
+                3,
+                8,
+                "#f8d030",
+                l.x,
+                l.y,
+                !1,
+                !1,
+                this.srcLabel(e, "lockon"),
+              ),
             this.emit({ type: "locked", who: l, by: r })),
           l
         );
@@ -4750,7 +5887,7 @@
         i.id === "blastoise" &&
           this.inPuddle(e.x, e.y, e.team, !0) &&
           (r *= 1.35),
-          this.inPuddle(e.x, e.y, e.team, !1) && (r *= 0.6),
+          !i.flier && this.inPuddle(e.x, e.y, e.team, !1) && (r *= 0.6),
           i.id === "dragapult" &&
             e.slot.horns.includes("out") &&
             (r *= he.light);
@@ -4775,6 +5912,12 @@
       }
       animatePlayer(e) {
         let t = e.kit,
+          // Frame of a named animation at `r` ticks per frame, looping or held.
+          fr = (r, o, l, f = 0) => {
+            let u = e.mon.anims[r]?.frames ?? 1,
+              h = Math.floor(Math.max(0, e.t - f) / o);
+            return l ? h % u : Math.min(u - 1, h);
+          },
           s = Math.hypot(e.mvx, e.mvy),
           i = () => {
             let r = e.mon.anims.Walk,
@@ -4824,9 +5967,9 @@
               ? ((e.animName = "Walk"), (e.walkClock += 6), (e.animFrame = i()))
               : t.dodge.kind === "shell"
                 ? ((e.animName = "Withdraw"), (e.animFrame = 99))
-                : t.dodge.kind === "phantom"
+                : t.dodge.kind === "phantom" || t.dodge.kind === "dash"
                   ? ((e.animName = "Walk"),
-                    (e.walkClock += 5),
+                    (e.walkClock += t.dodge.kind === "dash" ? 9 : 5),
                     (e.animFrame = i()))
                   : ((e.animName = "Hop"), (e.animFrame = -3));
             break;
@@ -4867,6 +6010,38 @@
           case "lockon":
             (e.animName = "Shoot"),
               (e.animFrame = Math.min(4, Math.floor(e.t / 3)));
+            break;
+          case "yawn":
+            (e.animName = "Shoot"), (e.animFrame = fr("Shoot", 2.4, !1));
+            break;
+          case "rest":
+            (e.animName = "Sleep"), (e.animFrame = fr("Sleep", 30, !0));
+            break;
+          case "restWake":
+            (e.animName = "Hop"), (e.animFrame = fr("Hop", 2, !1));
+            break;
+          case "boom":
+            (e.animName = "Charge"), (e.animFrame = fr("Charge", 3, !0));
+            break;
+          case "boomFire":
+            (e.animName = "Shoot"), (e.animFrame = fr("Shoot", 2.2, !1));
+            break;
+          case "hurCast":
+            (e.animName = "Rotate"), (e.animFrame = fr("Rotate", 2.5, !0));
+            break;
+          case "sphere":
+            (e.animName = "Charge"), (e.animFrame = fr("Charge", 3, !0));
+            break;
+          case "sphereFire":
+            (e.animName = "RearUp"), (e.animFrame = fr("RearUp", 1.4, !1));
+            break;
+          case "detect":
+            (e.animName = "Idle"), (e.animFrame = 0);
+            break;
+          case "counter":
+            (e.animName = e.t < 8 ? "Walk" : "QuickStrike"),
+              (e.animFrame =
+                e.t < 8 ? fr("Walk", 1, !0) : fr("QuickStrike", 1.2, !1, 8));
             break;
           case "zap":
             (e.animName = e.t < 16 ? "Charge" : "SpAttack"),
@@ -4992,7 +6167,122 @@
           (e.animName = e.t < 14 ? "Charge" : "Shoot"),
             (e.animFrame = Math.floor(e.t / 3) % 5),
             e.t === 14 && this.lockScan(e, e.x, e.y, e.dir, e.summoner);
-        else if (e.kit.id === "dragapult") {
+        else if (e.kit.id === "snorlax") {
+          (e.animName = e.t < 16 ? "Hop" : "Stomp"),
+            (e.animFrame =
+              e.t < 16
+                ? Math.min(9, Math.floor(e.t / 1.6))
+                : Math.min(13, Math.floor((e.t - 16) / 2)));
+          if (e.t === 18) {
+            for (let i of this.victimsFor(t)) {
+              if (this.floating(i)) continue;
+              let r = i.x - e.x,
+                o = i.y - e.y,
+                l = Math.hypot(r, o);
+              l < 32 + i.hurtR &&
+                this.applyHit(
+                  i,
+                  e,
+                  30,
+                  5.6,
+                  r / (l || 1),
+                  o / (l || 1),
+                  !0,
+                  8,
+                  22,
+                  e.kit.color,
+                  i.x,
+                  i.y,
+                  !1,
+                  !1,
+                  this.srcLabel(e, "bodyslam"),
+                );
+            }
+            this.emit({
+              type: "heavySlam",
+              who: e,
+              x: e.x,
+              y: e.y,
+              r: 32,
+              c: 0.3,
+            });
+          }
+        } else if (e.kit.id === "noivern") {
+          if (
+            ((e.animName = e.t < 12 ? "Charge" : "Shoot"),
+            (e.animFrame = Math.min(9, Math.floor(e.t / 2.5))),
+            e.t === 14)
+          ) {
+            for (let i of this.victimsFor(t)) {
+              let r = i.x - e.x,
+                o = i.y - e.y,
+                l = Math.hypot(r, o);
+              l < NOIV.boomRange + i.hurtR &&
+                Math.abs($e(Math.atan2(o, r), e.dir)) < NOIV.boomCone &&
+                this.applyHit(
+                  i,
+                  e,
+                  18,
+                  4,
+                  r / (l || 1),
+                  o / (l || 1),
+                  !1,
+                  6,
+                  20,
+                  "#c9a6ff",
+                  i.x,
+                  i.y,
+                  !1,
+                  !1,
+                  this.srcLabel(e, "boomburst"),
+                  !1,
+                  !0,
+                );
+            }
+            this.emit({
+              type: "boomFire",
+              who: e,
+              c: 0.2,
+              dx: Math.cos(e.dir),
+              dy: Math.sin(e.dir),
+            });
+          }
+        } else if (e.kit.id === "lucario") {
+          if (
+            ((e.animName = e.t < 14 ? "Charge" : "RearUp"),
+            (e.animFrame = Math.min(9, Math.floor(e.t / 2))),
+            e.t === 16)
+          ) {
+            let i = Math.cos(e.dir),
+              r = Math.sin(e.dir);
+            this.projectiles.push({
+              id: this.nextId++,
+              team: t,
+              owner: e,
+              x: e.x + i * 12,
+              y: e.y + r * 12,
+              px: e.x,
+              py: e.y,
+              z: 14,
+              pz: 14,
+              vx: i * LUCA.sphereSpeed,
+              vy: r * LUCA.sphereSpeed,
+              r: 8,
+              life: 100,
+              age: 0,
+              dmg: 26,
+              kb: 4,
+              hitstun: 20,
+              hitstop: 6,
+              kind: "aura",
+              color: "#4aa3ff",
+              target: s,
+              homing: 0.035,
+              charge: 0.5,
+            }),
+              this.emit({ type: "sphereFire", who: e, c: 0.5, dx: i, dy: r });
+          }
+        } else if (e.kit.id === "dragapult") {
           let i = e.dir + Math.PI / 2;
           e.t > 4 &&
             e.t < 50 &&
@@ -5237,6 +6527,7 @@
         return (
           e.kind === "player" &&
           (e.airborne ||
+            e.kit.flier ||
             e.state === "faint" ||
             (e.state === "dodge" &&
               (e.kit.dodge.kind === "air" || e.kit.dodge.kind === "rise")))
@@ -5505,7 +6796,12 @@
                 ? (t.eject = !0)
                 : (s.hp = Math.min(
                     s.maxHp,
-                    s.hp + Math.round(s.maxHp * SITRUS.heal),
+                    s.hp +
+                      Math.round(
+                        s.maxHp *
+                          SITRUS.heal *
+                          (t.kit.gluttony ? SNOR.gluttony : 1),
+                      ),
                   )),
             this.emit({
               type: "itemGet",
@@ -5588,7 +6884,18 @@
             return e.t > s.startup + s.active;
           }
           case "smash":
-            return e.t > 2 + t.smash.active;
+            return e.t > 2 + (t.smash.leap ? t.smash.leap.air : t.smash.active);
+          case "boomFire":
+            return e.t > 10;
+          case "sphereFire":
+            return e.t > 6;
+          case "detect":
+            return e.t > LUCA.detectWin;
+          case "yawn":
+          case "hurCast":
+            return e.t > 14;
+          case "restWake":
+            return !0;
           case "dodge":
             return e.t > t.dodge.ticks;
           case "flame":
@@ -5775,6 +7082,10 @@
       }
       updateProjectiles() {
         for (let e of this.projectiles) {
+          if (e.kind === "hurricane") {
+            e.age++, this.tickHurricane(e);
+            continue;
+          }
           if ((e.age++, e.kind === "seed")) {
             let t = Math.min(1, e.age / e.flight);
             if (
@@ -5810,7 +7121,10 @@
             continue;
           }
           if (
-            (e.kind === "leaf" || e.kind === "wisp" || e.kind === "zap") &&
+            (e.kind === "leaf" ||
+              e.kind === "wisp" ||
+              e.kind === "zap" ||
+              e.kind === "aura") &&
             e.target &&
             !this.smoked(e.target) &&
             e.age > 4 &&
@@ -5865,6 +7179,7 @@
           // Will-O-Wisp is a ghost flame and drifts through cover.
           let rk =
             e.kind !== "wisp" &&
+            e.kind !== "yawn" &&
             this.rocks.find(
               (t) =>
                 t.state === "solid" &&
@@ -6054,7 +7369,7 @@
                 e.rehit > 0,
                 this.srcLabel(e.owner, (e.src ?? "?") + (h ? "-hex" : "")),
                 !!e.melee,
-                !1,
+                !!e.pierceGuard,
                 e.smash ?? 0,
               ),
               e.heat &&
@@ -6106,11 +7421,23 @@
                   this.reflect(t, e.owner, 5));
         }
         for (let e of this.projectiles)
-          if (!(e.dead || e.kind === "seed"))
+          if (!(e.dead || e.kind === "seed" || e.kind === "hurricane"))
             for (let t of this.targetsFor(e.team)) {
               if (Math.hypot(t.x - e.x, t.y - e.y) >= e.r + t.hurtR) continue;
+              if (e.pierce && e.hits.includes(t)) continue;
               if (t.kind === "player") {
                 let i = t;
+                if (
+                  i.state === "dodge" &&
+                  i.kit.dodge.kind === "bounce" &&
+                  i.invincible &&
+                  !e.reflected &&
+                  e.kind !== "yawn"
+                ) {
+                  this.reflect(e, i, 3),
+                    this.emit({ type: "bellyBounce", who: i });
+                  break;
+                }
                 if (i.invincible || i.airborne) {
                   e.dodged ||
                     ((e.dodged = !0),
@@ -6133,7 +7460,13 @@
                   break;
                 }
               }
-              e.dead = !0;
+              if (e.kind === "yawn") {
+                (e.dead = !0),
+                  this.drowse(t),
+                  this.emit({ type: "projDie", p: e, wall: !1 });
+                break;
+              }
+              e.pierce ? e.hits.push(t) : (e.dead = !0);
               let s = Math.hypot(e.vx, e.vy) || 1;
               this.applyHit(
                 t,
@@ -6142,7 +7475,7 @@
                 e.kb,
                 e.vx / s,
                 e.vy / s,
-                !!e.reflected,
+                !!e.reflected || !!e.heavy,
                 e.hitstop,
                 e.hitstun,
                 e.color,
@@ -6155,7 +7488,10 @@
                 e.kind === "wisp" && this.burn(t),
                 e.kind === "pulse" && this.soak(t, e.team),
                 e.kind === "zap" && this.paralyze(t),
-                this.emit({ type: "projDie", p: e, wall: !1 });
+                e.pierce
+                  ? this.emit({ type: "projHit", p: e, x: t.x, y: t.y })
+                  : this.emit({ type: "projDie", p: e, wall: !1 });
+              if (e.pierce) continue;
               break;
             }
         this.projectiles = this.projectiles.filter((e) => !e.dead);
@@ -6192,7 +7528,7 @@
         if (!e || e.kind !== "player") return 1;
         let t = e,
           i = t.xatkT > 0 ? XATK.mult : 1;
-        if (t.kit.id !== "charizard") return i;
+        if (t.kit.id !== "charizard") return i * this.auraMult(t);
         let s = t.slot;
         return (
           i * (1 + 0.5 * (s.heat / 100)) * (s.hp < s.maxHp * 0.3 ? 1.3 : 1)
@@ -6218,6 +7554,17 @@
         P = !1,
         C = 0,
       ) {
+        if (
+          e.kind === "player" &&
+          e.state === "detect" &&
+          e.t >= 2 &&
+          e.t <= LUCA.detectWin &&
+          t &&
+          t.team !== e.team
+        ) {
+          this.counter(e, t, s);
+          return;
+        }
         let x = !1,
           v = 0,
           E = !1,
@@ -6240,7 +7587,12 @@
               this.outgoingMult(t) *
               Q *
               ie *
-              (an ? MAGNE.analytic : 1),
+              (an ? MAGNE.analytic : 1) *
+              (e.kind === "player" &&
+              e.kit.thickFat &&
+              this.attackerType(t) === "FIRE"
+                ? SNOR.thickFat
+                : 1),
           );
         let pun =
           e.kind === "player" &&
@@ -6285,13 +7637,20 @@
             (w.comboTaken = v);
           let re = K;
           E
-            ? (re = Math.round(K * 0.7))
+            ? (re = Math.round(K * (w.state === "rest" ? SNOR.restTaken : 0.7)))
             : w.state === "withdraw" && !P
               ? (re = Math.round(K * 0.2))
               : w.rooted && (re = Math.round(K * 0.8));
           let se = U.hp;
           if (
             ((U.hp = Math.max(0, U.hp - re)),
+            U.hp === 0 &&
+              w.kit.sturdy &&
+              !U.sturdy &&
+              se > U.maxHp * 0.25 &&
+              ((U.hp = 1),
+              (U.sturdy = !0),
+              this.emit({ type: "sturdy", who: w, x: w.x, y: w.y })),
             (w.stats.taken += se - U.hp),
             t && t.kind === "player")
           ) {
@@ -7063,6 +8422,130 @@
           color: o,
         });
       }
+      // Jagged lightning between two points; re-rolls every frame so it crackles.
+      bolt(e, t, s, i, r, o = 6, l = 10, f = 1) {
+        this.add({
+          kind: "bolt",
+          x: e,
+          y: t,
+          x2: s,
+          y2: i,
+          z: l,
+          color: r,
+          life: o,
+          w: f,
+          seed: Ie() * 999,
+        });
+      }
+      // Electric ring on the floor with arcs jumping off it.
+      shockRing(e, t, s, i, r = 8) {
+        this.ring(e, t, 4, s / 9, 12, i, !0),
+          this.ring(e, t, 2, s / 7, 9, "#ffffff", !0),
+          this.add({
+            kind: "shockring",
+            x: e,
+            y: t,
+            size: 4,
+            grow: s / 10,
+            color: i,
+            life: 12,
+            under: !0,
+          });
+        for (let o = 0; o < r; o++) {
+          let l = (o / r) * Math.PI * 2 + z(-0.3, 0.3),
+            f = s * z(0.7, 1.1);
+          this.bolt(
+            e,
+            t - 8,
+            e + Math.cos(l) * f,
+            t - 8 + Math.sin(l) * f * 0.6,
+            o % 2 ? "#ffffff" : i,
+            z(5, 9) | 0,
+            0,
+          );
+        }
+      }
+      // Anamorphic lens flare: a rotating four-point star with long side streaks.
+      flare(e, t, s, i, r, o = 12) {
+        this.add({
+          kind: "flare",
+          x: e,
+          y: t,
+          z: s,
+          size: i,
+          color: r,
+          life: o,
+        });
+      }
+      // Expanding arc of a ring (sound waves, aura blasts, air blades).
+      arcWave(e, t, s, i, r, o, l, f, u = 14, h = 2) {
+        this.add({
+          kind: "arcwave",
+          x: e,
+          y: t,
+          z: s,
+          ang: i,
+          span: r,
+          size: o,
+          grow: l,
+          color: f,
+          life: u,
+          w: h,
+        });
+      }
+      // Flickering flame tongues (Aura, ghost fire).
+      wisps(e, t, s, i, r, o = 8) {
+        for (let l = 0; l < i; l++)
+          this.add({
+            kind: "wisp",
+            x: e + z(-o, o),
+            y: t + z(-o * 0.4, o * 0.4),
+            z: s + z(0, o),
+            vx: z(-0.2, 0.2),
+            vy: z(-0.1, 0.1),
+            vz: z(0.5, 1.1),
+            life: z(12, 22) | 0,
+            size: z(1.6, 3),
+            color: r,
+          });
+      }
+      // Radial ground cracks for heavy landings.
+      cracks(e, t, s, i, r = "#2a2018") {
+        for (let o = 0; o < s; o++) {
+          let l = (o / s) * Math.PI * 2 + z(-0.25, 0.25),
+            f = [];
+          let u = 0;
+          for (let h = 0; h < 4; h++)
+            (u += (i / 4) * z(0.7, 1.2)),
+              f.push([
+                Math.cos(l + z(-0.25, 0.25)) * u,
+                Math.sin(l + z(-0.25, 0.25)) * u * 0.55,
+              ]);
+          this.add({
+            kind: "crack",
+            x: e,
+            y: t,
+            pts: f,
+            color: r,
+            life: 70,
+            under: !0,
+          });
+        }
+      }
+      zzz(e, t, s) {
+        this.add({
+          kind: "zzz",
+          x: e,
+          y: t,
+          z: s,
+          vx: 0.25,
+          vy: 0,
+          vz: 0.45,
+          life: 46,
+          size: 4 + z(0, 3),
+          color: "#cfe3ff",
+        });
+      }
       popup(e, t, s, i, r) {
         this.popups.push({
           x: e + z(-4, 4),
@@ -7115,7 +8598,12 @@
               (e.vx *= 0.92), (e.vy *= 0.92), (e.vz = e.vz * 0.96 + 0.02);
               break;
             case "ring":
+            case "shockring":
+            case "arcwave":
               e.size += e.grow ?? 1;
+              break;
+            case "wisp":
+              (e.vx *= 0.9), (e.vy *= 0.9), (e.size *= 0.96);
               break;
             case "slash":
             case "glint":
@@ -7534,6 +9022,68 @@
   }
   // Ground layer for a rock: contact shadow, rubble while broken, and a pulsing
   // warning ring for the last two seconds before it rises again.
+  // Coloured light cast on the floor by projectiles, beams and fire.
+  var GLOW = {
+    zap: ["255,232,102", 30],
+    aura: ["74,163,255", 28],
+    wisp: ["127,107,255", 20],
+    orb: ["111,211,232", 18],
+    pulse: ["111,211,232", 16],
+    airslash: ["201,166,255", 18],
+    hurricane: ["201,166,255", 34],
+    leaf: ["120,200,80", 8],
+  };
+  function lightPools(a, e) {
+    let t = (s, i, r, o, l = 1) => {
+      let f = a.createRadialGradient(s, i, 0, s, i, r);
+      f.addColorStop(0, `rgba(${o},${0.32 * l})`),
+        f.addColorStop(1, `rgba(${o},0)`),
+        (a.fillStyle = f),
+        a.beginPath(),
+        a.ellipse(s, i, r, r * 0.5, 0, 0, Math.PI * 2),
+        a.fill();
+    };
+    a.save(), (a.globalCompositeOperation = "lighter");
+    for (let s of e.projectiles) {
+      let i = GLOW[s.kind];
+      i && t(s.x, s.y, i[1] * (s.charge ? 1 + s.charge * 0.6 : 1), i[0]);
+    }
+    for (let s of e.beams) {
+      if (s.scan || s.aim) continue;
+      let i =
+        s.style === "steel"
+          ? "220,230,255"
+          : s.style === "aura"
+            ? "74,163,255"
+            : s.solar !== void 0
+              ? "255,226,122"
+              : "90,169,230";
+      for (let r = 0; r <= 4; r++)
+        t(
+          s.x1 + ((s.x2 - s.x1) * r) / 4,
+          s.y1 + ((s.y2 - s.y1) * r) / 4,
+          26,
+          i,
+          0.8,
+        );
+    }
+    for (let s of e.players)
+      s.state !== "faint" &&
+        (e.isFlaming(s)
+          ? t(
+              s.x + Math.cos(e.flameDir(s)) * 40,
+              s.y + Math.sin(e.flameDir(s)) * 40,
+              56,
+              "255,138,61",
+              1.1,
+            )
+          : s.kit.id === "charizard" && t(s.x, s.y, 16, "255,138,61", 0.5),
+        s.state === "sphere" && t(s.x, s.y, 20 + 20 * s.sphereC, "74,163,255"),
+        s.kit.id === "lucario" &&
+          s.slot.hp < s.slot.maxHp * 0.5 &&
+          t(s.x, s.y, 22, "74,163,255", 1 - s.slot.hp / s.slot.maxHp));
+    a.restore();
+  }
   // Zone Control ring on the floor, tinted by who holds it, plus the next spot's telegraph.
   function zoneGround(a, e) {
     let t = e.zone;
@@ -8135,6 +9685,7 @@
     }
     hazardGround(a, e);
     zoneGround(a, e);
+    lightPools(a, e);
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
     for (let h of e.players) dzone(a, e, h);
@@ -8503,6 +10054,10 @@
         (a.textAlign = "start");
     }
     for (let h of e.beams) {
+      if (h.style) {
+        styledBeam(a, e, h);
+        continue;
+      }
       if (h.scan) {
         (a.strokeStyle = "rgba(239,90,79,0.9)"),
           (a.lineWidth = 1),
@@ -8650,10 +10205,48 @@
         a.arc(k, M, 6 + y * 2, 0, Math.PI * 2),
         a.fill(),
         (a.lineCap = "butt");
+      // Pressure rings racing down the jet and a churning foam crown at the end.
+      {
+        let C = k - b,
+          x = M - p,
+          v = Math.hypot(C, x) || 1;
+        (a.strokeStyle = "#e6f6ff"), (a.lineWidth = 1);
+        for (let E = 0; E < 6; E++) {
+          let Q = ((e.tick * 6 + E * (v / 6)) % v) / v;
+          (a.globalAlpha = 0.75 * (1 - Q * 0.5)),
+            a.beginPath(),
+            a.ellipse(
+              b + C * Q,
+              p + x * Q,
+              2,
+              6 + Q * 2,
+              Math.atan2(x, C),
+              0,
+              Math.PI * 2,
+            ),
+            a.stroke();
+        }
+        a.globalAlpha = 0.9;
+        for (let E = 0; E < 5; E++) {
+          let Q = e.tick * 0.7 + E * 1.3;
+          (a.fillStyle = E % 2 ? "#ffffff" : "#bfe6ff"),
+            a.beginPath(),
+            a.arc(
+              k + Math.cos(Q) * 7,
+              M + Math.sin(Q) * 5,
+              2 + (E % 2),
+              0,
+              Math.PI * 2,
+            ),
+            a.fill();
+        }
+        a.globalAlpha = 1;
+      }
     }
     for (let h of e.projectiles) {
       let c = Math.round(o(h.px, h.x)),
         y = Math.round(o(h.py, h.y) - o(h.pz, h.z));
+      if (drawProj2(a, e, h, c, y)) continue;
       if (h.kind === "leaf") {
         let b = Math.atan2(h.vy, h.vx) + Math.sin(h.age * 0.6) * 0.4;
         a.save(),
@@ -9384,6 +10977,162 @@
             ),
             a.stroke();
           break;
+        case "bolt": {
+          let l = s.x2 - s.x,
+            f = s.y2 - s.y - (s.z2 ?? s.z) + s.z,
+            u = Math.hypot(l, f) || 1,
+            h = Math.max(3, Math.round(u / 7)),
+            c = rt((s.seed + s.life * 31) | 0),
+            y = [[r, o]];
+          for (let b = 1; b < h; b++) {
+            let p = b / h,
+              k = (c() - 0.5) * Math.min(10, u * 0.25);
+            y.push([r + l * p - (f / u) * k, o + f * p + (l / u) * k]);
+          }
+          y.push([r + l, o + f]);
+          a.lineJoin = "round";
+          for (let [b, p, k] of [
+            [s.color, 3.2 * s.w, 0.35],
+            [s.color, 1.6 * s.w, 0.9],
+            ["#ffffff", 0.8 * s.w, 1],
+          ]) {
+            (a.globalAlpha = k * Math.min(1, i * 2)),
+              (a.strokeStyle = b),
+              (a.lineWidth = p),
+              a.beginPath();
+            for (let [M, P] of y) a.lineTo(M, P);
+            a.stroke();
+          }
+          a.lineJoin = "miter";
+          break;
+        }
+        case "shockring": {
+          let l = rt((s.life * 17 + s.x) | 0);
+          (a.globalAlpha = i),
+            (a.strokeStyle = s.color),
+            (a.lineWidth = 1.2),
+            a.beginPath();
+          for (let f = 0; f <= 24; f++) {
+            let u = (f / 24) * Math.PI * 2,
+              h = s.size + (l() - 0.5) * 4;
+            a.lineTo(r + Math.cos(u) * h, o + Math.sin(u) * h * 0.5);
+          }
+          a.stroke();
+          break;
+        }
+        case "flare": {
+          let l =
+              Math.sin(Math.min(1, (1 - i) * 3) * Math.PI * 0.5) *
+              s.size *
+              (0.4 + 0.6 * i),
+            f = (1 - i) * 1.4;
+          (a.globalAlpha = Math.min(1, i * 1.6)), (a.fillStyle = s.color);
+          a.fillRect(r - l * 2.6, o - 0.5, l * 5.2, 1);
+          for (let u = 0; u < 2; u++) {
+            a.beginPath();
+            for (let h = 0; h < 8; h++) {
+              let c = f + u * 0.4 + (h / 8) * Math.PI * 2,
+                y = h % 2 ? l * 0.16 : l * (u ? 0.55 : 1);
+              a.lineTo(r + Math.cos(c) * y, o + Math.sin(c) * y);
+            }
+            a.closePath(), a.fill(), (a.fillStyle = "#ffffff");
+          }
+          a.beginPath(),
+            a.arc(r, o, Math.max(1, l * 0.18), 0, Math.PI * 2),
+            a.fill();
+          break;
+        }
+        case "arcwave":
+          (a.globalAlpha = Math.min(1, i * 1.5)),
+            (a.strokeStyle = s.color),
+            (a.lineWidth = s.w * (0.5 + i)),
+            a.beginPath(),
+            a.ellipse(
+              r,
+              o,
+              s.size,
+              s.size * 0.62,
+              0,
+              s.ang - s.span / 2,
+              s.ang + s.span / 2,
+            ),
+            a.stroke(),
+            (a.globalAlpha = Math.min(1, i * 1.5) * 0.8),
+            (a.strokeStyle = "#ffffff"),
+            (a.lineWidth = Math.max(0.6, s.w * 0.35)),
+            a.beginPath(),
+            a.ellipse(
+              r,
+              o,
+              s.size,
+              s.size * 0.62,
+              0,
+              s.ang - s.span * 0.35,
+              s.ang + s.span * 0.35,
+            ),
+            a.stroke();
+          break;
+        case "wisp":
+          (a.globalAlpha = Math.min(1, i * 1.6) * 0.85),
+            (a.fillStyle = i > 0.6 ? "#ffffff" : s.color),
+            a.beginPath(),
+            a.moveTo(r, o - s.size * 2.2),
+            a.quadraticCurveTo(r + s.size, o, r, o + s.size * 0.8),
+            a.quadraticCurveTo(r - s.size, o, r, o - s.size * 2.2),
+            a.fill();
+          break;
+        case "crack": {
+          (a.globalAlpha = Math.min(1, i * 3) * 0.7),
+            (a.strokeStyle = s.color),
+            (a.lineWidth = 1.2),
+            a.beginPath(),
+            a.moveTo(r, o);
+          for (let [l, f] of s.pts) a.lineTo(r + l, o + f);
+          a.stroke();
+          break;
+        }
+        case "beamp":
+          styledBeam(
+            a,
+            { tick: 40 - s.life },
+            {
+              x1: s.x,
+              y1: s.y,
+              x2: s.x2,
+              y2: s.y2,
+              style: s.style,
+              w: (s.w ?? 10) * (0.4 + 0.6 * i),
+              age: Math.round((1 - i) * 10) + 2,
+              life: 12,
+            },
+          );
+          break;
+        case "orbp": {
+          let l = d2grad(a, r, o, s.size * 2.2, [
+            [0, "rgba(159,220,255,0.7)"],
+            [1, "rgba(74,163,255,0)"],
+          ]);
+          (a.globalAlpha = 1),
+            (a.fillStyle = l),
+            a.beginPath(),
+            a.arc(r, o, s.size * 2.2, 0, Math.PI * 2),
+            a.fill(),
+            (a.fillStyle = s.color),
+            a.beginPath(),
+            a.arc(r, o, s.size, 0, Math.PI * 2),
+            a.fill(),
+            (a.fillStyle = "#ffffff"),
+            a.beginPath(),
+            a.arc(r, o, s.size * 0.4, 0, Math.PI * 2),
+            a.fill();
+          break;
+        }
+        case "zzz":
+          (a.globalAlpha = Math.min(1, i * 2)),
+            (a.fillStyle = s.color),
+            (a.font = `bold ${Math.round(s.size + (1 - i) * 4)}px sans-serif`),
+            a.fillText("z", Math.round(r), Math.round(o));
+          break;
         case "glint": {
           let l = Math.sin((1 - i) * Math.PI) * 7,
             f = r + 7,
@@ -9403,6 +11152,224 @@
       }
     }
     a.globalAlpha = 1;
+  }
+  // Projectiles for Snorlax, Noivern and Lucario.
+  function drawProj2(a, e, h, c, y) {
+    let t = e.tick;
+    if (h.kind === "yawn") {
+      // A lazy, wobbling dream bubble with a rainbow sheen and a little z.
+      let s = h.r * (1 + 0.08 * Math.sin(h.age * 0.25)),
+        i = s * (1 + 0.06 * Math.sin(h.age * 0.31 + 1));
+      return (
+        (a.globalAlpha = 0.18),
+        (a.fillStyle = "#cfe3ff"),
+        a.beginPath(),
+        a.ellipse(c, y, s + 4, i + 4, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 0.5),
+        (a.fillStyle = "#e9f2ff"),
+        a.beginPath(),
+        a.ellipse(c, y, s, i, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 0.9),
+        (a.strokeStyle = `hsl(${(t * 4) % 360},80%,80%)`),
+        (a.lineWidth = 1),
+        a.beginPath(),
+        a.ellipse(c, y, s, i, 0, -2.6, -0.6),
+        a.stroke(),
+        (a.fillStyle = "#ffffff"),
+        a.fillRect(c - s * 0.45, y - i * 0.5, 3, 2),
+        (a.fillStyle = "#6c7fb8"),
+        (a.font = "bold 8px sans-serif"),
+        a.fillText("z", c - 2, y + 3),
+        (a.globalAlpha = 1),
+        !0
+      );
+    }
+    if (h.kind === "airslash") {
+      // Crescent of compressed air with a white cutting edge and speed tails.
+      let s = Math.atan2(h.vy, h.vx),
+        i = h.r * 1.5;
+      a.save(), a.translate(c, y), a.rotate(s);
+      for (let r = 3; r >= 1; r--)
+        (a.globalAlpha = 0.18 * r),
+          (a.strokeStyle = "#a890f0"),
+          (a.lineWidth = 2),
+          a.beginPath(),
+          a.arc(-r * 6, 0, i, -1.1, 1.1),
+          a.stroke();
+      return (
+        (a.globalAlpha = 1),
+        (a.fillStyle = "#d9c8ff"),
+        a.beginPath(),
+        a.arc(0, 0, i, -1.2, 1.2),
+        a.arc(-i * 0.35, 0, i * 0.9, 1.1, -1.1, !0),
+        a.closePath(),
+        a.fill(),
+        (a.strokeStyle = "#ffffff"),
+        (a.lineWidth = 1.2),
+        a.beginPath(),
+        a.arc(0, 0, i, -1.15, 1.15),
+        a.stroke(),
+        a.restore(),
+        !0
+      );
+    }
+    if (h.kind === "aura") {
+      // Aura Sphere: a swirling blue core with orbiting energy and a halo.
+      let s = h.r,
+        i = d2grad(a, c, y, s * 2.4, [
+          [0, "rgba(159,220,255,0.55)"],
+          [0.5, "rgba(74,163,255,0.25)"],
+          [1, "rgba(74,163,255,0)"],
+        ]);
+      (a.fillStyle = i),
+        a.beginPath(),
+        a.arc(c, y, s * 2.4, 0, Math.PI * 2),
+        a.fill();
+      (a.fillStyle = "#1b4fa8"),
+        a.beginPath(),
+        a.arc(c, y, s, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#4aa3ff"),
+        a.beginPath(),
+        a.arc(c, y, s * 0.78, 0, Math.PI * 2),
+        a.fill(),
+        (a.strokeStyle = "#9fdcff"),
+        (a.lineWidth = 1.2);
+      for (let r = 0; r < 3; r++) {
+        let o = t * 0.35 + (r * Math.PI * 2) / 3;
+        a.beginPath(), a.arc(c, y, s * 0.6, o, o + 1.4), a.stroke();
+      }
+      return (
+        (a.fillStyle = "#ffffff"),
+        a.beginPath(),
+        a.arc(c, y, s * 0.32, 0, Math.PI * 2),
+        a.fill(),
+        !0
+      );
+    }
+    if (h.kind === "hurricane") {
+      // Hurricane: stacked spinning wind ellipses that widen toward the top,
+      // debris whirling around, a shadow and a pulse each time it bites.
+      let s = Math.min(1, h.age / 10) * Math.min(1, h.life / 12),
+        i = h.r;
+      (a.globalAlpha = 0.35 * s),
+        (a.fillStyle = "#1a1530"),
+        a.beginPath(),
+        a.ellipse(c, y, i, i * 0.4, 0, 0, Math.PI * 2),
+        a.fill();
+      for (let r = 0; r < 9; r++) {
+        let o = r / 8,
+          l = i * (0.35 + 0.75 * o),
+          f = y - o * 46,
+          u = t * (0.32 - o * 0.08) + r * 0.9,
+          b = Math.sin(t * 0.15 + r) * 3 * o;
+        (a.globalAlpha = s * (0.35 + 0.4 * (1 - o))),
+          (a.strokeStyle =
+            r % 3 === 0 ? "#ffffff" : r % 3 === 1 ? "#c9a6ff" : "#8fa6d8"),
+          (a.lineWidth = 2.2 - o),
+          a.beginPath(),
+          a.ellipse(c + b, f, l, l * 0.28, 0, u, u + 4.2),
+          a.stroke();
+      }
+      a.fillStyle = "#c9bfa6";
+      for (let r = 0; r < 7; r++) {
+        let o = t * 0.3 + r * 0.9,
+          l = (r / 7) * 40 + ((t * 0.6 + r * 5) % 8),
+          f = i * (0.4 + (0.6 * l) / 46);
+        (a.globalAlpha = s * 0.9),
+          a.fillRect(c + Math.cos(o) * f, y - l + Math.sin(o) * f * 0.28, 2, 2);
+      }
+      return (a.globalAlpha = 1), !0;
+    }
+    return !1;
+  }
+  function d2grad(a, e, t, s, i) {
+    let r = a.createRadialGradient(e, t, 0, e, t, s);
+    for (let [o, l] of i) r.addColorStop(o, l);
+    return r;
+  }
+  // Styled beam columns: steel (Flash Cannon), aura, and anything else that
+  // wants a layered glowing capsule with its own palette and texture.
+  var BEAMS = {
+    steel: [
+      "rgba(184,196,224,0.30)",
+      "#b8c4e0",
+      "#e9f1ff",
+      "#ffffff",
+      "#f8d030",
+    ],
+    aura: ["rgba(74,163,255,0.30)", "#4aa3ff", "#9fdcff", "#ffffff", "#1b4fa8"],
+    dragon: [
+      "rgba(112,56,248,0.30)",
+      "#7038f8",
+      "#b49cff",
+      "#ffffff",
+      "#43c6ac",
+    ],
+  };
+  function styledBeam(a, e, h) {
+    let t = BEAMS[h.style] ?? BEAMS.steel,
+      s = h.x2 - h.x1,
+      i = h.y2 - h.y1,
+      r = Math.hypot(s, i) || 1,
+      o = s / r,
+      l = i / r,
+      f = h.x1,
+      u = h.y1 - 10,
+      c = Math.max(0, 1 - h.age / Math.max(1, h.life ?? 8)),
+      y = (h.w ?? 10) * (h.age < 2 ? 0.6 + h.age * 0.3 : 0.45 + 0.55 * c) * 2;
+    a.lineCap = "round";
+    for (let [b, p, k] of [
+      [t[0], 2.4, 1],
+      [t[1], 1.35, 0.95],
+      [t[2], 0.8, 1],
+      [t[3], 0.32, 1],
+    ])
+      (a.globalAlpha = k * (0.3 + 0.7 * c)),
+        (a.strokeStyle = b),
+        (a.lineWidth = Math.max(
+          1,
+          y * p * (0.92 + 0.08 * Math.sin(e.tick * 1.7)),
+        )),
+        a.beginPath(),
+        a.moveTo(f, u),
+        a.lineTo(f + s, u + i),
+        a.stroke();
+    // Rings travelling down the column and a hot core at the muzzle.
+    a.globalAlpha = 0.85 * c;
+    for (let b = 0; b < 5; b++) {
+      let p = ((e.tick * 7 + b * (r / 5)) % r) / r,
+        k = f + s * p,
+        M = u + i * p;
+      (a.strokeStyle = b % 2 ? t[4] : t[3]),
+        (a.lineWidth = 1),
+        a.beginPath(),
+        a.ellipse(k, M, 2.5, y * 0.65, Math.atan2(l, o), 0, Math.PI * 2),
+        a.stroke();
+    }
+    h.style === "steel" &&
+      ((a.strokeStyle = t[4]),
+      (a.globalAlpha = 0.7 * c),
+      (a.lineWidth = 1),
+      a.beginPath(),
+      a.moveTo(f - l * y * 0.7, u + o * y * 0.7),
+      a.lineTo(f + s - l * y * 0.4, u + i + o * y * 0.4),
+      a.moveTo(f + l * y * 0.7, u - o * y * 0.7),
+      a.lineTo(f + s + l * y * 0.4, u + i - o * y * 0.4),
+      a.stroke());
+    (a.globalAlpha = c),
+      (a.fillStyle = t[3]),
+      a.beginPath(),
+      a.arc(f, u, y * 0.55 + 2, 0, Math.PI * 2),
+      a.fill(),
+      (a.fillStyle = t[2]),
+      a.beginPath(),
+      a.arc(f + s, u + i, y * 0.5 + (e.tick % 2) * 2, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalAlpha = 1),
+      (a.lineCap = "butt");
   }
   function ja(a, e) {
     a.lineWidth = 1;
@@ -9773,7 +11740,13 @@
         "DRAGON DARTS": "Darts",
         "WILL-O-WISP": "Wisp",
         FLY: "Fly",
-      }[a] ?? a
+        YAWN: "Yawn",
+        REST: "Rest",
+        BOOMBURST: "Boom",
+        HURRICANE: "Hurricane",
+        "AURA SPHERE": "Sphere",
+        DETECT: "Detect",
+      }[a] ?? _a(a)
     );
   }
   var _a = (a) => a.charAt(0) + a.slice(1).toLowerCase(),
@@ -10443,17 +12416,41 @@
                     E,
                   )
                 : G("Lock-On, then Zap Cannon", v, E + 5.6, 5.8, g.dim)
-              : f.id === "dragapult" &&
-                (l.horns.forEach((w, U) =>
-                  Oe(o.dreepy, "Normal", v + U * 9.5, E - 0.5, 8, {
-                    bg: "#7fd1a8",
-                    grey: w !== "loaded",
-                  }),
-                ),
-                (v += 21),
-                l.pfCd === 0
-                  ? ue("PHANTOM", "#7b62d8", v, E)
-                  : Tt(v, E + 1.6, 26, 3.2, 1 - l.pfCd / ut, "#7b62d8"));
+              : f.id === "snorlax"
+                ? t.state === "rest"
+                  ? ue("RESTING", "#3f8f9e", v, E)
+                  : l.cdY === 0 && l.hp < l.maxHp
+                    ? ue("REST READY", "#3f8f9e", v, E)
+                    : G("Yawn, then Heavy Slam", v, E + 5.6, 5.8, g.dim)
+                : f.id === "noivern"
+                  ? t.state === "boom"
+                    ? ue(`BOOM ${Math.round(t.boomC * 100)}%`, "#8a5ccf", v, E)
+                    : ue("FLYING", "#a890f0", v, E)
+                  : f.id === "lucario"
+                    ? (l.sphere ?? 0) > 0.05 || t.state === "sphere"
+                      ? ue(
+                          `SPHERE ${Math.round((t.state === "sphere" ? t.sphereC : l.sphere) * 100)}%`,
+                          "#4a7fd6",
+                          v,
+                          E,
+                        )
+                      : ue(
+                          `AURA x${a.auraMult(t).toFixed(2)}`,
+                          l.hp < l.maxHp * 0.4 ? "#1b4fa8" : "#4a7fd6",
+                          v,
+                          E,
+                        )
+                    : f.id === "dragapult" &&
+                      (l.horns.forEach((w, U) =>
+                        Oe(o.dreepy, "Normal", v + U * 9.5, E - 0.5, 8, {
+                          bg: "#7fd1a8",
+                          grey: w !== "loaded",
+                        }),
+                      ),
+                      (v += 21),
+                      l.pfCd === 0
+                        ? ue("PHANTOM", "#7b62d8", v, E)
+                        : Tt(v, E + 1.6, 26, 3.2, 1 - l.pfCd / ut, "#7b62d8"));
     {
       let w = y + 80,
         U = Math.max(0, l.guard) / 100,
@@ -10776,15 +12773,18 @@
         { align: "right", italic: !0, weight: 600 },
       ),
       [
-        [H / 2 - 176, "venusaur"],
-        [H / 2 - 88, "charizard"],
-        [H / 2, "magnezone"],
-        [H / 2 + 88, "blastoise"],
-        [H / 2 + 176, "dragapult"],
+        [H / 2 - 189, "snorlax"],
+        [H / 2 - 135, "venusaur"],
+        [H / 2 - 81, "charizard"],
+        [H / 2 - 27, "lucario"],
+        [H / 2 + 27, "magnezone"],
+        [H / 2 + 81, "blastoise"],
+        [H / 2 + 135, "noivern"],
+        [H / 2 + 189, "dragapult"],
       ].forEach(([o, l], f) => {
         let u = xe[l],
           h = u.color,
-          c = 196 + (f % 2 ? -4 : 0),
+          c = 196 + (f % 2 ? -6 : 0),
           y = d.createRadialGradient(m(o), m(c), 0, m(o), m(c), m(40));
         y.addColorStop(0, h + "99"),
           y.addColorStop(1, h + "00"),
@@ -10805,15 +12805,15 @@
           0,
           m(o),
           m(c),
-          1.95 * Fe * u.size,
+          1.7 * Fe * u.size,
           b.ground,
         ),
-          V(u.name, o, c + 17, 11, h, {
+          V(u.name, o, c + 17, 9, h, {
             align: "center",
-            outline: 2.4,
+            outline: 2.2,
             skew: !0,
           }),
-          G(u.role.replace(" \xB7 ", ", "), o, c + 25, 6.2, g.haze, {
+          G(u.role.replace(" \xB7 ", ", "), o, c + 24, 5.2, g.haze, {
             align: "center",
           });
       });
@@ -10836,23 +12836,23 @@
         { align: "center" },
       );
   }
-  var Ge = { x: H / 2 - 72, y: 50, tile: 44, gap: 6 };
+  var Ge = { x: H / 2 - 76, y: 50, tile: 36, gap: 4 };
   // Three tiles on top, two offset underneath.
   function rs(a) {
-    let e = a < 3 ? a : a - 3 + 0.5,
-      t = a < 3 ? 0 : 1;
+    let e = a % 4,
+      t = a < 4 ? 0 : 1;
     return {
       x: Ge.x + e * (Ge.tile + Ge.gap) - t * Ge.tile * ke * 0.5,
       y: Ge.y + t * (Ge.tile + Ge.gap * 0.8),
       s: Ge.tile,
     };
   }
-  // Grid moves for the 3-over-2 roster.
+  // Grid moves for the 4-over-4 roster.
   var RN = {
-    left: [2, 0, 1, 4, 3],
-    right: [1, 2, 0, 4, 3],
-    up: [3, 4, 4, 0, 2],
-    down: [3, 3, 4, 0, 2],
+    left: [3, 0, 1, 2, 7, 4, 5, 6],
+    right: [1, 2, 3, 0, 5, 6, 7, 4],
+    up: [4, 5, 6, 7, 0, 1, 2, 3],
+    down: [4, 5, 6, 7, 0, 1, 2, 3],
   };
   function Mt(a, e, t, s, i) {
     G(a, t, s + 4, 5.4, g.haze, { weight: 600 });
@@ -11041,7 +13041,7 @@
             ((d.fillStyle = "rgba(51,214,255,0.16)"),
             d.fillRect(m(C), m(x), m(v), m(v))),
           d.restore(),
-          V(E.name, C + v / 2 - 1, x + v - 2.6, 9, K ? g.p1 : g.chalk, {
+          V(E.name, C + v / 2 - 1, x + v - 2.6, 6.6, K ? g.p1 : g.chalk, {
             align: "center",
           }),
           Q >= 0 &&
@@ -11060,7 +13060,7 @@
         }
       });
     let h = xe[l],
-      c = Ge.x - 34,
+      c = H / 2 - 106,
       y = 172,
       b = 188;
     Ae(c, y, b, 56, h.color, { edge: "bottom" }),
@@ -11072,14 +13072,16 @@
       Ra[l]
         .filter((M) => M[0] !== "*")
         .slice(0, 5)
-        .forEach(([M, P, C], x) => {
-          let v = y + 19 + x * 7.4;
+        .forEach(([M, P, C], x, Q) => {
+          let v = y + 19 + x * 7.4,
+            K = Math.max(46, ...Q.map((w) => ye(w[1], 6, je, 700))) + 6,
+            ie = Math.floor((b - 30 - K) / 2.55);
           Pe(M, c + 16 - x * 1.4, v, 2.7),
             G(P, c + 23 - x * 1.4, v + 2.2, 6, g.chalk, { weight: 700 });
           let E = C.replace(/^Smash: /, "");
           G(
-            E.length > 46 ? E.slice(0, 45) + "\u2026" : E,
-            c + 72 - x * 1.4,
+            E.length > ie ? E.slice(0, ie - 1) + "\u2026" : E,
+            c + 23 + K - x * 1.4,
             v + 2.2,
             5.6,
             g.haze,
@@ -11451,12 +13453,12 @@
         7,
         g.haze,
       );
-    let o = (i - 52) / 3,
-      l = 56;
+    let o = (i - 56) / 4,
+      l = 60;
     ge.forEach((f, u) => {
       let h = xe[f],
-        c = t + 16 + (u < 3 ? u : u - 3 + 0.5) * (o + 10),
-        y = s + 44 + (u < 3 ? 0 : 1) * (l + 10),
+        c = t + 16 + (u % 4) * (o + 8),
+        y = s + 42 + (u < 4 ? 0 : 1) * (l + 8),
         b = e.inContent && u === e.swapCursor,
         p = e.swapPicks?.indexOf(f) ?? -1,
         k = a.player.slots.some((C) => C.kit.id === f);
@@ -11466,10 +13468,14 @@
           ((d.strokeStyle = h.color),
           (d.lineWidth = m(1.4)),
           d.strokeRect(m(c), m(y), m(o), m(l))),
-        Oe(a.mons[f], "Normal", c + 6, y + 6, l - 12, { bg: h.color }),
-        V(h.name, c + l + 2, y + 20, 12, b ? g.chalk : "#d9d4f2", { skew: !0 }),
-        ue(h.type, Rt[h.type] ?? "#888", c + l + 2, y + 28, { size: 5.2 }),
-        G(h.role.replace(" \xB7 ", ", "), c + l + 2, y + 44, 6.2, g.haze);
+        Oe(a.mons[f], "Normal", c + o / 2 - 17, y + 5, 34, { bg: h.color }),
+        V(h.name, c + o / 2, y + 49, 8.5, b ? g.chalk : "#d9d4f2", {
+          skew: !0,
+          align: "center",
+        }),
+        G(h.role.split(" \xB7 ")[0], c + o / 2, y + 56, 5.4, g.haze, {
+          align: "center",
+        });
       let M = p === 0 ? "LEAD" : p === 1 ? "PARTNER" : k ? "IN TEAM" : "";
       M &&
         ue(M, p >= 0 ? g.gold : g.dim, c + o - 6, y + 8, {
@@ -11638,7 +13644,7 @@
       [
         "B",
         "Phantom",
-        "Tap: vanish-dodge. Hold: Phantom Force strike.",
+        "Tap: vanish-dodge. Hold: Phantom Force, reappearing behind a nearby foe.",
         "MULTI-STAGE",
       ],
       [
@@ -11653,7 +13659,13 @@
         "Fast ghost flame. Burn weakens their melee.",
         "PROJECTILE",
       ],
-      ["*", "Hex", "Darts deal +30% to burned targets.", "PASSIVE"],
+      ["*", "Hex", "Darts deal +15% to burned targets.", "PASSIVE"],
+      [
+        "*",
+        "Infiltrator",
+        "Darts and Phantom Force go straight through guard.",
+        "PASSIVE",
+      ],
     ],
     magnezone: [
       [
@@ -11665,17 +13677,28 @@
       [
         "RS",
         "Flash Cannon",
-        "Steel blast in front. Charge it for more power.",
+        "Steel beam. Charge it to reach further and hit harder.",
         "OPTIONAL CHARGE",
       ],
-      ["X", "Lock-On", "Scan line that marks a target for 5 seconds.", "SETUP"],
+      [
+        "X",
+        "Lock-On",
+        "Scan that zaps, marks a target for 5 s and slows it (Magnet Pull).",
+        "SETUP",
+      ],
       [
         "Y",
         "Zap Cannon",
         "Slow orb that paralyzes. Homes in on a locked target.",
         "PAYOFF",
       ],
-      ["B", "Magnet Rise", "Float up and over attacks and hazards.", "DODGE"],
+      [
+        "B",
+        "Magnet Rise",
+        "Float over attacks and hazards; land with a Discharge ring.",
+        "DODGE",
+      ],
+      ["*", "Sturdy", "Once per Pokémon, survive a KO hit on 1 HP.", "PASSIVE"],
       ["*", "Analytic", "+25% damage to targets stuck in recovery.", "PASSIVE"],
       [
         "*",
@@ -11683,6 +13706,105 @@
         "Electric hits charge any puddle they land in.",
         "PASSIVE",
       ],
+    ],
+    snorlax: [
+      [
+        "A",
+        "Body Slam combo",
+        "Two heavy slaps, then an armored belly flop that shakes the ground.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Heavy Slam",
+        "Armored leap that crashes down in a shockwave. Charge to leap further.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Yawn",
+        "Slow drifting bubble. Whoever it touches falls asleep shortly after.",
+        "TRAP",
+      ],
+      [
+        "Y",
+        "Rest",
+        "Hold to nap and heal. Snores knock foes back; light hits won't wake you.",
+        "HOLD",
+      ],
+      [
+        "B",
+        "Belly Bounce",
+        "Short hop. Projectiles bounce off your belly back at the sender.",
+        "DODGE",
+      ],
+      [
+        "*",
+        "Thick Fat",
+        "Takes 30% less from Fire. Gluttony: berries heal double.",
+        "PASSIVE",
+      ],
+    ],
+    noivern: [
+      [
+        "A",
+        "Wing Attack",
+        "Two wide wing sweeps, then a flipping lunge kick.",
+        "RAPID",
+      ],
+      [
+        "RS",
+        "Air Slash",
+        "Crescent blade of wind that cuts through everyone in its path.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Boomburst",
+        "Sonic cone that goes through guard. Hold to amplify it.",
+        "TAP / HOLD",
+      ],
+      [
+        "Y",
+        "Hurricane",
+        "A roaming vortex that drags foes in, eats shots and bursts at the end.",
+        "SUMMON",
+      ],
+      ["B", "Tailwind", "Long gliding dash.", "DODGE"],
+      [
+        "*",
+        "Flight",
+        "Flies over lava, ice, puddles and ground shockwaves.",
+        "PASSIVE",
+      ],
+    ],
+    lucario: [
+      [
+        "A",
+        "Force Palm combo",
+        "Fast strikes into a point-blank aura burst.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Meteor Mash",
+        "Comet punch with a long lunge.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Aura Sphere",
+        "Hold to charge. Guard or dodge to store it; tap X to fire stored.",
+        "STORABLE",
+      ],
+      [
+        "Y",
+        "Detect",
+        "Counter stance: when hit, blink behind them and strike back harder.",
+        "COUNTER",
+      ],
+      ["B", "Extreme Speed", "Fast long dash.", "DODGE"],
+      ["*", "Aura", "Up to +40% damage the lower your health.", "PASSIVE"],
     ],
   };
   function ds(a, e, t, s, i) {
@@ -11693,12 +13815,11 @@
         h = e + 18 + f * u,
         c = f === a.moveKit;
       te(h, t + 8, u - 4, 17, c ? xe[l].color : g.plate2),
-        Oe(i[l], "Normal", h + 5, t + 9.5, 14, {
+        Oe(i[l], "Normal", h + (u - 4) / 2 - 7, t + 9.5, 14, {
           bg: xe[l].color,
           grey: !c,
           frame: !1,
-        }),
-        V(xe[l].name, h + 22, t + 20.5, 9, c ? g.night : g.haze);
+        });
     }),
       V(o.name, e + 16, t + 42, 15, g.chalk, { skew: !0 }),
       G(
@@ -12096,6 +14217,32 @@
           (X(0.32, "bandpass", 400, 1.2, 0.32, 2800),
           I("p25", 200, 600, 0.3, 0.06));
       },
+      boom() {
+        O() &&
+          (I("saw", 260, 60, 0.35, 0.22, 0, { vib: 40 }),
+          X(0.3, "bandpass", 2400, 1.5, 0.35, 300),
+          I("sq", 880, 110, 0.25, 0.08, 0.02));
+      },
+      snore() {
+        O() &&
+          (I("p50", 70, 110, 0.5, 0.18),
+          X(0.45, "lowpass", 380, 1, 0.12, 900, 0.05));
+      },
+      wind() {
+        O() && X(0.9, "bandpass", 700, 2, 0.28, 1800, 0, !0);
+      },
+      auraShot(a = 0.5) {
+        O() &&
+          (I("tri", 300 + a * 200, 900 + a * 300, 0.22, 0.16),
+          I("p25", 600, 1200, 0.12, 0.06, 0.03),
+          X(0.18, "highpass", 3e3, 1, 0.12));
+      },
+      counter() {
+        O() &&
+          (I("p25", 1600, 1600, 0.06, 0.1),
+          I("p25", 2400, 2400, 0.12, 0.08, 0.05),
+          X(0.12, "highpass", 6e3, 1, 0.2));
+      },
       slam() {
         O() &&
           (I("sine", 120, 28, 0.5, 1),
@@ -12263,8 +14410,19 @@
                 ? (I("p50", 140, 110, 0.4, 0.18, e),
                   I("saw", 280, 200, 0.35, 0.06, e + 0.02, { vib: 30 }),
                   X(0.35, "bandpass", 2400, 0.8, 0.22, 500, e + 0.05))
-                : (I("p25", 600, 900, 0.12, 0.1, e),
-                  I("p25", 900, 500, 0.18, 0.1, e + 0.12)));
+                : a === "snorlax"
+                  ? (I("p50", 110, 80, 0.55, 0.2, e, { vib: 20 }),
+                    I("tri", 220, 150, 0.5, 0.16, e + 0.04),
+                    X(0.3, "lowpass", 500, 1, 0.16, 300, e + 0.1))
+                  : a === "noivern"
+                    ? (I("saw", 900, 1500, 0.18, 0.09, e, { vib: 80 }),
+                      I("p25", 1400, 700, 0.22, 0.08, e + 0.1),
+                      X(0.25, "bandpass", 3200, 2, 0.14, 1200, e + 0.05))
+                    : a === "lucario"
+                      ? (I("p25", 520, 640, 0.14, 0.11, e),
+                        I("p25", 780, 420, 0.22, 0.1, e + 0.12, { vib: 30 }))
+                      : (I("p25", 600, 900, 0.12, 0.1, e),
+                        I("p25", 900, 500, 0.18, 0.1, e + 0.12)));
       },
       ready() {
         O() &&
@@ -13553,10 +15711,36 @@
           n.kind === "shell"
             ? (S.shell(), t.dust(n.who.x, n.who.y, 5, n.dx, n.dy, 1))
             : n.kind === "phantom"
-              ? (S.phantom(), t.motes(n.who.x, n.who.y, 10, 12, be, 1.4))
-              : (S.dodge(),
-                t.dust(n.who.x, n.who.y, 7, n.dx, n.dy, 1.4),
-                t.ring(n.who.x, n.who.y, 4, 1.8, 9, L.cool, !0));
+              ? (S.phantom(),
+                t.motes(n.who.x, n.who.y, 10, 12, be, 1.4),
+                t.wisps(n.who.x, n.who.y, 6, 8, "#7f6bff", 10))
+              : n.kind === "dash"
+                ? (S.dodge(),
+                  t.speedLines(n.who.x, n.who.y - 10, 6, "#9fdcff"),
+                  t.wisps(n.who.x, n.who.y, 6, 5, "#4aa3ff", 6),
+                  t.dust(n.who.x, n.who.y, 6, n.dx, n.dy, 1.8))
+                : n.kind === "bounce"
+                  ? (S.land(),
+                    t.ring(n.who.x, n.who.y, 6, 2.2, 12, "#cfe3ff", !0),
+                    t.dust(n.who.x, n.who.y, 8, 0, 0, 1.4))
+                  : n.kind === "air" && n.who.kit.flier
+                    ? (S.dodge(),
+                      t.arcWave(
+                        n.who.x,
+                        n.who.y - 6,
+                        0,
+                        Math.atan2(-n.dy, -n.dx),
+                        1.6,
+                        6,
+                        2.2,
+                        "#d9c8ff",
+                        10,
+                        2,
+                      ),
+                      t.speedLines(n.who.x, n.who.y - 10, 5, "#d9c8ff"))
+                    : (S.dodge(),
+                      t.dust(n.who.x, n.who.y, 7, n.dx, n.dy, 1.4),
+                      t.ring(n.who.x, n.who.y, 4, 1.8, 9, L.cool, !0));
           break;
         case "dodgeTick":
           {
@@ -13607,12 +15791,25 @@
               S.step();
           else {
             let R = n.who.kind === "player" ? n.who.kit.id : "";
-            if (R === "dragapult") break;
-            let W = R === "blastoise";
+            if (R === "dragapult" || R === "noivern" || R === "magnezone")
+              break;
+            let W = R === "blastoise" || R === "snorlax";
             S.step(W),
               W &&
-                (t.shake(0, 1, n.who === D ? 0.7 : 0.35),
-                t.dust(n.x, n.y, 3, 0, 0, 0.8)),
+                (t.shake(
+                  0,
+                  1,
+                  (n.who === D ? 0.7 : 0.35) * (R === "snorlax" ? 1.8 : 1),
+                ),
+                t.dust(
+                  n.x,
+                  n.y,
+                  R === "snorlax" ? 6 : 3,
+                  0,
+                  0,
+                  R === "snorlax" ? 1.3 : 0.8,
+                ),
+                R === "snorlax" && t.ring(n.x, n.y, 4, 1.2, 10, "#c9bfa6", !0)),
               e.inPuddle(n.x, n.y)
                 ? (t.splash(n.x, n.y, 0, 3), S.splash())
                 : Math.random() < 0.6 &&
@@ -13723,6 +15920,21 @@
             t.dust(n.x, n.y, 16, 0, 0, 2.6);
           for (let R = 0; R < 16; R++)
             t.flame(n.x, n.y, (R / 16) * Math.PI * 2, 1);
+          t.cracks(n.x, n.y, 8, 30, "#3a1a0c"),
+            t.flare(n.x, n.y, 6, 26, "#fff4c2", 14),
+            t.embers(n.x, n.y, 4, 16),
+            t.arcWave(
+              n.x,
+              n.y - 6,
+              0,
+              -Math.PI / 2,
+              6.2,
+              12,
+              3,
+              "#ff8a3d",
+              14,
+              3,
+            );
           break;
         case "overheat":
           S.overheat(),
@@ -13771,7 +15983,22 @@
             ),
             (s.hudShake = 10)),
             S.cry(n.kit.id, 0.25),
-            (t.impact = 4);
+            (t.impact = 4),
+            t.flare(n.who.x, n.who.y, 14, 40, "#ffffff", 22),
+            t.ring(n.who.x, n.who.y, 8, 4.2, 20, n.kit.color, !0),
+            t.ring(n.who.x, n.who.y, 4, 3, 26, "#ffffff", !0),
+            t.motes(n.who.x, n.who.y, 14, 24, n.kit.color, 2.6);
+          for (let R = 0; R < 10; R++) {
+            let W = (R / 10) * Math.PI * 2;
+            t.streaks(
+              n.who.x,
+              n.who.y - 12,
+              Math.cos(W),
+              Math.sin(W),
+              1,
+              R % 2 ? "#ffffff" : n.kit.color,
+            );
+          }
           break;
         case "roundEnd":
           le(),
@@ -13958,7 +16185,307 @@
         case "locked":
           S.lock(!0),
             t.popup(n.who.x, n.who.y - 50, "LOCKED ON", "#ef5a4f", !1),
-            t.ring(n.who.x, n.who.y - 12, 16, -1.2, 12, "#ef5a4f");
+            t.ring(n.who.x, n.who.y - 12, 16, -1.2, 12, "#ef5a4f"),
+            t.ring(n.who.x, n.who.y - 12, 26, -1.8, 14, "#ffffff"),
+            n.by &&
+              (t.bolt(
+                n.by.x,
+                n.by.y - 14,
+                n.who.x,
+                n.who.y - 12,
+                "#ff6a5a",
+                9,
+                0,
+                1.2,
+              ),
+              t.bolt(
+                n.by.x,
+                n.by.y - 14,
+                n.who.x,
+                n.who.y - 12,
+                "#f8d030",
+                7,
+                0,
+                0.7,
+              )),
+            t.popup(n.who.x, n.who.y - 38, "MAGNET PULL", "#c8d4e6", !1);
+          break;
+        case "yawn":
+          S.charge(),
+            t.motes(
+              n.who.x + n.dx * 14,
+              n.who.y + n.dy * 14,
+              18,
+              6,
+              "#cfe3ff",
+              0.8,
+            ),
+            t.zzz(n.who.x + 6, n.who.y, 30);
+          break;
+        case "drowsy":
+          t.popup(n.who.x, n.who.y - 46, "DROWSY...", "#cfe3ff", !1),
+            t.zzz(n.who.x, n.who.y, 30);
+          break;
+        case "asleep":
+          S.guardBreak(),
+            t.popup(n.who.x, n.who.y - 46, "FELL ASLEEP!", "#cfe3ff", !0),
+            t.ring(n.who.x, n.who.y, 6, 1.6, 20, "#cfe3ff", !0);
+          for (let R = 0; R < 3; R++)
+            t.zzz(n.who.x + R * 4, n.who.y, 26 + R * 6);
+          break;
+        case "restStart":
+          S.heal(),
+            t.popup(n.who.x, n.who.y - 46, "REST", "#9cf28a", !1),
+            t.ring(n.who.x, n.who.y, 8, 1.4, 22, "#9cf28a", !0);
+          break;
+        case "restWake":
+          S.callout(0),
+            n.healed > 0 &&
+              t.popup(n.who.x, n.who.y - 40, `+${n.healed}`, "#9cf28a", !0),
+            t.heal(n.who.x, n.who.y, 12),
+            t.dust(n.who.x, n.who.y, 6, 0, 0, 1.2);
+          break;
+        case "snore":
+          S.snore(),
+            t.ring(n.x, n.y, 6, n.r / 9, 14, "#cfe3ff", !0),
+            t.arcWave(
+              n.x,
+              n.y - 14,
+              0,
+              -Math.PI / 2,
+              2.6,
+              8,
+              1.6,
+              "#cfe3ff",
+              16,
+              2,
+            ),
+            t.zzz(n.x + 4, n.y, 28),
+            t.shake(0, 1, 1.5);
+          break;
+        case "heavySlam": {
+          let R = 0.5 + n.c;
+          S.slam(),
+            S.land(),
+            t.shake(0, 1, 6 + 6 * n.c),
+            t.punch(n.x, n.y, 0.04 + 0.05 * n.c),
+            (t.impact = 3 + Math.round(3 * n.c)),
+            t.ring(n.x, n.y, 6, n.r / 6, 16, "#ffffff", !0),
+            t.ring(n.x, n.y, 4, n.r / 8, 22, n.who.kit.color, !0),
+            t.cracks(n.x, n.y, 7 + Math.round(5 * n.c), n.r * 1.2),
+            t.debris(n.x, n.y, 10 + Math.round(10 * n.c), 0, 0),
+            t.dust(n.x, n.y, 14, 0, 0, 2.4 * R);
+          break;
+        }
+        case "bellyBounce":
+          S.reflect(),
+            t.ring(n.who.x, n.who.y - 12, 6, 2.4, 10, "#cfe3ff"),
+            t.popup(n.who.x, n.who.y - 44, "BOUNCE!", "#cfe3ff", !1);
+          break;
+        case "boomFire": {
+          let R = Math.atan2(n.dy, n.dx),
+            W = n.who.x + n.dx * 10,
+            T = n.who.y + n.dy * 10;
+          S.boom(),
+            t.shake(n.dx, n.dy, 3 + 4 * n.c),
+            t.flare(W, T, 12, 14 + 14 * n.c, "#e8dcff", 10);
+          for (let Z = 0; Z < 5 + Math.round(3 * n.c); Z++)
+            t.arcWave(
+              W,
+              T - 10,
+              0,
+              R,
+              1.5,
+              6 + Z * 4,
+              3.4 + 1.6 * n.c,
+              Z % 2 ? "#c9a6ff" : "#ffffff",
+              14 + Z * 2,
+              3 - Z * 0.3,
+            );
+          n.c > 0.6 &&
+            ((t.screenFlash = 2),
+            (t.screenFlashColor = "#e8dcff"),
+            t.speedLines(W, T, 8, "#c9a6ff"));
+          break;
+        }
+        case "hurricane":
+          S.wind(),
+            t.dust(n.x, n.y, 10, 0, 0, 1.8),
+            t.ring(n.x, n.y, 6, 2, 14, "#c9a6ff", !0);
+          break;
+        case "hurricaneEnd":
+          S.boom(),
+            t.ring(n.x, n.y, 8, 3.2, 16, "#ffffff", !0),
+            t.arcWave(
+              n.x,
+              n.y - 20,
+              0,
+              -Math.PI / 2,
+              6.2,
+              10,
+              3,
+              "#c9a6ff",
+              16,
+              2,
+            ),
+            t.dust(n.x, n.y, 16, 0, 0, 2.6),
+            t.shake(0, 1, 4);
+          break;
+        case "airSlash":
+          S.swing(!0),
+            t.arcWave(
+              n.who.x + n.dx * 14,
+              n.who.y + n.dy * 14 - 10,
+              0,
+              Math.atan2(n.dy, n.dx),
+              2,
+              8,
+              2.4,
+              "#d9c8ff",
+              10,
+              2.5,
+            ),
+            t.speedLines(n.who.x, n.who.y - 10, 6 + 6 * n.c, "#d9c8ff");
+          break;
+        case "projHit":
+          n.p.kind === "airslash" &&
+            (t.slash(
+              { x: n.x, y: n.y, z: 0 },
+              Math.atan2(n.p.vy, n.p.vx) + 1.4,
+              14,
+              1.4,
+              4,
+              1,
+              "#ffffff",
+              8,
+            ),
+            t.motes(n.x, n.y, 10, 6, "#d9c8ff", 1.4));
+          break;
+        case "sphereStart":
+          S.charge();
+          break;
+        case "sphereFull":
+          S.smashFull(),
+            t.ring(n.who.x, n.who.y - 14, 18, -1.2, 12, "#9fdcff"),
+            t.flare(
+              n.who.x + Math.cos(n.who.facing) * 10,
+              n.who.y,
+              14,
+              18,
+              "#9fdcff",
+              12,
+            );
+          break;
+        case "sphereStore":
+          S.lock(!1),
+            t.popup(
+              n.who.x,
+              n.who.y - 44,
+              `STORED ${Math.round(n.c * 100)}%`,
+              "#9fdcff",
+              !1,
+            ),
+            t.wisps(n.who.x, n.who.y, 6, 6, "#4aa3ff", 8);
+          break;
+        case "sphereFire":
+          S.auraShot(n.c),
+            t.flare(
+              n.who.x + n.dx * 12,
+              n.who.y + n.dy * 12,
+              14,
+              14 + 18 * n.c,
+              "#9fdcff",
+              12,
+            ),
+            t.ring(
+              n.who.x + n.dx * 12,
+              n.who.y + n.dy * 12 - 14,
+              4,
+              2 + 2 * n.c,
+              10,
+              "#4aa3ff",
+            ),
+            t.shake(-n.dx, -n.dy, 1 + 3 * n.c),
+            t.wisps(n.who.x, n.who.y, 8, 4 + Math.round(6 * n.c), "#4aa3ff", 8);
+          break;
+        case "detect":
+          S.counter(),
+            t.flare(n.who.x, n.who.y, n.who.kit.tall * 0.6, 20, "#ffffff", 10),
+            t.ring(n.who.x, n.who.y - 12, 20, -1.6, 10, "#9fdcff");
+          break;
+        case "detectHit":
+          S.parry(),
+            S.counter(),
+            t.banner("DETECT!", "#4aa3ff", 40, "counter"),
+            t.flare(n.x, n.y, 12, 30, "#ffffff", 14),
+            t.ring(n.x, n.y, 6, 3, 14, "#9fdcff", !0),
+            (t.screenFlash = 2),
+            (t.screenFlashColor = "#9fdcff");
+          break;
+        case "counterBlink": {
+          let R = 8;
+          for (let W = 0; W <= R; W++)
+            t.wisps(
+              n.x1 + ((n.x2 - n.x1) * W) / R,
+              n.y1 + ((n.y2 - n.y1) * W) / R,
+              6,
+              1,
+              "#4aa3ff",
+              3,
+            );
+          ve(n.who, "#4aa3ff", 12);
+          break;
+        }
+        case "counterStrike":
+          S.slam(),
+            t.slash(
+              n.who,
+              Math.atan2(n.dy, n.dx),
+              26,
+              2.4,
+              8,
+              1,
+              "#9fdcff",
+              12,
+            ),
+            t.arcWave(
+              n.x + n.dx * 14,
+              n.y + n.dy * 14 - 10,
+              0,
+              Math.atan2(n.dy, n.dx),
+              2.4,
+              8,
+              3.2,
+              "#4aa3ff",
+              14,
+              3,
+            ),
+            t.flare(n.x + n.dx * 14, n.y + n.dy * 14, 12, 26, "#ffffff", 12),
+            t.shake(n.dx, n.dy, 5),
+            (t.impact = 4);
+          break;
+        case "sturdy":
+          S.guardBreak(),
+            S.callout(2),
+            t.banner(
+              "STURDY!",
+              "#c8d4e6",
+              60,
+              `${_a(n.who.kit.name)} hangs on with 1 HP`,
+            ),
+            t.flare(n.x, n.y, 16, 34, "#e9f1ff", 22),
+            t.ring(n.x, n.y, 6, 3.2, 16, "#c8d4e6", !0),
+            t.ring(n.x, n.y - 14, 8, 2.4, 14, "#ffffff"),
+            t.motes(n.x, n.y, 14, 16, "#c8d4e6", 2),
+            (t.screenFlash = 3),
+            (t.screenFlashColor = "#e9f1ff"),
+            (t.impact = 5);
+          break;
+        case "riseShock":
+          S.orb(),
+            t.shockRing(n.x, n.y, n.r, "#f8d030", 9),
+            t.dust(n.x, n.y, 6, 0, 0, 1.6),
+            t.shake(0, 1, 3);
           break;
         case "zapCharge":
           S.charge(),
@@ -13968,6 +16495,8 @@
         case "zapFire":
           S.orb(),
             t.ring(n.who.x, n.who.y - 12, 6, 2.6, 12, "#f8d030"),
+            t.flare(n.who.x, n.who.y, 14, n.locked ? 30 : 20, "#fff6a0", 14),
+            t.shockRing(n.who.x, n.who.y, 22, "#f8d030", 6),
             n.locked &&
               t.popup(n.who.x, n.who.y - 50, "LOCK-ON ZAP!", "#f8d030", !0);
           break;
@@ -13975,6 +16504,19 @@
           S.guardBreak(),
             t.popup(n.who.x, n.who.y - 46, "PARALYZED", "#f8d030", !0),
             t.motes(n.who.x, n.who.y, 14, 12, "#f8d030", 1.6);
+          for (let R = 0; R < 5; R++) {
+            let W = Math.random() * Math.PI * 2;
+            t.bolt(
+              n.who.x,
+              n.who.y - 12,
+              n.who.x + Math.cos(W) * 18,
+              n.who.y - 12 + Math.sin(W) * 14,
+              R % 2 ? "#ffffff" : "#f8d030",
+              8,
+              0,
+              0.8,
+            );
+          }
           break;
         case "electrify":
           S.closeCall(),
@@ -14043,7 +16585,13 @@
         case "dartsEmpty":
           n.who === D &&
             (S.fizzle(),
-            t.popup(n.who.x, n.who.y - 40, "NO DREEPY", "#9aa6b0", !1));
+            t.popup(
+              n.who.x,
+              n.who.y - 40,
+              n.msg ?? "NO DREEPY",
+              "#9aa6b0",
+              !1,
+            ));
           break;
         case "wisp":
           S.wisp(), t.motes(n.x, n.y, 12, 8, "#7f6bff", 1);
@@ -14069,8 +16617,41 @@
             t.ring(n.x, n.y, 30, -2.4, 10, be, !0);
           break;
         case "pfStrike":
-          S.slam(), t.ring(n.x, n.y, 8, 3, 14, be, !0), t.shake(0, 1, 4);
+          S.slam(),
+            t.ring(n.x, n.y, 8, 3, 14, be, !0),
+            t.shake(0, 1, 4),
+            t.slash(n.who, n.who.facing + 0.6, 26, 1.2, 5, 1, "#c9b8ff", 11),
+            t.slash(n.who, n.who.facing - 0.6, 26, 1.2, 5, -1, be, 11),
+            t.arcWave(
+              n.x,
+              n.y - 10,
+              0,
+              n.who.facing,
+              2.2,
+              10,
+              2.6,
+              "#a184f5",
+              12,
+              3,
+            ),
+            t.wisps(n.x, n.y, 4, 8, "#7f6bff", 12),
+            n.who.ambush &&
+              (t.flare(n.x, n.y, 14, 22, "#c9b8ff", 12), (t.impact = 3));
           break;
+        case "ambush": {
+          let R = 10;
+          for (let W = 0; W <= R; W++)
+            t.wisps(
+              n.x1 + ((n.x2 - n.x1) * W) / R,
+              n.y1 + ((n.y2 - n.y1) * W) / R,
+              6,
+              1,
+              W % 2 ? "#7f6bff" : "#43c6ac",
+              3,
+            );
+          t.popup(n.x2, n.y2 - 44, "AMBUSH!", "#c9b8ff", !0);
+          break;
+        }
         case "uturn": {
           S.swing(!0);
           let R = 8;
@@ -14208,6 +16789,44 @@
                   t.motes(R.x, R.y, 10, 10, "#d7dde6", 1.6))
                 : (t.motes(ne, ee + 10, 10, 8, "#f8d030", 1.2),
                   t.slash(R, W, T, 0.6, 3, Z, "#f8d030", 7));
+          else if (n.kit === "snorlax")
+            n.last
+              ? (t.ring(
+                  R.x + n.dx * 14,
+                  R.y + n.dy * 14,
+                  6,
+                  3,
+                  14,
+                  "#ffffff",
+                  !0,
+                ),
+                t.cracks(R.x + n.dx * 14, R.y + n.dy * 14, 6, 28),
+                t.dust(R.x + n.dx * 14, R.y + n.dy * 14, 12, 0, 0, 2),
+                t.shake(0, 1, 5),
+                S.slam())
+              : (t.slash(R, W, T, 1, 7, Z, "#cfe8ee", 9),
+                t.slash(R, W, T - 4, 0.8, 3, Z, "#3f8f9e", 8),
+                t.dust(ne, ee + 10, 3, n.dx, n.dy, 0.8));
+          else if (n.kit === "noivern")
+            n.last
+              ? (t.slash(R, W, T + 4, 3.6, 6, 1, "#d9c8ff", 12),
+                t.slash(R, W + 0.4, T - 2, 3, 3, 1, "#ffffff", 10),
+                t.arcWave(ne, ee, 0, W, 1.8, 6, 2.2, "#a890f0", 10, 2))
+              : (t.slash(R, W, T + 2, 1.5, 6, Z, "#d9c8ff", 9),
+                t.slash(R, W, T - 3, 1.2, 2, Z, "#ffffff", 7),
+                t.arcWave(ne, ee, 0, W, 1.2, 4, 1.6, "#a890f0", 8, 1.5));
+          else if (n.kit === "lucario")
+            n.smash
+              ? (t.streaks(R.x, R.y - 10, n.dx, n.dy, 10, "#b8c4e0"),
+                t.flare(ne, ee + 10, 10, 26, "#e9f1ff", 12),
+                t.burst(ne, ee, "#4aa3ff", 18),
+                t.ring(ne, ee + 10, 6, 3, 14, "#b8c4e0", !0))
+              : n.last
+                ? (t.flare(ne, ee + 10, 10, 22, "#9fdcff", 12),
+                  t.arcWave(ne, ee, 0, W, 2.2, 6, 3, "#4aa3ff", 12, 3),
+                  t.wisps(ne, ee + 10, 8, 6, "#4aa3ff", 6))
+                : (t.slash(R, W, T, 0.7, 3, Z, "#9fdcff", 7),
+                  t.claw(ne, ee, W, Z * 0.6, "#4aa3ff"));
           else if (n.kit === "charizard")
             n.smash
               ? (t.slash(R, W, T + 4, 1.7, 9, 1, "#ff8a3d", 13),
@@ -14261,7 +16880,16 @@
         case "smashFull":
           S.smashFull(),
             t.ring(n.who.x, n.who.y - 12, 18, -1.2, 12, L.gold),
-            t.motes(n.who.x, n.who.y, 12, 8, L.gold, 1.2);
+            t.motes(n.who.x, n.who.y, 12, 8, L.gold, 1.2),
+            t.flare(
+              n.who.x,
+              n.who.y,
+              n.who.kit.tall * Bz(n.who) * 0.7,
+              26,
+              "#fff4c2",
+              16,
+            ),
+            t.ring(n.who.x, n.who.y, 4, 2.6, 14, n.who.kit.color, !0);
           break;
         case "smashRelease": {
           let R = n.who;
@@ -14287,6 +16915,161 @@
           break;
       }
     }
+    // Particles thrown off styled beams (Flash Cannon, Aura, Boomburst...).
+    function beamFx(T) {
+      let n = Math.atan2(T.y2 - T.y1, T.x2 - T.x1);
+      T.age === 0 &&
+        t.add({
+          kind: "beamp",
+          x: T.x1,
+          y: T.y1,
+          x2: T.x2,
+          y2: T.y2,
+          style: T.style,
+          w: T.w,
+          life: 16,
+        });
+      T.style === "steel"
+        ? (T.age === 0 &&
+            (t.flare(T.x1, T.y1, 10, 26, "#e9f1ff", 16),
+            t.ring(T.x1, T.y1 - 10, 4, 3, 10, "#c8d4e6"),
+            t.shake(Math.cos(n), Math.sin(n), 5),
+            (t.screenFlash = 2),
+            (t.screenFlashColor = "#dfe8ff")),
+          e.tick % 2 === 0 &&
+            (t.motes(T.x2, T.y2, 10, 4, "#e9f1ff", 1.6),
+            t.motes(
+              T.x1 + (T.x2 - T.x1) * Math.random(),
+              T.y1 + (T.y2 - T.y1) * Math.random(),
+              10,
+              1,
+              "#f8d030",
+              0.8,
+            )))
+        : T.style === "aura"
+          ? (T.age === 0 && t.flare(T.x1, T.y1, 10, 22, "#7fd0ff", 14),
+            e.tick % 2 === 0 &&
+              t.wisps(
+                T.x1 + (T.x2 - T.x1) * Math.random(),
+                T.y1 + (T.y2 - T.y1) * Math.random(),
+                6,
+                1,
+                "#4aa3ff",
+                4,
+              ))
+          : 0;
+    }
+    // Always-on character flavour drawn as particles.
+    function kitAmbient(T) {
+      let n = T.kit.id;
+      (T.asleepUntil ?? 0) > e.tick &&
+        T.state === "stunned" &&
+        e.tick % 16 === 0 &&
+        t.zzz(T.x + 4, T.y, 26),
+        (T.drowsyT ?? 0) > 0 &&
+          e.tick % 12 === 0 &&
+          t.motes(T.x, T.y, 24, 1, "#cfe3ff", 0.3);
+      n === "snorlax" &&
+        (T.state === "rest" &&
+          (e.tick % 22 === 0 && t.zzz(T.x + 6, T.y, 22),
+          e.tick % 6 === 0 && t.heal(T.x, T.y, 1)),
+        T.state === "smash" &&
+          T.t < T.kit.smash.leap.air &&
+          e.tick % 2 === 0 &&
+          ve(T, "#3f8f9e", 8));
+      n === "noivern" &&
+        (e.tick % 18 === 0 &&
+          t.arcWave(
+            T.x,
+            T.y - 18,
+            T.z,
+            T.facing,
+            1.2,
+            4,
+            0.8,
+            "#a890f0",
+            10,
+            1,
+          ),
+        e.tick % 4 === 0 && t.dust(T.x, T.y, 1, 0, 0, 0.4),
+        T.state === "boom" &&
+          e.tick % 5 === 0 &&
+          t.ring(
+            T.x + Math.cos(T.facing) * 8,
+            T.y - 14,
+            16 - 10 * T.boomC,
+            -0.8,
+            8,
+            T.boomC >= 1 ? "#ffffff" : "#c9a6ff",
+          ),
+        T.state === "dodge" && e.tick % 2 === 0 && ve(T, "#d9c8ff", 8));
+      n === "lucario" &&
+        ((() => {
+          let Z = 1 - T.slot.hp / T.slot.maxHp,
+            ne = Z > 0.6 ? 2 : Z > 0.3 ? 4 : 8;
+          e.tick % ne === 0 &&
+            t.wisps(T.x, T.y, 4, 1, Z > 0.6 ? "#1b4fa8" : "#4aa3ff", 6 + 4 * Z);
+        })(),
+        T.state === "sphere" &&
+          (t.add({
+            kind: "orbp",
+            x: T.x + Math.cos(T.facing) * 9,
+            y: T.y + Math.sin(T.facing) * 4,
+            z: 14,
+            size: 3 + 7 * T.sphereC,
+            life: 2,
+            color: "#4aa3ff",
+          }),
+          e.tick % 3 === 0 && t.motes(T.x, T.y, 14, 1, "#9fdcff", 1.2)),
+        (T.slot.sphere ?? 0) > 0.05 &&
+          e.tick % 14 === 0 &&
+          t.wisps(T.x, T.y, 10, 1, "#9fdcff", 4),
+        T.state === "detect" &&
+          T.t <= LUCA.detectWin &&
+          e.tick % 2 === 0 &&
+          ve(T, "#9fdcff", 6),
+        T.state === "dodge" && e.tick % 1 === 0 && ve(T, "#4aa3ff", 9));
+      n === "dragapult" &&
+        (e.tick % 9 === 0 &&
+          t.wisps(
+            T.x - Math.cos(T.facing) * 10,
+            T.y - Math.sin(T.facing) * 4,
+            8 + T.z,
+            1,
+            "#a184f5",
+            3,
+          ),
+        T.state === "smash" &&
+          T.t <= T.kit.smash.active + 2 &&
+          (ve(T, T.t % 2 ? "#43c6ac" : "#7038f8", 12),
+          t.wisps(T.x, T.y, 10, 2, "#43c6ac", 6),
+          t.streaks(
+            T.x,
+            T.y - 10,
+            Math.cos(T.atkDir),
+            Math.sin(T.atkDir),
+            2,
+            "#7038f8",
+          )));
+      n === "magnezone" &&
+        (e.tick % 14 === 0 &&
+          t.bolt(
+            T.x - 7 + Math.random() * 14,
+            T.y - 8,
+            T.x - 7 + Math.random() * 14,
+            T.y - 22,
+            "#f8d030",
+            4,
+            T.z,
+            0.6,
+          ),
+        T.slot.sturdy &&
+          e.tick % 30 === 0 &&
+          t.motes(T.x, T.y, 14, 1, "#c8d4e6", 0.4)),
+        T.magT > 0 &&
+          e.tick % 5 === 0 &&
+          t.bolt(T.x - 6, T.y - 4, T.x + 6, T.y - 18, "#ef5a4f", 4, 0, 0.5);
+    }
     function ve(n, D, R) {
       let W = Ht(n),
         T = n.spinRow >= 0 ? n.spinRow : Math.min(nt(n.facing), W.rows - 1);
@@ -14300,6 +17083,7 @@
       // Charge tells: Solar gathering light, stored Solar glinting, cannon pressure.
       for (let T of e.players) {
         if (T.state === "faint") continue;
+        kitAmbient(T);
         T.state === "solar" &&
           (e.tick % 8 === 0 &&
             t.ring(
@@ -14336,12 +17120,26 @@
             t.leaves(T.x, T.y, T.z, 1, 0.3),
           T.kind === "wisp" &&
             e.tick % 2 === 0 &&
-            t.motes(T.x, T.y, T.z, 1, "#9f8cff", 0.3);
+            t.wisps(T.x, T.y, T.z - 4, 1, "#7f6bff", 3),
+          T.kind === "zap" &&
+            e.tick % 3 === 0 &&
+            (t.bolt(
+              T.x,
+              T.y - T.z,
+              T.x - T.vx * 6 + (Math.random() - 0.5) * 14,
+              T.y - T.z - T.vy * 6 + (Math.random() - 0.5) * 10,
+              "#f8d030",
+              5,
+              0,
+              0.7,
+            ),
+            t.motes(T.x, T.y, T.z, 1, "#fff6a0", 0.6));
       for (let T of e.dreepy)
         T.state !== "dazed" &&
           T.speed > 3.5 &&
           e.tick % 2 === 0 &&
-          t.motes(T.x, T.y, T.z, 1, be, 0.25);
+          (t.motes(T.x, T.y, T.z, 1, be, 0.25),
+          t.wisps(T.x, T.y, T.z - 4, 1, "#43c6ac", 2));
       for (let T of e.bodies()) {
         if (T.hidden || (T.alpha ?? 1) < 0.05) continue;
         let Z = T.kind === "player" ? T : null;
@@ -14372,10 +17170,14 @@
         Z?.state === "qa" && e.tick % 2 === 0 && ve(Z, be, 8);
       }
       for (let T of e.beams)
-        e.tick % 2 === 0 &&
-          (T.solar !== void 0
-            ? T.age < 10 && t.motes(T.x2, T.y2, 9, 3, "#ffe27a", 1.2)
-            : t.splash(T.x2, T.y2, 9, 3, T.x2 - T.x1, T.y2 - T.y1));
+        T.style
+          ? beamFx(T)
+          : e.tick % 2 === 0 &&
+            (T.solar !== void 0
+              ? T.age < 10 && t.motes(T.x2, T.y2, 9, 3, "#ffe27a", 1.2)
+              : T.scan ||
+                T.aim ||
+                t.splash(T.x2, T.y2, 9, 3, T.x2 - T.x1, T.y2 - T.y1));
       let D = n.slot;
       if (
         (e.players.forEach((T, Z) => {

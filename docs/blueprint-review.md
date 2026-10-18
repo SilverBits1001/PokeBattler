@@ -208,3 +208,107 @@ on Normal and Hard.
 - Full button remapping (only swapping specials for now).
 - Blastoise Surf / Rain Dance ideas from the moveset brainstorm.
 - Online or local multiplayer (the modes use CPUs for every other slot).
+
+## Pass: character polish, three new fighters, VFX
+
+### What makes a fighter balanced and distinct
+
+Every fighter gets the same slots (A combo, smash on the right stick, X, Y, dodge, guard,
+assist), so identity has to come from **how** each slot works, Smash-style:
+
+- **A clear archetype**: rushdown, zoner, trapper, heavyweight, aerial, counter-fighter.
+- **A real weakness** you can play around: low HP, slow, short range, long recovery.
+- **Moves that show the typing and the lore**, plus a passive taken from the Pokémon's ability.
+- **Tools at every range**, so a fighter is never just one move. Earlier measurements showed
+  Magnezone was almost all Zap Cannon and Dragapult was almost all Dragon Darts.
+
+Balance was checked with CPU vs CPU round-robins (Hard vs Hard, every pairing, both sides,
+several arenas). That is a proxy, not the final word, but it catches outliers. Before this
+pass Magnezone won 13% of matchups and Dragapult 72–83%. All eight now land roughly between
+40% and 60% on most arenas. Noivern is strong on Cinder Crater because it flies over the lava,
+a deliberate stage advantage.
+
+### Magnezone (weak → polished)
+
+Weak points: slowest fighter, no answer to rushdown, Lock-On did nothing on its own, and all
+of its damage was Zap Cannon.
+
+- **Lock-On** now zaps for chip damage and applies **Magnet Pull** (target slowed for 1.5 s).
+- **Magnet Rise** lands with a **Discharge** ring that knocks attackers away, its anti-rushdown tool.
+- **Flash Cannon** is now a real steel beam that reaches further when charged.
+- **Sturdy** (its real ability): once per Pokémon, a KO hit from above 25% HP leaves it on 1 HP.
+- Faster spark combo, slightly faster walk.
+
+### Dragapult (one-note → polished)
+
+Weak points: everything was Dragon Darts plus Hex, its melee was barely used, Phantom Force
+almost never landed, and its dodge was nearly all invulnerability.
+
+- **Phantom Force** now crosses up, reappearing behind a nearby foe for a 1.2× **ambush**.
+- **Infiltrator** (its real ability): darts and Phantom Force go straight through guard.
+- Hex reduced (+15%, was +30%), dart cap lowered, Dragon Rush trimmed, dodge invulnerability
+  8 frames (was 11), slightly lower HP. Melee hits harder so the claws matter.
+
+### New: Snorlax (Normal) — heavyweight tank
+
+2.1 m, the biggest body on the roster (drawn 1.12× Charizard). 1400 HP, slowest walk,
+hardest to launch.
+
+| Input | Move | Type |
+| --- | --- | --- |
+| A | Slap, Slap, **Body Slam** (all armored; the slam cracks the ground) | Combo |
+| RS | **Heavy Slam**: armored leap that crashes down in a shockwave; charge to leap further | Optional charge |
+| X | **Yawn**: slow bubble; whoever it touches falls asleep shortly after | Trap |
+| Y | **Rest**: hold to nap and heal. Snores knock foes back; light hits won't wake you, but you take +20% | Hold |
+| B | **Belly Bounce**: hop that bounces projectiles back | Dodge |
+| Passive | **Thick Fat**: −30% from Fire. **Gluttony**: berries heal double | — |
+
+### New: Noivern (Flying/Dragon) — aerial sound striker
+
+1.5 m (0.8×). Fast, light, flies over lava, ice, puddles and ground shockwaves.
+
+| Input | Move | Type |
+| --- | --- | --- |
+| A | Wing Attack ×2, **Acrobatics** flip kick | Rapid |
+| RS | **Air Slash**: crescent wind blade that cuts through everyone in its path | Optional charge |
+| X | **Boomburst**: sonic cone through guard (Infiltrator); hold to amplify | Tap / hold |
+| Y | **Hurricane**: roaming vortex that drags foes in, eats projectiles and bursts at the end | Summon |
+| B | **Tailwind**: long glide | Dodge |
+
+### New: Lucario (Fighting/Steel) — aura counter-fighter
+
+1.2 m (0.71×). Technical: storable charge shot, a counter and a comeback passive.
+
+| Input | Move | Type |
+| --- | --- | --- |
+| A | Jab, Kick, **Force Palm** aura burst | Combo |
+| RS | **Meteor Mash**: comet punch with a long lunge | Optional charge |
+| X | **Aura Sphere**: hold to charge; guard or dodge stores it; tap X to fire the stored shot | Storable |
+| Y | **Detect**: counter stance. When hit, blink behind the attacker and strike back for 1.3× | Counter |
+| B | **Extreme Speed**: fast dash | Dodge |
+| Passive | **Aura**: up to +40% damage the lower its health | — |
+
+Type chart additions (same mild ±5%): Fighting beats Normal and Steel and is weak to Flying
+and Ghost; Flying beats Grass and Fighting and is resisted by Electric and Steel; Electric beats
+Flying; Normal and Ghost resist each other.
+
+### VFX
+
+- New effect library: crackling **lightning bolts**, electric **shock rings**, anamorphic
+  **lens flares**, expanding **sound/aura arcs**, flickering **aura wisps**, radial **ground
+  cracks**, sleep **Z's**, plus a glowing **charge orb**.
+- **Dynamic light**: fire, electricity, aura, ghost flames, beams and the Hurricane cast
+  coloured light pools on the arena floor.
+- Every new move has its own look: Yawn dream bubble, Rest Z's and heal motes, Heavy Slam
+  crater with cracks and an impact frame, Boomburst rings, Hurricane vortex with whirling
+  debris, Air Slash crescent, Aura Sphere with orbiting energy, Detect flash, and a blink
+  trail on counters.
+- Older moves got more: Flash Cannon steel beam with afterglow, Zap Cannon crackles, Lock-On
+  bolt between the two fighters, paralysis sparks, Dragapult ghost-fire trails and ambush
+  slashes, Charizard Fly slam cracks and flare, Hydro Cannon pressure rings and foam crown,
+  KO bursts, a full-charge flare, and Snorlax's footsteps shake the ground.
+
+### Roster screen
+
+Team select is now a 4-over-4 grid; the title shows all eight fighters to scale; the training
+swap menu and move list handle eight.
