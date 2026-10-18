@@ -434,6 +434,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       NORMAL: "#a8a878",
       FLYING: "#a890f0",
       FIGHTING: "#c03028",
+      POISON: "#a040a0",
     },
     xe = {
       charizard: {
@@ -526,6 +527,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         id: "venusaur",
         name: "VENUSAUR",
         type: "GRASS",
+        type2: "POISON",
         color: "#6cc04a",
         typeInk: "#0f2a08",
         hp: 1140,
@@ -533,7 +535,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         weight: 0.85,
         r: 11,
         hurtR: 13,
-        size: 1.32,
+        size: 1.37,
         tall: 25,
         role: "Zoner \xB7 trapper",
         stats: { speed: 2, power: 3, defense: 3, range: 5, difficulty: 3 },
@@ -575,6 +577,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           anim: "Hop",
         },
         smash: {
+          poison: !0,
           name: "POWER WHIP",
           anim: "Swing",
           windup: 11,
@@ -600,16 +603,16 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         type: "WATER",
         color: "#5aa9e6",
         typeInk: "#06203a",
-        hp: 1180,
+        hp: 1240,
         speed: 2.15,
         weight: 0.6,
         r: 10,
         hurtR: 12,
         size: 0.94,
         tall: 29,
-        role: "Tank \xB7 artillery",
+        role: "Artillery \xB7 counter",
         stats: { speed: 1, power: 4, defense: 5, range: 4, difficulty: 3 },
-        // Shell Bash -> Aqua Tail -> Body Slam. Only the slam is armored.
+        // Shell Bash -> Aqua Tail -> Body Slam.
         basic: () => [
           {
             anim: "Attack",
@@ -649,7 +652,6 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             shape: "circle",
             reach: 15,
             radius: 15,
-            armor: !0,
           },
         ],
         dodge: {
@@ -961,7 +963,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         type2: "DRAGON",
         color: "#8a5ccf",
         typeInk: "#1c1033",
-        hp: 860,
+        hp: 890,
         speed: 3.1,
         weight: 1.15,
         r: 9,
@@ -1050,7 +1052,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         type2: "STEEL",
         color: "#4a7fd6",
         typeInk: "#0e1a33",
-        hp: 940,
+        hp: 980,
         speed: 3.05,
         weight: 1,
         r: 8,
@@ -1118,7 +1120,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           active: 6,
           recovery: 26,
           lunge: 34,
-          dmg: 48,
+          dmg: 52,
           kb: 7,
           shape: "circle",
           reach: 10,
@@ -2192,6 +2194,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       hurDmg: 6,
       hurEnd: 26,
       slashSpeed: 4.6,
+      pulseLen: 170,
+      pulseDmg: 50,
     },
     // Lucario: Aura Sphere (charge, store, fire), Detect counter, Aura passive.
     LUCA = {
@@ -2210,7 +2214,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     // Phantom Force crosses up: reappear behind a nearby foe for an ambush.
     AMBUSH = { range: 120, mult: 1.2 },
     BLAST = {
-      pulseDmg: 14,
+      pulseDmg: 17,
       pulseSpeed: 3.6,
       pulseLife: 60,
       daze: 50,
@@ -2234,14 +2238,21 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     FIGHTING: { NORMAL: 1, STEEL: 1, FLYING: -1, GHOST: -1 },
     FLYING: { GRASS: 1, FIGHTING: 1, ELECTRIC: -1, STEEL: -1 },
     GHOST: { NORMAL: -1 },
+    POISON: { GRASS: 1, POISON: -1, STEEL: -1, GHOST: -1 },
   };
+  TX.GRASS.POISON = -1;
+  TX.FIGHTING.POISON = -1;
   TX.ELECTRIC.FLYING = 1;
   function Ua(a, e) {
     let t = TX[a]?.[e];
     if (t) return t > 0 ? yt.strong : yt.weak;
     if (
-      ["ELECTRIC", "STEEL", "NORMAL", "FLYING", "FIGHTING"].includes(a) ||
-      ["ELECTRIC", "STEEL", "NORMAL", "FLYING", "FIGHTING"].includes(e)
+      ["ELECTRIC", "STEEL", "NORMAL", "FLYING", "FIGHTING", "POISON"].includes(
+        a,
+      ) ||
+      ["ELECTRIC", "STEEL", "NORMAL", "FLYING", "FIGHTING", "POISON"].includes(
+        e,
+      )
     )
       return 1;
     return a === "DRAGON" && e === "DRAGON"
@@ -3015,6 +3026,15 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             v.cdDodge > 0 && v.cdDodge--,
             v.pfCd > 0 && v.pfCd--,
             v.cdW > 0 && v.cdW--,
+            v.poisonT > 0 &&
+              (v.poisonT--,
+              v === i &&
+                v.poisonT % 40 === 0 &&
+                e.state !== "faint" &&
+                v.hp > 1 &&
+                this.match.phase === "fight" &&
+                ((v.hp = Math.max(1, v.hp - 5)),
+                this.emit({ type: "poisonTick", who: e, x: e.x, y: e.y }))),
             v.burnT > 0 &&
               (v.burnT--,
               v === i &&
@@ -4194,6 +4214,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             fire: e.kit.id === "charizard",
             src: "smash",
             melee: !0,
+            poison: s.poison,
             smash: Math.max(0.01, i),
           });
         }
@@ -4491,8 +4512,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             (e.t = 0),
             (e.moveId = this.nextId++),
             (e.slot.cdX = e.kit.xCd),
+            (e.pulseShot = e.boomC >= 1),
             this.emit({
-              type: "boomFire",
+              type: e.pulseShot ? "dragonPulse" : "boomFire",
               who: e,
               c: e.boomC,
               dx: Math.cos(e.dir2),
@@ -4500,6 +4522,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             }));
       }
       tickBoomFire(e) {
+        if (e.pulseShot) return this.tickDragonPulse(e);
         this.locomote(e, 0, 0);
         let t = e.boomC,
           s = NOIV.boomRange + NOIV.boomGrow * t,
@@ -4539,6 +4562,57 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           }
         }
         e.t >= 26 && ((e.state = "move"), (e.t = 0));
+      }
+      // Dragon Pulse: a full charge condenses the sound into a draconic beam.
+      tickDragonPulse(e) {
+        this.locomote(e, 0, 0);
+        let t = Math.cos(e.dir2),
+          s = Math.sin(e.dir2),
+          i = e.x + t * 12,
+          r = e.y + s * 12,
+          o = this.beamEnd(i, r, e.dir2, NOIV.pulseLen);
+        if (e.t >= 2 && e.t <= 10) {
+          this.beams.push({
+            x1: i,
+            y1: r,
+            x2: o.x,
+            y2: o.y,
+            owner: e,
+            age: e.t - 2,
+            life: 9,
+            style: "dragon",
+            w: 9,
+          });
+          let l = { id: e.moveId, rehit: 0 };
+          for (let f of this.victimsFor(e.team))
+            this.shapeHits(
+              { kind: "capsule", x1: i, y1: r, x2: o.x, y2: o.y, r: 9 },
+              f.x,
+              f.y,
+              f.hurtR,
+            ) &&
+              this.canHitAgain(l, f) &&
+              ((this.moveType = "DRAGON"),
+              this.applyHit(
+                f,
+                e,
+                NOIV.pulseDmg,
+                6.4,
+                t,
+                s,
+                !0,
+                A.hitstopHeavy,
+                A.hitstunHeavy,
+                "#7038f8",
+                f.x,
+                f.y,
+                !1,
+                !1,
+                this.srcLabel(e, "dragonpulse"),
+              ),
+              (this.moveType = null));
+        }
+        e.t >= 30 && ((e.state = "move"), (e.t = 0), (e.pulseShot = !1));
       }
       tickHurCast(e, t) {
         this.locomote(e, 0, 0),
@@ -7454,6 +7528,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 !!e.pierceGuard,
                 e.smash ?? 0,
               ),
+              (e.poison && this.poison(t), 0),
               e.heat &&
                 e.owner.kind === "player" &&
                 e.owner.kit.id === "charizard")
@@ -7585,6 +7660,19 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             ? `assist-${e.kit.id}:${t}`
             : `${e.kind}:${t}`;
       }
+      // Poison: damage over time, no other penalty. Steel and Poison types are immune.
+      poison(e) {
+        if (e.kind !== "player" || e.state === "faint") return;
+        if (
+          e.kit.type2 === "POISON" ||
+          e.kit.type2 === "STEEL" ||
+          e.kit.type === "STEEL"
+        ) {
+          this.emit({ type: "burnImmune", who: e });
+          return;
+        }
+        (e.slot.poisonT = 240), this.emit({ type: "poisoned", who: e });
+      }
       burn(e) {
         if (e.kind === "player") {
           let t = e;
@@ -7603,7 +7691,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
       attackerType(e) {
         return e && (e.kind === "player" || e.kind === "assist")
-          ? e.kit.type
+          ? (this.moveType ?? e.kit.type)
           : "";
       }
       outgoingMult(e) {
@@ -9137,9 +9225,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           ? "220,230,255"
           : s.style === "aura"
             ? "74,163,255"
-            : s.solar !== void 0
-              ? "255,226,122"
-              : "90,169,230";
+            : s.style === "dragon"
+              ? "150,110,255"
+              : s.solar !== void 0
+                ? "255,226,122"
+                : "90,169,230";
       for (let r = 0; r <= 4; r++)
         t(
           s.x1 + ((s.x2 - s.x1) * r) / 4,
@@ -11215,10 +11305,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           );
           break;
         case "orbp": {
-          let l = d2grad(a, r, o, s.size * 2.2, [
-            [0, "rgba(159,220,255,0.7)"],
-            [1, "rgba(74,163,255,0)"],
-          ]);
+          let f = s.glow ?? "74,163,255",
+            l = d2grad(a, r, o, s.size * 2.2, [
+              [0, `rgba(${f},0.75)`],
+              [1, `rgba(${f},0)`],
+            ]);
           (a.globalAlpha = 1),
             (a.fillStyle = l),
             a.beginPath(),
@@ -11395,18 +11486,18 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           (a.globalAlpha = r ? 0.18 * (4 - r) : 1),
           (a.fillStyle = r ? "#6cc04a" : "#2f7a2a"),
           a.beginPath(),
-          a.ellipse(0, 0, 7, 3.2, 0, 0, Math.PI * 2),
+          a.ellipse(0, 0, 10, 4.4, 0, 0, Math.PI * 2),
           a.fill(),
           r ||
             ((a.fillStyle = "#9be36b"),
             a.beginPath(),
-            a.ellipse(0, -0.6, 5.6, 1.9, 0, 0, Math.PI * 2),
+            a.ellipse(0, -0.8, 8, 2.6, 0, 0, Math.PI * 2),
             a.fill(),
             (a.strokeStyle = "#f4ffe0"),
             (a.lineWidth = 0.8),
             a.beginPath(),
-            a.moveTo(-6, 0),
-            a.lineTo(6, 0),
+            a.moveTo(-9, 0),
+            a.lineTo(9, 0),
             a.stroke()),
           a.restore();
       }
@@ -11451,13 +11542,13 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       let s = h.r * 1.25 * (1 + 0.08 * Math.sin(h.age * 0.25)),
         i = s * (1 + 0.06 * Math.sin(h.age * 0.31 + 1));
       return (
-        (a.globalAlpha = 0.18),
-        (a.fillStyle = "#cfe3ff"),
+        (a.globalAlpha = 0.25),
+        (a.fillStyle = "#f0c8ff"),
         a.beginPath(),
-        a.ellipse(c, y, s + 4, i + 4, 0, 0, Math.PI * 2),
+        a.ellipse(c, y, s + 5, i + 5, 0, 0, Math.PI * 2),
         a.fill(),
-        (a.globalAlpha = 0.72),
-        (a.fillStyle = "#e9f2ff"),
+        (a.globalAlpha = 0.75),
+        (a.fillStyle = "#f6e2ff"),
         a.beginPath(),
         a.ellipse(c, y, s, i, 0, 0, Math.PI * 2),
         a.fill(),
@@ -13857,7 +13948,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       [
         "RS",
         "Power Whip",
-        "Slow vine slam with huge reach.",
+        "Slow thorned vine slam with huge reach. Poisons.",
         "OPTIONAL CHARGE",
       ],
       [
@@ -14050,8 +14141,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       ],
       [
         "X",
-        "Boomburst",
-        "Sonic cone that goes through guard. Hold to amplify it.",
+        "Boomburst / Dragon Pulse",
+        "Sonic cone through guard. Charge fully for a Dragon Pulse beam.",
         "TAP / HOLD",
       ],
       [
@@ -15764,6 +15855,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       let D = e.player;
       switch (n.type) {
         case "hit": {
+          hitFlourish(n);
           let R = n.victim === e.player,
             W = !!n.attacker && n.attacker.team === e.player.team,
             T = 8,
@@ -15884,7 +15976,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               n.eff > 1
                 ? (t.popup(
                     n.victim.x,
-                    n.victim.y - 44,
+                    n.victim.y - 60,
                     "SUPER EFFECTIVE!",
                     L.gold,
                     !1,
@@ -15892,7 +15984,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                   S.callout(0))
                 : t.popup(
                     n.victim.x,
-                    n.victim.y - 44,
+                    n.victim.y - 60,
                     "not very effective\u2026",
                     "#9aa6b0",
                     !1,
@@ -16040,7 +16132,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               n.t < W.ticks - 1 &&
               W.kind !== "shell" &&
               W.kind !== "phantom" &&
-              ve(R, n.iframe ? L.cool : R.kit.color, 9),
+              (ve(R, n.iframe && n.t % 4 === 0 ? "#ffffff" : R.kit.color, 10),
+              dodgeTrail(R, n.t)),
               W.kind === "shell" &&
                 n.t % 3 === 0 &&
                 t.dust(
@@ -16707,7 +16800,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         case "detectHit":
           S.parry(),
             S.counter(),
-            t.popup(n.x, n.y - 44, "DETECT!", "#9fdcff", !0),
+            t.popup(n.x, n.y - 62, "DETECT!", "#9fdcff", !0),
             t.flare(n.x, n.y, 12, 30, "#ffffff", 14),
             t.ring(n.x, n.y, 6, 3, 14, "#9fdcff", !0),
             (t.screenFlash = 2),
@@ -16772,8 +16865,31 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             (t.screenFlashColor = "#e9f1ff"),
             (t.impact = 5);
           break;
+        case "poisoned":
+          S.burn(),
+            t.popup(n.who.x, n.who.y - 46, "POISONED!", "#c060d0", !1),
+            t.motes(n.who.x, n.who.y, 14, 12, "#c060d0", 1.2);
+          break;
+        case "poisonTick":
+          t.motes(n.x, n.y, 12, 4, "#c060d0", 0.8),
+            t.popup(n.x, n.y - 30, "5", "#c060d0", !1);
+          break;
+        case "dragonPulse": {
+          let R = n.who.x + n.dx * 12,
+            W = n.who.y + n.dy * 12;
+          S.boom(),
+            S.auraShot(1),
+            t.popup(n.who.x, n.who.y - 46, "DRAGON PULSE!", "#b49cff", !0),
+            t.flare(R, W, 12, 30, "#e0d4ff", 16),
+            t.shake(n.dx, n.dy, 6),
+            (t.screenFlash = 2),
+            (t.screenFlashColor = "#b49cff"),
+            t.speedLines(R, W, 10, "#7038f8");
+          break;
+        }
         case "riseShock":
           S.orb(),
+            t.flare(n.x, n.y, 8, 22, "#fff6a0", 12),
             t.shockRing(n.x, n.y, n.r, "#f8d030", 9),
             t.dust(n.x, n.y, 6, 0, 0, 1.6),
             t.shake(0, 1, 3);
@@ -17142,7 +17258,12 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               -8,
             ),
               t.ring(J, Ye2, 3, n.smash ? 2.6 : 1.8, 9, "#d6ff8a"),
-              t.leaves(J, Ye2 + 8, 6, n.smash ? 6 : 3);
+              t.leaves(J, Ye2 + 8, 6, n.smash ? 6 : 3),
+              n.smash &&
+                (t.slash(R, W, n.reach + 6, 1.5, 10, 1, "#6cc04a", 12),
+                t.slash(R, W, n.reach, 1.2, 4, 1, "#d6ff8a", 10),
+                t.motes(J, Ye2 + 8, 6, 10, "#c060d0", 1.4),
+                t.flare(J, Ye2 + 8, 6, 20, "#e8ffd0", 10));
           } else
             n.kit === "blastoise"
               ? (t.slash(
@@ -17206,6 +17327,94 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           break;
       }
     }
+    // Signature particles left behind by each fighter's dodge.
+    function dodgeTrail(n, D) {
+      let R = n.kit.id,
+        W = Math.cos(n.dodgeDir),
+        T = Math.sin(n.dodgeDir);
+      R === "charizard"
+        ? (t.embers(n.x, n.y, 8, 3), t.flame(n.x, n.y, n.dodgeDir + Math.PI, 1))
+        : R === "venusaur"
+          ? t.leaves(n.x, n.y, 6, 2, 0.8)
+          : R === "magnezone"
+            ? t.bolt(
+                n.x - W * 10,
+                n.y - 8,
+                n.x - W * 22 + (Math.random() - 0.5) * 10,
+                n.y - 10 - T * 10,
+                "#f8d030",
+                5,
+                n.z,
+                0.7,
+              )
+            : R === "noivern"
+              ? (t.streaks(n.x, n.y - 10, -W, -T, 2, "#d9c8ff"),
+                D % 4 === 0 &&
+                  t.arcWave(
+                    n.x,
+                    n.y - 8,
+                    n.z,
+                    n.dodgeDir + Math.PI,
+                    1.4,
+                    5,
+                    1.6,
+                    "#ffffff",
+                    8,
+                    1.5,
+                  ))
+              : R === "lucario"
+                ? (t.wisps(n.x, n.y, 6, 2, "#4aa3ff", 5),
+                  t.streaks(n.x, n.y - 10, -W, -T, 1, "#9fdcff"))
+                : R === "snorlax"
+                  ? D % 4 === 0 && t.dust(n.x, n.y, 3, -W, -T, 1)
+                  : R === "dragapult" && t.wisps(n.x, n.y, 6, 2, "#7f6bff", 6);
+    }
+    // Hit flourishes keyed by the move that landed.
+    function hitFlourish(n) {
+      let D = n.src ?? "",
+        R = n.victim.x,
+        W = n.victim.y;
+      D.includes("dart")
+        ? (t.burst(R, W - 10, "#a184f5", 12), t.wisps(R, W, 8, 4, "#43c6ac", 6))
+        : D.includes(":wisp")
+          ? (t.wisps(R, W, 6, 8, "#7f6bff", 8),
+            t.ring(R, W - 10, 4, 2, 10, "#9f8cff"))
+          : D.includes("boomburst")
+            ? (t.arcWave(
+                R,
+                W - 10,
+                0,
+                Math.atan2(n.dy, n.dx),
+                2.4,
+                6,
+                2.6,
+                "#c9a6ff",
+                12,
+                2.6,
+              ),
+              t.flare(R, W, 12, 18, "#ffffff", 8))
+            : D.includes("dragonpulse")
+              ? (t.flare(R, W, 12, 26, "#b49cff", 14),
+                t.ring(R, W - 10, 6, 3, 14, "#7038f8"),
+                t.wisps(R, W, 6, 8, "#43c6ac", 8))
+              : D === "lucario:basic3"
+                ? (t.ring(R, W - 10, 4, 3, 12, "#4aa3ff"),
+                  t.flare(R, W, 12, 20, "#9fdcff", 10),
+                  t.wisps(R, W, 6, 6, "#4aa3ff", 8))
+                : D === "magnezone:basic3"
+                  ? (t.ring(R, W - 8, 6, 2.6, 12, "#c8d4e6"),
+                    t.motes(R, W, 10, 10, "#e9f1ff", 2))
+                  : D.includes(":leaf")
+                    ? (t.claw(
+                        R,
+                        W - 10,
+                        Math.atan2(n.dy, n.dx),
+                        0.8,
+                        "#9be36b",
+                      ),
+                      t.leaves(R, W, 8, 3, 1))
+                    : D.includes(":zap") && t.shockRing(R, W, 26, "#f8d030", 6);
+    }
     // Impact bursts for projectiles that connect.
     function projBurst(n) {
       let R = n.x,
@@ -17221,8 +17430,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           t.shake(n.vx, n.vy, 2 + 4 * T),
           T > 0.7 && (t.impact = 3))
         : n.kind === "yawn"
-          ? (t.ring(R, W - n.z, 6, 2, 12, "#e9f2ff"),
-            t.motes(R, W, n.z, 14, "#e9f2ff", 1.4),
+          ? (t.ring(R, W - n.z, 6, 2.4, 14, "#f0c8ff"),
+            t.flare(R, W, n.z, 16, "#ffffff", 10),
+            t.motes(R, W, n.z, 16, "#f0c8ff", 1.6),
             t.zzz(R, W, n.z + 6))
           : n.kind === "zap" &&
             (t.shockRing(R, W, 30, "#f8d030", 8),
@@ -17260,22 +17470,104 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               "#f8d030",
               0.8,
             )))
-        : T.style === "aura"
-          ? (T.age === 0 && t.flare(T.x1, T.y1, 10, 22, "#7fd0ff", 14),
-            e.tick % 2 === 0 &&
-              t.wisps(
-                T.x1 + (T.x2 - T.x1) * Math.random(),
-                T.y1 + (T.y2 - T.y1) * Math.random(),
-                6,
-                1,
-                "#4aa3ff",
-                4,
-              ))
-          : 0;
+        : T.style === "dragon"
+          ? e.tick % 2 === 0 &&
+            t.wisps(
+              T.x1 + (T.x2 - T.x1) * Math.random(),
+              T.y1 + (T.y2 - T.y1) * Math.random(),
+              8,
+              1,
+              Math.random() < 0.5 ? "#43c6ac" : "#7038f8",
+              4,
+            )
+          : T.style === "aura"
+            ? (T.age === 0 && t.flare(T.x1, T.y1, 10, 22, "#7fd0ff", 14),
+              e.tick % 2 === 0 &&
+                t.wisps(
+                  T.x1 + (T.x2 - T.x1) * Math.random(),
+                  T.y1 + (T.y2 - T.y1) * Math.random(),
+                  6,
+                  1,
+                  "#4aa3ff",
+                  4,
+                ))
+            : 0;
     }
     // Always-on character flavour drawn as particles.
     function kitAmbient(T) {
-      let n = T.kit.id;
+      let n = T.kit.id,
+        mo = (Z, ne, ee) =>
+          t.add({
+            kind: "orbp",
+            x: T.x + Math.cos(T.facing) * 10,
+            y: T.y + Math.sin(T.facing) * 4,
+            z: 14 + T.z,
+            size: Z,
+            life: 2,
+            color: ne,
+            glow: ee,
+          });
+      T.state === "zap" &&
+        T.t < 16 &&
+        (mo(2 + T.t * 0.45, "#f8d030", "255,232,102"),
+        e.tick % 3 === 0 &&
+          t.bolt(
+            T.x,
+            T.y - 14,
+            T.x + Math.cos(T.facing) * 10,
+            T.y - 14,
+            "#fff6a0",
+            4,
+            0,
+            0.6,
+          ));
+      T.state === "flame" &&
+        T.t <= 7 &&
+        mo(2 + T.t * 0.6, "#ff8a3d", "255,138,61");
+      T.state === "pump" &&
+        !T.pumpAt &&
+        (mo(3 + 6 * (T.cannonC ?? 0), "#5aa9e6", "111,211,232"),
+        e.tick % 6 === 0 &&
+          t.ring(
+            T.x + Math.cos(T.facing) * 10,
+            T.y - 14,
+            14,
+            -1.2,
+            9,
+            "#bfe6ff",
+          ));
+      T.state === "boom" &&
+        mo(
+          2 + 6 * T.boomC,
+          T.boomC >= 1 ? "#b49cff" : "#e8dcff",
+          "201,166,255",
+        );
+      T.state === "yawn" &&
+        T.t < 12 &&
+        (mo(2 + T.t * 0.4, "#f0c8ff", "240,200,255"),
+        e.tick % 4 === 0 && t.zzz(T.x + 6, T.y, 24));
+      if (T.state === "phantom") {
+        let Z = T.lock ?? e.nearestTarget(T.team, T.x, T.y);
+        if (
+          Z &&
+          Math.hypot(Z.x - T.x, Z.y - T.y) < AMBUSH.range &&
+          e.tick % 3 === 0
+        ) {
+          let ne = Math.atan2(Z.y - T.y, Z.x - T.x),
+            ee = Z.r + T.r + 6;
+          t.wisps(
+            Z.x + Math.cos(ne) * ee,
+            Z.y + Math.sin(ne) * ee,
+            4,
+            2,
+            "#7f6bff",
+            6,
+          );
+        }
+      }
+      (T.slot.poisonT ?? 0) > 0 &&
+        e.tick % 10 === 0 &&
+        t.motes(T.x, T.y, 16, 1, "#c060d0", 0.5);
       (T.asleepUntil ?? 0) > e.tick &&
         T.state === "stunned" &&
         e.tick % 16 === 0 &&
