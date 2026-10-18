@@ -431,3 +431,52 @@ highlight?) and **theme** (Pokémon battle flavour).
 Smoke Bomb and Eject Button were removed completely (their targeting and invulnerability
 code included). Verified: the Poké Ball summons only Pokémon outside the match and they deal
 damage; the Rocky Helmet returns damage to melee attackers; the Choice Scarf is +30% speed.
+
+## Pass: arena overhaul
+
+**Goal:** every arena has its own identity, a telegraphed hazard you can avoid, a benefit you
+can deliberately use, and a type interaction. Layouts stay point-symmetric, and no arena should
+favour one fighter too much.
+
+**Measured before the change** (CPU round-robins, all 8 fighters):
+
+| Arena | Hazard share of damage | Interaction use per match | Win spread* |
+| --- | --- | --- | --- |
+| Stadium | 0% | none | .26 |
+| Ruins | 0.1% | 0.7 boulder breaks | .23 |
+| Cinder Crater | **12.6%** | lava cooled 0.1 times | **.43** (Noivern .74, Lucario .31) |
+| Frostfall Lake | 0.1% (icicles almost never hit) | — | .17 |
+| Power Plant | 0.4% (arcs mostly cosmetic) | 0.3 discharges | .26 |
+
+*Win spread = best fighter's win rate minus the worst's on that arena. Crater was overtuned
+and unfair; the other hazards barely mattered.
+
+**Redesign:**
+
+| Arena | Identity | Hazard | Benefit | Type interaction |
+| --- | --- | --- | --- | --- |
+| **Stadium** | Neutral tournament stage | None, deliberately (the fair baseline) | **Spotlights** sweep the floor on mirrored paths; standing in one recharges specials 2× faster | — |
+| **Ruins** | Cover and ambush | **Collapse**: a destroyed boulder brings rubble down around it after a 0.75 s warning | **Ancient Power**: whoever breaks a boulder gets +12% damage and speed for 5 s. Boulders are a bit weaker (100 HP) | Fighting, Steel, Water and Grass break rock 1.5× faster (Rock's weaknesses) |
+| **Cinder Crater** | Pressure | Smaller centre lava, gentler ticks; telegraphed eruptions | **Heat Vent**: an erupted vent stays hot for 5 s, giving +25% damage to whoever stands in it | Any Water Pulse or Hydro Cannon passing over lava crusts it; fliers take half heat |
+| **Frostfall Lake** | Momentum | **Icicles aimed near every fighter** (fair, and they matter), with a longer telegraph | **Slide dodges**: dodging on ice travels 40% further | Fire melts rinks; water puddles freeze into small temporary rinks |
+| **Power Plant** | Control | Faster, wider, harder-hitting arcs | **Recharge**: specials recharge 1.75× faster beside a live pylon | Electric types **absorb** arcs (no damage, specials recharge); Electric overcharges pylons; Water shorts them |
+
+The CPU drifts toward spotlights, live pylons and heat vents when it isn't trading blows, and
+steers around collapse warnings. A tip for each arena's benefit shows after "GO!".
+
+**Visuals:**
+- Stadium: spotlight beams from the stands, camera flashes in the crowd, a Poké Ball emblem.
+- Ruins: collapse warning ring with falling pebbles, a dust and crack impact, Ancient Power motes.
+- Crater: glowing heat vents with rising heat, falling ash, embers off the lava.
+- Frostfall: snowfall, freezing puddles, icicle shadows.
+- Power Plant: energy running along the conduits, recharge rings around live pylons.
+
+**Measured after** (10 games per side; Stadium and Crater re-checked at 14 and 18):
+
+| Arena | Hazard share of damage | Win spread |
+| --- | --- | --- |
+| Stadium | 0% | .19 |
+| Ruins | 0.7% | .14 |
+| Cinder Crater | 5% | .18 |
+| Frostfall Lake | 1.5% | .20 |
+| Power Plant | 1% | .21 |

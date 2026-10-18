@@ -1273,6 +1273,35 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               (i.my = i.my * (1 - h) + (f / u / 1.6) * h);
           }
         }
+        // Arena benefits: drift toward a spotlight, live pylon or heat vent when
+        // not trading blows (only while a special is recharging, for the first two).
+        if (
+          t.state === "move" &&
+          !i.pressed.size &&
+          (!s || Math.hypot(s.x - t.x, s.y - t.y) > 70)
+        ) {
+          let l = [],
+            f = r.cdX > 0 || r.cdY > 0;
+          f && l.push(...e.spotlights());
+          f &&
+            e.rocks.forEach(
+              (u) =>
+                u.pylon &&
+                u.off <= 0 &&
+                !e.nearArc(u.x, u.y, 30) &&
+                l.push([u.x, u.y + 18]),
+            );
+          e.heatVents.forEach((u) => l.push([u.x, u.y]));
+          let u = l
+            .map(([h, c]) => [h, c, Math.hypot(h - t.x, c - t.y)])
+            .filter((h) => h[2] < 150 && h[2] > 10 && !e.hazardAt(h[0], h[1]))
+            .sort((h, c) => h[2] - c[2])[0];
+          if (u) {
+            let h = 0.3 + 0.15 * (this.level ?? A.cpuLevel);
+            (i.mx = i.mx * (1 - h) + ((u[0] - t.x) / u[2]) * h),
+              (i.my = i.my * (1 - h) + ((u[1] - t.y) / u[2]) * h);
+          }
+        }
         // Zap Cannon is slow: dodge as it arrives, not when it is fired.
         for (let f of e.projectiles)
           f.kind === "zap" &&
@@ -2055,9 +2084,20 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     Wa = { DRAGON: ["FIRE", "WATER", "GRASS"] },
     // Ruins arena: breakable boulders that block bodies, shots and beams.
     // Symmetric: four around the contested centre, one guarding each flank.
+    // Stadium: the neutral stage. No hazards; two spotlights sweep the floor
+    // (point-symmetric paths) and recharge specials twice as fast for whoever stands in one.
+    STADIUM = { spotR: 34, rx: 190, ry: 74, speed: 0.006, boost: 2 },
     RUINS = {
       r: 15,
-      hp: 125,
+      hp: 100,
+      // A destroyed boulder collapses after a warning; the breaker gains Ancient Power.
+      collapseWarn: 45,
+      collapseR: 38,
+      collapseDmg: 24,
+      apTicks: 300,
+      apMult: 1.12,
+      apSpeed: 1.12,
+      weakTo: ["FIGHTING", "STEEL", "WATER", "GRASS"],
       respawn: 720,
       warn: 120,
       spots: [
@@ -2080,13 +2120,17 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     // Cinder Crater: lava pools, telegraphed eruptions; water cools lava to crust.
     CRATER = {
       pools: [
-        [Se, Te - 90, 72, 22],
-        [Se, Te + 92, 72, 22],
+        [Se, Te - 92, 54, 18],
+        [Se, Te + 94, 54, 18],
         [Se - 214, Te - 82, 40, 26],
         [Se + 214, Te + 82, 40, 26],
       ],
-      tickDmg: 7,
-      every: 12,
+      tickDmg: 5,
+      every: 15,
+      // An erupted vent stays hot: standing in it gives +25% damage for a while.
+      heatTicks: 300,
+      heatR: 26,
+      heatMult: 1.25,
       cool: 360,
       ventEvery: [360, 540],
       ventWarn: 90,
@@ -2104,9 +2148,13 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       slideFriction: 0.955,
       melt: 480,
       icicleEvery: [300, 420],
-      icicleWarn: 70,
-      icicleR: 16,
-      icicleDmg: 22,
+      icicleWarn: 80,
+      icicleR: 18,
+      icicleDmg: 18,
+      // Dodges on ice slide further; water puddles freeze into small rinks.
+      iceDodge: 1.4,
+      freezeAfter: 50,
+      patchLife: 600,
     },
     // Power Plant: three pylons; arcs jump between pairs. Electric hits overcharge a
     // pylon into a discharge; water shorts it out for a while.
@@ -2117,10 +2165,14 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         [Se + 150, Te + 62],
       ],
       r: 12,
-      cycle: 420,
+      cycle: 330,
       warn: 90,
-      live: 60,
-      arcDmg: 8,
+      live: 66,
+      arcDmg: 12,
+      arcW: 13,
+      // Standing beside a live pylon recharges specials faster.
+      chargeR: 34,
+      boost: 1.75,
       dischargeR: 56,
       dischargeDmg: 24,
       short: 480,
@@ -2646,6 +2698,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         this.lava = [];
         this.ice = [];
         this.vents = [];
+        this.collapses = [];
+        this.heatVents = [];
         this.icicles = [];
         this.arc = null;
         this.item = null;
@@ -2755,6 +2809,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 }))
               : []),
           (this.vents = []),
+          (this.collapses = []),
+          (this.heatVents = []),
           (this.ventT = CRATER.ventEvery[0]),
           (this.icicles = []),
           (this.icicleT = FROST.icicleEvery[0]),
@@ -3045,6 +3101,12 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             e.buf[v] = 0;
           };
         this.updateLock(e, t);
+        let cz = this.cdBoost(e),
+          cx = cz > 1 && (cz >= 2 || this.tick % 4 !== 0);
+        cx &&
+          (e.slot.cdX > 0 && e.slot.cdX--,
+          e.slot.cdY > 0 && e.slot.cdY--,
+          this.tick % 30 === 0 && this.emit({ type: "charging", who: e }));
         for (let v of e.slots)
           v.cdX > 0 && v.cdX--,
             v.cdY > 0 && v.cdY--,
@@ -3088,6 +3150,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           e.xatkT > 0 && e.xatkT--,
           e.helmetT > 0 && e.helmetT--,
           e.scarfT > 0 && e.scarfT--,
+          e.apT > 0 && e.apT--,
           e.lockT > 0 && e.lockT--,
           e.hitstop > 0)
         ) {
@@ -3824,7 +3887,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       tickDodge(e, t, s, i, r) {
         let o = e.kit.dodge,
           l = o.kind === "shell" && this.inPuddle(e.x, e.y, e.team, !0),
-          f = o.dist * (l ? 1.4 : 1),
+          f =
+            o.dist *
+            (l ? 1.4 : 1) *
+            (this.ice.length && this.onIce(e) ? FROST.iceDodge : 1),
           u = (c) =>
             1 -
             Math.pow(
@@ -6099,7 +6165,11 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
       locomote(e, t, s) {
         let i = e.kit,
-          r = i.speed * A.speedScale * (e.scarfT > 0 ? SCARF.speed : 1);
+          r =
+            i.speed *
+            A.speedScale *
+            (e.scarfT > 0 ? SCARF.speed : 1) *
+            (e.apT > 0 ? RUINS.apSpeed : 1);
         i.id === "blastoise" &&
           this.inPuddle(e.x, e.y, e.team, !0) &&
           (r *= 1.35),
@@ -6785,7 +6855,44 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           this.icicles.some(
             (s) => Math.hypot(s.x - e, (s.y - t) * 1.3) < FROST.icicleR + 8,
           ) ||
+          this.collapses.some(
+            (s) => Math.hypot(s.x - e, (s.y - t) * 1.3) < RUINS.collapseR + 6,
+          ) ||
           this.nearArc(e, t, 16)
+        );
+      }
+      // Stadium spotlight centres; the second mirrors the first through the centre.
+      spotlights() {
+        if (this.arena !== 0) return [];
+        let e = this.tick * STADIUM.speed,
+          t = Se + Math.cos(e) * STADIUM.rx,
+          s = Te + Math.sin(e * 1.7) * STADIUM.ry;
+        return [
+          [t, s],
+          [2 * Se - t, 2 * Te - s],
+        ];
+      }
+      // How much faster this fighter's specials recharge from the arena.
+      cdBoost(e) {
+        if (e.state === "faint") return 1;
+        if (
+          this.spotlights().some(
+            ([t, s]) => Math.hypot(e.x - t, (e.y - s) * 1.5) < STADIUM.spotR,
+          )
+        )
+          return STADIUM.boost;
+        for (let t of this.rocks)
+          if (
+            t.pylon &&
+            t.off <= 0 &&
+            Math.hypot(e.x - t.x, e.y - t.y) < PLANT.chargeR
+          )
+            return PLANT.boost;
+        return 1;
+      }
+      inHeatVent(e) {
+        return this.heatVents.some(
+          (t) => Math.hypot(e.x - t.x, (e.y - t.y) * 1.3) < CRATER.heatR,
         );
       }
       // Hazard damage from the arena itself (no attacker, never counts as a combo).
@@ -6809,6 +6916,39 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         );
       }
       updateHazards() {
+        // Ruins: rubble falls where a boulder was destroyed.
+        for (let t of this.collapses)
+          if (++t.t === RUINS.collapseWarn) {
+            for (let s of [...this.players, ...this.dummies]) {
+              if (
+                !this.canBeHit(s) ||
+                (s.kind === "player" &&
+                  (s.invincible || s.state === "faint")) ||
+                this.floating(s)
+              )
+                continue;
+              let i = s.x - t.x,
+                r = s.y - t.y,
+                o = Math.hypot(i, r * 1.3);
+              o < RUINS.collapseR &&
+                this.envHit(
+                  s,
+                  RUINS.collapseDmg,
+                  3.4,
+                  i / (o || 1),
+                  r / (o || 1),
+                  !1,
+                  8,
+                  26,
+                  !1,
+                );
+            }
+            this.emit({ type: "collapse", x: t.x, y: t.y });
+          }
+        this.collapses = this.collapses.filter((t) => t.t < RUINS.collapseWarn);
+        // Cinder Crater: heat vents left by eruptions cool down.
+        for (let t of this.heatVents) t.t--;
+        this.heatVents = this.heatVents.filter((t) => t.t > 0);
         let e = (t) =>
           [...this.players, ...this.dummies].filter(
             (s) =>
@@ -6818,6 +6958,22 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           );
         // Cinder Crater
         if (this.lava.length) {
+          // Water shots and jets crust over any pool they pass across.
+          let w = [];
+          for (let t of this.projectiles)
+            t.kind === "pulse" && !t.dead && w.push([t.x, t.y]);
+          for (let t of this.beams)
+            if (!t.style && !t.scan && !t.aim && t.solar === void 0)
+              for (let i = 0; i <= 6; i++)
+                w.push([
+                  t.x1 + ((t.x2 - t.x1) * i) / 6,
+                  t.y1 + ((t.y2 - t.y1) * i) / 6,
+                ]);
+          for (let t of this.lava)
+            t.cool <= 0 &&
+              w.some(([i, r]) => this.inZone(i, r, t)) &&
+              ((t.cool = CRATER.cool),
+              this.emit({ type: "cooled", x: t.x, y: t.y }));
           for (let t of this.lava) {
             t.cool > 0 && t.cool--;
             for (let s of this.puddles)
@@ -6880,13 +7036,30 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                   ),
                     this.burn(s);
                 }
-              this.emit({ type: "erupt", x: t.x, y: t.y });
+              this.heatVents.push({ x: t.x, y: t.y, t: CRATER.heatTicks }),
+                this.emit({ type: "erupt", x: t.x, y: t.y });
             }
           this.vents = this.vents.filter((t) => t.t < CRATER.ventWarn);
         }
         // Frostfall Lake
         if (this.ice.length) {
-          for (let t of this.ice) t.melt > 0 && t.melt--;
+          for (let t of this.ice)
+            t.melt > 0 && t.melt--, t.life !== void 0 && t.life--;
+          this.ice = this.ice.filter((t) => t.life === void 0 || t.life > 0);
+          // Water left on the lake freezes into a small rink of its own.
+          for (let t of this.puddles)
+            (t.frz = (t.frz ?? 0) + 1) === FROST.freezeAfter &&
+              this.ice.filter((s) => s.life !== void 0).length < 6 &&
+              (this.ice.push({
+                x: t.x,
+                y: t.y,
+                rx: Math.max(18, t.r),
+                ry: Math.max(18, t.r) * 0.45,
+                melt: 0,
+                life: FROST.patchLife,
+              }),
+              (t.life = 0),
+              this.emit({ type: "freeze", x: t.x, y: t.y }));
           if (
             this.match.phase === "fight" &&
             this.intro <= 0 &&
@@ -6897,11 +7070,20 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               Math.floor(
                 this.rand() * (FROST.icicleEvery[1] - FROST.icicleEvery[0]),
               );
-            for (let t = 0; t < 2; t++) {
-              let s = B.x0 + 40 + this.rand() * (B.x1 - B.x0 - 80),
-                i = B.y0 + 30 + this.rand() * (B.y1 - B.y0 - 60);
+            // One icicle lands near every fighter (so it matters, and is fair),
+            // plus one at random.
+            for (let t of this.players.filter(
+              (s) => s.state !== "faint" && !s.out,
+            )) {
+              let s = me(t.x + (this.rand() - 0.5) * 56, B.x0 + 20, B.x1 - 20),
+                i = me(t.y + (this.rand() - 0.5) * 34, B.y0 + 16, B.y1 - 14);
               this.icicles.push({ x: s, y: i, t: 0 });
             }
+            this.icicles.push({
+              x: B.x0 + 40 + this.rand() * (B.x1 - B.x0 - 80),
+              y: B.y0 + 30 + this.rand() * (B.y1 - B.y0 - 60),
+              t: 0,
+            });
             this.emit({ type: "icicleWarn" });
           }
           for (let t of this.icicles)
@@ -6938,11 +7120,17 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             else if (s.t > PLANT.warn) {
               if (s.t % 10 === 1) {
                 for (let i of e())
-                  this.nearArc(i.x, i.y, 10) &&
-                    (this.envHit(i, PLANT.arcDmg, 1.5, 0, 1, !1, 4, 14),
-                    i.kind === "player" &&
-                      ((i.paraT = Math.max(i.paraT ?? 0, 30)),
-                      this.emit({ type: "shock", x: i.x, y: i.y })));
+                  this.nearArc(i.x, i.y, PLANT.arcW) &&
+                    (i.kind === "player" &&
+                    (i.kit.type === "ELECTRIC" || i.kit.type2 === "ELECTRIC")
+                      ? // Electric types soak the arc up instead and recharge.
+                        ((i.slot.cdX = Math.max(0, i.slot.cdX - 30)),
+                        (i.slot.cdY = Math.max(0, i.slot.cdY - 30)),
+                        this.emit({ type: "absorb", who: i, x: i.x, y: i.y }))
+                      : (this.envHit(i, PLANT.arcDmg, 1.5, 0, 1, !1, 4, 14),
+                        i.kind === "player" &&
+                          ((i.paraT = Math.max(i.paraT ?? 0, 30)),
+                          this.emit({ type: "shock", x: i.x, y: i.y }))));
                 for (let i of this.puddles)
                   this.nearArc(i.x, i.y, i.r + 4) &&
                     ((i.shock = MAGNE.shock), (i.shockTeam = -1));
@@ -7052,12 +7240,24 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           return;
         }
         e.state === "solid" &&
-          ((e.hp -= t * ae.dmg),
+          ((e.hp -=
+            t *
+            ae.dmg *
+            (r && RUINS.weakTo.includes(this.attackerType(r)) ? 1.5 : 1)),
           (e.hitT = 6),
           e.hp <= 0
             ? ((e.hp = 0),
               (e.state = "broken"),
               (e.t = RUINS.respawn),
+              this.collapses.push({ x: e.x, y: e.y, t: 0 }),
+              (() => {
+                let o =
+                  r && (r.kind === "player" ? r : (r.summoner ?? r.owner));
+                o &&
+                  o.kind === "player" &&
+                  ((o.apT = RUINS.apTicks),
+                  this.emit({ type: "ancientPower", who: o }));
+              })(),
               this.emit({ type: "rockBreak", x: e.x, y: e.y }))
             : this.emit({
                 type: "rockHit",
@@ -7819,7 +8019,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       outgoingMult(e) {
         if (!e || e.kind !== "player") return 1;
         let t = e,
-          i = t.xatkT > 0 ? XATK.mult : 1;
+          i =
+            (t.xatkT > 0 ? XATK.mult : 1) *
+            (t.apT > 0 ? RUINS.apMult : 1) *
+            (this.heatVents.length && this.inHeatVent(t) ? CRATER.heatMult : 1);
         // Overgrow and Torrent: the other starters' own low-health boost.
         if (t.kit.id === "venusaur" || t.kit.id === "blastoise")
           return i * (t.slot.hp < t.slot.maxHp * 0.3 ? 1.3 : 1);
@@ -9175,9 +9378,27 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       (e.fillStyle = `rgba(10,14,12,${0.18 - x * 0.045})`),
         e.fillRect(i.x0 + x, i.y0, 1, i.y1 - i.y0),
         e.fillRect(i.x1 - 1 - x, i.y0, 1, i.y1 - i.y0);
+    kind === 0 && stadiumFloor(e, t, s);
     kind === 1 && Ka2(e, t, s);
     kind >= 2 && Kfloor(e, t, s, kind);
     return a;
+  }
+  // Stadium: a Poké Ball emblem painted into the centre circle.
+  function stadiumFloor(e, t, s) {
+    for (let i = -30; i <= 30; i++)
+      for (let r = -22; r <= 22; r++) {
+        let o = i / 30,
+          l = r / 22,
+          f = o * o + l * l;
+        if (f > 0.92 || t() < 0.25) continue;
+        Math.abs(r) < 2.2
+          ? s(Se + i, Te + r, "#3a3328")
+          : r < 0 && s(Se + i, Te + r, t() < 0.5 ? "#b8574a" : "#a84d41");
+      }
+    (e.fillStyle = "#3a3328"),
+      e.fillRect(Se - 5, Te - 4, 10, 8),
+      (e.fillStyle = "#e8e2cc"),
+      e.fillRect(Se - 3, Te - 2, 6, 4);
   }
   // Floors for the hazard arenas, painted over the pitch inside the walls.
   function Kfloor(e, t, s, i) {
@@ -9443,6 +9664,156 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           t(s.x, s.y, 22, "74,163,255", 1 - s.slot.hp / s.slot.maxHp));
     a.restore();
   }
+  // Live arena dressing: spotlights, crowd flashes, collapse warnings, heat vents,
+  // pylon recharge rings and the energy running through the plant's conduits.
+  function arenaLive(a, e) {
+    let t = e.tick;
+    if (e.arena === 0) {
+      a.save(), (a.globalCompositeOperation = "lighter");
+      for (let [s, i] of e.spotlights()) {
+        let r = a.createLinearGradient(0, B.y0 - 16, 0, i);
+        r.addColorStop(0, "rgba(255,246,210,0.10)"),
+          r.addColorStop(1, "rgba(255,246,210,0.02)"),
+          (a.fillStyle = r),
+          a.beginPath(),
+          a.moveTo(s - 6, B.y0 - 16),
+          a.lineTo(s + 6, B.y0 - 16),
+          a.lineTo(s + STADIUM.spotR, i),
+          a.lineTo(s - STADIUM.spotR, i),
+          a.fill();
+        let o = a.createRadialGradient(s, i, 0, s, i, STADIUM.spotR);
+        o.addColorStop(0, "rgba(255,246,210,0.42)"),
+          o.addColorStop(0.75, "rgba(255,230,160,0.2)"),
+          o.addColorStop(1, "rgba(255,230,160,0)"),
+          (a.fillStyle = o),
+          a.beginPath(),
+          a.ellipse(
+            s,
+            i,
+            STADIUM.spotR,
+            STADIUM.spotR / 1.5,
+            0,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill();
+      }
+      a.restore();
+      // Camera flashes in the stands.
+      let s = rt((t / 6) | 0);
+      for (let i = 0; i < 5; i++) {
+        let r = (s() * Y) | 0,
+          o = 4 + ((s() * (B.y0 - 26)) | 0);
+        s() < 0.6 &&
+          ((a.fillStyle = "#ffffff"),
+          (a.globalAlpha = 0.9),
+          a.fillRect(r, o, 2, 2),
+          a.fillRect(r - 1, o + 0.5, 4, 1));
+      }
+      a.globalAlpha = 1;
+    }
+    for (let s of e.collapses ?? []) {
+      let i = s.t / RUINS.collapseWarn,
+        r = RUINS.collapseR;
+      (a.globalAlpha = 0.18 + 0.4 * i),
+        (a.fillStyle = "#2a2018"),
+        a.beginPath(),
+        a.ellipse(
+          s.x,
+          s.y,
+          r * (0.4 + 0.6 * i),
+          r * (0.4 + 0.6 * i) * 0.75,
+          0,
+          0,
+          Math.PI * 2,
+        ),
+        a.fill(),
+        (a.globalAlpha = 0.9),
+        (a.strokeStyle = t % 8 < 4 ? "#ef5a4f" : "#ffd25e"),
+        (a.lineWidth = 1.5),
+        a.setLineDash([4, 3]),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, r, r * 0.75, 0, 0, Math.PI * 2),
+        a.stroke(),
+        a.setLineDash([]),
+        (a.globalAlpha = 1);
+    }
+    for (let s of e.heatVents ?? []) {
+      let i = Math.min(1, s.t / 60),
+        r = 0.6 + 0.4 * Math.sin(t * 0.2);
+      a.save(), (a.globalCompositeOperation = "lighter");
+      let o = a.createRadialGradient(s.x, s.y, 0, s.x, s.y, CRATER.heatR + 6);
+      o.addColorStop(0, `rgba(255,170,60,${0.5 * i * r})`),
+        o.addColorStop(1, "rgba(255,90,30,0)"),
+        (a.fillStyle = o),
+        a.beginPath(),
+        a.ellipse(
+          s.x,
+          s.y,
+          CRATER.heatR + 6,
+          (CRATER.heatR + 6) * 0.75,
+          0,
+          0,
+          Math.PI * 2,
+        ),
+        a.fill(),
+        a.restore(),
+        (a.globalAlpha = 0.85 * i),
+        (a.strokeStyle = "#ffb347"),
+        (a.lineWidth = 1.2),
+        a.beginPath(),
+        a.ellipse(
+          s.x,
+          s.y,
+          CRATER.heatR,
+          CRATER.heatR * 0.75,
+          0,
+          t * 0.05,
+          t * 0.05 + 5.4,
+        ),
+        a.stroke(),
+        (a.globalAlpha = 1);
+    }
+    let s = e.rocks.filter((i) => i.pylon);
+    if (s.length) {
+      for (let i = 0; i < 3; i++) {
+        let r = s[i],
+          o = s[(i + 1) % 3];
+        if (r.off > 0 || o.off > 0) continue;
+        for (let l = 0; l < 3; l++) {
+          let f = (((t * 0.012 + l / 3 + i * 0.21) % 1) + 1) % 1;
+          (a.fillStyle = "#7fe3ff"),
+            (a.globalAlpha = 0.85),
+            a.fillRect(
+              Math.round(r.x + (o.x - r.x) * f) - 1,
+              Math.round(r.y + (o.y - r.y) * f) + 3,
+              3,
+              3,
+            );
+        }
+      }
+      for (let i of s)
+        i.off <= 0 &&
+          ((a.globalAlpha = 0.6 + 0.3 * Math.sin(t * 0.15 + i.x)),
+          (a.strokeStyle = "#7fe3ff"),
+          (a.lineWidth = 1.6),
+          a.setLineDash([2, 4]),
+          (a.lineDashOffset = -t * 0.4),
+          a.beginPath(),
+          a.ellipse(
+            i.x,
+            i.y + 4,
+            PLANT.chargeR,
+            PLANT.chargeR * 0.5,
+            0,
+            0,
+            Math.PI * 2,
+          ),
+          a.stroke(),
+          a.setLineDash([]));
+      a.globalAlpha = 1;
+    }
+  }
   // Zone Control ring on the floor, tinted by who holds it, plus the next spot's telegraph.
   function zoneGround(a, e) {
     let t = e.zone;
@@ -9537,6 +9908,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         a.stroke());
     }
     for (let s of e.ice) {
+      if (s.life !== void 0 && s.life < 90 && t % 10 < 5) continue;
       let i = s.melt > 0;
       (a.globalAlpha = i ? 0.55 : 0.85),
         (a.fillStyle = i ? "#6d9fc4" : "#a9d6f2"),
@@ -10057,6 +10429,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     }
     hazardGround(a, e);
     zoneGround(a, e);
+    arenaLive(a, e);
     lightPools(a, e);
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
@@ -16360,6 +16733,39 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             t.dust(n.x, n.y, 14, 0, 0, 2),
             t.ring(n.x, n.y, 8, 3, 16, "#c9bfa6", !0);
           break;
+        case "collapse":
+          S.slam(),
+            t.shake(0, 1, 5),
+            t.debris(n.x, n.y - 6, 22, 0, -0.4),
+            t.dust(n.x, n.y, 18, 0, 0, 2.4),
+            t.ring(n.x, n.y, 6, RUINS.collapseR / 7, 16, "#c9bfa6", !0),
+            t.cracks(n.x, n.y, 6, 28);
+          break;
+        case "ancientPower":
+          S.callout(1),
+            t.popup(n.who.x, n.who.y - 48, "ANCIENT POWER!", "#c9a26b", !0),
+            t.ring(n.who.x, n.who.y - 10, 6, 2.4, 14, "#c9a26b"),
+            t.flare(n.who.x, n.who.y, 12, 20, "#fff4c2", 12);
+          break;
+        case "freeze":
+          S.shell(),
+            t.ring(n.x, n.y, 6, 2, 16, "#e9f6ff", !0),
+            t.motes(n.x, n.y, 6, 10, "#ffffff", 1.2);
+          break;
+        case "absorb":
+          t.popup(n.x, n.y - 42, "ABSORBED", "#f8d030", !1),
+            t.shockRing(n.x, n.y, 18, "#f8d030", 5);
+          break;
+        case "charging":
+          t.motes(
+            n.who.x,
+            n.who.y,
+            20,
+            3,
+            e.arena === 0 ? "#fff4c2" : "#7fe3ff",
+            0.7,
+          );
+          break;
         case "rockRise":
           S.land(),
             t.dust(n.x, n.y, 10, 0, 0, 1.6),
@@ -16881,6 +17287,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           break;
         case "ventWarn":
           S.heatWarn();
+          break;
+        case "eruptHeat":
           break;
         case "erupt":
           S.slam(),
@@ -17739,12 +18147,96 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           break;
         }
         case "readyGo":
-          t.banner("GO!", L.gold, 40),
+          t.popups.push({
+            x: Se,
+            y: B.y0 + 30,
+            text: [
+              "Spotlights recharge your specials",
+              "Break cover for Ancient Power \u2014 mind the collapse",
+              "Erupted vents run hot: +25% damage",
+              "Dodge on ice to slide further",
+              "Stand by a live pylon to recharge",
+            ][e.arena],
+            life: 150,
+            max: 150,
+            color: L.gold,
+            big: !1,
+            vy: -0.05,
+          }),
+            t.banner("GO!", L.gold, 40),
             S.go(),
             (t.screenFlash = 2),
             (t.screenFlashColor = "#ffffff");
           break;
       }
+    }
+    // Ambient arena weather and rubble.
+    function arenaFx() {
+      let n = e.tick;
+      e.arena === 2 &&
+        (n % 3 === 0 &&
+          t.add({
+            kind: "dust",
+            x: B.x0 + Math.random() * (B.x1 - B.x0),
+            y: B.y0 + Math.random() * (B.y1 - B.y0),
+            z: 40,
+            vx: 0.2,
+            vy: 0,
+            vz: -0.25,
+            life: 120,
+            size: 1,
+            grow: 0,
+            color: "#5a504a",
+          }),
+        n % 4 === 0 &&
+          e.lava.forEach(
+            (R) =>
+              R.cool <= 0 &&
+              t.add({
+                kind: "ember",
+                x: R.x + (Math.random() - 0.5) * R.rx * 1.6,
+                y: R.y + (Math.random() - 0.5) * R.ry,
+                z: 2,
+                vx: 0,
+                vy: 0,
+                vz: 0.5,
+                life: 30,
+                size: 1,
+                color: "#ff8a3d",
+              }),
+          ),
+        e.heatVents.forEach(
+          (R) => n % 5 === 0 && t.wisps(R.x, R.y, 2, 1, "#ffb347", 12),
+        ));
+      e.arena === 3 &&
+        n % 2 === 0 &&
+        t.add({
+          kind: "dust",
+          x: B.x0 - 20 + Math.random() * (B.x1 - B.x0 + 40),
+          y: B.y0 + Math.random() * (B.y1 - B.y0),
+          z: 60,
+          vx: 0.35,
+          vy: 0.05,
+          vz: -0.4,
+          life: 150,
+          size: 1.2,
+          grow: 0,
+          color: "#9db4ca",
+        });
+      for (let R of e.collapses ?? [])
+        R.t % 5 === 0 &&
+          t.add({
+            kind: "drop",
+            x: R.x + (Math.random() - 0.5) * 50,
+            y: R.y + (Math.random() - 0.5) * 24,
+            z: 70,
+            vx: 0,
+            vy: 0,
+            vz: -2.6,
+            life: 30,
+            size: 2,
+            color: "#8a8f99",
+          });
     }
     // Signature particles left behind by each fighter's dodge.
     function dodgeTrail(n, D) {
@@ -17942,6 +18434,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     }
     // Always-on character flavour drawn as particles.
     function kitAmbient(T) {
+      (T.apT ?? 0) > 0 &&
+        e.tick % 6 === 0 &&
+        t.motes(T.x, T.y, 18, 1, "#c9a26b", 0.6);
       let n = T.kit.id,
         mo = (Z, ne, ee) =>
           t.add({
@@ -18301,6 +18796,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
               : T.scan ||
                 T.aim ||
                 t.splash(T.x2, T.y2, 9, 3, T.x2 - T.x1, T.y2 - T.y1));
+      arenaFx();
       let D = n.slot;
       if (
         (e.players.forEach((T, Z) => {
