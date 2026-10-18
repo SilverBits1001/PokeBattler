@@ -2398,15 +2398,18 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             ? yt.weak
             : 1;
   }
+  // Seeded generator. Its state lives on the function (`.s`) so online
+  // rollback can save and restore it.
   function rt(a) {
-    return () => {
-      (a |= 0), (a = (a + 1831565813) | 0);
-      let e = Math.imul(a ^ (a >>> 15), 1 | a);
+    let t = () => {
+      let a = (t.s = ((t.s | 0) + 1831565813) | 0),
+        e = Math.imul(a ^ (a >>> 15), 1 | a);
       return (
         (e = (e + Math.imul(e ^ (e >>> 7), 61 | e)) ^ e),
         ((e ^ (e >>> 14)) >>> 0) / 4294967296
       );
     };
+    return (t.s = a | 0), t;
   }
   var me = (a, e, t) => Math.max(e, Math.min(t, a)),
     $e = (a, e) => Math.atan2(Math.sin(a - e), Math.cos(a - e)),
@@ -17709,7 +17712,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 2,
+  var NETV = 3,
+    RB_MAX = 40,
     NET_BUTTONS = {
       pressed: [
         "attack",
@@ -17823,7 +17827,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       !Number.isInteger(a.e) ||
       !Number.isInteger(a.seed) ||
       !Number.isInteger(a.delay) ||
-      a.delay < 3 ||
+      a.delay < 1 ||
       a.delay > 15 ||
       !Array.isArray(a.teams) ||
       !a.teams.every(netTeam) ||
@@ -17840,6 +17844,90 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     for (let t = 0; t < a.length; t++)
       (e ^= a.charCodeAt(t)), (e = Math.imul(e, 16777619));
     return (e >>> 0).toString(36);
+  }
+  // ---- Rollback ----
+  // A snapshot is a shallow copy of every object the simulation can reach.
+  // Restoring writes the old values back into the same objects, so anything
+  // holding a reference (an effect following a fighter) stays valid, and
+  // objects made after the snapshot simply drop out. Static tables (move
+  // kits, sprites) are never copied.
+  var RB_STATIC = new WeakSet();
+  function rbOpaque(a) {
+    return (
+      (typeof EventTarget !== "undefined" && a instanceof EventTarget) ||
+      (typeof ImageBitmap !== "undefined" && a instanceof ImageBitmap) ||
+      (typeof CanvasPattern !== "undefined" && a instanceof CanvasPattern) ||
+      (typeof CanvasGradient !== "undefined" && a instanceof CanvasGradient)
+    );
+  }
+  function rbStatic(a) {
+    let e = [a];
+    for (; e.length; ) {
+      let t = e.pop();
+      if (!t || typeof t !== "object" || RB_STATIC.has(t)) continue;
+      if ((RB_STATIC.add(t), rbOpaque(t) || ArrayBuffer.isView(t))) continue;
+      for (let s of t instanceof Map
+        ? [...t.keys(), ...t.values()]
+        : t instanceof Set
+          ? [...t]
+          : Object.values(t))
+        s && typeof s === "object" && e.push(s);
+    }
+  }
+  function rbSave(a) {
+    let e = [],
+      t = new Set(),
+      s = [a];
+    for (; s.length; ) {
+      let i = s.pop();
+      if (typeof i === "function") {
+        typeof i.s === "number" && !t.has(i) && (t.add(i), e.push([i, 2, i.s]));
+        continue;
+      }
+      if (
+        !i ||
+        typeof i !== "object" ||
+        t.has(i) ||
+        RB_STATIC.has(i) ||
+        rbOpaque(i)
+      )
+        continue;
+      t.add(i);
+      let r;
+      if (ArrayBuffer.isView(i)) {
+        e.push([i, 3, i.slice()]);
+        continue;
+      }
+      Array.isArray(i)
+        ? ((r = i.slice()), Object.isFrozen(i) || e.push([i, 0, r]))
+        : i instanceof Map
+          ? (e.push([i, 4, [...i]]), (r = [...i.keys(), ...i.values()]))
+          : i instanceof Set
+            ? ((r = [...i]), e.push([i, 5, r]))
+            : ((r = { ...i }),
+              Object.isFrozen(i) || e.push([i, 1, r]),
+              (r = Object.values(r)));
+      for (let o of r)
+        o && (typeof o === "object" || typeof o === "function") && s.push(o);
+    }
+    return e;
+  }
+  function rbLoad(a) {
+    for (let [e, t, s] of a)
+      if (t === 0) {
+        e.length = s.length;
+        for (let i = 0; i < s.length; i++) e[i] = s[i];
+      } else if (t === 1) {
+        for (let i of Object.keys(e)) Object.hasOwn(s, i) || delete e[i];
+        Object.assign(e, s);
+      } else
+        t === 2
+          ? (e.s = s)
+          : t === 3
+            ? e.set(s)
+            : t === 4
+              ? (e.clear(), s.forEach(([i, r]) => e.set(i, r)))
+              : (e.clear(), s.forEach((i) => e.add(i)));
   }
   // Starts listening to the room once; the page works the same without it.
   async function netInit() {
@@ -18235,7 +18323,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               l.timer ||
                 (l.timer = setTimeout(() => {
                   (l.timer = 0), i({ r: o, p: e, s: ++s, pr: l.self });
-                }, 16)),
+                }, 0)),
               Promise.resolve()
             );
           },
@@ -19055,10 +19143,24 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   function netHud(a, e) {
     let t = NET.m;
     if (!t || t.phase !== "play") return;
-    t.rtt &&
-      G(`PING ${Math.round(t.rtt)}ms`, H - 8, oe - 4, 5.6, g.dim, {
-        align: "right",
-      });
+    // Live latency from how far each page runs ahead of the other's inputs.
+    if (t.sim > 60) {
+      let s = Math.max(
+          0,
+          Math.round(((t.sim - t.ackR + t.oppAv) / 2 + t.delay) * 2 * Ut),
+        ),
+        i =
+          P2P.state === "linked"
+            ? P2P.via === "rtc"
+              ? "DIRECT"
+              : "RELAY"
+            : "ROOM";
+      t.ping = (t.ping ?? s) * 0.95 + s * 0.05;
+      let r = `${i} · ${Math.round(t.ping)}ms`,
+        o = ye(r, 5.6, je, 600) + 8;
+      te(4, oe - 12, o, 10, "rgba(10,8,22,0.7)", 3),
+        G(r, 8, oe - 4.6, 5.6, g.haze, { weight: 600 });
+    }
     t.stall > 20 &&
       (Ae(H / 2 - 70, 64, 140, 15, g.gold),
       G(`Waiting for ${netOppName(14)}…`, H / 2, 74, 7.2, g.chalk, {
@@ -19856,7 +19958,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       // Host: pick a seed and input delay, and share this page's settings.
       host(n) {
         let D = NET.m,
-          R = Math.max(3, Math.min(15, Math.ceil((n / 2 + 25) / Ut) + 1)),
+          // Rollback hides the rest of the latency: keep our own delay tiny.
+          R = n < 50 ? 1 : 2,
           W = {};
         for (let T of Object.keys(A)) NET_LOCAL.includes(T) || (W[T] = A[T]);
         (D.epoch += 1),
@@ -19882,6 +19985,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           (e.nextId = 1),
           (e.tick = 0),
           (e.rand = rt(D.seed)),
+          rbStatic(xe),
+          rbStatic(e.mons),
           e.startMatch("vs", D.teams[0], D.teams[1], D.e > 1),
           (e.tick = 0);
         let R = (W) => ({
@@ -19903,6 +20008,16 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           (n.stall = 0),
           (n.cks = {}),
           (n.oppCks = {}),
+          (n.snaps = {}),
+          (n.used = []),
+          (n.hash = {}),
+          (n.evs = []),
+          (n.ghost = []),
+          (n.chk = 0),
+          (n.rolls = 0),
+          (n.guessAt = -1),
+          (n.oppAv = 0),
+          (n.vo = []),
           (n.rm = 0),
           (n.cur = [netDec(NET_IDLE), netDec(NET_IDLE)]),
           (n.phase = "play"),
@@ -19944,7 +20059,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           R.b >= 0 &&
           /^[A-Za-z0-9_-]*$/.test(R.d)
         ) {
-          Number.isInteger(R.ak) && R.ak > D.oppAck && (D.oppAck = R.ak);
+          Number.isInteger(R.ak) && R.ak > D.oppAck && (D.oppAck = R.ak),
+            Number.isInteger(R.av) && Math.abs(R.av) < 1e4 && (D.oppAv = R.av);
           let T = R.d.length / 7;
           for (let Z = 0; Z < T; Z++) {
             let ne = R.b + Z;
@@ -19968,17 +20084,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       if (!D?.room) return;
       netMatchTick(netHooks);
       if (NET.m !== D || D.phase !== "play") return;
-      // Send every local input the other side has not confirmed.
-      let R = Math.max(0, D.oppAck + 1),
-        W = Math.max(R, D.sched - 180);
-      netSet({
-        in: {
-          e: D.epoch,
-          b: W,
-          d: D.inL.slice(W, D.sched).join(""),
-          ak: D.ackR,
-        },
-      });
+      netSendInputs(D);
       // A sync check every second: both pages must agree exactly.
       for (let T in D.oppCks)
         if (D.cks[T] !== void 0) {
@@ -19989,6 +20095,20 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             );
           delete D.cks[T], delete D.oppCks[T];
         }
+    }
+    // Every local input the other side has not confirmed yet.
+    function netSendInputs(D) {
+      let R = Math.max(0, D.oppAck + 1),
+        W = Math.max(R, D.sched - 180);
+      netSet({
+        in: {
+          e: D.epoch,
+          b: W,
+          d: D.inL.slice(W, D.sched).join(""),
+          ak: D.ackR,
+          av: D.sim - D.ackR,
+        },
+      });
     }
     function netCheck() {
       let n = 0,
@@ -20002,28 +20122,78 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         );
       return D(`${e.tick},${e.projectiles.length},${e.drops.length}`), n;
     }
-    // One simulation tick, if both players' inputs for it have arrived.
+    // Rollback. Our own input is used two ticks after it is read; the other
+    // player's is guessed (their last known input, held) until it arrives.
+    // When a real input differs from the guess, the game rewinds to that tick
+    // and replays forward within the same frame, so nobody waits on the
+    // network unless it falls more than RB_MAX ticks behind.
+    function netGuess(D) {
+      if (D.guessAt !== D.ackR) {
+        let R = netDec(D.inR[D.ackR]);
+        (R.pressed = new Set()), (D.guess = netEnc(R)), (D.guessAt = D.ackR);
+      }
+      return D.guess;
+    }
+    function rbKey(n) {
+      let D = n.who ?? n.by ?? n.owner ?? n.target;
+      return `${n.type}:${D && typeof D === "object" ? (D.team ?? "") : ""}`;
+    }
+    function netTick(D, j, again) {
+      D.snaps[j] = rbSave(e);
+      let R = D.inR[j] ?? netGuess(D),
+        W = netDec(D.inL[j]),
+        T = netDec(R);
+      (D.used[j] = R), (D.cur = D.host ? [W, T] : [T, W]), e.step(null);
+      // An event the screen already showed from the undone timeline (same
+      // kind, same side, a few ticks apart) is not shown twice.
+      D.ghost.length && (D.ghost = D.ghost.filter((Z) => Z[0] >= j - 8));
+      let Z = [];
+      for (let ne of e.events) {
+        let ve = rbKey(ne),
+          q = D.ghost.findIndex((X) => X[1] === ve && Math.abs(X[0] - j) <= 8);
+        q >= 0 ? D.ghost.splice(q, 1) : (Z.push(ne), D.evs.push([j, ve]));
+      }
+      (e.events = Z), again && Z.forEach(Ne);
+      (j + 1) % 60 === 0 && (D.hash[j + 1] = netCheck());
+    }
+    // Ticks whose inputs are all real are final: share their sync checks.
+    function netVerify(D, R) {
+      for (; D.chk < R; D.chk++) {
+        let T = D.chk + 1;
+        D.hash[T] !== void 0 &&
+          ((D.cks[T] = D.hash[T]),
+          netSet({ ck: { e: D.epoch, t: T, h: D.hash[T] } }),
+          delete D.hash[T]),
+          delete D.snaps[D.chk];
+      }
+      D.evs.length > 64 && (D.evs = D.evs.filter((T) => T[0] >= D.chk));
+    }
     function netStep(n) {
       let D = NET.m;
-      if (D.inR[D.sim] === void 0) return D.stall++, !1;
+      if (D.sim > D.ackR + RB_MAX) return D.stall++, !1;
       if (D.pend.size) {
         for (let T of D.pend) n.pressed.add(T);
         D.pend.clear();
       }
       (D.stall = 0), (D.inL[D.sched++] = s.netMenu ? NET_IDLE : netEnc(n));
-      let R = netDec(D.inL[D.sim]),
-        W = netDec(D.inR[D.sim]);
-      if (
-        ((D.cur = D.host ? [R, W] : [W, R]),
-        s.playTicks++,
-        e.step(null),
-        D.sim++,
-        D.sim % 60 === 0)
-      ) {
-        let T = netCheck();
-        (D.cks[D.sim] = T), netSet({ ck: { e: D.epoch, t: D.sim, h: T } });
+      let R = D.chk;
+      for (; R < D.sim && D.inR[R] !== void 0 && D.inR[R] === D.used[R]; R++);
+      if (R < D.sim && D.inR[R] !== void 0) {
+        let T0 = e.players.map((T) => [T.x, T.y]);
+        rbLoad(D.snaps[R]), D.rolls++;
+        for (let T of D.evs) T[0] >= R && D.ghost.push(T);
+        D.evs = D.evs.filter((T) => T[0] < R);
+        for (let T = R; T < D.sim; T++) netTick(D, T, !0);
+        for (; R < D.sim && D.inR[R] !== void 0; R++);
+        // Draw a corrected fighter where it was, then let it glide over.
+        e.players.forEach((T, Z) => {
+          let ne = D.vo[Z] ?? [0, 0],
+            q = ne[0] + T0[Z][0] - T.x,
+            X = ne[1] + T0[Z][1] - T.y;
+          D.vo[Z] = Math.hypot(q, X) < 48 ? [q, X] : [0, 0];
+        });
       }
-      return !0;
+      return netVerify(D, R), s.playTicks++, netTick(D, D.sim, !1), D.sim++, !0;
     }
     function netMenuInput(n) {
       w(n, (D) => {
@@ -22738,11 +22908,13 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       // Never carry more than a few steps of backlog: on a slow frame the game
       // briefly slows down instead of snowballing into catch-up stalls.
       De = Math.min(De + D * (W ? e.timeScale() * R : 1), Ut * 4);
-      // Online: run a little faster while the other page is ahead of us.
+      // Online: keep both pages at the same tick. Each one reports how far
+      // it runs ahead of the inputs it has; the one further ahead eases off.
       let Mn = NET.m;
-      Mn?.phase === "play" &&
-        Mn.ackR - Mn.sim > Mn.delay + 4 &&
-        (De += Ut * 0.3);
+      if (Mn?.phase === "play" && Mn.sim > 60) {
+        let Fa = Mn.sim - Mn.ackR - Mn.oppAv;
+        Fa > 2 ? (De -= D * 0.12) : Fa < -2 && (De += D * 0.12);
+      }
       let T = 0;
       for (; De >= Ut && T < 5; ) {
         // Wait (without reading input) until the other player's tick arrives.
@@ -22751,7 +22923,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           NET.m === Mn &&
           s.screen === "play" &&
           e.match.phase !== "results" &&
-          Mn.inR[Mn.sim] === void 0
+          Mn.sim > Mn.ackR + RB_MAX
         ) {
           Mn.stall++;
           // Still answer the menu, and keep any presses for the next tick.
@@ -22828,6 +23000,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         }
       }
       T === 5 && (De = 0);
+      // Send this frame's input now rather than at the start of the next.
+      T && NET.m?.phase === "play" && NET.m.room && netSendInputs(NET.m);
       let Z = W ? Math.min(1, De / Ut) : 1,
         ne = s.screen === "play";
       !ne || e.match.phase !== "fight"
@@ -22844,8 +23018,21 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               )
               .map((ee) => ({ x: ee.x, y: ee.y - ee.z * 0.5 })),
           ),
-        t.computeView(),
+        t.computeView();
+      // Online: the visual offset left by a rollback correction fades out.
+      let Vo = NET.m?.phase === "play" && ne ? NET.m.vo : null;
+      Vo?.forEach((ee, Je) => {
+        let q = e.players[Je];
+        q && ((q.x += ee[0]), (q.px += ee[0]), (q.y += ee[1]), (q.py += ee[1]));
+      }),
         fa(f, e, t, Z, !ne),
+        Vo?.forEach((ee, Je) => {
+          let q = e.players[Je];
+          q &&
+            ((q.x -= ee[0]), (q.px -= ee[0]), (q.y -= ee[1]), (q.py -= ee[1])),
+            (ee[0] *= 0.78),
+            (ee[1] *= 0.78);
+        }),
         Ca(u, e, t, s, h, Z, a),
         requestAnimationFrame(it);
     }

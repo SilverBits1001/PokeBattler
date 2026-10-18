@@ -48,9 +48,11 @@ claude.ai artifact link by people who have access to it.
 To update the public copy after a change: run `python3 tools/build.py`, copy
 `index.html` onto the `gh-pages` branch, and push it.
 
-Matches are deterministic lockstep over the room's presence channel: each page sends
-only its inputs (with every input the other side has not confirmed yet), both run the
-same simulation from the host's seed and settings, and a sync check runs every second.
+Matches use rollback netcode. Your own input is applied two ticks after you press
+(about 33 ms). The other player's input is predicted until it arrives; when a guess was
+wrong, the game rewinds and replays the missed ticks within the same frame. Both pages
+run the same deterministic simulation from the host's seed, a sync check runs every
+second, and a corner readout shows the link type (direct, relay or room) and the latency.
 
 ## Layout
 

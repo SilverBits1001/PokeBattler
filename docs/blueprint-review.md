@@ -818,3 +818,42 @@ often down.
   (relay took over, 852 identical ticks). All three include a wrong code and
   disconnect detection. Mode, room duel, challenge, hostile-presence and touch
   tests still pass.
+
+## Rollback netcode
+
+Over the relay, lockstep felt very laggy: every input waited out the whole round trip
+(the input delay went up to 15 ticks), and play froze whenever a packet was late.
+Online play now uses rollback, as fighting games do.
+
+- **Your input.** It is applied after 2 ticks (1 on a fast link), whatever the
+  latency.
+- **Their input.** It is guessed as their last known input still held (sticks and
+  held buttons kept, one-off presses dropped). Each tick saves a snapshot first.
+  When a real input arrives that differs from the guess, the game restores the
+  snapshot for that tick and replays forward, all within one frame. Play only
+  waits if it gets more than 40 ticks (about 0.67 s) ahead of the other
+  player's inputs.
+- **Snapshots** (`rbSave` / `rbLoad`) are shallow copies of every object the
+  simulation can reach, with the static tables (move kits, sprites) excluded.
+  Restoring writes the values back into the same objects, so references held
+  elsewhere stay valid. The seeded random generator now keeps its state on the
+  function (`.s`), giving the same sequence as before, so it can be saved too.
+  A tick costs about 0.08 ms to simulate.
+- **Effects.** A replayed tick shows its events, except ones the screen already
+  showed from the discarded timeline (same kind and side, within 8 ticks), so
+  hits and sounds don't play twice. A fighter moved by a correction is drawn
+  where it was and glides to its true spot over a few frames (corrections of
+  48 px or more snap).
+- **Timing.** Both pages report how far they run ahead of the other's inputs, and
+  the one further ahead slows down by up to 12% until they match. Inputs are now
+  sent straight after the tick that read them, and the friend-code link flushes
+  with no 16 ms wait.
+- **Sync checks** now cover only ticks whose inputs are all real.
+- **Protocol** version 3, so older pages don't pair with this one.
+- **Verification.**
+  - Room duel at 150±60 ms with 10% of messages dropped (about 470 ms round
+    trip): 1,920 compared ticks identical, no stalled frames, and about one
+    rollback every 12 ticks.
+  - Friend codes over the relay and with WebRTC UDP blocked: identical timelines.
+  - Soak results are unchanged (same seeded sequences). Modes, challenge,
+    hostile-presence and touch tests pass.
