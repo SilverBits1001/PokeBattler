@@ -125,6 +125,7 @@
         "Free-for-All",
         "Team Battle",
         "Zone Control",
+        "Online",
       ],
     },
     {
@@ -1962,14 +1963,17 @@
     Na = 2,
     yt = { strong: 1.05, weak: 0.95 },
     // Match modes, indexed by the gameMode option.
-    MODES = ["vs", "practice", "ffa", "team", "zone"],
+    MODES = ["vs", "practice", "ffa", "team", "zone", "online"],
     MODE_NAMES = [
       "VS CPU",
       "TRAINING",
       "FREE-FOR-ALL",
       "TEAM 2V2",
       "ZONE CONTROL",
+      "ONLINE",
     ],
+    // Modes with CPU opponents picked on the team select screen.
+    cpuSide = () => A.gameMode !== 1 && A.gameMode !== 5,
     QUAD = [
       [Se - 150, Te - 50],
       [Se + 150, Te - 50],
@@ -2449,7 +2453,11 @@
           this.applyKit();
       }
       get isCpu() {
-        return !!this.brain;
+        return !!this.brain && !this.brain.net;
+      }
+      // For drawing: a CPU, or the other human in an online match.
+      get isRival() {
+        return !!this.brain && (!this.brain.net || !this.brain.local);
       }
       get slot() {
         return this.slots[this.active];
@@ -2707,11 +2715,13 @@
         };
         this.startMatch("practice", ["charizard", "dragapult"], []);
       }
+      // The fighter this screen belongs to, and their opponent. Online the guest
+      // is players[1]; the simulation itself only ever reads players[...].
       get player() {
-        return this.players[0];
+        return this.players[this.localIdx ?? 0] ?? this.players[0];
       }
       get cpu() {
-        return this.players[1] ?? null;
+        return this.players[(this.localIdx ?? 0) === 1 ? 0 : 1] ?? null;
       }
       startMatch(e, t, s, i = !1) {
         let r = this.match;
@@ -2804,8 +2814,8 @@
         ) {
           let q = e === "ffa" || e === "team";
           q &&
-            ((this.player.x = this.player.px = QUAD[0][0]),
-            (this.player.y = this.player.py = QUAD[0][1]));
+            ((this.players[0].x = this.players[0].px = QUAD[0][0]),
+            (this.players[0].y = this.players[0].py = QUAD[0][1]));
           let o = new bt(
             this.mons,
             q ? QUAD[1][0] : Se + 120,
@@ -2846,7 +2856,7 @@
           this.emit({
             type: "roundStart",
             round: r.round,
-            cpuKit: (this.cpu ?? this.player).kit,
+            cpuKit: (this.cpu ?? this.players[0]).kit,
           });
       }
       // Picks a fresh hill spot away from hazards, cover and the last one.
@@ -2888,7 +2898,7 @@
           this.emit({ type: "zoneMove", x: this.zone.x, y: this.zone.y });
           return;
         }
-        let t = this.player.team,
+        let t = this.players[0].team,
           s = !1,
           i = !1;
         for (let r of this.players)
@@ -2926,7 +2936,7 @@
         }
         for (; this.dummies.length > e; ) {
           let t = this.dummies.pop();
-          this.player.lock === t && (this.player.lock = null);
+          this.players[0].lock === t && (this.players[0].lock = null);
         }
       }
       emit(e) {
@@ -3012,7 +3022,7 @@
             for (let l of r.values()) this.tick - l < 120 && (o = !0);
             o || this.hitLog.delete(i);
           }
-        this.meter.push(this.player.meter()),
+        this.meter.push(this.players[0].meter()),
           this.meter.length > 90 && this.meter.shift();
       }
       updateMatch() {
@@ -3024,6 +3034,8 @@
       }
       endRound(e) {
         let t = this.match;
+        // Results are kept from this screen's point of view (display only).
+        this.localIdx === 1 && (e = e === "win" ? "lose" : "win");
         t.phase !== "end" &&
           ((t.phase = "end"),
           (t.endT = 150),
@@ -3032,7 +3044,7 @@
             e === "win"
               ? 1
               : this.players.filter((s) => !s.out).length +
-                (this.player.out ? 1 : 0)),
+                (this.players[0].out ? 1 : 0)),
           e === "win" ? t.wins++ : t.losses++,
           this.emit({ type: "roundEnd", result: e }));
       }
@@ -3475,7 +3487,7 @@
           let t = e.aliveSlot(1);
           if (this.match.mode !== "practice" && t === null) {
             e.out = !0;
-            let s = this.player.team,
+            let s = this.players[0].team,
               i = this.players.some((o) => !o.out && o.team === s),
               r = this.players.some((o) => !o.out && o.team !== s);
             i
@@ -6564,7 +6576,7 @@
       }
       updateDummy(e) {
         e.lockT > 0 && e.lockT--;
-        let t = this.player;
+        let t = this.players[0];
         if (e.hitstop > 0) {
           e.hitstop--;
           return;
@@ -8437,7 +8449,7 @@
             !p &&
             (this.match.combo = Math.max(this.match.combo, v)),
           t && t.team === mt && e.kind === "player" && (this.match.dealt += K),
-          e === this.player && (this.match.taken += K),
+          e === this.players[0] && (this.match.taken += K),
           this.emit({
             type: "hit",
             x: c,
@@ -10855,7 +10867,11 @@
   ];
   function tagOf(a, e) {
     let t = TAGC[A.colors] ?? TAGC[0];
-    return a.isCpu
+    if (a.brain?.net)
+      return a.brain.local
+        ? { label: "YOU", color: t.p1 }
+        : { label: netOppName(10).toUpperCase(), color: t.cpu[0] };
+    return a.isRival
       ? e && a.team === e.player.team
         ? { label: "ALLY", color: t.ally }
         : {
@@ -11066,7 +11082,7 @@
               ? e.tick % 10 < 5
                 ? "#ffffff"
                 : "#ef5a4f"
-              : h.isCpu
+              : h.isRival
                 ? "#ef5a4f"
                 : L.flame;
         (a.strokeStyle = b),
@@ -11075,7 +11091,7 @@
           a.beginPath(),
           a.ellipse(h.markX, h.markY, y + 6, (y + 6) * 0.45, 0, 0, Math.PI * 2),
           a.stroke(),
-          (a.fillStyle = h.isCpu
+          (a.fillStyle = h.isRival
             ? "rgba(239,90,79,0.25)"
             : "rgba(255,138,61,0.22)"),
           a.beginPath(),
@@ -11125,7 +11141,8 @@
       }
     }
     for (let h of e.bodies()) {
-      if (h.hidden || (h.kind === "player" && h.vanished && h.isCpu)) continue;
+      if (h.hidden || (h.kind === "player" && h.vanished && h.isRival))
+        continue;
       let c = o(h.px, h.x),
         y = o(h.py, h.y),
         b = o(h.pz, h.z),
@@ -11192,7 +11209,7 @@
       }
       let c = o(h.px, h.x),
         y = o(h.py, h.y) - o(h.pz, h.z),
-        b = h.isCpu ? "#ef5a4f" : "#6fd3e8";
+        b = h.isRival ? "#ef5a4f" : "#6fd3e8";
       stance(a, e, h, c, y);
       if (h.state === "guard") {
         let p = Math.max(0, h.slot.guard) / 100,
@@ -11318,8 +11335,7 @@
         h.helmetT > 0 ? ["HELMET", "#c9a26b"] : null,
         h.scarfT > 0 ? ["SCARF", "#5ab0ff"] : null,
       ].filter(Boolean);
-      (a.font = '700 6px "Barlow Semi Condensed", sans-serif'),
-        (a.textAlign = "center");
+      (a.font = fontOf(6, je, 700)), (a.textAlign = "center");
       b.forEach(([p, k], M) => {
         let P = y + 10 + M * 7;
         (a.fillStyle = "rgba(8,10,14,0.7)"),
@@ -11331,7 +11347,7 @@
     }
     // Smash-style player tags: a coloured "P1" / "CPU" flag with a pointer over each fighter.
     for (let h of e.players) {
-      if (h.state === "faint" || (h.vanished && h.isCpu)) continue;
+      if (h.state === "faint" || (h.vanished && h.isRival)) continue;
       let c = Math.round(o(h.px, h.x)),
         y = Math.round(
           o(h.py, h.y) -
@@ -11342,7 +11358,7 @@
         ),
         b = tagOf(h, e).label,
         p = tagOf(h, e).color;
-      (a.font = '900 8px "Big Shoulders Display", sans-serif'),
+      (a.font = fontOf(8, He)),
         (a.textAlign = "center"),
         (a.textBaseline = "alphabetic");
       let k = Math.ceil(a.measureText(b).width) + 6;
@@ -11909,7 +11925,7 @@
     if (
       (C &&
         C.vanished &&
-        (v = C.isCpu ? (t.tick % 23 < 2 ? 0.12 : 0.03) : 0.28),
+        (v = C.isRival ? (t.tick % 23 < 2 ? 0.12 : 0.03) : 0.28),
       C && C.state === "pfStrike" && (v = Math.min(1, 0.25 + C.t / 7)),
       o && v < 0.5)
     ) {
@@ -12524,7 +12540,7 @@
         case "zzz":
           (a.globalAlpha = Math.min(1, i * 2)),
             (a.fillStyle = s.color),
-            (a.font = `bold ${Math.round(s.size + (1 - i) * 4)}px sans-serif`),
+            (a.font = fontOf(Math.round(s.size + (1 - i) * 4), He)),
             a.fillText("z", Math.round(r), Math.round(o));
           break;
         case "glint": {
@@ -13097,8 +13113,10 @@
   var H = 480,
     oe = 270,
     ma = H / Y,
-    He = '"Big Shoulders Display", "Arial Narrow", sans-serif',
-    je = '"Barlow Semi Condensed", "Arial Narrow", sans-serif',
+    // Display: Lilita One (one weight). Body: Fredoka, a touch smaller since it
+    // runs wider than the condensed face the layouts were drawn for.
+    He = '"Lilita One", "Arial Narrow", sans-serif',
+    je = '"Fredoka", "Arial Narrow", sans-serif',
     g = {
       night: "#0b0918",
       deep: "#120f24",
@@ -13180,7 +13198,13 @@
     m = (a) => a * Fe,
     Ee = (a) => 1 - Math.pow(1 - Math.max(0, Math.min(1, a)), 3);
   function Ma(a, e = je, t = 600, s = !1) {
-    d.font = `${s ? "italic " : ""}${t} ${(a * Fe).toFixed(2)}px ${e}`;
+    d.font = fontOf(a * Fe, e, t, s);
+  }
+  // One place that turns (size, face, weight) into a canvas font string.
+  function fontOf(a, e = je, t = 600, s = !1) {
+    return e === He
+      ? `${s ? "italic " : ""}400 ${a.toFixed(2)}px ${e}`
+      : `${s ? "italic " : ""}${Math.min(700, Math.max(500, t))} ${(a * 0.9).toFixed(2)}px ${e}`;
   }
   function ye(a, e, t = je, s = 600, i = !1) {
     return Ma(e, t, s, i), d.measureText(a).width / Fe;
@@ -13440,7 +13464,7 @@
     return s.hp <= 0
       ? "Pain"
       : i.phase !== "fight" && i.result
-        ? (i.result === "win") == !e.isCpu
+        ? (i.result === "win") == !e.isRival
           ? "Joyous"
           : "Worried"
         : t !== e.active
@@ -13711,13 +13735,17 @@
       ns(s, o), ga(s), Lt(s);
       return;
     }
+    if (s.screen === "online") {
+      onlineScreen(s, o), ga(s), Lt(s);
+      return;
+    }
     let l = t.view,
       f = (c) => (c * l.z + l.ox) * ma,
       u = (c) => (c * l.z + l.oy) * ma,
       h = (c, y) => c + (y - c) * r;
     if (e.match.phase !== "results") {
       for (let c of e.players) {
-        if (!c.isCpu || c.state === "faint" || c.vanished) continue;
+        if (!c.isRival || c.state === "faint" || c.vanished) continue;
         let y = f(h(c.px, c.x)),
           b = u(h(c.py, c.y) - h(c.pz, c.z) - 40);
         ot(
@@ -13823,6 +13851,7 @@
       e.match.phase === "results" && os(e, s, o),
       ga(s),
       s.paused && hs(e, s, o),
+      NET.m && netHud(e, s),
       Lt(s);
   }
   function pa(a, e, t) {
@@ -14025,10 +14054,16 @@
         (d.strokeStyle = g.hpLow),
         (d.lineWidth = m(1.2)),
         d.stroke()),
-      ue(r ? "CPU" : "1P", u, r ? c + h - 18 : c + 1, i + ka - 9, {
-        text: g.night,
-        size: 5.6,
-      });
+      ue(
+        r ? (NET.m ? "RIVAL" : "CPU") : NET.m ? "YOU" : "1P",
+        u,
+        r ? c + h - (NET.m ? 24 : 18) : c + 1,
+        i + ka - 9,
+        {
+          text: g.night,
+          size: 5.6,
+        },
+      );
     let y = r ? s + 46 : s + 56,
       b = 108;
     V(f.name, y, i + 12.5, 12, g.chalk);
@@ -14400,7 +14435,7 @@
     let h = m(s * 0.98);
     u.translate(m(10 + s * 0.22), h),
       u.transform(1, 0, -ke, 1, 0, 0),
-      (u.font = `900 ${(s * Fe).toFixed(1)}px ${He}`),
+      (u.font = fontOf(s * Fe, He)),
       (u.textBaseline = "alphabetic"),
       (u.lineJoin = "round"),
       (u.fillStyle = g.chalk),
@@ -14608,7 +14643,7 @@
   function ns(a, e) {
     let t = a.frame;
     a.selectT++, (a.pickBump *= 0.85), neonBg(t);
-    let s = A.gameMode !== 1;
+    let s = cpuSide();
     V("Choose your team", 12, 25, 22, g.chalk, { skew: !0, outline: 2 }),
       G("Pick two. Your first pick leads.", 14, 34, 6.6, g.haze, {
         italic: !0,
@@ -14617,7 +14652,7 @@
       r = ["#4df08a", g.gold, g.cpu][A.cpuLevel],
       o = ue(
         MODE_NAMES[A.gameMode] ?? "VS CPU",
-        s ? g.cpu : g.dim,
+        s ? g.cpu : A.gameMode === 5 ? g.p1 : g.dim,
         H - 12,
         14,
         {
@@ -14651,14 +14686,43 @@
       }
     else {
       let M = H - 158;
-      Ae(M, 48, 150, 136, g.dim, { edge: "right" }),
-        V("Training", M + 18, 66, 15, g.chalk),
-        G("Wobbuffet dummies take your hits", M + 18, 78, 6.6, g.haze),
-        G("and only fight back when set to", M + 18, 86, 6.6, g.haze),
-        G("Shooter in Options.", M + 18, 94, 6.6, g.haze);
-      let P = e.wobbuffet,
-        C = P.anims.Idle;
-      et(d, C, Be(C, t, 1), 6, m(M + 75), m(166), 2 * Fe, P.ground);
+      if (A.gameMode === 5) {
+        Ae(M, 48, 150, 136, g.p1, { edge: "right" }),
+          V("Online", M + 18, 66, 15, g.chalk),
+          G("Battle another trainer who has", M + 18, 78, 6.6, g.haze),
+          G("this game open. Pick your team,", M + 18, 86, 6.6, g.haze),
+          G("then press Start to find one.", M + 18, 94, 6.6, g.haze);
+        // A broadcast signal: arcs pulsing out from a dot.
+        let P = M + 75,
+          C = 150;
+        (d.lineCap = "round"), (d.lineWidth = m(2.2));
+        for (let x = 0; x < 3; x++) {
+          let v = 10 + x * 10,
+            E = (t * 0.05 - x * 0.33) % 1;
+          (d.strokeStyle = g.p1),
+            (d.globalAlpha =
+              0.35 +
+              0.65 * Math.max(0, Math.sin((E < 0 ? E + 1 : E) * Math.PI))),
+            d.beginPath(),
+            d.arc(m(P), m(C), m(v), Math.PI * 1.22, Math.PI * 1.78),
+            d.stroke();
+        }
+        (d.globalAlpha = 1),
+          (d.lineCap = "butt"),
+          (d.fillStyle = g.p1),
+          d.beginPath(),
+          d.arc(m(P), m(C), m(3.2), 0, Math.PI * 2),
+          d.fill();
+      } else {
+        Ae(M, 48, 150, 136, g.dim, { edge: "right" }),
+          V("Training", M + 18, 66, 15, g.chalk),
+          G("Wobbuffet dummies take your hits", M + 18, 78, 6.6, g.haze),
+          G("and only fight back when set to", M + 18, 86, 6.6, g.haze),
+          G("Shooter in Options.", M + 18, 94, 6.6, g.haze);
+        let P = e.wobbuffet,
+          C = P.anims.Idle;
+        et(d, C, Be(C, t, 1), 6, m(M + 75), m(166), 2 * Fe, P.ground);
+      }
     }
     let u = (M, P, C) => {
       M.forEach((x, v) => {
@@ -14771,7 +14835,7 @@
     if (
       (Pe("X", H / 2 - 118, p, 3.4),
       G(
-        `Mode: ${["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control"][A.gameMode] ?? "VS CPU"}`,
+        `Mode: ${["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online"][A.gameMode] ?? "VS CPU"}`,
         H / 2 - 112,
         p + 2.4,
         7,
@@ -14797,9 +14861,18 @@
         d.scale(M, M),
         d.translate(-m(H / 2), -m(258)),
         te(H / 2 - 72, 250, 144, 14, g.gold),
-        V("Press Start to battle", H / 2, 261, 11, g.night, {
-          align: "center",
-        }),
+        V(
+          A.gameMode === 5
+            ? "Press Start to go online"
+            : "Press Start to battle",
+          H / 2,
+          261,
+          11,
+          g.night,
+          {
+            align: "center",
+          },
+        ),
         d.restore();
     } else {
       let M = H / 2 - 58;
@@ -14813,6 +14886,146 @@
       }
     }
   }
+  // Results backdrop: a triangle lattice that ripples out from the winner,
+  // turning light rays and drifting shards. Warm gold for a win, cold blue and
+  // violet for a loss -- a sibling of the team select's neon grid.
+  var RB = {
+    win: {
+      top: "#2b1206",
+      mid: "#5a2a0a",
+      low: "#140703",
+      tri: ["255,190,70", "255,120,40", "255,230,150"],
+      ray: "255,214,110",
+      glow: "255,170,60",
+    },
+    lose: {
+      top: "#060b22",
+      mid: "#16205a",
+      low: "#04050e",
+      tri: ["90,120,255", "150,100,255", "120,200,255"],
+      ray: "130,150,255",
+      glow: "80,90,220",
+    },
+  };
+  function resultsBg(a, e, t, s) {
+    let i = e ? RB.win : RB.lose,
+      r = d.createLinearGradient(0, 0, m(H * 0.4), m(oe));
+    r.addColorStop(0, i.top),
+      r.addColorStop(0.55, i.mid),
+      r.addColorStop(1, i.low),
+      (d.fillStyle = r),
+      d.fillRect(0, 0, m(H), m(oe)),
+      d.save(),
+      (d.globalCompositeOperation = "lighter");
+    // Turning rays behind the winner (slower and dimmer after a loss).
+    let o = a * (e ? 0.004 : 0.0015);
+    for (let p = 0; p < 14; p++) {
+      let k = o + (p / 14) * Math.PI * 2,
+        M = 0.035,
+        P = 700;
+      (d.fillStyle = `rgba(${i.ray},${p % 2 ? 0.035 : 0.07})`),
+        d.beginPath(),
+        d.moveTo(m(t), m(s)),
+        d.lineTo(
+          m(t + Math.cos(k - M * 2) * P),
+          m(s + Math.sin(k - M * 2) * P),
+        ),
+        d.lineTo(
+          m(t + Math.cos(k + M * 2) * P),
+          m(s + Math.sin(k + M * 2) * P),
+        ),
+        d.closePath(),
+        d.fill();
+    }
+    // The lattice: each triangle lights up as a ring passes through it.
+    let l = 26,
+      f = l * 0.866,
+      u = (a * 0.25) % l,
+      h = e ? 1 : -1;
+    d.lineJoin = "round";
+    for (let p = -1; p < oe / f + 1; p++)
+      for (let k = -2; k < H / l + 2; k++)
+        for (let M = 0; M < 2; M++) {
+          let P = k * l + (p % 2 ? l / 2 : 0) + u * h,
+            C = p * f,
+            x = M
+              ? [
+                  [P, C],
+                  [P + l, C],
+                  [P + l / 2, C + f],
+                ]
+              : [
+                  [P + l / 2, C + f],
+                  [P + l, C],
+                  [P + l * 1.5, C + f],
+                ],
+            v = (x[0][0] + x[1][0] + x[2][0]) / 3,
+            E = (x[0][1] + x[1][1] + x[2][1]) / 3,
+            Q = Math.hypot(v - t, (E - s) * 1.2),
+            K = (Q * 0.02 - a * 0.05 * h) % 1,
+            ie = Math.pow(
+              Math.max(0, Math.cos((K < 0 ? K + 1 : K) * Math.PI * 2)),
+              8,
+            ),
+            q = (k * 7 + p * 13 + M * 5) % 3,
+            le = Math.max(0, 1 - Q / 520);
+          d.beginPath(),
+            d.moveTo(m(x[0][0]), m(x[0][1])),
+            d.lineTo(m(x[1][0]), m(x[1][1])),
+            d.lineTo(m(x[2][0]), m(x[2][1])),
+            d.closePath(),
+            ie > 0.05 &&
+              ((d.fillStyle = `rgba(${i.tri[q]},${(0.16 * ie * le).toFixed(3)})`),
+              d.fill()),
+            (d.strokeStyle = `rgba(${i.tri[q]},${(0.05 + 0.18 * ie * le).toFixed(3)})`),
+            (d.lineWidth = m(0.6)),
+            d.stroke();
+        }
+    // Chevrons rising after a win, shards falling after a loss.
+    for (let p = 0; p < 22; p++) {
+      let k = ((p * 97) % 37) / 37,
+        M = 30 + ((p * 151) % (H - 60)),
+        P = 0.12 + ((p * 29) % 11) / 30,
+        C =
+          (((((e ? -1 : 1) * a * P * 0.6 + p * 53) % (oe + 40)) + oe + 40) %
+            (oe + 40)) -
+          20,
+        x = 3 + k * 6;
+      (d.fillStyle = `rgba(${i.tri[p % 3]},${0.12 + k * 0.25})`), d.beginPath();
+      e
+        ? (d.moveTo(m(M - x), m(C + x * 0.6)),
+          d.lineTo(m(M), m(C)),
+          d.lineTo(m(M + x), m(C + x * 0.6)),
+          d.lineTo(m(M + x), m(C + x * 1.1)),
+          d.lineTo(m(M), m(C + x * 0.5)),
+          d.lineTo(m(M - x), m(C + x * 1.1)))
+        : (d.moveTo(m(M), m(C - x)),
+          d.lineTo(m(M + x * 0.5), m(C)),
+          d.lineTo(m(M), m(C + x * 1.4)),
+          d.lineTo(m(M - x * 0.4), m(C))),
+        d.closePath(),
+        d.fill();
+    }
+    let p = d.createRadialGradient(m(t), m(s), 0, m(t), m(s), m(200));
+    p.addColorStop(0, `rgba(${i.glow},0.28)`),
+      p.addColorStop(1, `rgba(${i.glow},0)`),
+      (d.fillStyle = p),
+      d.fillRect(0, 0, m(H), m(oe)),
+      d.restore();
+    let k = d.createRadialGradient(
+      m(H / 2),
+      m(oe / 2),
+      m(140),
+      m(H / 2),
+      m(oe / 2),
+      m(360),
+    );
+    k.addColorStop(0, "rgba(0,0,0,0)"),
+      k.addColorStop(1, "rgba(0,0,0,0.5)"),
+      (d.fillStyle = k),
+      d.fillRect(0, 0, m(H), m(oe));
+  }
+  var Ka2T = "";
   function os(a, e, t) {
     e.resultsT++;
     let s = e.resultsT,
@@ -14835,18 +15048,7 @@
       d.lineTo(0, m(oe)),
       d.closePath(),
       d.clip();
-    let k = d.createLinearGradient(0, 0, m(H), m(oe));
-    k.addColorStop(0, "#1b1538"),
-      k.addColorStop(0.55, g.deep),
-      k.addColorStop(1, "#07050f"),
-      (d.fillStyle = k),
-      d.fillRect(0, 0, m(H), m(oe));
-    for (let q = 0; q < 16; q++) {
-      let le = ((((q * 47 - i * 2.2) % (H + 200)) + H + 200) % (H + 200)) - 100;
-      (d.globalAlpha = q % 3 === 0 ? 0.05 : 0.13),
-        te(le, 0, 3 + (q % 4) * 5, oe, q % 3 === 0 ? g.chalk : y, oe * 0.42);
-    }
-    d.globalAlpha = 1;
+    resultsBg(i, o, 128, 200);
     let M = Ee((s - 8) / 14);
     d.save(),
       (d.globalAlpha = 0.16 * M),
@@ -14896,19 +15098,23 @@
       te(-10, 14, 236, 44, "rgba(8,6,18,0.7)", 10),
       (d.fillStyle = b),
       d.fillRect(0, m(56), m(230 * K), m(1.6)),
+      (Ka2T = o
+        ? r.mode === "team"
+          ? "Team wins!"
+          : "You win!"
+        : r.mode === "ffa"
+          ? `${["", "1st", "2nd", "3rd", "4th"][r.place] ?? "Out"} place`
+          : r.mode === "team"
+            ? "CPUs win"
+            : NET.m
+              ? `${netOppName(14)} wins`
+              : "CPU wins"),
+      // Long names shrink to fit the banner.
       V(
-        o
-          ? r.mode === "team"
-            ? "Team wins!"
-            : "You win!"
-          : r.mode === "ffa"
-            ? `${["", "1st", "2nd", "3rd", "4th"][r.place] ?? "Out"} place`
-            : r.mode === "team"
-              ? "CPUs win"
-              : "CPU wins",
+        Ka2T,
         14,
         46,
-        36,
+        Math.min(36, (36 * 200) / Math.max(1, ye(Ka2T, 36, He))),
         o ? g.gold : g.cpu,
         {
           skew: !0,
@@ -14951,7 +15157,12 @@
               le - 21 + Xe * 21,
               w + 9,
               19,
-              { bg: de.kit.color, grey: de.hp <= 0, flip: q.isCpu, slash: !0 },
+              {
+                bg: de.kit.color,
+                grey: de.hp <= 0,
+                flip: q.isRival,
+                slash: !0,
+              },
             ),
           ),
           G(ve, le, w + 37, 6.6, Ne, {
@@ -14962,7 +15173,7 @@
           Ce && ue("WIN", g.gold, le - 8, w + 3, { text: g.night, size: 5 }));
       };
     fe(l, N, g.p1, "You", o),
-      fe(f, J, g.cpu, "CPU", !o),
+      fe(f, J, g.cpu, NET.m ? netOppName(9) : "CPU", !o),
       V(Pa(r.ticks), $ + 22, w + 26, 18, g.chalk),
       G("match time", $ + 22, w + 34, 5.6, g.haze);
     let ce = l.stats,
@@ -15034,7 +15245,7 @@
     Le <= 0 ||
       (d.save(),
       (d.globalAlpha = Le),
-      qa.forEach((q, le) => {
+      (NET.m ? ["Rematch", "Leave"] : qa).forEach((q, le) => {
         let ve = 228 + le * 86 - (1 - Le) * 20,
           Ce = 228,
           de = le === e.resultIndex;
@@ -15044,7 +15255,28 @@
             align: "center",
           });
       }),
+      NET.m && netRematchNote(),
       d.restore());
+  }
+  // Online results: who has asked for a rematch so far.
+  function netRematchNote() {
+    let a = NET.m,
+      e = a.rm === a.epoch,
+      t = a.oppRm,
+      s =
+        a.phase === "ready"
+          ? "Starting the rematch…"
+          : e && !t
+            ? `Waiting for ${netOppName(14)}…`
+            : t && !e
+              ? `${netOppName(14)} wants a rematch!`
+              : "";
+    s &&
+      (te(226, 212, 176, 12, "rgba(8,6,18,0.75)"),
+      G(s, 314, 220.5, 7, t && !e ? g.gold : g.chalk, {
+        align: "center",
+        weight: 700,
+      }));
   }
   function ls(a) {
     if (a.kind === "num") {
@@ -15778,6 +16010,25 @@
             o[f] = (2 / (Math.PI * f)) * Math.sin(Math.PI * f * i);
           Nt.set(`p${i}`, j.createPeriodicWave(o, l));
         }
+        // A Game Boy style wave-channel voice: 32 steps of 4-bit samples, as
+        // the handheld's wave RAM plays it (the stepping is part of the sound).
+        let W = [
+            8, 11, 13, 14, 15, 15, 15, 14, 13, 12, 12, 11, 10, 9, 8, 8, 7, 6, 5,
+            4, 4, 3, 2, 1, 1, 0, 0, 1, 2, 3, 5, 6,
+          ],
+          c = new Float32Array(64),
+          y = new Float32Array(64);
+        for (let b = 1; b < 64; b++) {
+          let k = 0,
+            M = 0;
+          for (let P = 0; P < 512; P++) {
+            let C = (W[P >> 4] - 7.5) / 7.5,
+              x = (2 * Math.PI * b * P) / 512;
+            (k += C * Math.cos(x)), (M += C * Math.sin(x));
+          }
+          (c[b] = k / 256), (y[b] = M / 256);
+        }
+        Nt.set("wave", j.createPeriodicWave(c, y));
       }
       j.state !== "running" && j.resume(), (qe.gain.value = A.volume);
     } catch {}
@@ -15790,7 +16041,15 @@
         ? (f.type =
             t === "tri" ? "triangle" : t === "saw" ? "sawtooth" : "sine")
         : f.setPeriodicWave(
-            Nt.get(t === "p12" ? "p0.125" : t === "p25" ? "p0.25" : "p0.5"),
+            Nt.get(
+              t === "wave"
+                ? "wave"
+                : t === "p12"
+                  ? "p0.125"
+                  : t === "p25"
+                    ? "p0.25"
+                    : "p0.5",
+            ),
           ),
       f.frequency.setValueAtTime(s, e),
       i !== s &&
@@ -16350,6 +16609,8 @@
       Gm: [7, 10, 14],
       A: [9, 13, 16],
       Bdim: [11, 14, 17],
+      D: [2, 6, 9],
+      Bm: [11, 14, 18],
     },
     dt = (a, e, t, s = []) =>
       a.map((i, r) => ({
@@ -16424,21 +16685,61 @@
         { bass: "walk" },
       ],
     ),
-    ks = dt(
-      [
-        "C5 - - - E5 - G5 - C6 - - - B5 - G5 -",
-        "A5 - - - G5 - E5 - C5 - - - E5 - A5 -",
-        "F5 - - - A5 - C6 - A5 - G5 - F5 - A5 -",
-        "G5 - - - - - - - D5 - E5 - F5 - G5 -",
-        "C6 - - - G5 - E5 - G5 - - - C6 - E6 -",
-        "D6 - - - C6 - A5 - E5 - - - A5 - C6 -",
-        "B5 - - - A5 - G5 - F5 - - - A5 - D6 -",
-        "C6 - - - - - - - G5 - - - C6 - - -",
-      ],
-      ["C", "Am", "F", "G", "C", "Am", "G", "C"],
-      ["title", "title", "title", "title", "title", "title", "title", "tfill"],
-      Array(8).fill({ bass: "half", arp: "up" }),
-    ),
+    // Title: a heroic march in G -- a brass fanfare, a marching A section and
+    // a broader half-time B section, voiced for the handheld channels.
+    ks = [
+      ...dt(
+        [
+          "G4 . G4 G4 G4 - - - D5 - - - G5 - - -",
+          "F5 - - - D#5 - - - F5 - - - G5 . G5 .",
+        ],
+        ["G", "F"],
+        ["stab", "roll"],
+        [
+          { bass: "pedal", arp: "off", harm: !1 },
+          { bass: "drive", arp: "off" },
+        ],
+      ),
+      ...dt(
+        [
+          "D5 - G5 - - - A5 - B5 - - - G5 - - -",
+          "C6 - - - B5 - A5 - G5 - - - E5 - - -",
+          "F#5 - - - E5 - D5 - E5 - F#5 - A5 - - -",
+          "G5 - - - - - - - D5 - E5 - F#5 - G5 -",
+          "B5 - - - - - G5 - E5 - - - B5 - - -",
+          "C6 - - - B5 - C6 - E6 - - - D6 - C6 -",
+          "A5 - - - B5 - C6 - D6 - - - F#5 - A5 -",
+          "G5 - - - - - - - - - - - D5 . D5 .",
+        ],
+        ["G", "C", "D", "G", "Em", "C", "D", "G"],
+        ["main", "main", "main", "main", "main", "main", "main", "tfill"],
+        Array(8).fill({ bass: "drive", arp: "up" }),
+      ),
+      ...dt(
+        [
+          "E5 - - - - - - - G5 - - - B5 - - -",
+          "A5 - - - G5 - - - E5 - - - - - - -",
+          "C5 - - - E5 - - - A5 - - - G5 - - -",
+          "F#5 - - - - - - - A5 - G5 - F#5 - E5 -",
+          "G5 - - - F#5 - G5 - B5 - - - E6 - - -",
+          "E6 - - - D6 - C6 - G5 - - - C6 - - -",
+          "B5 - - - A5 - G5 - E5 - - - A5 - - -",
+          "F#5 - - - A5 - - - D6 - - - F#6 - - -",
+        ],
+        ["Em", "C", "Am", "D", "Em", "C", "Am", "D"],
+        ["half", "half", "half", "half", "main", "main", "main", "fill"],
+        [
+          { bass: "half", arp: "roll" },
+          { bass: "half", arp: "roll" },
+          { bass: "half", arp: "roll" },
+          { bass: "half", arp: "roll" },
+          { bass: "drive", arp: "roll" },
+          { bass: "drive", arp: "roll" },
+          { bass: "drive", arp: "roll" },
+          { bass: "walk", arp: "roll" },
+        ],
+      ),
+    ],
     // Battle theme in the spirit of a Pokémon trainer battle: a chromatic run-down
     // intro, a driving A-minor verse over pumping octave bass and a 16th-note
     // arpeggio, a brighter chorus with a doubled lead, and a rising bridge.
@@ -16570,40 +16871,31 @@
       ],
     ),
     // Victory: a bright fanfare into a bouncing C-major loop.
+    // Victory: a fanfare, then a bouncy loop over pumping octave bass.
     Vf = dt(
       [
-        "C5 - E5 - G5 - C6 - - - G5 - C6 - - -",
-        "E5 - G5 - C6 - - - B5 - A5 - G5 - - -",
-        "F5 - A5 - C6 - - - A5 - G5 - F5 - - -",
-        "G5 - B5 - D6 - - - C6 - B5 - A5 - G5 -",
-        "E5 - G5 - C6 - - - - - - - G5 - C6 -",
-        "A5 - C6 - E6 - - - D6 - C6 - A5 - - -",
-        "F5 - A5 - D6 - - - C6 - A5 - F5 - - -",
-        "G5 - - - B5 - - - D6 - - - G6 - - -",
-        "C6 - - - - - - - G5 - E5 - C5 - - -",
+        "C5 . C5 . C5 . E5 - G5 - - - C6 - - -",
+        "E6 - C6 - G5 - C6 - E6 - - - D6 - C6 -",
+        "A5 - - - C6 - - - F6 - E6 - D6 - C6 -",
+        "B5 - G5 - D5 - G5 - B5 - - - A5 - G5 -",
+        "C6 - - - E6 - - - G6 - - - - - - -",
+        "A5 - C6 - E6 - C6 - A5 - - - B5 - C6 -",
+        "D6 - C6 - A5 - C6 - F5 - - - A5 - C6 -",
+        "B5 - - - D6 - - - G6 - F6 - E6 - D6 -",
+        "C6 - - - G5 - - - C6 - - - - - - -",
       ],
-      ["C", "C", "F", "G", "C", "Am", "Dm", "G", "C"],
+      ["C", "C", "F", "G", "C", "Am", "F", "G", "C"],
+      ["stab", "main", "main", "main", "main", "main", "main", "main", "tfill"],
       [
-        "intro",
-        "title",
-        "title",
-        "title",
-        "title",
-        "title",
-        "title",
-        "tfill",
-        "title",
-      ],
-      [
-        { bass: "pedal", arp: "off" },
+        { bass: "pedal", arp: "off", harm: !1 },
+        { bass: "pump", arp: "up" },
+        { bass: "pump", arp: "up" },
+        { bass: "pump", arp: "up" },
+        { bass: "pump", arp: "up" },
+        { bass: "pump", arp: "up" },
+        { bass: "pump", arp: "up" },
+        { bass: "pump", arp: "up" },
         { bass: "drive", arp: "up" },
-        { bass: "drive", arp: "up" },
-        { bass: "drive", arp: "up" },
-        { bass: "drive", arp: "up" },
-        { bass: "drive", arp: "up" },
-        { bass: "drive", arp: "up" },
-        { bass: "walk", arp: "up" },
-        { bass: "half", arp: "up" },
       ],
     ),
     // Defeat: a slow, quiet A-minor loop.
@@ -16628,7 +16920,7 @@
         arpVol: 0.04,
       },
       victory: {
-        bpm: 140,
+        bpm: 150,
         bars: Vf,
         loopFrom: 1,
         lead: "p50",
@@ -16642,6 +16934,7 @@
         lead: "p25",
         leadVol: 0.07,
         arpVol: 0.025,
+        echo: 4,
       },
       battle: {
         bpm: 176,
@@ -16651,7 +16944,14 @@
         leadVol: 0.1,
         arpVol: 0.045,
       },
-      title: { bpm: 126, bars: ks, loopFrom: 0, lead: "p50", leadVol: 0.085 },
+      title: {
+        bpm: 144,
+        bars: ks,
+        loopFrom: 2,
+        lead: "p50",
+        leadVol: 0.085,
+        arpVol: 0.03,
+      },
     },
     xs = {
       C: 0,
@@ -16795,26 +17095,41 @@
           u = Ha[o.chord] ?? Ha.C,
           h = 48 + (u[0] % 12),
           c = f.notes[t];
+        // Channel 1: the lead, a pulse with delayed vibrato on held notes.
         if (c !== null && c >= 0) {
-          let C = f.lens[t] * i;
+          let C = f.lens[t] * i,
+            x = f.lens[t] >= 3;
           Qe(l, s, r.lead, at(c), at(c), C * 0.95, r.leadVol, {
-            hold: C * 0.55,
-            vib: f.lens[t] >= 4 ? 16 : 0,
-            vibDelay: 0.14,
-          }),
-            o.dbl &&
-              Qe(
-                l,
-                s,
-                "p12",
-                at(c - 12),
-                at(c - 12),
-                C * 0.9,
-                r.leadVol * 0.55,
-                {
-                  hold: C * 0.5,
-                },
-              );
+            hold: C * 0.6,
+            vib: x ? 28 : 0,
+            vibDelay: Math.min(0.2, C * 0.35),
+          });
+          // Channel 2: a harmony a third to a sixth below, on the chord.
+          if (r.harm !== !1 && (o.harm ?? !0)) {
+            let v = c - 3;
+            for (let E = c - 3; E >= c - 9; E--)
+              if (u.some((Q) => (((E - Q) % 12) + 12) % 12 === 0)) {
+                v = E;
+                break;
+              }
+            Qe(l, s, "p25", at(v), at(v), C * 0.9, r.leadVol * 0.42, {
+              hold: C * 0.55,
+              vib: x ? 20 : 0,
+              vibDelay: Math.min(0.2, C * 0.35),
+            });
+          }
+          // The handheld echo trick: the lead again, quieter, a beat behind.
+          r.echo !== !1 &&
+            Qe(
+              l,
+              s + i * (r.echo ?? 3),
+              "p12",
+              at(c),
+              at(c),
+              C * 0.85,
+              r.leadVol * 0.26,
+              { hold: C * 0.4 },
+            );
         }
         let y = o.arp ?? "up";
         if (y !== "off") {
@@ -16827,10 +17142,11 @@
             "p12",
             at(v),
             at(v),
-            i * 0.85,
-            r.arpVol ?? (y === "roll" ? 0.04 : 0.032),
+            i * 0.7,
+            (r.arpVol ?? (y === "roll" ? 0.04 : 0.032)) * 0.75,
           );
         }
+        // Channel 3: wave-channel bass, short and punchy.
         let b = o.bass ?? "drive",
           p = h + (u[2] - u[0]),
           k = null,
@@ -16846,17 +17162,18 @@
             t % 2 === 0 &&
             (k = [h - 12, h - 12, p - 12, p - 12, h, h, p, h + 12][t / 2]),
           k !== null &&
-            Qe(l, s, "tri", at(k), at(k), i * M * 0.9, 0.26, {
-              hold: i * M * 0.5,
+            Qe(l, s, "wave", at(k), at(k), i * M * 0.8, 0.3, {
+              hold: i * M * (M > 2 ? 0.6 : 0.45),
             });
+        // Channel 4: noise drums, with a low thump under the kick.
         let P = ys[o.drums][t];
         P === "k" &&
-          (Qe(l, s, "sine", 150, 42, 0.11, 0.55),
-          ct(l, s, 0.03, "lowpass", 1200, 0.7, 0.18)),
+          (Qe(l, s, "sine", 130, 45, 0.09, 0.42),
+          ct(l, s, 0.035, "lowpass", 900, 0.7, 0.2)),
           P === "s" &&
-            (ct(l, s, 0.11, "bandpass", 1900, 0.8, 0.26, 900, !0),
-            Qe(l, s, "p50", 210, 130, 0.05, 0.06)),
-          P === "h" && ct(l, s, 0.028, "highpass", 7500, 0.6, 0.06);
+            (ct(l, s, 0.09, "bandpass", 2400, 0.9, 0.28, 1200, !0),
+            ct(l, s, 0.05, "highpass", 5e3, 0.5, 0.12)),
+          P === "h" && ct(l, s, 0.022, "highpass", 8500, 0.6, 0.07);
       }
     },
     Me = new Wt(),
@@ -16869,6 +17186,614 @@
           : Math.random() < 0.5
             ? "battle"
             : "champion";
+  // ---- Online play ----------------------------------------------------------
+  // Players find each other through the claude.ai room: everyone who has this
+  // page open right now. A match is deterministic lockstep. Each side sends only
+  // its own inputs, through room presence, and every update carries all the
+  // inputs the other side has not confirmed yet, so a dropped or merged update
+  // loses nothing. Both pages run the same simulation from the same seed.
+  var NETV = 2,
+    NET_BUTTONS = {
+      pressed: [
+        "attack",
+        "dodge",
+        "special1",
+        "special2",
+        "switch",
+        "assist",
+        "guard",
+      ],
+      held: ["attack", "dodge", "guard", "lock", "special1", "special2"],
+    },
+    // Settings that only change how this screen looks or sounds; everything
+    // else in A can change the simulation, so the host's values are used.
+    NET_LOCAL = [
+      "volume",
+      "music",
+      "theme",
+      "colors",
+      "swapSp",
+      "swapFace",
+      "deadzone",
+      "showHitboxes",
+      "slowmo",
+      "gameMode",
+      "cpuLevel",
+    ],
+    B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
+    NET = {
+      room: null,
+      user: null,
+      tried: !1,
+      dead: !1,
+      nick: "",
+      st: "idle",
+      want: null,
+      wantT: 0,
+      incoming: null,
+      declined: new Set(),
+      names: {},
+      cursor: 0,
+      msg: "",
+      msgT: 0,
+      m: null,
+      sent: "",
+    };
+  // One tick of input as 7 characters: three of button bits, then the four
+  // stick axes quantised to 63 steps. Both sides simulate the decoded value.
+  function netEnc(a) {
+    let e = 0;
+    NET_BUTTONS.pressed.forEach((t, s) => a.pressed.has(t) && (e |= 1 << s)),
+      NET_BUTTONS.held.forEach((t, s) => a.held.has(t) && (e |= 1 << (s + 7)));
+    let t = (s) => B64[Math.max(1, Math.min(63, Math.round(s * 31) + 32))];
+    return (
+      B64[e & 63] +
+      B64[(e >> 6) & 63] +
+      B64[(e >> 12) & 63] +
+      t(a.mx) +
+      t(a.my) +
+      t(a.ax) +
+      t(a.ay)
+    );
+  }
+  function netDec(a) {
+    let e =
+        B64.indexOf(a[0]) |
+        (B64.indexOf(a[1]) << 6) |
+        (B64.indexOf(a[2]) << 12),
+      t = (r) => (B64.indexOf(a[r]) - 32) / 31,
+      s = new Set(),
+      i = new Set();
+    NET_BUTTONS.pressed.forEach((r, o) => e & (1 << o) && s.add(r)),
+      NET_BUTTONS.held.forEach((r, o) => e & (1 << (o + 7)) && i.add(r));
+    let r = t(3),
+      o = t(4),
+      l = t(5),
+      f = t(6);
+    return {
+      mx: r,
+      my: o,
+      ax: l,
+      ay: f,
+      aimHeld: Math.hypot(l, f) > 0.45,
+      pressed: s,
+      held: i,
+      source: "keys",
+    };
+  }
+  var NET_IDLE = "AAAgggg";
+  function netShort(a, e = 12) {
+    a = String(a ?? "")
+      .replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁯]/g, "")
+      .trim();
+    return a.length > e ? a.slice(0, e - 1) + "…" : a || "Trainer";
+  }
+  function netName(a) {
+    return netShort((a?.by && NET.names[a.by]) || a?.presence?.nick, 16);
+  }
+  function netOppName(a = 12) {
+    let e = NET.m;
+    return e ? netShort(e.oppName, a) : "Rival";
+  }
+  function netHash(a) {
+    let e = 2166136261;
+    for (let t = 0; t < a.length; t++)
+      (e ^= a.charCodeAt(t)), (e = Math.imul(e, 16777619));
+    return (e >>> 0).toString(36);
+  }
+  // Starts listening to the room once; the page works the same without it.
+  async function netInit() {
+    if (NET.tried) return;
+    NET.tried = !0;
+    try {
+      NET.nick = localStorage.getItem("starter-brawl-nick") || "";
+    } catch {}
+    NET.nick ||
+      ((NET.nick = `Trainer ${1e3 + Math.floor(Math.random() * 9e3)}`),
+      (() => {
+        try {
+          localStorage.setItem("starter-brawl-nick", NET.nick);
+        } catch {}
+      })());
+    let a = window.claude;
+    if (!a?.use) return;
+    let [e, t] = await Promise.all([
+      a.use("room").catch(() => null),
+      a.use("user").catch(() => null),
+    ]);
+    if (((NET.user = t), !e)) return;
+    NET.room = e;
+    try {
+      let s = t && (await t.me());
+      s?.name && (NET.nick = s.name);
+    } catch {}
+    e.onPeers(
+      () => netResolveNames(),
+      (s) => {
+        (NET.dead = !0),
+          (NET.msg = "Online play is unavailable here"),
+          (NET.msgT = 240);
+      },
+    ),
+      netPresence();
+  }
+  async function netResolveNames() {
+    let a = NET.user;
+    if (!a?.profiles || !NET.room) return;
+    let e = NET.room
+      .peers()
+      .map((t) => t.by)
+      .filter((t) => t && !(t in NET.names));
+    if (!e.length) return;
+    e.forEach((t) => (NET.names[t] = ""));
+    try {
+      let t = await a.profiles(e);
+      for (let s of e) NET.names[s] = t?.[s]?.name || "";
+    } catch {}
+  }
+  function netPresence(a = []) {
+    let e = NET.room;
+    if (!e || NET.dead) return;
+    let t = {
+        v: NETV,
+        nick: netShort(NET.nick, 20),
+        st: NET.st,
+        want: NET.want,
+        team: a.length ? a : (NET.team ?? []),
+        hb: NET.hb ?? 0,
+        no: [...NET.declined].slice(-4),
+      },
+      s = JSON.stringify(t);
+    s !== NET.sent && ((NET.sent = s), e.presence(t).catch(() => {}));
+  }
+  function netLobbyPeers() {
+    let a = NET.room;
+    return a && !NET.dead
+      ? a
+          .peers()
+          .filter(
+            (e) => !e.sameTab && e.kind === "viewer" && e.presence?.v === NETV,
+          )
+      : [];
+  }
+  function netMe() {
+    return NET.room?.peers().find((a) => a.sameTab) ?? null;
+  }
+  // Matchmaking: two pages are paired once each one's `want` names the other.
+  function netLobbyTick() {
+    if (!NET.room || NET.dead || NET.m) return null;
+    let a = netMe(),
+      e = netLobbyPeers(),
+      t = Date.now();
+    if (!a) return null;
+    // Forget a decline once that trainer has stopped asking.
+    for (let i of NET.declined) {
+      let r = e.find((o) => o.peer === i);
+      (!r || r.presence.want !== a.peer) &&
+        (NET.declined.delete(i), netPresence());
+    }
+    // A challenge aimed at us (shown as a prompt unless we are busy).
+    let s = e.find(
+      (i) =>
+        i.presence.want === a.peer &&
+        i.presence.st === "challenge" &&
+        !NET.declined.has(i.peer),
+    );
+    NET.incoming =
+      NET.st === "idle" || NET.st === "search" ? (s?.peer ?? null) : null;
+    if (NET.st === "search") {
+      let i = e.find((r) => r.peer === NET.want);
+      if (
+        !i ||
+        (i.presence.st !== "search" && i.presence.st !== "busy") ||
+        (i.presence.want && i.presence.want !== a.peer && t - NET.wantT > 1500)
+      ) {
+        let r = e.filter((l) => l.presence.st === "search"),
+          o =
+            r.find((l) => l.presence.want === a.peer) ??
+            r
+              .filter((l) => !l.presence.want)
+              .sort((l, f) => (l.peer < f.peer ? -1 : 1))[0];
+        (NET.want = o?.peer ?? null), (NET.wantT = t), netPresence();
+      }
+    }
+    let o0 = NET.st === "challenge" && e.find((i) => i.peer === NET.want);
+    if (o0 && (o0.presence.no ?? []).includes(a.peer))
+      return (
+        (NET.st = "idle"),
+        (NET.want = null),
+        (NET.msg = `${netName(o0)} declined`),
+        (NET.msgT = 150),
+        netPresence(),
+        null
+      );
+    if (NET.st === "challenge" && t - NET.wantT > 25e3)
+      return (
+        (NET.st = "idle"),
+        (NET.want = null),
+        (NET.msg = "No answer"),
+        (NET.msgT = 150),
+        netPresence(),
+        null
+      );
+    if ((NET.st === "search" || NET.st === "challenge") && NET.want) {
+      let i = e.find((r) => r.peer === NET.want);
+      if (i && i.presence.want === a.peer) return i;
+    }
+    return null;
+  }
+  // The match room: hello, a short ping to size the input delay, the host's
+  // settings, then lockstep. All of it travels in presence.
+  async function netOpenMatch(a, e) {
+    let t = netMe();
+    if (!t) return;
+    let s = t.peer < a.peer,
+      i = `sb-${netHash([t.peer, a.peer].sort().join("|"))}`;
+    (NET.st = "busy"), netPresence();
+    let r = {
+      name: i,
+      room: null,
+      host: s,
+      opp: a.peer,
+      oppName: netName(a),
+      myTeam: [...e],
+      oppTeam: [],
+      phase: "join",
+      epoch: 0,
+      cfg: null,
+      pings: [],
+      pingK: 0,
+      pingAt: {},
+      pong: -1,
+      seenAt: Date.now(),
+      joinedAt: Date.now(),
+      wins: 0,
+      losses: 0,
+      pres: {},
+      sentPres: "",
+    };
+    NET.m = r;
+    try {
+      r.room = await NET.room.join(i);
+    } catch {
+      return netEnd("Could not open a match room");
+    }
+    if (NET.m !== r) return r.room.leave().catch(() => {});
+    (r.phase = "hello"),
+      netSet({ h: { nick: netShort(NET.nick, 20), team: r.myTeam } });
+  }
+  function netSet(a, e = NET.m) {
+    if (!e?.room) return;
+    Object.assign(e.pres, a);
+    for (let s in a) a[s] === null && delete e.pres[s];
+    let t = JSON.stringify(e.pres);
+    t !== e.sentPres &&
+      ((e.sentPres = t),
+      (e.sentAt = Date.now()),
+      e.room.presence(a).catch(() => {}));
+  }
+  // Presence is state, not a stream: re-send it now and then so an update
+  // that went missing is always repaired.
+  function netBeat() {
+    let a = Date.now(),
+      e = NET.m;
+    e?.room &&
+      a - (e.sentAt ?? 0) > 250 &&
+      netSet({ hb: (e.pres.hb ?? 0) + 1 }, e);
+    NET.room &&
+      !NET.dead &&
+      a - (NET.beatAt ?? 0) > 2e3 &&
+      ((NET.beatAt = a),
+      (NET.hb = (NET.hb ?? 0) + 1),
+      (NET.sent = ""),
+      netPresence());
+  }
+  function netOpp() {
+    let a = NET.m;
+    return a?.room
+      ? (a.room.peers().find((e) => e.peer === a.opp) ?? null)
+      : null;
+  }
+  function netEnd(a) {
+    let e = NET.m;
+    (NET.m = null),
+      e?.room && e.room.leave().catch(() => {}),
+      e?.saved && Object.assign(A, e.saved),
+      (NET.st = "idle"),
+      (NET.want = null),
+      (NET.incoming = null),
+      a && ((NET.msg = a), (NET.msgT = 210)),
+      netPresence();
+  }
+  // Everything that only depends on what the other page has said so far.
+  function netMatchTick(a) {
+    let e = NET.m;
+    if (!e?.room) return;
+    let t = netOpp(),
+      s = Date.now();
+    if (t) e.seenAt = s;
+    else if (s - e.seenAt > (e.phase === "play" ? 5e3 : 8e3))
+      return a.left(e.phase === "play" || e.phase === "results");
+    if (!t) return;
+    let i = t.presence ?? {};
+    if (i.bye) return a.left(!0);
+    i.h &&
+      !e.oppTeam.length &&
+      ((e.oppTeam = i.h.team ?? []),
+      i.h.nick && !e.oppName && (e.oppName = i.h.nick));
+    // Ping: the host times a few round trips to pick the input delay.
+    if (e.host && e.phase === "hello" && e.oppTeam.length) {
+      if (i.po === e.pingK && e.pingAt[e.pingK])
+        e.pings.push(s - e.pingAt[e.pingK]), e.pingK++;
+      if (e.pings.length >= 5 || (e.pingK > 0 && s - e.pingAt[0] > 4e3)) {
+        let r = [...e.pings].sort((l, f) => l - f),
+          o = r[Math.floor(r.length / 2)] ?? 200;
+        (e.rtt = o), a.host(o);
+      } else
+        e.pingAt[e.pingK] || ((e.pingAt[e.pingK] = s), netSet({ pi: e.pingK }));
+    }
+    !e.host &&
+      typeof i.pi === "number" &&
+      i.pi !== e.pong &&
+      ((e.pong = i.pi), netSet({ po: i.pi }));
+    // Settings and the start signal.
+    if (!e.host && i.cfg && i.cfg.e > e.epoch && i.cfg.v === NETV)
+      (e.cfg = i.cfg),
+        (e.epoch = i.cfg.e),
+        (e.phase = "ready"),
+        netSet({ rd: e.epoch });
+    e.host &&
+      e.phase === "ready" &&
+      i.rd === e.epoch &&
+      (netSet({ go: e.epoch }), a.go());
+    !e.host && e.phase === "ready" && i.go === e.epoch && a.go();
+    // Rematch: once both ask for one, the host sends new settings.
+    e.phase === "results" &&
+      e.host &&
+      e.rm === e.epoch &&
+      i.rm === e.epoch &&
+      a.host(e.rtt ?? 120);
+    e.oppRm = i.rm === e.epoch;
+    // Inputs and their acknowledgements.
+    e.phase === "play" && a.inputs(i);
+  }
+  // ---- Online lobby screen ----
+  // The same neon stage as team select: your team on the left, the trainers
+  // in the room on the right, and a modal for searching and challenges.
+  var NET_ST = {
+    idle: ["IN LOBBY", "#9b94bd"],
+    search: ["SEARCHING", "#ffc93c"],
+    challenge: ["CHALLENGING", "#ff9a3d"],
+    busy: ["IN BATTLE", "#ff4a63"],
+  };
+  function netRows() {
+    return [
+      { kind: "quick" },
+      ...netLobbyPeers().map((a) => ({ kind: "peer", p: a })),
+      { kind: "back" },
+    ];
+  }
+  function onlineScreen(a, e) {
+    let t = a.frame;
+    neonBg(t),
+      V("Online Battle", 12, 25, 22, g.chalk, { skew: !0, outline: 2 }),
+      G(
+        "Battle anyone who has this game open right now.",
+        14,
+        34,
+        6.6,
+        g.haze,
+        { italic: !0 },
+      );
+    let s = !!NET.room && !NET.dead;
+    ue(s ? "ONLINE" : "OFFLINE", s ? g.hp : g.dim, H - 12, 14, {
+      right: !0,
+      size: 7,
+      text: g.night,
+    });
+    for (let C = 0; C < 2; C++)
+      St(
+        a,
+        e,
+        8 - C * 6,
+        48 + C * 72,
+        a.picks[C] ?? null,
+        !1,
+        C === 0 ? "Lead" : "Partner",
+        a.picks[C] ? "locked" : "empty",
+      );
+    G(`You appear as ${netShort(NET.nick, 22)}`, 14, 198, 6.4, g.haze, {
+      italic: !0,
+    });
+    let i = 176,
+      r = 48,
+      o = H - i - 12,
+      l = 186;
+    Ae(i, r, o, l, g.p1, { edge: "right", bright: !0 }),
+      V("Trainers here", i + 16, r + 16, 12, g.chalk, { skew: !0 });
+    if (!s) {
+      let C = [
+        "Online play needs the claude.ai room.",
+        "Open this game from its claude.ai link and share",
+        "that link with friends: everyone who has it open",
+        "shows up here, ready to battle.",
+      ];
+      C.forEach((x, v) =>
+        G(x, i + 18, r + 38 + v * 11, 7, v ? g.haze : g.chalk),
+      );
+    }
+    let f = netRows();
+    a.netCursor = s ? Math.min(a.netCursor ?? 0, f.length - 1) : f.length - 1;
+    let u = r + (s ? 26 : 92),
+      h = 18,
+      c = Math.max(0, Math.min((a.netCursor ?? 0) - 6, f.length - 8));
+    f.slice(c, c + 8).forEach((C, x) => {
+      let v = x + c,
+        E = u + x * (h + 2),
+        Q = i + 12 - x * 1.2,
+        ie = o - 30,
+        K = v === a.netCursor && !NET.incoming && NET.st === "idle" && !NET.m,
+        $ = C.kind === "back" || (s && C.kind !== "back") || !s;
+      if (C.kind === "quick" && !s) return;
+      te(Q, E, ie, h, K ? g.p1 : "rgba(38,32,67,0.85)"),
+        (d.globalAlpha = $ ? 1 : 0.4);
+      if (C.kind === "quick")
+        V("Quick match", Q + 10, E + 13, 10.5, K ? g.night : g.gold),
+          G(
+            "Play the next trainer who is searching",
+            Q + 96,
+            E + 12,
+            6.2,
+            K ? g.night : g.haze,
+          );
+      else if (C.kind === "back")
+        V("Back to team select", Q + 10, E + 13, 10.5, K ? g.night : g.chalk);
+      else {
+        let w = C.p.presence,
+          U = NET_ST[w.st] ?? NET_ST.idle,
+          re = C.p.isMe ? `${netName(C.p)} (your other tab)` : netName(C.p);
+        V(re, Q + 10, E + 13, 10, K ? g.night : g.chalk),
+          ue(U[0], K ? g.night : U[1], Q + 128, E + 5, {
+            size: 5.4,
+            text: K ? U[1] : g.night,
+          });
+        (w.team ?? []).slice(0, 2).forEach((N, J) => {
+          xe[N] &&
+            e[N] &&
+            Oe(e[N], "Normal", Q + ie - 40 + J * 17, E + 1.5, 15, {
+              bg: xe[N].color,
+              frame: !1,
+            });
+        });
+      }
+      d.globalAlpha = 1;
+    });
+    s &&
+      f.length === 2 &&
+      G(
+        "Nobody else is here yet. Share this game's link, or search and wait.",
+        i + 18,
+        u + 2 * (h + 2) + 12,
+        6.6,
+        g.haze,
+        { italic: !0 },
+      );
+    Pe("A", 16, oe - 14, 4.2),
+      G("Select", 24, oe - 11.5, 6.6, g.chalk),
+      Pe("B", 60, oe - 14, 4.2),
+      G("Back", 68, oe - 11.5, 6.6, g.chalk);
+    // Modal states, drawn over the lists.
+    let y = null,
+      b = [],
+      p = g.p1;
+    if (NET.incoming) {
+      let C = netLobbyPeers().find((x) => x.peer === NET.incoming);
+      (y = `${C ? netName(C) : "A trainer"} wants to battle!`),
+        (b = [
+          ["A", "Accept"],
+          ["B", "Decline"],
+        ]),
+        (p = g.gold);
+    } else if (NET.m)
+      (y =
+        NET.m.phase === "join" || NET.m.phase === "hello"
+          ? `Connecting to ${netOppName(16)}…`
+          : `Starting the battle…`),
+        (b = [["B", "Cancel"]]);
+    else if (NET.st === "search")
+      (y = "Looking for an opponent…"), (b = [["B", "Cancel"]]);
+    else if (NET.st === "challenge") {
+      let C = netLobbyPeers().find((x) => x.peer === NET.want);
+      (y = `Waiting for ${C ? netName(C) : "them"} to accept…`),
+        (b = [["B", "Cancel"]]);
+    }
+    if (y) {
+      (d.fillStyle = "rgba(6,5,14,0.62)"), d.fillRect(0, 0, m(H), m(oe));
+      let C = 300,
+        x = (H - C) / 2,
+        v = 96;
+      Ae(x, v, C, 68, p, { bright: !0 }),
+        V(y, x + C / 2, v + 30, 14, g.chalk, { align: "center", skew: !0 });
+      let E = Math.floor(t / 8) % 4;
+      for (let Q = 0; Q < 3; Q++)
+        te(
+          x + C / 2 - 16 + Q * 11,
+          v + 38,
+          7,
+          4,
+          Q === E % 3 ? p : "rgba(255,255,255,0.18)",
+        );
+      let Q = x + C / 2 - b.length * 34;
+      b.forEach(([ie, K], $) => {
+        let w = Q + $ * 70;
+        Pe(ie, w + 8, v + 56, 4.2), G(K, w + 16, v + 58.5, 7, g.chalk);
+      });
+    }
+    NET.msgT > 0 &&
+      (NET.msgT--,
+      (d.globalAlpha = Math.min(1, NET.msgT / 20)),
+      Ae(H / 2 - 90, oe - 40, 180, 16, g.cpu),
+      G(NET.msg, H / 2, oe - 29.5, 7.4, g.chalk, { align: "center" }),
+      (d.globalAlpha = 1));
+  }
+  // In a match: the opponent's name tag, ping, a waiting chip when their inputs
+  // are late, and the leave menu.
+  function netHud(a, e) {
+    let t = NET.m;
+    if (!t || t.phase !== "play") return;
+    t.rtt &&
+      G(`PING ${Math.round(t.rtt)}ms`, H - 8, oe - 4, 5.6, g.dim, {
+        align: "right",
+      });
+    t.stall > 20 &&
+      (Ae(H / 2 - 70, 64, 140, 15, g.gold),
+      G(`Waiting for ${netOppName(14)}…`, H / 2, 74, 7.2, g.chalk, {
+        align: "center",
+      }));
+    if (!e.netMenu) return;
+    (d.fillStyle = "rgba(6,5,14,0.62)"), d.fillRect(0, 0, m(H), m(oe));
+    let s = 240,
+      i = (H - s) / 2;
+    Ae(i, 90, s, 76, g.cpu, { bright: !0 }),
+      V("Leave this battle?", i + s / 2, 114, 15, g.chalk, {
+        align: "center",
+        skew: !0,
+      }),
+      G(
+        "The match keeps running while this is open.",
+        i + s / 2,
+        124,
+        6.4,
+        g.haze,
+        { align: "center" },
+      ),
+      ["Keep playing", "Leave"].forEach((r, o) => {
+        let l = i + 26 + o * 100,
+          f = o === (e.netMenuIndex ?? 0);
+        te(l, 134, 90, 20, f ? (o ? g.cpu : g.p1) : g.plate2),
+          V(r, l + 45, 148, 11, f ? g.night : g.chalk, { align: "center" });
+      });
+  }
   var Ut = 1e3 / 60,
     be = "#a184f5";
   async function Ms() {
@@ -16876,12 +17801,10 @@
     try {
       await Promise.race([
         Promise.all([
-          document.fonts.load('900 10px "Big Shoulders Display"'),
-          document.fonts.load('700 10px "Big Shoulders Display"'),
-          document.fonts.load('600 10px "Barlow Semi Condensed"'),
-          document.fonts.load('700 10px "Barlow Semi Condensed"'),
-          document.fonts.load('italic 700 10px "Barlow Semi Condensed"'),
-          document.fonts.load('500 10px "Barlow Semi Condensed"'),
+          document.fonts.load('400 10px "Lilita One"'),
+          document.fonts.load('500 10px "Fredoka"'),
+          document.fonts.load('600 10px "Fredoka"'),
+          document.fonts.load('700 10px "Fredoka"'),
         ]),
         new Promise((n) => setTimeout(n, 2e3)),
       ]);
@@ -16895,7 +17818,7 @@
         "Venusaur: CHUNSOFT, G~ \xB7 Blastoise: CHUNSOFT, Top_Kec, Emmuffin",
         "Dragapult: EZERART, Emmuffin \xB7 Dreepy: Deeshura, Emboarger, Top_Kec, G~, NOLASMOR",
         "Wobbuffet: CHUNSOFT",
-        "Fonts: Big Shoulders Display (Patric King), Barlow Semi Condensed (Jeremy Tribby)",
+        "Fonts: Lilita One (Juan Montoreano), Fredoka (Milena Brandao, Hafontia)",
         "Pok\xE9mon is \xA9 Nintendo / Creatures / GAME FREAK.",
         "Fan project for personal use. Not for sale.",
       ]);
@@ -16990,7 +17913,269 @@
         (e.dummies = []),
         S.back();
     }
+    // ---- Online: lobby input, starting a match, lockstep stepping ----
+    function netToLobby() {
+      (s.screen = "online"),
+        (s.paused = !1),
+        (s.netMenu = !1),
+        (l.hidden = !0),
+        (s.flash = 6),
+        (k = !0),
+        (e.localIdx = 0),
+        (NET.team = [...s.picks]),
+        netInit(),
+        netPresence(s.picks),
+        Me.play("title"),
+        Me.muffle(!1);
+    }
+    function netLobbyInput(n) {
+      let D = netRows();
+      if (NET.incoming) {
+        n.pressed.has("confirm") &&
+          ((NET.want = NET.incoming),
+          (NET.st = "challenge"),
+          (NET.wantT = Date.now()),
+          (NET.incoming = null),
+          S.select(),
+          netPresence()),
+          n.pressed.has("back") &&
+            (NET.declined.add(NET.incoming),
+            (NET.incoming = null),
+            netPresence(),
+            S.back());
+        return;
+      }
+      if (NET.m) {
+        n.pressed.has("back") &&
+          (netSet({ bye: 1 }), netEnd("Cancelled"), S.back());
+        return;
+      }
+      if (NET.st === "search" || NET.st === "challenge") {
+        n.pressed.has("back") &&
+          ((NET.st = "idle"), (NET.want = null), netPresence(), S.back());
+        return;
+      }
+      w(n, (R) => {
+        (R === "up" || R === "down") &&
+          ((s.netCursor =
+            ((s.netCursor ?? 0) + (R === "up" ? D.length - 1 : 1)) % D.length),
+          S.ui(R === "down"));
+      });
+      if (n.pressed.has("back")) {
+        (s.screen = "select"), S.back();
+        return;
+      }
+      if (!n.pressed.has("confirm")) return;
+      let R = D[s.netCursor ?? 0];
+      if (!R || R.kind === "back") {
+        (s.screen = "select"), S.back();
+        return;
+      }
+      if (!NET.room || NET.dead) return S.fizzle();
+      R.kind === "quick"
+        ? ((NET.st = "search"), (NET.want = null), (NET.wantT = 0), S.select())
+        : R.p.presence.st === "busy"
+          ? S.fizzle()
+          : ((NET.st = "challenge"),
+            (NET.want = R.p.peer),
+            (NET.wantT = Date.now()),
+            S.select()),
+        netPresence();
+    }
+    // Hooks netMatchTick calls as the other page answers.
+    var netHooks = {
+      left(n) {
+        let D = NET.m?.oppName ? netShort(NET.m.oppName, 14) : "Your opponent";
+        netEnd(n ? `${D} left the match` : `Lost the connection to ${D}`),
+          s.screen === "play" && netToLobby();
+      },
+      // Host: pick a seed and input delay, and share this page's settings.
+      host(n) {
+        let D = NET.m,
+          R = Math.max(3, Math.min(15, Math.ceil((n / 2 + 25) / Ut) + 1)),
+          W = {};
+        for (let T of Object.keys(A)) NET_LOCAL.includes(T) || (W[T] = A[T]);
+        (D.epoch += 1),
+          (D.cfg = {
+            v: NETV,
+            e: D.epoch,
+            seed: Math.floor(Math.random() * 2147483647),
+            delay: R,
+            teams: [D.myTeam, D.oppTeam],
+            names: [netShort(NET.nick, 20), D.oppName],
+            tune: W,
+          }),
+          (D.phase = "ready"),
+          netSet({ cfg: D.cfg, rm: null });
+      },
+      go() {
+        let n = NET.m,
+          D = n.cfg;
+        n.saved || (n.saved = { ...A });
+        for (let [W, T] of Object.entries(D.tune))
+          NET_LOCAL.includes(W) || (A[W] = T);
+        (e.localIdx = n.host ? 0 : 1),
+          (e.nextId = 1),
+          (e.tick = 0),
+          (e.rand = rt(D.seed)),
+          e.startMatch("vs", D.teams[0], D.teams[1], D.e > 1),
+          (e.tick = 0);
+        let R = (W) => ({
+          net: !0,
+          local: W === e.localIdx,
+          think: () => n.cur[W],
+        });
+        (e.players[0].brain = R(0)),
+          (e.players[1].brain = R(1)),
+          (n.delay = D.delay),
+          (n.inL = []),
+          (n.inR = []);
+        for (let W = 0; W < D.delay; W++)
+          (n.inL[W] = NET_IDLE), (n.inR[W] = NET_IDLE);
+        (n.sim = 0),
+          (n.sched = D.delay),
+          (n.ackR = D.delay - 1),
+          (n.oppAck = D.delay - 1),
+          (n.stall = 0),
+          (n.cks = {}),
+          (n.oppCks = {}),
+          (n.rm = 0),
+          (n.cur = [netDec(NET_IDLE), netDec(NET_IDLE)]),
+          (n.phase = "play"),
+          (n.pend = new Set()),
+          netSet({
+            in: null,
+            ck: null,
+            go: n.host ? D.e : null,
+            rd: n.host ? null : D.e,
+          }),
+          (s.screen = "play"),
+          (s.paused = !1),
+          (s.netMenu = !1),
+          (s.netMenuIndex = 0),
+          (l.hidden = !0),
+          (s.flash = 10),
+          (s.hintT = 0),
+          (s.cards = []),
+          (s.trail = {}),
+          (s.resultIndex = 0),
+          (k = !0),
+          (de.kit = ""),
+          S.select(),
+          S.cry(e.player.kit.id, 0.1),
+          Me.play(battleSong());
+      },
+      // The other page's inputs: fill in every tick we did not have yet.
+      inputs(n) {
+        let D = NET.m,
+          R = n.in;
+        if (R && R.e === D.epoch) {
+          R.ak > D.oppAck && (D.oppAck = R.ak);
+          let T = R.d.length / 7;
+          for (let Z = 0; Z < T; Z++) {
+            let ne = R.b + Z;
+            D.inR[ne] === void 0 && (D.inR[ne] = R.d.slice(Z * 7, Z * 7 + 7));
+          }
+          for (; D.inR[D.ackR + 1] !== void 0; ) D.ackR++;
+        }
+        n.ck && n.ck.e === D.epoch && (D.oppCks[n.ck.t] = n.ck.h);
+      },
+    };
+    // Called once per frame, whatever the screen.
+    function netFrame() {
+      if (!NET.room) return;
+      netBeat();
+      let n = netLobbyTick();
+      n && !NET.m && netOpenMatch(n, s.picks);
+      let D = NET.m;
+      if (!D?.room) return;
+      netMatchTick(netHooks);
+      if (NET.m !== D || D.phase !== "play") return;
+      // Send every local input the other side has not confirmed.
+      let R = Math.max(0, D.oppAck + 1),
+        W = Math.max(R, D.sched - 180);
+      netSet({
+        in: {
+          e: D.epoch,
+          b: W,
+          d: D.inL.slice(W, D.sched).join(""),
+          ak: D.ackR,
+        },
+      });
+      // A sync check every second: both pages must agree exactly.
+      for (let T in D.oppCks)
+        if (D.cks[T] !== void 0) {
+          if (D.cks[T] !== D.oppCks[T])
+            return (
+              netHooks.left(!1),
+              void (NET.msg = "The two games fell out of sync")
+            );
+          delete D.cks[T], delete D.oppCks[T];
+        }
+    }
+    function netCheck() {
+      let n = 0,
+        D = (R) => {
+          for (let W = 0; W < R.length; W++)
+            n = (Math.imul(n, 31) + R.charCodeAt(W)) | 0;
+        };
+      for (let R of e.players)
+        D(
+          `${R.x.toFixed(3)},${R.y.toFixed(3)},${R.z.toFixed(3)},${R.state},${R.slots.map((W) => W.hp).join("/")}`,
+        );
+      return D(`${e.tick},${e.projectiles.length},${e.drops.length}`), n;
+    }
+    // One simulation tick, if both players' inputs for it have arrived.
+    function netStep(n) {
+      let D = NET.m;
+      if (D.inR[D.sim] === void 0) return D.stall++, !1;
+      if (D.pend.size) {
+        for (let T of D.pend) n.pressed.add(T);
+        D.pend.clear();
+      }
+      (D.stall = 0), (D.inL[D.sched++] = s.netMenu ? NET_IDLE : netEnc(n));
+      let R = netDec(D.inL[D.sim]),
+        W = netDec(D.inR[D.sim]);
+      if (
+        ((D.cur = D.host ? [R, W] : [W, R]),
+        s.playTicks++,
+        e.step(null),
+        D.sim++,
+        D.sim % 60 === 0)
+      ) {
+        let T = netCheck();
+        (D.cks[D.sim] = T), netSet({ ck: { e: D.epoch, t: D.sim, h: T } });
+      }
+      return !0;
+    }
+    function netMenuInput(n) {
+      w(n, (D) => {
+        (D === "left" || D === "right") &&
+          ((s.netMenuIndex = 1 - (s.netMenuIndex ?? 0)), S.ui(D === "right"));
+      }),
+        (n.pressed.has("back") || n.pressed.has("start")) &&
+          ((s.netMenu = !1), S.back()),
+        n.pressed.has("confirm") &&
+          (s.netMenuIndex
+            ? (netSet({ bye: 1 }), netEnd("You left the match"), netToLobby())
+            : (s.netMenu = !1));
+    }
+    function netResultsInput(n) {
+      let D = NET.m;
+      D.phase === "play" && (D.phase = "results");
+      s.resultsT < 50 ||
+        (w(n, (R) => {
+          (s.resultIndex = (s.resultIndex ?? 0) ? 0 : 1),
+            S.ui(R === "right" || R === "down");
+        }),
+        (n.pressed.has("confirm") || n.pressed.has("start")) &&
+          ((s.resultIndex ?? 0) === 0
+            ? D.rm !== D.epoch &&
+              ((D.rm = D.epoch), netSet({ rm: D.epoch }), S.select())
+            : (netSet({ bye: 1 }), netEnd(""), netToLobby())));
+    }
     function E() {
+      if (A.gameMode === 5) return netToLobby();
       let n = A.gameMode !== 1;
       e.startMatch(MODES[A.gameMode] ?? "vs", s.picks, n ? s.cpuPicks : []),
         (s.screen = "play"),
@@ -17049,7 +18234,7 @@
         n.pressed.has(W) && R !== W && D(W);
     }
     function U(n) {
-      let D = A.gameMode !== 1;
+      let D = cpuSide();
       w(n, (W) => {
         (s.cursor = RN[W][s.cursor] ?? s.cursor), S.ui(!0);
       }),
@@ -17059,14 +18244,13 @@
           (s.cpuPicks = []),
           (s.roulette = -1),
           S.ui(!0),
-          s.picks.length === 2 && A.gameMode !== 1 && (s.roulette = 48)),
+          s.picks.length === 2 && cpuSide() && (s.roulette = 48)),
         n.pressed.has("special2") &&
           D &&
           ((A.cpuLevel = (A.cpuLevel + 1) % 3), Ze(), S.ui(!0)),
         n.pressed.has("select") &&
           ((A.arena = (A.arena + 1) % ARENAS.length), Ze(), S.ui(!0));
-      let R =
-        s.picks.length === 2 && (A.gameMode === 1 || s.cpuPicks.length === 2);
+      let R = s.picks.length === 2 && (!cpuSide() || s.cpuPicks.length === 2);
       if ((n.pressed.has("start") || n.pressed.has("confirm")) && R) {
         E();
         return;
@@ -17078,7 +18262,7 @@
             (s.pickBump = 1),
             S.select(),
             S.cry(W, 0.05),
-            s.picks.length === 2 && A.gameMode !== 1
+            s.picks.length === 2 && cpuSide()
               ? (s.roulette = 48)
               : s.picks.length === 1 &&
                 (s.cursor = ge.findIndex((T) => !s.picks.includes(T))))
@@ -17769,7 +18953,12 @@
             t.motes(n.x, n.y, 12, 16, n.to.color, 1.5),
             n.who === D &&
               ((t.screenFlash = 1), (t.screenFlashColor = n.to.color)),
-            s.cards.push({ kit: n.to, t: 0, kind: "switch", cpu: n.who.isCpu });
+            s.cards.push({
+              kit: n.to,
+              t: 0,
+              kind: "switch",
+              cpu: n.who.isRival,
+            });
           break;
         case "assist":
           S.assist(),
@@ -17780,7 +18969,7 @@
               kit: n.kit,
               t: 0,
               kind: "assist",
-              cpu: n.who.summoner.isCpu,
+              cpu: n.who.summoner.isRival,
             });
           break;
         case "assistOut":
@@ -18665,7 +19854,7 @@
               n.x - n.who.x,
               n.y - n.who.y,
               n.smash,
-              n.who.isCpu ? "#ef5a4f" : L.cool,
+              n.who.isRival ? "#ef5a4f" : L.cool,
             ),
             t.shake(n.x - n.who.x, n.y - n.who.y, n.smash ? 4 : 1.5),
             n.smash &&
@@ -18693,7 +19882,7 @@
               n.who.y,
               14,
               20,
-              n.who.isCpu ? "#ef5a4f" : L.cool,
+              n.who.isRival ? "#ef5a4f" : L.cool,
               2.2,
             ),
             t.banner(
@@ -19664,14 +20853,40 @@
       st = performance.now();
     function it(n) {
       let D = Math.min(100, n - st);
-      (st = n), la();
-      let R = [1, 0.5, 0.25][A.slowmo] ?? 1,
+      (st = n), la(), netFrame();
+      let R = NET.m ? 1 : ([1, 0.5, 0.25][A.slowmo] ?? 1),
         W = s.screen === "play" && !s.paused && e.match.phase !== "results";
       // Never carry more than a few steps of backlog: on a slow frame the game
       // briefly slows down instead of snowballing into catch-up stalls.
       De = Math.min(De + D * (W ? e.timeScale() * R : 1), Ut * 4);
+      // Online: run a little faster while the other page is ahead of us.
+      let Mn = NET.m;
+      Mn?.phase === "play" &&
+        Mn.ackR - Mn.sim > Mn.delay + 4 &&
+        (De += Ut * 0.3);
       let T = 0;
       for (; De >= Ut && T < 5; ) {
+        // Wait (without reading input) until the other player's tick arrives.
+        if (
+          Mn?.phase === "play" &&
+          NET.m === Mn &&
+          s.screen === "play" &&
+          e.match.phase !== "results" &&
+          Mn.inR[Mn.sim] === void 0
+        ) {
+          Mn.stall++;
+          // Still answer the menu, and keep any presses for the next tick.
+          let ee = ha();
+          s.netMenu
+            ? netMenuInput(ee)
+            : ee.pressed.has("start")
+              ? ((s.netMenu = !0), (s.netMenuIndex = 0), S.pause(!0))
+              : ee.pressed.forEach((Je) => Mn.pend.add(Je));
+          Mn.stall > 600 &&
+            NET.m === Mn &&
+            (netEnd("The connection timed out"), netToLobby());
+          break;
+        }
         (De -= Ut), T++;
         let ee = ha();
         if (
@@ -19691,6 +20906,10 @@
             ].some((Je) => ee.pressed.has(Je)) && x(!1);
             continue;
           }
+          if (s.screen === "online") {
+            netLobbyInput(ee);
+            continue;
+          }
           if (s.screen === "select") {
             U(ee), re();
             continue;
@@ -19703,14 +20922,23 @@
             continue;
           }
           if (e.match.phase === "results") {
-            Yt(ee), t.tick();
+            NET.m ? netResultsInput(ee) : Yt(ee), t.tick();
             continue;
           }
-          if (ee.pressed.has("start")) {
-            ce();
-            continue;
+          if (NET.m?.phase === "play") {
+            if (s.netMenu) netMenuInput(ee);
+            else
+              ee.pressed.has("start") &&
+                ((s.netMenu = !0), (s.netMenuIndex = 0), S.pause(!0));
+            if (NET.m?.phase !== "play" || s.screen !== "play") continue;
+            netStep(ee);
+          } else {
+            if (ee.pressed.has("start")) {
+              ce();
+              continue;
+            }
+            s.playTicks++, e.step(ee);
           }
-          s.playTicks++, e.step(ee);
           for (let Je of e.events) Ne(Je);
           Xe(), t.tick();
         }

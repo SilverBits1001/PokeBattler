@@ -20,6 +20,19 @@ switched in Options → Match, or with X / Select on team select. Accessibility 
 
 Roster: Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern, Lucario.
 
+## Online play
+
+Choose **Online** as the mode on team select (X cycles modes), pick your team and press
+Start. The lobby lists everyone who has the game open right now: pick **Quick match**
+to play the next trainer who is searching, or choose a trainer to challenge them.
+
+Online play works when the game is opened from its claude.ai artifact link; share that
+link with friends. A plain copy of `index.html` shows the lobby as offline.
+
+Matches are deterministic lockstep over the room's presence channel: each page sends
+only its inputs (with every input the other side has not confirmed yet), both run the
+same simulation from the host's seed and settings, and a sync check runs every second.
+
 ## Layout
 
 | Path | What it is |
@@ -27,6 +40,8 @@ Roster: Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern, 
 | `src/game.js` | Game code (engine, CPU, rendering, audio, menus) |
 | `src/page.html` | Page markup, styles and embedded fonts |
 | `assets/sprites.js` | Sprite sheets and portraits as data URIs (`window.__ASSETS__`) |
+| `assets/vfx.js` | Arena event effects made with PixelLab's VFX tool (`window.__VFX__`); sheets in `assets/vfx/` |
+| `assets/fonts/` | Lilita One and Fredoka (embedded in `src/page.html`) |
 | `assets/tiles.js` | Arena floor tilesets as data URIs (`window.__TILES__`); source PNGs in `assets/tiles/` |
 | `tools/build.py` | Assembles `index.html` and `dist/artifact.html` |
 
@@ -34,3 +49,4 @@ After editing anything in `src/` or `assets/`, run `python3 tools/build.py`.
 
 Sprites and portraits: PMD Sprite Repository (sprites.pmdcollab.org).
 Arena floor tiles: generated with PixelLab (16px top-down Wang tilesets, recoloured).
+Fonts: Lilita One (Juan Montoreano) and Fredoka (Milena Brandao, Hafontia), SIL Open Font License.

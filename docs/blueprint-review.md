@@ -595,3 +595,60 @@ Overload lines.
 The first Crater run came out at .30, with Noivern winning 70%: fliers were
 immune to meteors. Rocks and meteors fall from the sky, so they now hit fliers
 too. Every arena is back inside the earlier .16–.24 range.
+
+## Music, results screen, fonts and online play
+
+### Music closer to the Pokémon games
+
+The music engine now voices every song the way the handhelds did:
+
+- **Lead:** a pulse wave with delayed vibrato on held notes.
+- **Harmony:** a second pulse a third to a sixth below the lead, on the chord.
+- **Echo:** the classic trick, the lead again on a quiet 12.5% pulse three steps later.
+- **Bass:** a wave-channel voice built from a 32-step, 4-bit waveform, as the Game Boy's
+  wave RAM plays it, played short and punchy.
+- **Drums:** noise percussion.
+
+The title theme is now a heroic march in G (fanfare, march, broad half-time section).
+The victory theme is now a fanfare and a bouncy loop over pumping octave bass. Battle and
+Champion keep their compositions with the new voicing.
+
+### Animated results background
+
+Wins and losses get a geometric backdrop, a sibling of the team select's neon grid:
+
+- a triangle lattice whose cells light up as rings ripple out from the winning Pokémon;
+- slowly turning light rays behind the winner;
+- rising chevrons after a win, falling shards after a loss.
+
+A win is warm gold and orange; a loss is cold blue and violet.
+
+### Fonts
+
+Display text uses Lilita One and body text uses Fredoka, in place of Big Shoulders
+Display and Barlow Semi Condensed. Lilita One is as wide as the old display face, so
+layouts hold. Fredoka runs wider, so body text is drawn at 90%. Every screen was checked
+in screenshots: title, team select, HUD, every pause tab, results and the online lobby.
+
+### Online multiplayer
+
+- **Mode and lobby:** Online is a sixth mode on team select. The lobby lists everyone
+  who has the game open (through the claude.ai room), with each trainer's status and
+  team. Quick match pairs searching players. Picking a trainer sends a challenge they
+  can accept or decline.
+- **Netcode:** deterministic lockstep over the room's presence channel. Presence works
+  for every viewer and is sent whole, so each update carries all unconfirmed inputs
+  (7 characters per tick), and a heartbeat repairs any update that went missing.
+- **Settings and delay:** the host sends the seed, teams and every setting that can
+  change the simulation. The input delay comes from a measured ping (3 to 15 ticks).
+- **Perspective:** each page shows its own fighter as YOU, the opponent by name, and the
+  win or loss from its own side.
+- **Leaving and failures:** a sync check runs every second. Rematch and Leave work on
+  the results screen. Start opens a leave menu while the match keeps running. If the
+  opponent leaves, or the connection times out, you return to the lobby with a message.
+- **Testing:** a two-page harness relays presence through a fake room with 50 to 100 ms
+  latency, jitter and 5 to 8% dropped updates. A full match to a KO, a rematch and a
+  leave stayed identical on both pages: 3,613 ticks of full engine state, stats
+  included, matched exactly. Challenge, decline, accept and a closed tab were also
+  checked.
+- **Not yet tested:** the real claude.ai room with two people.
