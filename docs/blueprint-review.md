@@ -910,3 +910,18 @@ Results at about 160 ms one-way with jitter (relay), before → after:
 | ticks out of step at the start | 20+ | 0–2 |
 
 All timelines stayed identical, with no stalled frames.
+
+### Diagnostics panel
+
+Press **F2** during an online match, or tap the connection readout in the bottom-left
+corner on a phone. A panel shows the last ten seconds:
+- link type and round trip
+- input delay
+- how many ticks ahead the opponent is being predicted
+- rollbacks per second and their average depth
+- median and largest correction of the opponent's position
+- freezes and frame rate
+
+One screenshot from a real match shows whether a problem is the network (high
+round trip, the delay at its 12-tick cap, deep predictions) or the game (large
+corrections at low latency, low frame rate).

@@ -54,7 +54,8 @@ a fast link, up to 12 on a slow one), so the other player only ever has to be pr
 few ticks ahead. The other player's input is predicted until it arrives; when a guess was
 wrong, the game rewinds and replays the missed ticks within the same frame. Both pages
 run the same deterministic simulation from the host's seed, a sync check runs every
-second, and a corner readout shows the link type (direct, relay or room) and the latency.
+second, and a corner readout shows the link type (direct, relay or room) and the latency. Press
+F2 (or tap the readout) for a diagnostics panel.
 
 ## Layout
 

@@ -19198,6 +19198,54 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   }
   // In a match: the opponent's name tag, ping, a waiting chip when their inputs
   // are late, and the leave menu.
+  // Diagnostics (F2, or tap the connection readout): what the link and the
+  // rollback are doing over the last ten seconds, for a screenshot.
+  function netLog(a, e, t) {
+    let s = performance.now(),
+      i = (a[e] ??= []);
+    for (i.push([s, t]); i.length && s - i[0][0] > 1e4; ) i.shift();
+  }
+  addEventListener("keydown", (a) => {
+    a.code === "F2" && NET.m && ((NET.diag = !NET.diag), a.preventDefault());
+  });
+  function netDiag(a) {
+    let e = performance.now(),
+      t = (u) => (a[u] ?? []).filter((h) => e - h[0] <= 1e4).map((h) => h[1]),
+      s = t("rbLog"),
+      i = t("corrLog")
+        .filter((u) => u > 0.5)
+        .sort((u, h) => u - h),
+      r = Math.min(10, (e - (a.diagAt ??= e)) / 1e3) || 1,
+      o = a.sched - a.sim,
+      l = [
+        [
+          "Link",
+          `${P2P.state === "linked" ? (P2P.via === "rtc" ? "Direct" : "Relay") : "Room"} \u00b7 round trip ${Math.round(a.ping ?? 0)} ms`,
+        ],
+        ["Input delay", `${o} ticks (${Math.round(o * Ut)} ms)`],
+        ["Predicting", `${Math.max(0, a.sim - a.ackR)} ticks ahead`],
+        [
+          "Rollbacks",
+          `${(s.length / r).toFixed(1)}/s \u00b7 avg ${s.length ? (s.reduce((u, h) => u + h, 0) / s.length).toFixed(1) : 0} ticks`,
+        ],
+        [
+          "Corrections",
+          i.length
+            ? `median ${i[i.length >> 1].toFixed(0)} px \u00b7 max ${i[i.length - 1].toFixed(0)} px`
+            : "none",
+        ],
+        [
+          "Freezes",
+          `${t("stallLog").length} \u00b7 ${Math.round(1e3 / (a.frameMs ?? 16.7))} fps`,
+        ],
+      ],
+      f = oe - 16 - l.length * 9 - 8;
+    Ae(4, f, 180, l.length * 9 + 8, g.p1),
+      l.forEach(([u, h], c) => {
+        G(u, 16, f + 10 + c * 9, 5.6, g.haze, { weight: 600 }),
+          G(h, 70, f + 10 + c * 9, 5.6, g.chalk, { weight: 600 });
+      });
+  }
   function netHud(a, e) {
     let t = NET.m;
     if (!t || t.phase !== "play") return;
@@ -19213,8 +19261,16 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       t.ping = (t.ping ?? s) * 0.95 + s * 0.05;
       let r = `${i} · ${Math.round(t.ping)}ms`,
         o = ye(r, 5.6, je, 600) + 8;
-      te(4, oe - 12, o, 10, "rgba(10,8,22,0.7)", 3),
-        G(r, 8, oe - 4.6, 5.6, g.haze, { weight: 600 });
+      let f = performance.now();
+      (t.frameMs =
+        (t.frameMs ?? 16.7) * 0.95 + Math.min(100, f - (t.lastF ?? f)) * 0.05),
+        (t.lastF = f),
+        te(4, oe - 12, o, 10, "rgba(10,8,22,0.7)", 3),
+        G(r, 8, oe - 4.6, 5.6, g.haze, { weight: 600 }),
+        tapRect(0, oe - 16, o + 10, 16, () => {
+          NET.diag = !NET.diag;
+        }),
+        NET.diag && netDiag(t);
     }
     t.stall > 20 &&
       (Ae(H / 2 - 70, 64, 140, 15, g.gold),
@@ -20272,7 +20328,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       for (; R < D.sim && D.inR[R] !== void 0 && D.inR[R] === D.used[R]; R++);
       if (R < D.sim && D.inR[R] !== void 0) {
         let T0 = e.players.map((T) => [T.x, T.y]);
-        rbLoad(D.snaps[R]), D.rolls++;
+        rbLoad(D.snaps[R]), D.rolls++, netLog(D, "rbLog", D.sim - R);
         for (let T of D.evs) T[0] >= R && D.ghost.push(T);
         D.evs = D.evs.filter((T) => T[0] < R);
         for (let T = R; T < D.sim; T++) netTick(D, T, !0);
@@ -20284,6 +20340,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             X = ne[1] + T0[Z][1] - T.y;
           (D.corrs ??= []).length > 300 && D.corrs.shift(),
             (D.corrs ??= []).push(Math.hypot(T0[Z][0] - T.x, T0[Z][1] - T.y)),
+            Z !== e.localIdx &&
+              netLog(D, "corrLog", Math.hypot(T0[Z][0] - T.x, T0[Z][1] - T.y)),
             (D.vo[Z] = Math.hypot(q, X) < 160 ? [q, X] : [0, 0]);
         });
       }
@@ -23029,7 +23087,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             : ee.pressed.has("start")
               ? ((s.netMenu = !0), (s.netMenuIndex = 0), S.pause(!0))
               : ee.pressed.forEach((Je) => Mn.pend.add(Je));
-          Mn.stall === 1 && (Mn.stallAt = performance.now());
+          Mn.stall === 1 &&
+            ((Mn.stallAt = performance.now()), netLog(Mn, "stallLog", 1));
           performance.now() - (Mn.stallAt ?? performance.now()) > 1e4 &&
             NET.m === Mn &&
             (netEnd("The connection timed out"), netToLobby());
