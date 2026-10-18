@@ -755,3 +755,35 @@ When no keyboard or controller is in use, the game now plays on a phone or table
   menu, team pick and Start; the stick moving the fighter about 190 px; attacking
   with a second finger while holding the stick; pausing. The soak, mode and network
   duel regressions still pass with no errors.
+
+## Friend codes: online play without claude.ai access
+
+The claude.ai room only admits signed-in people who have access to the artifact, so a
+friend opening a public link saw the lobby as offline. Friend codes fix that.
+
+- **How it plays.** One player picks *Create a friend code* and gets a 5-character
+  code (no look-alike letters such as O/0 or I/1). The other picks *Enter a friend
+  code* and types it in, using a real text field so phones show their keyboard. Once
+  linked, both pages start searching, pair up and the match begins. Rematches,
+  leaving and the results screen work as before.
+- **How it works.** PeerJS (bundled, MIT) uses its free public broker only to
+  introduce the two pages. After that they talk directly over a WebRTC data channel,
+  with PeerJS's public TURN relay as a fallback for strict networks. The link is
+  wrapped as a two-person stand-in for the room API (`presence`, `peers`, `onPeers`,
+  `join`, `leave`), so the lobby, matchmaking and lockstep code run unchanged.
+  Everything the other page sends is size-limited, parsed in a `try`, and checked
+  for shape before it reaches the existing validation.
+- **Drops.** A heartbeat runs every 2 s on a timer rather than the frame loop, so a
+  player who switches apps to send the code stays linked. After 15 s of silence
+  (or a closed channel) the link ends with "Your friend disconnected", and any match
+  ends as it does in the room version.
+- **Errors.** A wrong code reports "No game with that code" (the broker expires the
+  request after about 5 s). An unreachable broker reports "Could not reach the
+  matchmaking server". An invite link `…#join=CODE` joins automatically when the
+  player reaches the Online screen.
+- **Also fixed.** Banners queue now: a new one (a faint, say) cuts the current one
+  (an arena event) short instead of drawing on top of it.
+- **Verification.** Two separate browser contexts and a local PeerJS server:
+  wrong code, then the right one, a 25 s bot match with 1,208 identical ticks on both
+  pages, and a closed tab detected. Soak, modes, room duel (80±40 ms, 10% drops),
+  challenge, hostile-presence and touch tests still pass with no errors.

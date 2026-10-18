@@ -9272,8 +9272,10 @@
         VFX[e] && this.sheets.push({ n: e, x: t, y: s, k: i, under: r, t: 0 });
       }
       banner(e, t, s = 50, i) {
-        (this.banners = this.banners.filter((r) => r.text !== e)),
-          this.banners.push({ text: e, sub: i, life: s, max: s, color: t });
+        // One banner at a time: a new one cuts the current one short.
+        this.banners = this.banners.filter((r) => r.text !== e);
+        for (let r of this.banners) r.life = Math.min(r.life, 10);
+        this.banners.push({ text: e, sub: i, life: s, max: s, color: t });
       }
       tick() {
         (this.svx += -this.sx * 0.42),
@@ -9359,7 +9361,7 @@
         this.ghosts = this.ghosts.filter((e) => e.life > 0);
         for (let e of this.popups) e.life--, (e.y += e.vy), (e.vy *= 0.92);
         this.popups = this.popups.filter((e) => e.life > 0);
-        for (let e of this.banners) e.life--;
+        this.banners[0] && this.banners[0].life--;
         this.banners = this.banners.filter((e) => e.life > 0);
       }
       follow(e) {
@@ -13817,7 +13819,7 @@
       (!s.paused && e.match.phase !== "results" && (Ja(e, s, o), es(s, o)),
       e.match.phase !== "results")
     )
-      for (let c of t.banners) {
+      for (let c of t.banners.slice(0, 1)) {
         let y = 1 - c.life / c.max,
           b = Math.min(1, y / 0.12),
           p = b < 1 ? 2.2 - 1.2 * Ee(b) : 1 + Math.max(0, 0.04 - y * 0.04),
@@ -17782,7 +17784,8 @@
       a.use("user").catch(() => null),
     ]);
     if (((NET.user = t), !e)) return;
-    NET.room = e;
+    if (P2P.state === "linked") P2P.prev = { room: e, dead: !1 };
+    else NET.room = e;
     try {
       let s = t && (await t.me());
       s?.name && (NET.nick = s.name);
@@ -18065,21 +18068,459 @@
     challenge: ["CHALLENGING", "#ff9a3d"],
     busy: ["IN BATTLE", "#ff4a63"],
   };
+  // ---- Friend codes ----
+  // A direct WebRTC link between two pages, for friends who cannot share the
+  // claude.ai room. PeerJS's free public broker only introduces the pages;
+  // after that they talk to each other. The link is dressed up as a
+  // two-person room, so the lobby and lockstep code above run unchanged.
+  var P2P = {
+      peer: null,
+      conn: null,
+      code: "",
+      typed: "",
+      state: "idle", // idle | opening | waiting | entering | joining | linked
+      shim: null,
+      prev: null,
+      timer: 0,
+      autoJoin: "",
+    },
+    P2P_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
+    P2P_PREFIX = "starterbrawl-v2-";
+  try {
+    let a = /[#&]join=([A-Za-z0-9]{5})/.exec(location.hash);
+    a && (P2P.autoJoin = a[1].toUpperCase());
+  } catch {}
+  // A local broker for tests: ?peer=host:port
+  function p2pOpts() {
+    let a = { debug: 0 };
+    try {
+      let e = new URLSearchParams(location.search).get("peer");
+      if (e) {
+        let [t, s] = e.split(":");
+        Object.assign(a, { host: t, port: +s || 9e3, path: "/", secure: !1 });
+      }
+    } catch {}
+    return a;
+  }
+  function p2pShim(a) {
+    let e = "f" + Math.random().toString(36).slice(2, 12),
+      t = {},
+      s = 0,
+      i = (o) => {
+        try {
+          a.open && a.send(JSON.stringify(o));
+        } catch {}
+      };
+    function r(o) {
+      let l = {
+          others: new Map(),
+          seqs: new Map(),
+          gone: new Set(),
+          self: {},
+          hs: new Set(),
+          snap: Object.freeze([]),
+          timer: 0,
+        },
+        f = () => {
+          l.snap = Object.freeze([
+            Object.freeze({
+              peer: e,
+              by: null,
+              isMe: !0,
+              sameTab: !0,
+              kind: "viewer",
+              guest: !1,
+              presence: Object.freeze({ ...l.self }),
+              updatedAt: Date.now(),
+            }),
+            ...l.others.values(),
+          ]);
+          for (let h of l.hs)
+            h({ peers: l.snap, joined: [], left: [], updated: [] });
+        },
+        u = {
+          name: o,
+          presence(h) {
+            for (let c in h)
+              h[c] === null
+                ? delete l.self[c]
+                : (l.self[c] = JSON.parse(JSON.stringify(h[c])));
+            return (
+              f(),
+              l.timer ||
+                (l.timer = setTimeout(() => {
+                  (l.timer = 0), i({ r: o, p: e, s: ++s, pr: l.self });
+                }, 16)),
+              Promise.resolve()
+            );
+          },
+          peers: () => l.snap,
+          onPeers: (h) => (l.hs.add(h), () => l.hs.delete(h)),
+          emit: () => Promise.resolve(),
+          on: () => () => {},
+          leave: () => (
+            i({ r: o, p: e, bye: 1 }), delete t[o], Promise.resolve()
+          ),
+        };
+      return (
+        o === "" &&
+          (u.join = async (h) => (
+            t[h] || ((t[h] = r(h)), i({ r: h, p: e, hi: 1 })), t[h].api
+          )),
+        (l.api = u),
+        (l.recv = (h) => {
+          if (l.gone.has(h.p)) return;
+          if (h.bye)
+            return (
+              l.gone.add(h.p), l.others.delete(h.p), l.seqs.delete(h.p), f()
+            );
+          if (h.hi) return i({ r: o, p: e, s: ++s, pr: l.self });
+          if (
+            !Number.isInteger(h.s) ||
+            !h.pr ||
+            typeof h.pr !== "object" ||
+            Array.isArray(h.pr) ||
+            (l.seqs.get(h.p) ?? -1) >= h.s
+          )
+            return;
+          l.seqs.set(h.p, h.s),
+            l.others.set(
+              h.p,
+              Object.freeze({
+                peer: h.p,
+                by: null,
+                isMe: !1,
+                sameTab: !1,
+                kind: "viewer",
+                guest: !1,
+                presence: Object.freeze(h.pr),
+                updatedAt: Date.now(),
+              }),
+            ),
+            f();
+        }),
+        l
+      );
+    }
+    return (
+      (t[""] = r("")),
+      {
+        lobby: t[""].api,
+        last: Date.now(),
+        ping: () => i({ r: "", p: e, k: 1 }),
+        // Everything the other page sends is untrusted: shape-check it first.
+        recv(o) {
+          let l;
+          try {
+            l = typeof o === "string" && o.length < 65536 && JSON.parse(o);
+          } catch {}
+          l && (this.last = Date.now());
+          l &&
+            typeof l === "object" &&
+            typeof l.r === "string" &&
+            typeof l.p === "string" &&
+            l.p !== e &&
+            Object.hasOwn(t, l.r) &&
+            t[l.r].recv(l);
+        },
+        // The link dropped: everyone else has left every room.
+        drop() {
+          for (let o of Object.values(t))
+            for (let l of [...o.others.keys()]) o.recv({ p: l, bye: 1 });
+        },
+      }
+    );
+  }
+  function p2pMsg(a) {
+    (NET.msg = a), (NET.msgT = 240);
+  }
+  function p2pStop(a) {
+    clearTimeout(P2P.timer), clearInterval(P2P.timer);
+    let e = P2P.state === "linked";
+    try {
+      P2P.conn?.close();
+    } catch {}
+    try {
+      P2P.peer?.destroy();
+    } catch {}
+    e && (P2P.shim?.drop(), NET.m && netEnd());
+    e &&
+      P2P.prev &&
+      ((NET.room = P2P.prev.room),
+      (NET.dead = P2P.prev.dead),
+      (NET.sent = ""),
+      (NET.st = "idle"),
+      netPresence());
+    Object.assign(P2P, {
+      peer: null,
+      conn: null,
+      code: "",
+      typed: "",
+      state: "idle",
+      shim: null,
+      prev: null,
+    }),
+      p2pInput(!1),
+      a && p2pMsg(a);
+  }
+  function p2pPeer(a) {
+    if (typeof Peer !== "function")
+      return p2pStop("Friend codes need an internet connection"), null;
+    let e = a ? new Peer(P2P_PREFIX + a, p2pOpts()) : new Peer(p2pOpts());
+    return (
+      e.on("error", (t) => {
+        if (P2P.peer !== e) return;
+        let s = t?.type;
+        s === "unavailable-id" && P2P.state === "opening"
+          ? (e.destroy(), p2pHost())
+          : p2pStop(
+              s === "peer-unavailable"
+                ? "No game with that code. Check it and try again"
+                : P2P.state === "linked"
+                  ? "Lost the link to your friend"
+                  : "Could not reach the matchmaking server",
+            );
+      }),
+      e.on("disconnected", () => {
+        // Losing the broker is fine once linked; before that, try again.
+        P2P.peer === e &&
+          P2P.state !== "linked" &&
+          !e.destroyed &&
+          e.reconnect();
+      }),
+      (P2P.peer = e),
+      e
+    );
+  }
+  function p2pHost() {
+    let a = "";
+    for (let t = 0; t < 5; t++)
+      a += P2P_ABC[Math.floor(Math.random() * P2P_ABC.length)];
+    (P2P.state = "opening"), (P2P.code = a);
+    let e = p2pPeer(a);
+    e &&
+      (e.on("open", () => {
+        P2P.peer === e && (P2P.state = "waiting");
+      }),
+      e.on("connection", (t) => {
+        if (P2P.peer !== e || P2P.conn) return void t.close();
+        p2pLink(t);
+      }));
+  }
+  function p2pJoin(a) {
+    (a = String(a).toUpperCase()), (P2P.state = "joining"), (P2P.code = a);
+    let e = p2pPeer();
+    e &&
+      (e.on("open", () => {
+        P2P.peer === e &&
+          p2pLink(
+            e.connect(P2P_PREFIX + a, {
+              reliable: !0,
+              serialization: "raw",
+            }),
+          );
+      }),
+      clearTimeout(P2P.timer),
+      (P2P.timer = setTimeout(() => {
+        P2P.peer === e &&
+          P2P.state === "joining" &&
+          p2pStop("Could not connect. Check the code and try again");
+      }, 2e4)));
+  }
+  function p2pLink(a) {
+    (P2P.conn = a),
+      a.on("open", () => {
+        if (P2P.conn !== a) return;
+        clearTimeout(P2P.timer);
+        let e = p2pShim(a);
+        (P2P.shim = e),
+          (P2P.state = "linked"),
+          (P2P.prev = { room: NET.room, dead: NET.dead }),
+          // Leave the claude.ai lobby while playing a friend.
+          NET.room &&
+            !NET.dead &&
+            NET.room.presence({ st: "away", want: null }).catch(() => {}),
+          (NET.room = e.lobby),
+          (NET.dead = !1),
+          (NET.sent = ""),
+          (NET.declined = new Set()),
+          (NET.incoming = null),
+          // Two people, one lobby: start looking for each other at once.
+          (NET.st = "search"),
+          (NET.want = null),
+          (NET.wantT = 0),
+          netPresence(NET.team ?? []),
+          p2pMsg("Linked with your friend!"),
+          // A timer, not the frame loop, so a page in the background (the
+          // player switched apps to send the code) still answers.
+          (P2P.timer = setInterval(() => {
+            e.ping(),
+              Date.now() - e.last > 15e3 && p2pStop("Your friend disconnected");
+          }, 2e3));
+      }),
+      a.on("data", (e) => P2P.conn === a && P2P.shim?.recv(e)),
+      a.on("close", () => {
+        P2P.conn === a && p2pStop("Your friend disconnected");
+      }),
+      a.on("error", () => {
+        P2P.conn === a && p2pStop("Lost the link to your friend");
+      });
+  }
+  // The code box: a real text field over the canvas, so phones show their
+  // keyboard. Its keys never reach the game's own controls.
+  function p2pInput(a) {
+    let e = document.getElementById("p2p-code");
+    if (!a) {
+      e && (e.blur(), e.remove());
+      return;
+    }
+    if (e) return;
+    (e = document.createElement("input")),
+      (e.id = "p2p-code"),
+      (e.maxLength = 5),
+      (e.autocomplete = "off"),
+      (e.spellcheck = !1),
+      e.setAttribute("autocapitalize", "characters"),
+      e.setAttribute("aria-label", "Friend code"),
+      (e.style.cssText =
+        "position:absolute;left:50%;top:50%;width:40%;height:18%;transform:translate(-50%,-50%);opacity:0.01;font-size:16px;border:0;background:transparent;color:transparent;caret-color:transparent;z-index:5"),
+      e.addEventListener("input", () => {
+        let t = e.value
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, "")
+          .slice(0, 5);
+        (e.value = t), (P2P.typed = t);
+      }),
+      e.addEventListener("keydown", (t) => {
+        t.stopPropagation(),
+          t.key === "Enter" && P2P.typed.length === 5
+            ? (p2pInput(!1), p2pJoin(P2P.typed))
+            : t.key === "Escape" && p2pStop();
+      }),
+      e.addEventListener("pointerdown", (t) => t.stopPropagation()),
+      document.getElementById("stage").appendChild(e),
+      setTimeout(() => e.focus(), 0);
+  }
+  function p2pEnter() {
+    (P2P.state = "entering"), (P2P.typed = ""), p2pInput(!0);
+  }
+  // An invite link works where the page lives at a public address.
+  function p2pInvite() {
+    let a = P2P.code;
+    try {
+      if (/^https?:$/.test(location.protocol) && window.top === window) {
+        let e = location.href.split("#")[0] + "#join=" + a;
+        navigator.clipboard
+          ?.writeText(e)
+          .then(() => p2pMsg("Invite link copied"))
+          .catch(() => {});
+      }
+    } catch {}
+  }
   function netRows() {
+    let a = !!NET.room && !NET.dead;
     return [
-      { kind: "quick" },
+      ...(a ? [{ kind: "quick" }] : []),
       ...netLobbyPeers()
-        .filter((a) => a.presence.st !== "away")
-        .map((a) => ({ kind: "peer", p: a })),
+        .filter((e) => e.presence.st !== "away")
+        .map((e) => ({ kind: "peer", p: e })),
+      ...(P2P.state === "linked"
+        ? [{ kind: "unlink" }]
+        : [{ kind: "host" }, { kind: "code" }]),
       { kind: "back" },
     ];
+  }
+  // Friend-code states: making a code, showing it, typing one, connecting.
+  function p2pModal(a) {
+    (d.fillStyle = "rgba(6,5,14,0.62)"), d.fillRect(0, 0, m(H), m(oe));
+    let e = P2P.state,
+      t = 300,
+      s = (H - t) / 2,
+      i = 80,
+      r = e === "waiting" || e === "entering" ? 112 : 70,
+      o = e === "entering" ? g.p1 : g.gold;
+    Ae(s, i, t, r, o, { bright: !0 }),
+      V(
+        {
+          opening: "Creating a code\u2026",
+          waiting: "Your friend code",
+          entering: "Enter your friend's code",
+          joining: `Connecting to ${P2P.code}\u2026`,
+        }[e] ?? "",
+        H / 2,
+        i + 26,
+        13,
+        g.chalk,
+        { align: "center", skew: !0 },
+      );
+    let l = [["B", "Cancel"]];
+    if (e === "waiting" || e === "entering") {
+      let f = e === "waiting" ? P2P.code : P2P.typed;
+      for (let u = 0; u < 5; u++) {
+        let h = H / 2 - 62 + u * 25,
+          c = e === "entering" && u === f.length;
+        te(
+          h,
+          i + 34,
+          22,
+          30,
+          c ? "rgba(98,200,255,0.28)" : "rgba(255,255,255,0.1)",
+          3,
+        ),
+          f[u]
+            ? V(f[u], h + 11, i + 56, 19, e === "waiting" ? g.gold : g.chalk, {
+                align: "center",
+              })
+            : c &&
+              Math.floor(a / 20) % 2 &&
+              ((d.fillStyle = g.p1),
+              d.fillRect(m(h + 10), m(i + 41), m(2), m(16)));
+      }
+      e === "entering" &&
+        tapRect(H / 2 - 66, i + 32, 132, 34, () => {
+          document.getElementById("p2p-code")?.focus();
+        }),
+        G(
+          e === "waiting"
+            ? "Send this code to your friend. Waiting for them to join\u2026"
+            : "Type the 5 letters and numbers, then press Join.",
+          H / 2,
+          i + 76,
+          6.6,
+          g.haze,
+          { align: "center", italic: !0 },
+        ),
+        e === "entering" && l.unshift(["A", "Join"]);
+    } else {
+      let f = Math.floor(a / 8) % 3;
+      for (let u = 0; u < 3; u++)
+        te(
+          H / 2 - 16 + u * 11,
+          i + 38,
+          7,
+          4,
+          u === f ? o : "rgba(255,255,255,0.18)",
+        );
+    }
+    let f = H / 2 - l.length * 34;
+    l.forEach(([u, h], c) => {
+      let y = f + c * 70,
+        b = i + r - 22;
+      tapRect(y, b, 66, 16, () => Ue.add(u === "A" ? "confirm" : "back")),
+        Pe(u, y + 8, b + 8, 4.2),
+        G(h, y + 16, b + 10.5, 7, g.chalk);
+    });
   }
   function onlineScreen(a, e) {
     let t = a.frame;
     neonBg(t),
       V("Online Battle", 12, 25, 22, g.chalk, { skew: !0, outline: 2 }),
       G(
-        "Battle anyone who has this game open right now.",
+        P2P.state === "linked"
+          ? "You are linked with a friend. Pick them to battle."
+          : NET.room && !NET.dead
+            ? "Battle anyone who has this game open, or a friend by code."
+            : "Battle a friend anywhere with a friend code.",
         14,
         34,
         6.6,
@@ -18087,11 +18528,17 @@
         { italic: !0 },
       );
     let s = !!NET.room && !NET.dead;
-    ue(s ? "ONLINE" : "OFFLINE", s ? g.hp : g.dim, H - 12, 14, {
-      right: !0,
-      size: 7,
-      text: g.night,
-    });
+    ue(
+      P2P.state === "linked" ? "FRIEND LINK" : s ? "ONLINE" : "CODES ONLY",
+      s ? g.hp : g.gold,
+      H - 12,
+      14,
+      {
+        right: !0,
+        size: 7,
+        text: g.night,
+      },
+    );
     for (let C = 0; C < 2; C++)
       St(
         a,
@@ -18114,10 +18561,9 @@
       V("Trainers here", i + 16, r + 16, 12, g.chalk, { skew: !0 });
     if (!s) {
       let C = [
-        "Online play needs the claude.ai room.",
-        "Open this game from its claude.ai link and share",
-        "that link with friends: everyone who has it open",
-        "shows up here, ready to battle.",
+        "Play a friend anywhere with a code.",
+        "Create a code and send it to them,",
+        "or type in the code they sent you.",
       ];
       C.forEach((x, v) =>
         G(x, i + 18, r + 38 + v * 11, 7, v ? g.haze : g.chalk),
@@ -18125,8 +18571,8 @@
     }
     let f = netRows();
     a.netCursor = Math.min(a.netCursor ?? 0, f.length - 1);
-    let cur = s ? a.netCursor : f.length - 1;
-    let u = r + (s ? 26 : 92),
+    let cur = a.netCursor;
+    let u = r + (s ? 26 : 74),
       h = 18,
       c = Math.max(0, Math.min((a.netCursor ?? 0) - 6, f.length - 8));
     f.slice(c, c + 8).forEach((C, x) => {
@@ -18156,7 +18602,21 @@
           );
       else if (C.kind === "back")
         V("Back to team select", Q + 10, E + 13, 10.5, K ? g.night : g.chalk);
-      else {
+      else if (C.kind === "host" || C.kind === "code" || C.kind === "unlink") {
+        let [w, U] = {
+          host: ["Create a friend code", "Send it to a friend to battle"],
+          code: ["Enter a friend code", "Join the game a friend made"],
+          unlink: ["End friend link", "Go back to the open lobby"],
+        }[C.kind];
+        V(
+          w,
+          Q + 10,
+          E + 13,
+          10.5,
+          K ? g.night : C.kind === "unlink" ? g.cpu : g.p1,
+        ),
+          G(U, Q + 128, E + 12, 6.2, K ? g.night : g.haze);
+      } else {
         let w = C.p.presence,
           U = (Object.hasOwn(NET_ST, w.st) && NET_ST[w.st]) || NET_ST.idle,
           re = C.p.isMe ? `${netName(C.p)} (your other tab)` : netName(C.p);
@@ -18176,11 +18636,12 @@
       d.globalAlpha = 1;
     });
     s &&
-      f.length === 2 &&
+      P2P.state !== "linked" &&
+      !netLobbyPeers().length &&
       G(
-        "Nobody else is here yet. Share this game's link, or search and wait.",
+        "Nobody else is here yet. Search and wait, or invite a friend by code.",
         i + 18,
-        u + 2 * (h + 2) + 12,
+        r + l - 10,
         6.6,
         g.haze,
         { italic: !0 },
@@ -18193,6 +18654,10 @@
     let y = null,
       b = [],
       p = g.p1;
+    if (P2P.state !== "idle" && P2P.state !== "linked") {
+      p2pModal(t);
+      return;
+    }
     if (NET.incoming) {
       let C = netLobbyPeers().find((x) => x.peer === NET.incoming);
       (y = `${C ? netName(C) : "A trainer"} wants to battle!`),
@@ -18968,11 +19433,24 @@
         NET.st === "away" && (NET.st = "idle"),
         netInit(),
         netPresence(s.picks),
+        P2P.autoJoin &&
+          P2P.state === "idle" &&
+          (p2pJoin(P2P.autoJoin), (P2P.autoJoin = "")),
         Me.play("title"),
         Me.muffle(!1);
     }
     function netLobbyInput(n) {
       let D = netRows();
+      if (P2P.state !== "idle" && P2P.state !== "linked") {
+        n.pressed.has("back")
+          ? (p2pStop(), S.back())
+          : P2P.state === "entering" &&
+            n.pressed.has("confirm") &&
+            (P2P.typed.length === 5
+              ? (p2pInput(!1), p2pJoin(P2P.typed), S.select())
+              : document.getElementById("p2p-code")?.focus());
+        return;
+      }
       if (NET.incoming) {
         n.pressed.has("confirm") &&
           ((NET.want = NET.incoming),
@@ -19014,6 +19492,10 @@
         (s.screen = "select"), netAway(), S.back();
         return;
       }
+      if (R.kind === "host") return p2pHost(), p2pInvite(), S.select();
+      if (R.kind === "code") return p2pEnter(), S.select();
+      if (R.kind === "unlink")
+        return p2pStop("Friend link ended"), (s.netCursor = 0), S.back();
       if (!NET.room || NET.dead)
         return (s.screen = "select"), netAway(), S.back();
       R.kind === "quick"

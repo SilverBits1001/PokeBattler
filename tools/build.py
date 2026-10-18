@@ -13,9 +13,10 @@ page = (ROOT / "src/page.html").read_text(encoding="utf-8").rstrip("\n")
 sprites = (ROOT / "assets/sprites.js").read_text(encoding="utf-8").rstrip("\n")
 tiles = (ROOT / "assets/tiles.js").read_text(encoding="utf-8").rstrip("\n")
 vfx = (ROOT / "assets/vfx.js").read_text(encoding="utf-8").rstrip("\n")
+peerjs = (ROOT / "assets/vendor/peerjs.min.js").read_text(encoding="utf-8").rstrip("\n")
 game = (ROOT / "src/game.js").read_text(encoding="utf-8").rstrip("\n")
 
-body = f"{page}\n<script>{sprites}</script>\n<script>{tiles}</script>\n<script>{vfx}</script>\n<script>\n{game}\n</script>\n"
+body = f"{page}\n<script>{sprites}</script>\n<script>{tiles}</script>\n<script>{vfx}</script>\n<script>/* PeerJS 1.5.4, MIT licence (assets/vendor/peerjs-LICENSE.txt) */\n{peerjs}</script>\n<script>\n{game}\n</script>\n"
 
 skeleton_head = (
     "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
