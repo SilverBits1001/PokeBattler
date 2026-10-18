@@ -467,7 +467,7 @@
         type: "GRASS",
         color: "#6cc04a",
         typeInk: "#0f2a08",
-        hp: 1080,
+        hp: 1140,
         speed: 2.35,
         weight: 0.85,
         r: 11,
@@ -694,7 +694,7 @@
           active: 9,
           recovery: 30,
           lunge: 78,
-          dmg: 34,
+          dmg: 31,
           kb: 7,
           shape: "circle",
           reach: 4,
@@ -2136,13 +2136,13 @@
     LUCA = {
       sphereCharge: 70,
       sphereMin: 14,
-      sphereMax: 46,
+      sphereMax: 52,
       sphereSpeed: 3.4,
       detectWin: 22,
       detectLag: 26,
       counterMult: 1.3,
       counterMin: 30,
-      aura: 0.4,
+      aura: 0.5,
     },
     // Dragapult rapid claws: hold A after the second hit.
     FLURRY = { every: 4, dmg: 7, minTicks: 10, maxTicks: 50 },
@@ -9067,6 +9067,8 @@
           0.8,
         );
     }
+    for (let s of e.dreepy)
+      s.state !== "dazed" && t(s.x, s.y, 14, "67,198,172", 0.9);
     for (let s of e.players)
       s.state !== "faint" &&
         (e.isFlaming(s)
@@ -9866,6 +9868,7 @@
       let c = o(h.px, h.x),
         y = o(h.py, h.y) - o(h.pz, h.z),
         b = h.isCpu ? "#ef5a4f" : "#6fd3e8";
+      stance(a, e, h, c, y);
       if (h.state === "guard") {
         let p = Math.max(0, h.slot.guard) / 100,
           k = 9 + 11 * p,
@@ -10414,6 +10417,22 @@
       let c = Math.round(o(h.px, h.x)),
         y = Math.round(o(h.py, h.y) - o(h.pz, h.z)),
         b = Math.sin(e.tick * 0.7 + h.id) * 1.2;
+      (a.globalAlpha = 0.18),
+        (a.fillStyle = "#7f6bff"),
+        a.beginPath(),
+        a.arc(c, y, 16 + b, 0, Math.PI * 2),
+        a.fill();
+      for (let p = 0; p < 3; p++) {
+        let k = (p - 1) * 4 + Math.sin(e.tick * 0.9 + p * 2) * 1.5,
+          M = 13 + Math.sin(e.tick * 0.6 + p) * 3;
+        (a.globalAlpha = 0.55),
+          (a.fillStyle = p === 1 ? "#7f6bff" : "#43c6ac"),
+          a.beginPath(),
+          a.moveTo(c + k, y - M),
+          a.quadraticCurveTo(c + k + 5, y - 2, c, y + 6),
+          a.quadraticCurveTo(c + k - 5, y - 2, c + k, y - M),
+          a.fill();
+      }
       (a.globalAlpha = 0.3),
         (a.fillStyle = "#7f6bff"),
         a.beginPath(),
@@ -10516,8 +10535,9 @@
       };
     a.lineCap = "round";
     for (let [p, k] of [
-      [4, "#24501d"],
-      [2, "#5fae44"],
+      [6, "#1a3d15"],
+      [4, "#3f8a35"],
+      [1.4, "#9be36b"],
     ]) {
       (a.strokeStyle = k), (a.lineWidth = p), a.beginPath();
       for (let M = 0; M <= y; M++) {
@@ -10526,10 +10546,15 @@
       }
       a.stroke();
     }
-    for (let p = 2; p < y; p += 3) {
-      let [k, M] = b(p);
-      (a.fillStyle = "#9be36b"),
-        a.fillRect(Math.round(k + h * 2), Math.round(M + c * 2), 2, 1);
+    for (let p = 2; p < y; p += 2) {
+      let [k, M] = b(p),
+        P = p % 4 ? 1 : -1;
+      (a.fillStyle = p % 4 ? "#9be36b" : "#6cc04a"),
+        a.beginPath(),
+        a.moveTo(k + h * 2 * P, M + c * 2 * P),
+        a.lineTo(k + h * 5 * P + (l / u) * 2, M + c * 5 * P + (f / u) * 2),
+        a.lineTo(k + h * 2 * P + (l / u) * 3, M + c * 2 * P + (f / u) * 3),
+        a.fill();
     }
     if (r > 0.8) {
       let [p, k] = b(y);
@@ -11153,12 +11178,195 @@
     }
     a.globalAlpha = 1;
   }
+  // Body-attached stance art: Lucario's Detect barrier and Aura, Snorlax's nap.
+  function stance(a, e, h, c, y) {
+    let t = e.tick,
+      s = h.kit.tall * Bz(h);
+    if (h.state === "detect" && h.t <= LUCA.detectWin) {
+      let i = 1 - h.t / LUCA.detectWin,
+        r = 15 + 3 * Math.sin(t * 0.8);
+      (a.globalAlpha = 0.18 + 0.12 * i),
+        (a.fillStyle = "#9fdcff"),
+        a.beginPath(),
+        a.ellipse(c, y - s * 0.45, r, r * 1.15, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 0.9),
+        (a.strokeStyle = "#ffffff"),
+        (a.lineWidth = 1.2),
+        a.beginPath();
+      for (let o = 0; o <= 6; o++) {
+        let l = t * 0.12 + (o / 6) * Math.PI * 2;
+        a.lineTo(c + Math.cos(l) * r, y - s * 0.45 + Math.sin(l) * r * 1.15);
+      }
+      a.stroke(),
+        (a.strokeStyle = "#4aa3ff"),
+        (a.lineWidth = 2),
+        a.beginPath(),
+        a.ellipse(
+          c,
+          y - s * 0.45,
+          r + 3,
+          (r + 3) * 1.15,
+          0,
+          t * 0.3,
+          t * 0.3 + 1.6,
+        ),
+        a.stroke(),
+        a.beginPath(),
+        a.ellipse(
+          c,
+          y - s * 0.45,
+          r + 3,
+          (r + 3) * 1.15,
+          0,
+          t * 0.3 + Math.PI,
+          t * 0.3 + Math.PI + 1.6,
+        ),
+        a.stroke(),
+        (a.globalAlpha = 1);
+    }
+    if (h.kit.aura) {
+      let i = 1 - h.slot.hp / h.slot.maxHp;
+      if (i > 0.15) {
+        a.globalAlpha = Math.min(0.75, 0.15 + i * 0.7);
+        for (let r = 0; r < 9; r++) {
+          let o = (r / 9) * Math.PI * 2,
+            l = c + Math.cos(o) * 8,
+            f = y - 6 + Math.sin(o) * 3,
+            u = 6 + 10 * i * (0.6 + 0.4 * Math.sin(t * 0.5 + r * 1.7));
+          (a.fillStyle = r % 2 ? "#4aa3ff" : i > 0.6 ? "#1b4fa8" : "#9fdcff"),
+            a.beginPath(),
+            a.moveTo(l, f - u),
+            a.quadraticCurveTo(l + 3, f - u * 0.3, l, f + 2),
+            a.quadraticCurveTo(l - 3, f - u * 0.3, l, f - u),
+            a.fill();
+        }
+        a.globalAlpha = 1;
+      }
+    }
+    if (
+      h.state === "solar" ||
+      ((h.slot.solar ?? 0) > 0.05 && h.kit.id === "venusaur")
+    ) {
+      // A small sun gathering over the flower, fed by converging light rays.
+      let i = h.state === "solar" ? h.solarC : h.slot.solar,
+        r = c,
+        o = y - s * 0.95,
+        l = 2.5 + 6 * i;
+      if (h.state === "solar") {
+        a.strokeStyle = "#ffe27a";
+        for (let f = 0; f < 8; f++) {
+          let u = (f / 8) * Math.PI * 2 + t * 0.05,
+            b = 40 - ((t * 2 + f * 5) % 30);
+          (a.globalAlpha = 0.25 + 0.5 * (1 - b / 40)),
+            (a.lineWidth = 1),
+            a.beginPath(),
+            a.moveTo(r + Math.cos(u) * b, o + Math.sin(u) * b * 0.7),
+            a.lineTo(
+              r + Math.cos(u) * (b - 7),
+              o + Math.sin(u) * (b - 7) * 0.7,
+            ),
+            a.stroke();
+        }
+      }
+      let f = a.createRadialGradient(r, o, 0, r, o, l * 3);
+      f.addColorStop(0, "rgba(255,251,230,0.9)"),
+        f.addColorStop(0.4, "rgba(255,226,122,0.45)"),
+        f.addColorStop(1, "rgba(255,226,122,0)"),
+        (a.globalAlpha = 1),
+        (a.fillStyle = f),
+        a.beginPath(),
+        a.arc(r, o, l * 3, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#fffbe6"),
+        a.beginPath(),
+        a.arc(r, o, l * (0.9 + 0.1 * Math.sin(t * 0.4)), 0, Math.PI * 2),
+        a.fill();
+    }
+    if (h.state === "rest") {
+      // The classic sleep bubble swelling and shrinking under its nose.
+      let i = 2 + 4.5 * Math.abs(Math.sin(t * 0.045));
+      (a.globalAlpha = 0.75),
+        (a.fillStyle = "#cfe8ff"),
+        a.beginPath(),
+        a.arc(c + 10, y - 10 - i, i, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#ffffff"),
+        a.fillRect(c + 10 - i * 0.5, y - 10 - i * 1.6, 2, 2),
+        (a.globalAlpha = 1);
+    }
+  }
   // Projectiles for Snorlax, Noivern and Lucario.
   function drawProj2(a, e, h, c, y) {
     let t = e.tick;
+    if (h.kind === "leaf") {
+      // Spinning razor leaf with an afterimage trail and a glinting edge.
+      let s = Math.atan2(h.vy, h.vx),
+        i = Math.hypot(h.vx, h.vy) || 1;
+      for (let r = 3; r >= 0; r--) {
+        let o = c - (h.vx / i) * r * 5,
+          l = y - (h.vy / i) * r * 5,
+          f = s + h.age * 0.9 - r * 0.5;
+        a.save(),
+          a.translate(o, l),
+          a.rotate(f),
+          (a.globalAlpha = r ? 0.18 * (4 - r) : 1),
+          (a.fillStyle = r ? "#6cc04a" : "#2f7a2a"),
+          a.beginPath(),
+          a.ellipse(0, 0, 7, 3.2, 0, 0, Math.PI * 2),
+          a.fill(),
+          r ||
+            ((a.fillStyle = "#9be36b"),
+            a.beginPath(),
+            a.ellipse(0, -0.6, 5.6, 1.9, 0, 0, Math.PI * 2),
+            a.fill(),
+            (a.strokeStyle = "#f4ffe0"),
+            (a.lineWidth = 0.8),
+            a.beginPath(),
+            a.moveTo(-6, 0),
+            a.lineTo(6, 0),
+            a.stroke()),
+          a.restore();
+      }
+      return (a.globalAlpha = 1), !0;
+    }
+    if (h.kind === "pulse") {
+      // Water Pulse: a thick wobbling water ring with ripples trailing behind.
+      let s = Math.atan2(h.vy, h.vx),
+        i = 1 + Math.sin(h.age * 0.7) * 0.15,
+        r = h.mega ? 1.3 : 1;
+      a.save(), a.translate(c, y), a.rotate(s);
+      for (let o = 3; o >= 1; o--)
+        (a.globalAlpha = 0.16 * (4 - o)),
+          (a.strokeStyle = "#8fd0f5"),
+          (a.lineWidth = 1.4),
+          a.beginPath(),
+          a.ellipse(-o * 6, 0, 3 * r, (6 + o) * r * i, 0, 0, Math.PI * 2),
+          a.stroke();
+      return (
+        (a.globalAlpha = 0.35),
+        (a.fillStyle = "#5aa9e6"),
+        a.beginPath(),
+        a.ellipse(0, 0, 5 * r, 9 * r * i, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 1),
+        (a.strokeStyle = "#bfe6ff"),
+        (a.lineWidth = 2.6),
+        a.beginPath(),
+        a.ellipse(0, 0, 4.5 * r, 8.5 * r * i, 0, 0, Math.PI * 2),
+        a.stroke(),
+        (a.strokeStyle = "#ffffff"),
+        (a.lineWidth = 1),
+        a.beginPath(),
+        a.ellipse(0, 0, 4.5 * r, 8.5 * r * i, 0, -1.2, 0.2),
+        a.stroke(),
+        a.restore(),
+        !0
+      );
+    }
     if (h.kind === "yawn") {
       // A lazy, wobbling dream bubble with a rainbow sheen and a little z.
-      let s = h.r * (1 + 0.08 * Math.sin(h.age * 0.25)),
+      let s = h.r * 1.25 * (1 + 0.08 * Math.sin(h.age * 0.25)),
         i = s * (1 + 0.06 * Math.sin(h.age * 0.31 + 1));
       return (
         (a.globalAlpha = 0.18),
@@ -11166,7 +11374,7 @@
         a.beginPath(),
         a.ellipse(c, y, s + 4, i + 4, 0, 0, Math.PI * 2),
         a.fill(),
-        (a.globalAlpha = 0.5),
+        (a.globalAlpha = 0.72),
         (a.fillStyle = "#e9f2ff"),
         a.beginPath(),
         a.ellipse(c, y, s, i, 0, 0, Math.PI * 2),
@@ -13804,7 +14012,7 @@
         "COUNTER",
       ],
       ["B", "Extreme Speed", "Fast long dash.", "DODGE"],
-      ["*", "Aura", "Up to +40% damage the lower your health.", "PASSIVE"],
+      ["*", "Aura", "Up to +50% damage the lower your health.", "PASSIVE"],
     ],
   };
   function ds(a, e, t, s, i) {
@@ -17121,6 +17329,12 @@
           T.kind === "wisp" &&
             e.tick % 2 === 0 &&
             t.wisps(T.x, T.y, T.z - 4, 1, "#7f6bff", 3),
+          T.kind === "yawn" &&
+            e.tick % 3 === 0 &&
+            t.motes(T.x, T.y, T.z, 1, "#e9f2ff", 0.4),
+          T.kind === "aura" &&
+            e.tick % 2 === 0 &&
+            t.wisps(T.x, T.y, T.z - 4, 1, "#4aa3ff", 3),
           T.kind === "zap" &&
             e.tick % 3 === 0 &&
             (t.bolt(
@@ -17139,6 +17353,14 @@
           T.speed > 3.5 &&
           e.tick % 2 === 0 &&
           (t.motes(T.x, T.y, T.z, 1, be, 0.25),
+          t.streaks(
+            T.x,
+            T.y - T.z + 8,
+            -T.vx / T.speed,
+            -T.vy / T.speed,
+            1,
+            "#43c6ac",
+          ),
           t.wisps(T.x, T.y, T.z - 4, 1, "#43c6ac", 2));
       for (let T of e.bodies()) {
         if (T.hidden || (T.alpha ?? 1) < 0.05) continue;

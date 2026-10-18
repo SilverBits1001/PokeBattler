@@ -286,7 +286,7 @@ hardest to launch.
 | X | **Aura Sphere**: hold to charge; guard or dodge stores it; tap X to fire the stored shot | Storable |
 | Y | **Detect**: counter stance. When hit, blink behind the attacker and strike back for 1.3× | Counter |
 | B | **Extreme Speed**: fast dash | Dodge |
-| Passive | **Aura**: up to +40% damage the lower its health | — |
+| Passive | **Aura**: up to +50% damage the lower its health | — |
 
 Type chart additions (same mild ±5%): Fighting beats Normal and Steel and is weak to Flying
 and Ghost; Flying beats Grass and Fighting and is resisted by Electric and Steel; Electric beats
@@ -312,3 +312,28 @@ Flying; Normal and Ghost resist each other.
 
 Team select is now a 4-over-4 grid; the title shows all eight fighters to scale; the training
 swap menu and move list handle eight.
+
+### Verification
+
+- **Visual review**: every move of all eight fighters (combo, smash, X, Y, dodge) was captured
+  at three points in its animation and reviewed side by side. Moves that read weakly were
+  reworked: Razor Leaf (spinning leaves with afterimage trails), Vine Whip (thicker thorned
+  vine), Water Pulse (thick ring with trailing ripples), Will-O-Wisp (layered ghost fire),
+  Dreepy darts (glow and streaks), Yawn (bigger, brighter bubble), Solar Beam charge (a small
+  sun gathering over the flower with converging rays), Lucario's Detect (visible barrier) and
+  Aura (flames that grow as health drops), and Snorlax's Rest (sleep bubble).
+- **Balance** (CPU Hard vs Hard, every pairing both ways, 5 games each, per arena):
+
+| Fighter | Stadium | Ruins | Crater | Frostfall | Plant | Avg |
+| --- | --- | --- | --- | --- | --- | --- |
+| Charizard | .54 | .51 | .50 | .53 | .69 | .55 |
+| Venusaur | .46 | .47 | .44 | .41 | .44 | .44 |
+| Blastoise | .46 | .54 | .53 | .49 | .43 | .49 |
+| Dragapult | .60 | .66 | .36 | .61 | .59 | .56 |
+| Magnezone | .49 | .53 | .53 | .53 | .57 | .53 |
+| Snorlax | .51 | .46 | .49 | .47 | .57 | .50 |
+| Noivern | .53 | .34 | .74 | .43 | .30 | .47 |
+| Lucario | .41 | .49 | .41 | .53 | .41 | .45 |
+
+Arena swings are intentional stage matchups (Noivern flies over Cinder Crater's lava; Dragapult
+loses its edge there).
