@@ -7981,18 +7981,17 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     for (let [e, t] of Object.entries(window.__ASSETS__)) {
       let s = {};
       for (let [r, o] of Object.entries(t.anims)) {
+        // Sheets are drawn straight from the decoded image; tinted copies are
+        // made on first use and kept under a memory budget (see tintOf).
         let l = await Qt(o.src),
-          f = Zt(l.width, l.height);
-        f.getContext("2d").drawImage(l, 0, 0);
-        // Tinted copies are made on first use, so any colour can tint a sprite.
-        let u = new Map(),
-          U = u.get.bind(u);
-        for (let h of Ka) u.set(h, Jt(f, h));
-        u.get = (h) => (h && !u.has(h) && u.set(h, Jt(f, h)), U(h));
+          f = `${e}.${r}`,
+          u = { get: (h) => (h ? tintOf(l, f, h) : void 0) };
         s[r] = {
           name: r,
-          img: f,
-          white: Jt(f, "#ffffff"),
+          img: l,
+          get white() {
+            return tintOf(l, f, "#ffffff");
+          },
           tints: u,
           fw: o.fw,
           fh: o.fh,
@@ -8016,8 +8015,30 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     }
     return a;
   }
+  // Canvas memory is tight on phones and tablets, so tinted sprite sheets live in
+  // a least-recently-used cache with a pixel budget; evicted canvases are freed.
+  var TINT = { map: new Map(), px: 0, cap: 22e6 };
+  function tintOf(a, e, t) {
+    let s = `${e}|${t}`,
+      i = TINT.map.get(s);
+    if (i) return TINT.map.delete(s), TINT.map.set(s, i), i;
+    for (
+      i = Jt(a, t), TINT.map.set(s, i), TINT.px += i.width * i.height;
+      TINT.px > TINT.cap && TINT.map.size > 1;
+
+    ) {
+      let [r, o] = TINT.map.entries().next().value;
+      TINT.map.delete(r),
+        (TINT.px -= o.width * o.height),
+        (o.width = o.height = 0);
+    }
+    return i;
+  }
   function Xa(a) {
-    let e = a.img.getContext("2d").getImageData(0, 0, a.fw, a.fh).data;
+    let t = Zt(a.fw, a.fh),
+      s = t.getContext("2d");
+    s.drawImage(a.img, 0, 0, a.fw, a.fh, 0, 0, a.fw, a.fh);
+    let e = s.getImageData(0, 0, a.fw, a.fh).data;
     for (let t = a.fh - 1; t >= 0; t--)
       for (let s = 0; s < a.fw; s++)
         if (e[(t * a.fw + s) * 4 + 3] > 0) return t - a.fh / 2;
@@ -17997,7 +18018,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       (st = n), la();
       let R = [1, 0.5, 0.25][A.slowmo] ?? 1,
         W = s.screen === "play" && !s.paused && e.match.phase !== "results";
-      De += D * (W ? e.timeScale() * R : 1);
+      // Never carry more than a few steps of backlog: on a slow frame the game
+      // briefly slows down instead of snowballing into catch-up stalls.
+      De = Math.min(De + D * (W ? e.timeScale() * R : 1), Ut * 4);
       let T = 0;
       for (; De >= Ut && T < 5; ) {
         (De -= Ut), T++;
