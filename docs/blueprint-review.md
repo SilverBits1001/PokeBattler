@@ -472,12 +472,21 @@ steers around collapse warnings. A tip for each arena's benefit shows after "GO!
 - Frostfall: snowfall, freezing puddles, icicle shadows.
 - Power Plant: energy running along the conduits, recharge rings around live pylons.
 
-**Measured after** (10 games per side; Stadium and Crater re-checked at 14 and 18):
+**Measured after** (30 games per side per pairing, all 8 fighters):
 
 | Arena | Hazard share of damage | Win spread |
 | --- | --- | --- |
-| Stadium | 0% | .19 |
-| Ruins | 0.7% | .14 |
-| Cinder Crater | 5% | .18 |
-| Frostfall Lake | 1.5% | .20 |
-| Power Plant | 1% | .21 |
+| Stadium | 0% | .22 |
+| Ruins | 0.7% | .16 |
+| Cinder Crater | 5.1% | .19 |
+| Frostfall Lake | 1.6% | .24 |
+| Power Plant | 1% | .16 |
+
+An independent reviewer checked every feature in the code against this design and the
+screenshots: all five arenas pass on identity, hazard, benefit, type interaction and fairness,
+with no crash or dead feature. Its follow-ups are done:
+- Crater's centre lava is exactly symmetric.
+- Fighters inside a bonus zone show a ring at their feet.
+- The arc warning is brighter.
+- The top pylon and top lava pool sit clear of the HUD.
+- The ABSORBED popup shows once per arc.
