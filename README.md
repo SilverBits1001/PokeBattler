@@ -35,17 +35,17 @@ to play the next trainer who is searching, or choose a trainer to challenge them
 **Friend codes (no claude.ai account needed).** On the Online screen pick **Create a
 friend code** and send the 5-letter code to a friend; they pick **Enter a friend code**
 and type it in. The two pages connect directly over WebRTC, and the match starts on
-its own. This works from any copy of the game, including the public GitHub Pages
-address: https://silverbits1001.github.io/PokeBattler/ (once Pages is switched on for
-this branch, see below). [PeerJS](https://peerjs.com)'s free public server only
-introduces the two pages to each other; it is bundled in `assets/vendor/` (MIT).
+its own. This works from any copy of the game. The public copy is
+**https://silverbits1001.github.io/PokeBattler/**, served by GitHub Pages from the
+`gh-pages` branch (a built `index.html`). [PeerJS](https://peerjs.com)'s free public
+server only introduces the two pages to each other; it is bundled in `assets/vendor/`
+(MIT).
 
 The open lobby (everyone who has the game open) works when the game is opened from its
 claude.ai artifact link by people who have access to it.
 
-To host the game publicly: on GitHub, open **Settings → Pages**, choose **Deploy from a
-branch**, pick this branch and the `/ (root)` folder, and save. The game is then at the
-address above for anyone.
+To update the public copy after a change: run `python3 tools/build.py`, copy
+`index.html` onto the `gh-pages` branch, and push it.
 
 Matches are deterministic lockstep over the room's presence channel: each page sends
 only its inputs (with every input the other side has not confirmed yet), both run the
