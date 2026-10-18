@@ -1,0 +1,42 @@
+# Blueprint review: what changed and why
+
+Source: *Pokémon Arena Brawler — Game Design & Development Blueprint v1.0*.
+
+The game already covered most of the blueprint's Phase 1–3 work before this pass:
+360° movement with separately aimed smash attacks, a quick attack plus signature
+moves, guard with a parry window, guard break, directional dodges with invincibility
+and recovery, teching, diminishing hitstun on repeated hits, four Pokémon with distinct
+roles, a light type chart, terrain effects (puddles, seeds, healing grass) and three CPU
+levels. So this pass adds only what the blueprint calls for and the game was missing.
+
+## Added
+
+| Blueprint section | Change |
+| --- | --- |
+| §3 Defensive tools: "attacks from behind are a weakness" of guard | Guard now covers only the front ~214°. Hits from behind get through and show **FLANKED!**. The shield is drawn as an arc so the open back is visible. A well-timed parry still works from any side. |
+| §1, §11, §13 "Can a player bait, dodge or parry, and land a satisfying punish?" | Hits that land while the target is stuck in recovery (whiffed attack or smash, dodge lag, guard release, guard-break stun, flame or pump wind-down, Fly landing, overheat) show **PUNISH!**. The results screen now counts punishes. |
+| §6 Arena design: geometry, signature mechanic, counterplay | New **Ruins** arena: six symmetric boulders (four around the centre, one on each flank). They block movement, projectiles, Hydro Pump and Flamethrower. They break after enough damage, return 12 s later with a 2 s warning ring, and never return on top of someone. Knocking a launched opponent into one causes a wall splat. Ghost moves (Will-O-Wisp, Dreepy, Phantom Force) pass through. **Stadium** stays as the plain baseline. |
+| §8 Items: small pool, known spawn point, visible warning, Items Off rule | **Sitrus Berry**: one heal (15% of max HP) at the centre spot. The first is announced at 15 s with a 1.5 s warning ring; it lasts 10 s and returns 20 s after it is taken or expires. The **Items** option turns it off. |
+| CPU | The CPU walks around boulders, holds blocked ranged moves until it has a clear line, and contests the berry (more often on higher levels). |
+
+Arena and items are set in **Options → Match**. The arena can also be switched on the team
+select screen with **Select** (Tab on keyboard).
+
+## Not taken, on purpose
+
+- **2–4 players, team modes, Zone Control, Energy Rush.** The game is built around 1v1
+  with a two-Pokémon team, switching and assists. Going to four players reshapes the
+  camera, HUD, CPU and every balance number. The blueprint itself says to prove the core
+  1v1 exchange first (§12, §13).
+- **Reworking aim assist and lock-on.** The blueprint asks for no strong automatic
+  targeting (§3). Lock-on is already opt-in (hold R1 / Shift) and melee aim assist is a
+  tunable option. Changing the feel without a controller playtest would be guesswork.
+- **More items (Smoke Bomb, Eject Button, X Attack) and more arenas.** §8 and §12 advise
+  starting tiny and expanding only after tests show the first ones add decisions.
+- **Full type chart, new Pokémon.** Explicitly out of scope per §12.
+
+## Worth measuring next (§11)
+
+- How often players get flanked while guarding, and whether it feels fair or random.
+- Whether the berry swings matches (it heals 15%; tune `SITRUS.heal` in `src/game.js`).
+- Whether boulders get broken too fast (tune `RUINS.hp` and `RUINS.respawn`).

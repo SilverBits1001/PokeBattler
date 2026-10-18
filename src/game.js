@@ -31,6 +31,8 @@
       deadzone: 0.2,
       gameMode: 0,
       cpuLevel: 2,
+      arena: 1,
+      items: 1,
       dummyCount: 1,
       dummyMode: 0,
       showHitboxes: 0,
@@ -107,6 +109,18 @@
       key: "cpuLevel",
       label: "CPU level",
       options: ["Easy", "Normal", "Hard"],
+    },
+    {
+      kind: "choice",
+      key: "arena",
+      label: "Arena (next battle)",
+      options: ["Stadium", "Ruins"],
+    },
+    {
+      kind: "choice",
+      key: "items",
+      label: "Items (Sitrus Berry)",
+      options: ["Off", "On"],
     },
     { kind: "header", label: "Practice" },
     {
@@ -664,6 +678,59 @@
         this.punishedT = -1;
       }
       think(e, t) {
+        return this.adapt(e, t, this.decide(e, t));
+      }
+      // Arena awareness layered over the fighting brain: berries, cover and line of sight.
+      adapt(e, t, i) {
+        if (t.state === "faint" || e.match.phase !== "fight" || e.intro > 20)
+          return i;
+        let s = e.nearestTarget(t.team, t.x, t.y),
+          r = t.slot,
+          o = e.item;
+        if (s && t.kit.id !== "dragapult" && e.losBlocked(t.x, t.y, s.x, s.y))
+          i.pressed.delete("special1"), t.state === "move" && (this.holdX = 0);
+        if (o && t.state === "move" && !i.pressed.size) {
+          this.berryId !== o.id &&
+            ((this.berryId = o.id),
+            (this.berryWant =
+              this.rand() < [0.35, 0.7, 0.95][this.level ?? A.cpuLevel]));
+          let l = Math.hypot(o.x - t.x, o.y - t.y),
+            f = s ? Math.hypot(o.x - s.x, o.y - s.y) : 1 / 0;
+          if (
+            this.berryWant &&
+            r.hp < r.maxHp * 0.9 &&
+            (l < f + 40 || r.hp < r.maxHp * 0.35) &&
+            (o.state === "ready" || l > 34)
+          ) {
+            let u = Math.max(1, l);
+            (i.mx = (o.x - t.x) / u), (i.my = (o.y - t.y) / u);
+          }
+        }
+        let l = Math.hypot(i.mx, i.my);
+        if (l > 0.2 && e.rocks.length) {
+          let f = i.mx / l,
+            u = i.my / l;
+          for (let h of e.rocks) {
+            if (h.state !== "solid") continue;
+            let c = h.x - t.x,
+              y = h.y - t.y,
+              b = c * f + y * u;
+            if (b <= 0 || b > h.r + t.r + 26) continue;
+            let p = c - b * f,
+              k = y - b * u,
+              M = Math.hypot(p, k);
+            if (M > h.r + t.r + 3) continue;
+            M < 0.5 && ((p = -u * this.strafe), (k = f * this.strafe), (M = 1));
+            let P = f * 0.35 - p / M,
+              C = u * 0.35 - k / M,
+              x = Math.hypot(P, C) || 1;
+            (i.mx = (P / x) * l), (i.my = (C / x) * l);
+            break;
+          }
+        }
+        return i;
+      }
+      decide(e, t) {
         let s = qt[this.level ?? A.cpuLevel] ?? qt[2],
           i = {
             mx: 0,
@@ -1227,7 +1294,35 @@
       softRange: 90,
     },
     _t = { FIRE: "GRASS", GRASS: "WATER", WATER: "FIRE" },
-    Wa = { DRAGON: ["FIRE", "WATER", "GRASS"] };
+    Wa = { DRAGON: ["FIRE", "WATER", "GRASS"] },
+    // Ruins arena: breakable boulders that block bodies, shots and beams.
+    // Symmetric: four around the contested centre, one guarding each flank.
+    RUINS = {
+      r: 15,
+      hp: 150,
+      respawn: 720,
+      warn: 120,
+      spots: [
+        [Se - 72, Te - 60],
+        [Se + 72, Te - 60],
+        [Se - 72, Te + 60],
+        [Se + 72, Te + 60],
+        [Se - 214, Te],
+        [Se + 214, Te],
+      ],
+    },
+    // Sitrus Berry: one contested heal at centre, announced before it lands.
+    SITRUS = {
+      firstAt: 900,
+      every: 1200,
+      warn: 90,
+      life: 600,
+      heal: 0.15,
+      r: 9,
+    },
+    // Hits from more than ~107 degrees off a guard's facing get through it.
+    FLANK_COS = -0.3,
+    PUNISH_GAP = 40;
   function Ua(a, e) {
     return a === "DRAGON" && e === "DRAGON"
       ? yt.strong
@@ -1341,7 +1436,9 @@
           bestCombo: 0,
           launches: 0,
           techs: 0,
+          punishes: 0,
         };
+        this.punishT = -99;
         this.brain = null;
         (this.slots = r.map((o) => {
           let l = xe[o];
@@ -1576,6 +1673,10 @@
         this.puddles = [];
         this.mines = [];
         this.grass = [];
+        this.rocks = [];
+        this.item = null;
+        this.itemT = 0;
+        this.arena = 0;
         this.hitboxes = [];
         this.beams = [];
         this.vines = [];
@@ -1629,6 +1730,23 @@
           (this.puddles = []),
           (this.mines = []),
           (this.grass = []),
+          (this.arena = A.arena),
+          (this.rocks =
+            A.arena === 1
+              ? RUINS.spots.map(([o, l]) => ({
+                  id: this.nextId++,
+                  x: o,
+                  y: l,
+                  r: RUINS.r,
+                  hp: RUINS.hp,
+                  max: RUINS.hp,
+                  state: "solid",
+                  t: 0,
+                  hitT: 0,
+                }))
+              : []),
+          (this.item = null),
+          (this.itemT = SITRUS.firstAt),
           (this.assists = []),
           (this.dreepy = []),
           this.hitLog.clear(),
@@ -1733,6 +1851,7 @@
         this.updateProjectiles(),
           this.updateDreepy(),
           this.updateGround(),
+          this.updateArena(),
           this.updateSeeds(),
           this.resolveHits(),
           this.pushApart(),
@@ -3130,7 +3249,8 @@
       }
       flameBox(e, t, s, i, r) {
         let o = Math.cos(s),
-          l = Math.sin(s);
+          l = Math.sin(s),
+          f = Math.max(14, this.rayLen(e.x, e.y, s, 54) + 4);
         return {
           id: i,
           team: t,
@@ -3139,8 +3259,8 @@
             kind: "capsule",
             x1: e.x + o * 12,
             y1: e.y + l * 12,
-            x2: e.x + o * 54,
-            y2: e.y + l * 54,
+            x2: e.x + o * f,
+            y2: e.y + l * f,
             r: 11,
           },
           dmg: r,
@@ -3277,6 +3397,7 @@
           o > 0
             ? (l = Math.min(l, (B.y1 - t) / o))
             : o < 0 && (l = Math.min(l, (B.y0 - 6 - t) / o)),
+          (l = this.rayLen(e, t, s, l)),
           { x: e + r * l, y: t + o * l, len: l }
         );
       }
@@ -3976,6 +4097,157 @@
         }
         this.mines = this.mines.filter((e) => e.age >= 0);
       }
+      updateArena() {
+        for (let e of this.rocks)
+          if ((e.hitT > 0 && e.hitT--, e.state === "broken" && --e.t <= 0)) {
+            // A rock never re-forms on top of someone; it waits for the spot to clear.
+            this.bodies().some(
+              (t) =>
+                t.state !== "faint" &&
+                !t.hidden &&
+                Math.hypot(t.x - e.x, t.y - e.y) < e.r + t.r + 2,
+            )
+              ? (e.t = 1)
+              : ((e.state = "solid"),
+                (e.hp = e.max),
+                this.emit({ type: "rockRise", x: e.x, y: e.y }));
+          }
+        this.updateItem();
+      }
+      updateItem() {
+        if (!A.items || this.match.phase !== "fight" || this.intro > 0) return;
+        let e = this.item;
+        if (!e) {
+          --this.itemT <= 0 &&
+            ((this.item = {
+              id: this.nextId++,
+              x: Se,
+              y: Te,
+              state: "warn",
+              t: 0,
+            }),
+            this.emit({ type: "itemWarn", x: Se, y: Te }));
+          return;
+        }
+        if ((e.t++, e.state === "warn")) {
+          e.t >= SITRUS.warn &&
+            ((e.state = "ready"),
+            (e.t = 0),
+            this.emit({ type: "itemSpawn", x: e.x, y: e.y }));
+          return;
+        }
+        for (let t of this.players) {
+          if (
+            t.state === "faint" ||
+            t.airborne ||
+            t.vanished ||
+            Math.hypot(t.x - e.x, t.y - e.y) >= t.r + SITRUS.r
+          )
+            continue;
+          let s = t.slot,
+            i = s.hp;
+          (s.hp = Math.min(s.maxHp, s.hp + Math.round(s.maxHp * SITRUS.heal))),
+            this.emit({
+              type: "itemGet",
+              who: t,
+              x: e.x,
+              y: e.y,
+              amount: Math.round(s.hp - i),
+            }),
+            (this.item = null),
+            (this.itemT = SITRUS.every);
+          return;
+        }
+        e.t >= SITRUS.life &&
+          (this.emit({ type: "itemGone", x: e.x, y: e.y }),
+          (this.item = null),
+          (this.itemT = SITRUS.every));
+      }
+      hitRock(e, t, s, i) {
+        e.state === "solid" &&
+          ((e.hp -= t * ae.dmg),
+          (e.hitT = 6),
+          e.hp <= 0
+            ? ((e.hp = 0),
+              (e.state = "broken"),
+              (e.t = RUINS.respawn),
+              this.emit({ type: "rockBreak", x: e.x, y: e.y }))
+            : this.emit({
+                type: "rockHit",
+                x: s ?? e.x,
+                y: i ?? e.y,
+                rock: e,
+              }));
+      }
+      // Distance a ray travels from (e,t) along angle s before meeting a standing rock.
+      rayLen(e, t, s, i) {
+        let r = Math.cos(s),
+          o = Math.sin(s);
+        for (let l of this.rocks) {
+          if (l.state !== "solid") continue;
+          let f = l.x - e,
+            u = l.y - t,
+            h = f * r + u * o;
+          if (h < 0) continue;
+          let c = f * f + u * u - h * h,
+            y = l.r * l.r;
+          if (c > y) continue;
+          let b = h - Math.sqrt(y - c);
+          b >= 0 && b < i && (i = b);
+        }
+        return i;
+      }
+      losBlocked(e, t, s, i) {
+        let r = s - e,
+          o = i - t,
+          l = r * r + o * o || 1;
+        for (let f of this.rocks) {
+          if (f.state !== "solid") continue;
+          let u = me(((f.x - e) * r + (f.y - t) * o) / l, 0, 1);
+          if (Math.hypot(e + r * u - f.x, t + o * u - f.y) < f.r - 2) return !0;
+        }
+        return !1;
+      }
+      // True while a fighter is stuck in the recovery of something it committed to.
+      recovering(e) {
+        let t = e.kit;
+        switch (e.state) {
+          case "attack": {
+            let s = t.basic()[e.combo];
+            return e.t > s.startup + s.active;
+          }
+          case "smash":
+            return e.t > 2 + t.smash.active;
+          case "dodge":
+            return e.t > t.dodge.ticks;
+          case "flame":
+            return !!e.flameEnd;
+          case "pump":
+            return e.t > 36;
+          case "flySlam":
+            return e.t >= 6;
+          case "guardEnd":
+          case "overheat":
+          case "stunned":
+            return !0;
+          default:
+            return !1;
+        }
+      }
+      // Guard only covers the front. The source is the attacker when it is close,
+      // otherwise the point of contact (projectiles, Dreepy, beams).
+      flanked(e, t, s, i) {
+        let r =
+            t &&
+            (t.kind === "player" || t.kind === "assist") &&
+            Math.hypot(t.x - e.x, t.y - e.y) < 70,
+          o = r ? t.x : s,
+          l = r ? t.y : i;
+        return (
+          Math.hypot(o - e.x, l - e.y) > 2 &&
+          Math.cos(Math.atan2(l - e.y, o - e.x) - e.facing) < FLANK_COS
+        );
+      }
       seedBody(e, t, s) {
         (e.seededT = 70),
           (e.seedOwner = t),
@@ -4031,9 +4303,22 @@
           e.x > B.x1 - e.r && (s.push([-1, 0]), (e.x = B.x1 - e.r)),
           e.y < B.y0 + e.r * 0.5 && (s.push([0, 1]), (e.y = B.y0 + e.r * 0.5)),
           e.y > B.y1 - e.r * 0.4 && (s.push([0, -1]), (e.y = B.y1 - e.r * 0.4)),
-          !!t)
+          !(e.kind === "player" && e.vanished))
         )
-          for (let [i, r] of s) {
+          for (let i of this.rocks) {
+            if (i.state !== "solid") continue;
+            let r = e.x - i.x,
+              o = e.y - i.y,
+              l = Math.hypot(r, o),
+              f = i.r + e.r;
+            if (l >= f) continue;
+            l < 0.01 && ((r = 0), (o = 1), (l = 1));
+            let u = r / l,
+              h = o / l;
+            (e.x = i.x + u * f), (e.y = i.y + h * f), s.push([u, h, i]);
+          }
+        if (t)
+          for (let [i, r, rk] of s) {
             let o = e.kvx * i + e.kvy * r;
             if (!(o >= 0))
               if (-o > 2.6) {
@@ -4049,6 +4334,7 @@
                     ny: r,
                     speed: -o,
                   }),
+                  rk && this.hitRock(rk, Math.round(-o * 6)),
                   e.kind === "player" &&
                     e.state === "launched" &&
                     !e.splatted &&
@@ -4194,6 +4480,20 @@
           }
           if (e.life <= 0) {
             (e.dead = !0), this.emit({ type: "projDie", p: e, wall: !1 });
+            continue;
+          }
+          // Will-O-Wisp is a ghost flame and drifts through cover.
+          let rk =
+            e.kind !== "wisp" &&
+            this.rocks.find(
+              (t) =>
+                t.state === "solid" &&
+                Math.hypot(t.x - e.x, t.y - e.y) < t.r + e.r,
+            );
+          if (rk) {
+            this.hitRock(rk, e.dmg, e.x, e.y),
+              (e.dead = !0),
+              this.emit({ type: "projDie", p: e, wall: !0 });
             continue;
           }
           (e.x < B.x0 || e.x > B.x1 || e.y < B.y0 - 4 || e.y > B.y1) &&
@@ -4359,6 +4659,12 @@
               c.heat = Math.min(100, c.heat + e.heat);
             }
           }
+          if (e.owner && e.owner.kind !== "dummy")
+            for (let t of this.rocks)
+              t.state === "solid" &&
+                this.shapeHits(e.shape, t.x, t.y, t.r) &&
+                this.canHitAgain(e, t) &&
+                this.hitRock(t, e.dmg);
           if (e.melee)
             for (let t of this.dreepy)
               t.team === e.team ||
@@ -4498,9 +4804,18 @@
           Q = e.kind === "player" ? Ua(this.attackerType(t), e.kit.type) : 1,
           ie = M && t && t.kind === "player" && t.slot.burnT > 0 ? 0.7 : 1,
           K = Math.round(s * ae.dmg * this.outgoingMult(t) * Q * ie);
+        let pun =
+          e.kind === "player" &&
+          !p &&
+          !!t &&
+          t.team !== e.team &&
+          this.recovering(e);
         if (e.kind === "player" && e.state === "guard" && !P) {
-          this.guardHit(e, t, K, r, o, l, f, M, p, C);
-          return;
+          if (e.t <= ae.parryWin || !this.flanked(e, t, c, y)) {
+            this.guardHit(e, t, K, r, o, l, f, M, p, C);
+            return;
+          }
+          this.emit({ type: "flank", who: e, attacker: t, x: e.x, y: e.y });
         }
         if (
           (t &&
@@ -4630,6 +4945,12 @@
             U = l || x ? 0.42 : p ? 0.12 : 0.24;
           (e.sqx = 1 + U * w - U * 0.6 * (1 - w)),
             (e.sqy = 1 + U * (1 - w) - U * 0.6 * w);
+        }
+        if (pun && this.tick - e.punishT > PUNISH_GAP) {
+          e.punishT = this.tick;
+          let w = t.kind === "player" ? t : (t.summoner ?? null);
+          w && w.stats && w.stats.punishes++,
+            this.emit({ type: "punish", who: e, by: w, x: e.x, y: e.y });
         }
         x && this.slow(28, 0.25),
           t &&
@@ -5066,7 +5387,7 @@
           });
         }
       }
-      flame(e, t, s, i) {
+      flame(e, t, s, i, f = 1 / 0) {
         for (let r = 0; r < i; r++) {
           let o = s + z(-0.22, 0.22),
             l = z(3.2, 5.2);
@@ -5078,7 +5399,7 @@
             vx: Math.cos(o) * l,
             vy: Math.sin(o) * l,
             vz: z(0, 0.25),
-            life: z(10, 16) | 0,
+            life: Math.max(2, Math.min(z(10, 16), f / l)) | 0,
             size: z(2, 3.2),
             grow: 0.28,
             color: "#ff8a3d",
@@ -5342,7 +5663,7 @@
       shadow: "rgba(8,10,14,0.38)",
     },
     Bt = null;
-  function Va() {
+  function Va(kind = 0) {
     let a = document.createElement("canvas");
     (a.width = Y), (a.height = _);
     let e = a.getContext("2d"),
@@ -5455,7 +5776,223 @@
       (e.fillStyle = `rgba(10,14,12,${0.18 - x * 0.045})`),
         e.fillRect(i.x0 + x, i.y0, 1, i.y1 - i.y0),
         e.fillRect(i.x1 - 1 - x, i.y0, 1, i.y1 - i.y0);
+    kind === 1 && Ka2(e, t, s);
     return a;
+  }
+  // Ruins floor: a worn flagstone plinth under every boulder spot, so a broken
+  // rock still marks where it will rise again, plus a few cracked slabs and moss.
+  function Ka2(e, t, s) {
+    let i = ["#7d776b", "#8a8477", "#726c61", "#958e80"];
+    for (let [r, o] of RUINS.spots) {
+      (e.fillStyle = "rgba(20,18,14,0.28)"),
+        e.beginPath(),
+        e.ellipse(r, o + 2, 25, 13, 0, 0, Math.PI * 2),
+        e.fill();
+      for (let l = -24; l <= 24; l += 6)
+        for (let f = -12; f <= 12; f += 4) {
+          let u = l / 25,
+            h = f / 13;
+          if (u * u + h * h > 1 || t() < 0.12) continue;
+          let c = i[(t() * i.length) | 0];
+          (e.fillStyle = c),
+            e.fillRect(r + l - 3 + ((f / 4) & 1) * 3, o + f, 5, 3);
+          (e.fillStyle = "#5c574e"),
+            e.fillRect(r + l - 3 + ((f / 4) & 1) * 3, o + f + 3, 5, 1);
+        }
+      for (let l = 0; l < 26; l++) {
+        let f = t() * Math.PI * 2,
+          u = 18 + t() * 9;
+        s(
+          Math.round(r + Math.cos(f) * u),
+          Math.round(o + Math.sin(f) * u * 0.5),
+          t() < 0.5 ? "#4f7a3c" : "#5f8f47",
+        );
+      }
+    }
+    for (let r = 0; r < 9; r++) {
+      let o = B.x0 + 40 + t() * (B.x1 - B.x0 - 80),
+        l = B.y0 + 20 + t() * (B.y1 - B.y0 - 40);
+      if (Math.hypot(o - Se, (l - Te) * 1.6) < 50) continue;
+      (e.fillStyle = "#8f8879"), e.fillRect(o | 0, l | 0, 9, 5);
+      (e.fillStyle = "#6c665b"), e.fillRect(o | 0, (l | 0) + 5, 9, 1);
+      s((o | 0) + 3, (l | 0) + 1, "#5c574e"),
+        s((o | 0) + 4, (l | 0) + 2, "#5c574e"),
+        s((o | 0) + 5, (l | 0) + 3, "#5c574e");
+    }
+  }
+  // ---- Ruins boulders and the Sitrus Berry ----
+  var Rk = null;
+  function Fk() {
+    let a = [];
+    for (let e = 0; e < 2; e++) {
+      let t = document.createElement("canvas");
+      (t.width = 36), (t.height = 34);
+      let s = t.getContext("2d"),
+        i = rt(91 + e * 17),
+        r = ["#4e4940", "#6a645a", "#857e71", "#a39b8a", "#c2baa6"],
+        o = (u, h) => {
+          let c = (u - 18) / 16,
+            y = (h - 19) / 14,
+            b = Math.atan2(y, c),
+            p = 1 + 0.12 * Math.sin(b * 3 + e * 2) + 0.06 * Math.sin(b * 5 + 1);
+          return c * c + y * y < p * p * (h < 12 ? 0.82 : 1);
+        };
+      for (let u = 0; u < 34; u++)
+        for (let h = 0; h < 36; h++) {
+          if (!o(h, u)) continue;
+          let c = !o(h - 1, u) || !o(h + 1, u) || !o(h, u - 1) || !o(h, u + 1),
+            y = (h - 18) / 16,
+            b = (u - 19) / 14,
+            p = -0.55 * y - 0.85 * b + 0.25 + (i() - 0.5) * 0.35,
+            k = Math.max(0, Math.min(r.length - 1, Math.round(1.5 + p * 1.6)));
+          u > 26 && (k = Math.min(k, 1)),
+            (s.fillStyle = c ? "#2b2722" : r[k]),
+            s.fillRect(h, u, 1, 1);
+        }
+      for (let u = 0; u < 22; u++) {
+        let h = 6 + ((i() * 24) | 0),
+          c = 6 + ((i() * 9) | 0);
+        o(h, c) &&
+          o(h, c + 2) &&
+          ((s.fillStyle = i() < 0.5 ? "#5f8f47" : "#76a756"),
+          s.fillRect(h, c, 1, 1));
+      }
+      a.push(t);
+    }
+    return a;
+  }
+  function ht2(a, e, t) {
+    Rk || (Rk = Fk());
+    let s = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
+      i = Math.round(e.x - 18 + s),
+      r = Math.round(e.y - 27);
+    a.drawImage(Rk[e.id % 2], i, r);
+    let o = 1 - e.hp / e.max;
+    if (o > 0.2) {
+      (a.strokeStyle = "#231f1b"), (a.lineWidth = 1), a.beginPath();
+      let l = rt(e.id);
+      for (let f = 0; f < Math.ceil(o * 5); f++) {
+        let u = i + 8 + l() * 20,
+          h = r + 8 + l() * 12;
+        a.moveTo(u, h),
+          a.lineTo(u + (l() - 0.5) * 8, h + 3 + l() * 4),
+          a.lineTo(u + (l() - 0.5) * 10, h + 7 + l() * 4);
+      }
+      a.stroke();
+    }
+    e.hitT > 3 &&
+      ((a.globalAlpha = 0.35),
+      (a.fillStyle = "#ffffff"),
+      a.beginPath(),
+      a.ellipse(e.x + s, e.y - 12, 14, 13, 0, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalAlpha = 1));
+  }
+  // Ground layer for a rock: contact shadow, rubble while broken, and a pulsing
+  // warning ring for the last two seconds before it rises again.
+  function rockGround(a, e, t) {
+    if (e.state === "solid") {
+      (a.fillStyle = "rgba(8,10,14,0.42)"),
+        a.beginPath(),
+        a.ellipse(
+          e.x + 2,
+          e.y + 3,
+          e.r + 3,
+          (e.r + 3) * 0.42,
+          0,
+          0,
+          Math.PI * 2,
+        ),
+        a.fill();
+      return;
+    }
+    let s = rt(e.id * 7);
+    for (let i = 0; i < 9; i++) {
+      let r = e.x + (s() - 0.5) * 26,
+        o = e.y + (s() - 0.5) * 12;
+      (a.fillStyle = i % 3 ? "#6a645a" : "#4e4940"),
+        a.fillRect(Math.round(r), Math.round(o), 3, 2);
+    }
+    if (e.t < RUINS.warn) {
+      let i = 1 - e.t / RUINS.warn,
+        r = 0.4 + 0.5 * Math.abs(Math.sin(t * 0.25));
+      (a.globalAlpha = r),
+        (a.strokeStyle = "#ffd25e"),
+        (a.lineWidth = 1 + i),
+        a.setLineDash([3, 2]),
+        (a.lineDashOffset = -t * 0.5),
+        a.beginPath(),
+        a.ellipse(e.x, e.y, e.r + 4, (e.r + 4) * 0.48, 0, 0, Math.PI * 2),
+        a.stroke(),
+        a.setLineDash([]),
+        (a.globalAlpha = 0.18 * i),
+        (a.fillStyle = "#ffd25e"),
+        a.beginPath(),
+        a.ellipse(e.x, e.y, e.r + 4, (e.r + 4) * 0.48, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 1);
+    }
+  }
+  function dt2(a, e, t) {
+    if (e.state === "warn") {
+      let l = e.t / SITRUS.warn,
+        f = 10 + (1 - l) * 16;
+      (a.globalAlpha = 0.5 + 0.4 * Math.abs(Math.sin(t * 0.3))),
+        (a.strokeStyle = "#ffd25e"),
+        (a.lineWidth = 1.5),
+        a.setLineDash([3, 3]),
+        (a.lineDashOffset = t * 0.6),
+        a.beginPath(),
+        a.ellipse(e.x, e.y, f, f * 0.45, 0, 0, Math.PI * 2),
+        a.stroke(),
+        a.setLineDash([]),
+        (a.globalAlpha = 0.35 * l),
+        (a.fillStyle = "rgba(8,10,14,1)"),
+        a.beginPath(),
+        a.ellipse(e.x, e.y, 3 + l * 3, (3 + l * 3) * 0.4, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 1);
+      return;
+    }
+    if (SITRUS.life - e.t < 120 && t % 8 < 4) return;
+    let s = Math.round(Math.sin(t * 0.12) * 1.5),
+      i = Math.round(e.x),
+      r = Math.round(e.y) - 9 + s;
+    (a.globalAlpha = 0.3 + 0.15 * Math.sin(t * 0.2)),
+      (a.strokeStyle = "#ffd25e"),
+      (a.lineWidth = 1),
+      a.beginPath(),
+      a.ellipse(e.x, e.y, 13, 5.5, 0, 0, Math.PI * 2),
+      a.stroke(),
+      (a.globalAlpha = 1),
+      (a.fillStyle = L.shadow),
+      a.beginPath(),
+      a.ellipse(e.x, e.y + 1, 5, 2, 0, 0, Math.PI * 2),
+      a.fill();
+    let o = [
+      "....gg....",
+      "...ggg....",
+      "..kkkgkk..",
+      ".kywwyyyk.",
+      "kyywyyyyok",
+      "kyyyyyyyok",
+      "kyyyyyyook",
+      ".kyyyyook.",
+      "..kooook..",
+      "...kkkk...",
+    ];
+    o.forEach((l, f) => {
+      for (let u = 0; u < l.length; u++) {
+        let h = {
+          g: "#4f9a3c",
+          k: "#5a3a12",
+          y: "#f7d24a",
+          o: "#d39a2c",
+          w: "#fff6c8",
+        }[l[u]];
+        h && ((a.fillStyle = h), a.fillRect(i - 5 + u, r - 6 + f, 1, 1));
+      }
+    });
   }
   function Ht(a) {
     return a.mon.anims[a.animName] ?? a.mon.anims.Idle ?? a.mon.anims.Walk;
@@ -5487,7 +6024,7 @@
       : Be(e, t.tick, 1);
   }
   function fa(a, e, t, s, i = !1) {
-    Bt || (Bt = Va()),
+    (Bt && Bt.kind === e.arena) || ((Bt = Va(e.arena)), (Bt.kind = e.arena)),
       a.setTransform(1, 0, 0, 1, 0, 0),
       (a.imageSmoothingEnabled = !1),
       (a.fillStyle = "#2a2f37"),
@@ -5575,6 +6112,8 @@
           a.stroke(),
           (a.globalAlpha = 1));
     }
+    for (let h of e.rocks) rockGround(a, h, e.tick);
+    e.item && dt2(a, e.item, e.tick);
     for (let h of e.dummies) {
       if (h.state !== "charge") continue;
       let c = h.t >= 15,
@@ -5735,11 +6274,14 @@
     a.globalAlpha = 1;
     for (let h of e.vines)
       h.y2 < h.y1 && ca(a, h.x1, h.y1, h.x2, h.y2, h.ext, e.tick);
-    let f = e
-      .bodies()
-      .filter((h) => !h.hidden)
-      .sort((h, c) => h.y - c.y);
-    for (let h of f) da(a, h, e, o(h.px, h.x), o(h.py, h.y), o(h.pz, h.z));
+    let f = [
+      ...e.bodies().filter((h) => !h.hidden),
+      ...e.rocks.filter((h) => h.state === "solid"),
+    ].sort((h, c) => h.y - c.y);
+    for (let h of f)
+      h.max !== void 0 && h.kind === void 0
+        ? ht2(a, h, e.tick)
+        : da(a, h, e, o(h.px, h.x), o(h.py, h.y), o(h.pz, h.z));
     for (let h of e.vines)
       h.y2 >= h.y1 && ca(a, h.x1, h.y1, h.x2, h.y2, h.ext, e.tick);
     for (let h of e.players) {
@@ -5752,17 +6294,30 @@
           k = 9 + 11 * p,
           M = h.t <= 6,
           P = p < 0.3 ? "#ef5a4f" : M ? "#ffffff" : b;
+        // The shield only wraps the front; the open back shows where a flank gets through.
+        let C = Math.acos(FLANK_COS),
+          x = h.facing - C,
+          v = h.facing + C;
         (a.globalAlpha = 0.22),
           (a.fillStyle = P),
           a.beginPath(),
-          a.arc(c, y - 12, k, 0, Math.PI * 2),
+          a.moveTo(c, y - 12),
+          a.arc(c, y - 12, k, x, v),
+          a.closePath(),
           a.fill(),
           (a.globalAlpha = 0.85),
           (a.strokeStyle = P),
-          (a.lineWidth = M ? 2 : 1),
+          (a.lineWidth = M ? 2 : 1.5),
           a.beginPath(),
-          a.arc(c, y - 12, k, 0, Math.PI * 2),
+          a.arc(c, y - 12, k, x, v),
           a.stroke(),
+          (a.globalAlpha = 0.3),
+          (a.lineWidth = 1),
+          a.setLineDash([2, 3]),
+          a.beginPath(),
+          a.arc(c, y - 12, k, v, x + Math.PI * 2),
+          a.stroke(),
+          a.setLineDash([]),
           (a.globalAlpha = 0.6),
           (a.fillStyle = "#ffffff"),
           a.fillRect(
@@ -5992,7 +6547,8 @@
       (a.fillStyle = "rgba(8,10,14,0.86)"),
         a.fillRect(-20, -20, Y + 40, _ + 40);
       for (let h of f)
-        da(a, h, e, o(h.px, h.x), o(h.py, h.y), o(h.pz, h.z), !0);
+        h.kind !== void 0 &&
+          da(a, h, e, o(h.px, h.x), o(h.py, h.y), o(h.pz, h.z), !0);
     }
     if (
       (A.showHitboxes && ja(a, e),
@@ -7745,17 +8301,25 @@
         });
     let p = 242;
     if (
-      (Pe("X", H / 2 - 66, p, 3.4),
+      (Pe("X", H / 2 - 118, p, 3.4),
       G(
         `Mode: ${s ? "VS CPU" : "Training"}`,
-        H / 2 - 60,
+        H / 2 - 112,
         p + 2.4,
         7,
         "#cfcaea",
       ),
       s &&
-        (Pe("Y", H / 2 + 8, p, 3.4),
-        G(`CPU: ${i}`, H / 2 + 14, p + 2.4, 7, r, { weight: 700 })),
+        (Pe("Y", H / 2 - 40, p, 3.4),
+        G(`CPU: ${i}`, H / 2 - 34, p + 2.4, 7, r, { weight: 700 })),
+      G(
+        `Arena: ${A.arena === 1 ? "Ruins" : "Stadium"}`,
+        H / 2 + 36 + Pe("SELECT", H / 2 + 32, p, 3.4) / 2,
+        p + 2.4,
+        7,
+        A.arena === 1 ? "#c9bfa6" : "#cfcaea",
+        { weight: 700 },
+      ),
       a.picks.length === 2 && (!s || a.cpuPicks.length === 2))
     ) {
       let M = 1 + 0.04 * Math.sin(t * 0.2);
@@ -7929,14 +8493,15 @@
       ["KOs", ce.kos, pe?.kos ?? 0, "", !0],
       ["Smash hits", ce.smashHits, pe?.smashHits ?? 0, "", !0],
       ["Parries", ce.parries, pe?.parries ?? 0, "", !0],
+      ["Punishes", ce.punishes ?? 0, pe?.punishes ?? 0, "", !0],
       ["Guard breaks", ce.breaks, pe?.breaks ?? 0, "", !0],
       ["Best combo", ce.bestCombo, pe?.bestCombo ?? 0, "", !0],
       ["Accuracy", we(ce), pe ? we(pe) : 0, "%", !0],
     ].forEach(([q, le, Ne, ve, Ce], de) => {
       let Xe = Ee((s - 26 - de * 3) / 10);
       if (Xe <= 0) return;
-      let De = w + 52 + de * 15.5,
-        st = $ + 14 - de * 15.5 * ke * 0.2;
+      let De = w + 52 + de * 14,
+        st = $ + 14 - de * 14 * ke * 0.2;
       d.save(),
         (d.globalAlpha = se * Xe),
         d.translate(m((1 - Xe) * 20), 0),
@@ -8233,7 +8798,7 @@
       ["A", "Attack. The combo continues only if hits land"],
       ["R-STICK", "Smash attack: flick to fire, hold to charge"],
       ["B", "Dodge. Press it as you land from a launch to tech"],
-      ["R2", "Guard. Raise it just before a hit to parry"],
+      ["R2", "Guard covers your front. Raise it just before a hit to parry"],
       ["X", "Special 1"],
       ["Y", "Special 2"],
       ["R1", "Hold to lock on (with R-stick: pick a target)"],
@@ -8246,7 +8811,7 @@
       Pe(i, a + 36, l, 3.8), G(r, a + 58, l + 2.6, 7.4, "#d9d4f2");
     }),
       G(
-        "Keyboard: WASD move, J attack, K dodge, L and I specials, arrows Smash, O guard, Shift lock, Q switch, E assist",
+        "Keyboard: WASD move, J attack, K dodge, L and I specials, arrows Smash, O guard, Shift lock, Q switch, E assist, Tab arena (team select)",
         a + t / 2,
         e + 16 + s.length * 15 + 3,
         5.8,
@@ -9321,7 +9886,9 @@
           s.picks.length === 2 && A.gameMode === 0 && (s.roulette = 48)),
         n.pressed.has("special2") &&
           D &&
-          ((A.cpuLevel = (A.cpuLevel + 1) % 3), Ze(), S.ui(!0));
+          ((A.cpuLevel = (A.cpuLevel + 1) % 3), Ze(), S.ui(!0)),
+        n.pressed.has("select") &&
+          ((A.arena = (A.arena + 1) % 2), Ze(), S.ui(!0));
       let R =
         s.picks.length === 2 && (A.gameMode === 1 || s.cpuPicks.length === 2);
       if ((n.pressed.has("start") || n.pressed.has("confirm")) && R) {
@@ -9379,7 +9946,8 @@
         if (
           ((A[D.key] = (((A[D.key] + n) % R) + R) % R),
           D.key === "dummyCount" && e.syncDummies(),
-          D.key === "gameMode" && ie("Applies to your next battle"),
+          (D.key === "gameMode" || D.key === "arena") &&
+            ie("Applies to your next battle"),
           D.key === "dummyMode")
         )
           for (let W of e.dummies)
@@ -9624,6 +10192,62 @@
               t.dust(n.victim.x, n.victim.y, n.heavy ? 6 : 3, -n.dx, -n.dy);
           break;
         }
+        case "flank":
+          t.popup(
+            n.x,
+            n.y - 48,
+            "FLANKED!",
+            n.who === D ? "#ef5a4f" : L.gold,
+            !0,
+          ),
+            t.ring(n.x, n.y - 12, 6, 2.4, 14, "#ef5a4f");
+          break;
+        case "punish":
+          t.popup(
+            n.x,
+            n.y - 56,
+            "PUNISH!",
+            n.who === D ? "#ef5a4f" : L.gold,
+            !1,
+          ),
+            n.by === D && S.callout(0);
+          break;
+        case "rockHit":
+          t.debris(n.x, n.y - 10, 3, 0, -0.4), t.dust(n.x, n.y, 2, 0, 0, 0.6);
+          break;
+        case "rockBreak":
+          S.wall(),
+            S.guardBreak(),
+            t.shake(0, 1, 5),
+            t.debris(n.x, n.y - 10, 16, 0, -0.6),
+            t.dust(n.x, n.y, 14, 0, 0, 2),
+            t.ring(n.x, n.y, 8, 3, 16, "#c9bfa6", !0);
+          break;
+        case "rockRise":
+          S.land(),
+            t.dust(n.x, n.y, 10, 0, 0, 1.6),
+            t.ring(n.x, n.y, 6, 2.4, 14, "#ffd25e", !0);
+          break;
+        case "itemWarn":
+          t.popup(n.x, n.y - 24, "SITRUS BERRY INCOMING", L.gold, !1);
+          break;
+        case "itemSpawn":
+          S.select(),
+            t.ring(n.x, n.y, 4, 2, 14, L.gold, !0),
+            t.motes(n.x, n.y, 8, 10, L.gold, 1);
+          break;
+        case "itemGet":
+          S.heal(),
+            t.heal(n.x, n.y, 10),
+            t.ring(n.x, n.y, 6, 2.6, 16, "#9cf28a", !0),
+            t.popup(n.x, n.y - 40, `+${n.amount} HP`, "#9cf28a", !0),
+            n.who === D
+              ? t.banner("SITRUS BERRY", "#9cf28a", 40, "health restored")
+              : t.banner("CPU GRABBED THE BERRY", "#ef5a4f", 40);
+          break;
+        case "itemGone":
+          t.dust(n.x, n.y, 4, 0, 0, 0.6);
+          break;
         case "swing":
           S.swing(n.heavy),
             t.dust(
@@ -10137,7 +10761,13 @@
           e.isFlaming(T))
         ) {
           let ee = e.flameDir(T);
-          t.flame(T.x + Math.cos(ee) * 6, T.y + Math.sin(ee) * 6 - 2, ee, 3);
+          t.flame(
+            T.x + Math.cos(ee) * 6,
+            T.y + Math.sin(ee) * 6 - 2,
+            ee,
+            3,
+            e.rayLen(T.x, T.y, ee, 1 / 0) + 4,
+          );
         }
         Z?.state === "qa" && e.tick % 2 === 0 && ve(Z, be, 8);
       }

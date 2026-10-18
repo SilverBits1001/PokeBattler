@@ -8,6 +8,12 @@ Open `index.html` in a browser. A gamepad is recommended; the keyboard works too
 (WASD move, J attack, K dodge, L and I specials, arrows smash, O guard, Shift lock,
 Q switch, E assist).
 
+## What's new
+
+See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
+callouts, the Ruins arena with breakable boulders, and the Sitrus Berry pickup.
+Arena and items can be switched in Options → Match.
+
 ## Layout
 
 | Path | What it is |
