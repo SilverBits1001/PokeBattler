@@ -531,9 +531,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           radius: 10,
         },
         xName: "RAZOR LEAF",
-        yName: "LEECH SEED",
+        yName: "SOLAR BEAM",
         xCd: 45,
-        yCd: 70,
+        yCd: 30,
+        seedCd: 70,
       },
       blastoise: {
         id: "blastoise",
@@ -725,6 +726,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       (a.smash.recovery = Math.round(a.smash.recovery * PACE.recovery)),
       (a.dodge.cooldown = Math.round(a.dodge.cooldown * PACE.cooldown)),
       (a.xCd = Math.round(a.xCd * PACE.cooldown)),
+      a.seedCd && (a.seedCd = Math.round(a.seedCd * PACE.cooldown)),
       (a.yCd = Math.round(a.yCd * PACE.cooldown));
   }
   var qt = [
@@ -816,6 +818,22 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             (i.mx = (o.x - t.x) / u), (i.my = (o.y - t.y) / u);
           }
         }
+        t.state === "solar" &&
+          s &&
+          Math.hypot(s.x - t.x, s.y - t.y) < 75 &&
+          r.cdDodge === 0 &&
+          (i.pressed.add("dodge"),
+          (i.mx = (t.x - s.x) / 75),
+          (i.my = (t.y - s.y) / 75));
+        t.kit.id === "dragapult" &&
+          t.state === "attack" &&
+          t.combo === 1 &&
+          t.swingHit &&
+          this.flurrySwing !== t.swingId &&
+          ((this.flurrySwing = t.swingId),
+          this.rand() < [0.2, 0.45, 0.65][this.level ?? A.cpuLevel] &&
+            (this.holdA = 18 + Math.floor(this.rand() * 26)));
+        this.holdA > 0 && (i.held.add("attack"), this.holdA--);
         let l = Math.hypot(i.mx, i.my);
         if (l > 0.2 && e.rocks.length) {
           let f = i.mx / l,
@@ -1177,17 +1195,30 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                     r() < 0.3 &&
                     i.pressed.add("special2");
           else if (f === "venusaur") {
+            let J = u.solar ?? 0,
+              fe = !e.losBlocked(t.x, t.y, o.x, o.y);
             if (o.kind === "player" && o.state === "withdraw")
-              return u.cdY === 0 && r() < 0.5 && i.pressed.add("special2"), i;
-            y < 22 && u.cdDodge === 0 && r() < 0.4
-              ? ((i.mx = -Math.cos(b)),
-                (i.my = -Math.sin(b)),
-                i.pressed.add("dodge"))
-              : y < 50 || (N && y < 70)
-                ? i.pressed.add("attack")
-                : u.cdY === 0 && y < 140 && r() < 0.35
-                  ? i.pressed.add("special2")
-                  : u.cdX === 0 && y < 220 && i.pressed.add("special1");
+              return (
+                u.cdX === 0 &&
+                  r() < 0.5 &&
+                  (i.pressed.add("special1"), (this.holdX = 16)),
+                i
+              );
+            J >= 0.45 && u.cdY === 0 && fe && y < 250 && r() < 0.5
+              ? i.pressed.add("special2")
+              : y < 22 && u.cdDodge === 0 && r() < 0.4
+                ? ((i.mx = -Math.cos(b)),
+                  (i.my = -Math.sin(b)),
+                  i.pressed.add("dodge"))
+                : y < 50 || (N && y < 70)
+                  ? i.pressed.add("attack")
+                  : u.cdX === 0 && y < 140 && r() < 0.35
+                    ? (i.pressed.add("special1"), (this.holdX = 16))
+                    : u.cdY === 0 && J < 0.05 && y > 110 && r() < 0.3
+                      ? i.pressed.add("special2")
+                      : u.cdX === 0 &&
+                        y < 220 &&
+                        (i.pressed.add("special1"), (this.holdX = 0));
           } else if (f === "dragapult") {
             let J = (o.burnT ?? 0) > 0,
               fe = o.kind === "player" && o.kit.type === "FIRE",
@@ -1240,7 +1271,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 : u.cdY === 0 &&
                     y < 120 &&
                     (e.recovering(o.kind === "player" ? o : t) || r() < 0.2)
-                  ? i.pressed.add("special2")
+                  ? (i.pressed.add("special2"),
+                    (this.holdY = 10 + Math.floor(r() * 40)))
                   : u.cdX === 0 &&
                     y > 40 &&
                     y < 210 &&
@@ -1420,6 +1452,16 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     FLAME = { range: 108, near: 1.45, far: 0.35 },
     // Blastoise artillery. Mega Launcher: shots fired from its own puddle hit harder
     // and fly further. Withdraw is now guard pressed while standing in a puddle.
+    // Venusaur Solar Beam: charge, keep it stored by dodging or guarding, fire later.
+    SOLAR = {
+      chargeTicks: 100,
+      rootedRate: 1.6,
+      range: 280,
+      minDmg: 18,
+      maxDmg: 90,
+    },
+    // Dragapult rapid claws: hold A after the second hit.
+    FLURRY = { every: 4, dmg: 6, minTicks: 10, maxTicks: 50 },
     BLAST = {
       pulseDmg: 14,
       pulseSpeed: 3.6,
@@ -2004,6 +2046,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           i = e.slot;
         (e.holdX = t.held.has("special1")),
           (e.holdG = t.held.has("guard")),
+          (e.holdA = t.held.has("attack")),
           (e.holdY = t.held.has("special2")),
           (e.holdB = t.held.has("dodge"));
         let r = [
@@ -2260,6 +2303,22 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           case "seed":
             this.tickSeed(e, P, p, k);
             break;
+          case "leafAim":
+            // Tap X for Razor Leaf; keep holding past the threshold for Leech Seed.
+            this.locomote(e, 0, 0),
+              !e.holdX
+                ? ((e.state = "leaf"), (e.t = 4))
+                : e.t >= 10 && ((e.state = "seed"), (e.t = 0));
+            break;
+          case "solar":
+            this.tickSolar(e, P, f, u);
+            break;
+          case "solarFire":
+            this.tickSolarFire(e, P);
+            break;
+          case "flurry":
+            this.tickFlurry(e, P);
+            break;
           case "darts":
             this.tickDarts(e, P);
             break;
@@ -2430,6 +2489,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         if (
           (e.state === "flame" && !e.flameEnd && (e.slot.cdX = i.xCd),
           e.state === "pump" && (e.slot.cdY = i.yCd),
+          e.state === "solar" && this.storeSolar(e),
           (e.state === "withdraw" || e.state === "spin") &&
             (e.slot.cdW = BLAST.withdrawCd),
           (e.flameEnd = 0),
@@ -2641,6 +2701,20 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           }
         }
         let f = r.startup + r.active + 2;
+        if (
+          e.kit.id === "dragapult" &&
+          e.combo === 1 &&
+          e.swingHit &&
+          e.holdA &&
+          !e.chainQueued &&
+          e.t >= f
+        ) {
+          (e.state = "flurry"),
+            (e.t = 0),
+            (e.moveId = this.nextId++),
+            this.emit({ type: "flurryStart", who: e });
+          return;
+        }
         if (e.chainQueued && e.swingHit && e.combo < i.length - 1 && e.t >= f) {
           this.startAttack(e, e.combo + 1, t);
           return;
@@ -2678,6 +2752,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         return o;
       }
       startDodge(e, t) {
+        e.state === "solar" && this.storeSolar(e);
         let s = e.kit.dodge;
         (e.state = "dodge"),
           (e.t = 0),
@@ -3093,7 +3168,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             e.mega && this.emit({ type: "mega", who: e }),
             t === "x"
               ? ((e.state = "pulse"), (e.pulseShots = 0))
-              : ((e.state = "pump"), this.emit({ type: "pumpStart", who: e }));
+              : ((e.state = "pump"),
+                (e.pumpAt = 0),
+                (e.cannonC = 0),
+                this.emit({ type: "pumpStart", who: e }));
         else if (i.id === "dragapult")
           if (t === "x") {
             if (!r.horns.includes("loaded")) {
@@ -3118,7 +3196,17 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             }
             e.state = "darts";
           } else e.state = "wisp";
-        else e.state = t === "x" ? "leaf" : "seed";
+        else
+          t === "x"
+            ? (e.state = "leafAim")
+            : r.solar > 0.05
+              ? ((e.state = "solarFire"),
+                (e.solarC = r.solar),
+                (r.solar = 0),
+                this.emit({ type: "solarRelease", who: e }))
+              : ((e.state = "solar"),
+                (e.solarC = 0),
+                this.emit({ type: "solarStart", who: e }));
       }
       tickDarts(e, t) {
         if ((e.t <= 1 && ((e.dir2 = t), (e.facing = t)), e.t === 2)) {
@@ -3474,7 +3562,12 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       isPumping(e) {
         if (e.kind === "player") {
           let t = e;
-          return t.state === "pump" && t.t > 14 && t.t <= 34;
+          return (
+            t.state === "pump" &&
+            t.pumpAt > 0 &&
+            t.t - t.pumpAt >= 1 &&
+            t.t - t.pumpAt <= 20
+          );
         }
         if (e.kind === "assist") {
           let t = e;
@@ -3606,31 +3699,157 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         }),
           o % 6 === 0 && this.addPuddle(h, c, 13, t);
       }
+      // Hydro Cannon: hold Y to build pressure. Release to fire early; at full it
+      // fires by itself. Once charging starts it cannot be cancelled.
       tickPump(e, t, s) {
         let i = e.lock
           ? Math.atan2(e.lock.y - e.y, e.lock.x - e.x)
           : t > 0.3
             ? s
             : e.dir2;
-        (e.dir2 = e.t > 14 ? We(e.dir2, i, 0.03) : i),
+        if ((this.locomote(e, 0, 0), !e.pumpAt)) {
+          (e.dir2 = i), (e.facing = i), (e.cannonC = Math.min(1, e.t / 48));
+          ((!e.holdY && e.t >= 10) || e.cannonC >= 1) &&
+            ((e.pumpAt = e.t),
+            e.cannonC >= 1 && this.emit({ type: "smashFull", who: e }),
+            this.emit({ type: "cannonFire", who: e, c: e.cannonC }));
+          return;
+        }
+        let r = e.t - e.pumpAt,
+          o = e.cannonC,
+          l = e.mega ? BLAST.megaRange : 1;
+        (e.dir2 = We(e.dir2, i, 0.03)),
           (e.facing = e.dir2),
-          e.t > 14 &&
-            e.t <= 34 &&
+          r >= 1 &&
+            r <= 20 &&
             (this.pumpBeam(
               e,
               e.team,
               e.dir2,
               e.moveId,
-              Math.round(BLAST.cannonDmg * (e.mega ? BLAST.megaDmg : 1)),
-              e.t - 14,
-              BLAST.cannonLen * (e.mega ? BLAST.megaRange : 1),
-              2.4,
+              Math.round(
+                BLAST.cannonDmg *
+                  (0.7 + 0.6 * o) *
+                  (e.mega ? BLAST.megaDmg : 1),
+              ),
+              r - 1,
+              BLAST.cannonLen * (0.75 + 0.25 * o) * l,
+              1.8 + 1.4 * o,
             ),
             (e.kvx -= Math.cos(e.dir2) * 0.16),
             (e.kvy -= Math.sin(e.dir2) * 0.16)),
-          e.t === 35 && (e.slot.cdY = e.kit.yCd),
+          r === 21 && (e.slot.cdY = e.kit.yCd),
+          r >= 48 && ((e.state = "move"), (e.t = 0));
+      }
+      storeSolar(e) {
+        e.slot.solar = Math.max(e.slot.solar ?? 0, e.solarC ?? 0);
+        e.slot.solar > 0.05 &&
+          this.emit({ type: "solarStore", who: e, c: e.slot.solar });
+      }
+      tickSolar(e, t, s, i) {
+        this.locomote(e, 0, 0),
+          (e.dir2 = this.aimAssist(e, t, 260)),
+          (e.facing = e.dir2);
+        let r = (e.rooted ? SOLAR.rootedRate : 1) / SOLAR.chargeTicks;
+        if (((e.solarC = Math.min(1, e.solarC + r)), e.solarC >= 1)) {
+          (e.slot.solar = 1),
+            (e.state = "move"),
+            (e.t = 0),
+            this.emit({ type: "smashFull", who: e }),
+            this.emit({ type: "solarStore", who: e, c: 1 });
+          return;
+        }
+        if (e.t >= 8 && s("special2")) {
+          i("special2"),
+            (e.state = "solarFire"),
+            (e.t = 0),
+            this.emit({ type: "solarRelease", who: e });
+          return;
+        }
+        e.holdG && (this.storeSolar(e), (e.state = "move"), (e.t = 0));
+      }
+      tickSolarFire(e, t) {
+        let s = e.solarC;
+        if (
+          (e.t <= 6 &&
+            ((e.dir2 = this.aimAssist(e, t, 260)), (e.facing = e.dir2)),
           this.locomote(e, 0, 0),
-          e.t >= 62 && ((e.state = "move"), (e.t = 0));
+          e.t > 6 && e.t <= 20)
+        ) {
+          let i = e.x + Math.cos(e.dir2) * 10,
+            r = e.y + Math.sin(e.dir2) * 10,
+            o = this.beamEnd(i, r, e.dir2, SOLAR.range);
+          this.beams.push({
+            x1: i,
+            y1: r,
+            x2: o.x,
+            y2: o.y,
+            owner: e,
+            age: e.t - 6,
+            solar: s,
+          }),
+            e.t <= 9 &&
+              this.hitboxes.push({
+                id: e.moveId,
+                team: e.team,
+                owner: e,
+                shape: {
+                  kind: "capsule",
+                  x1: i,
+                  y1: r,
+                  x2: o.x,
+                  y2: o.y,
+                  r: 8 + 6 * s,
+                },
+                dmg: Math.round(
+                  SOLAR.minDmg + (SOLAR.maxDmg - SOLAR.minDmg) * s,
+                ),
+                kb: 2.5 + 5.5 * s,
+                kbMode: "dir",
+                dx: Math.cos(e.dir2),
+                dy: Math.sin(e.dir2),
+                heavy: s > 0.6,
+                hitstop: s > 0.6 ? A.hitstopHeavy : A.hitstopLight,
+                hitstun: Math.round(16 + 12 * s),
+                color: "#ffe27a",
+                rehit: 0,
+                attackerStop: !1,
+                src: "solar",
+              });
+        }
+        e.t === 21 && (e.slot.cdY = e.kit.yCd),
+          e.t >= 40 && ((e.state = "move"), (e.t = 0));
+      }
+      // Dragapult: hold A after the second claw for a flurry, then the tail sweep.
+      tickFlurry(e, t) {
+        this.locomote(e, 0, 0),
+          e.t <= 2 &&
+            ((e.atkDir = this.aimAssist(e, t, 90)), (e.facing = e.atkDir));
+        let s = Math.cos(e.atkDir),
+          i = Math.sin(e.atkDir);
+        e.t % FLURRY.every === 1 &&
+          (this.hitboxes.push({
+            id: e.moveId,
+            team: e.team,
+            owner: e,
+            shape: { kind: "circle", x: e.x + s * 17, y: e.y + i * 17, r: 16 },
+            dmg: FLURRY.dmg,
+            kb: 0.8,
+            kbMode: "dir",
+            dx: s,
+            dy: i,
+            heavy: !1,
+            hitstop: 1,
+            hitstun: 12,
+            color: e.kit.color,
+            rehit: FLURRY.every,
+            attackerStop: !1,
+            src: "flurry",
+            melee: !0,
+          }),
+          this.emit({ type: "flurryHit", who: e, dx: s, dy: i }));
+        ((!e.holdA && e.t >= FLURRY.minTicks) || e.t >= FLURRY.maxTicks) &&
+          this.startAttack(e, 2, e.atkDir);
       }
       canWithdraw(e) {
         return (
@@ -3865,7 +4084,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             me(r, B.x0 + 8, B.x1 - 8),
             me(o, B.y0 + 8, B.y1 - 6),
           ),
-            (e.slot.cdY = e.kit.yCd);
+            (e.slot.cdX = e.kit.seedCd);
         }
         this.locomote(e, 0, 0), e.t >= 20 && ((e.state = "move"), (e.t = 0));
       }
@@ -4014,8 +4233,20 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 ((e.animName = "Hurt"), (e.animFrame = 0));
             break;
           case "pump":
-            (e.animName = e.t <= 14 ? "Charge" : "Shoot"),
-              (e.animFrame = e.t <= 14 ? Math.floor(e.t / 2.8) : 2);
+            (e.animName = e.pumpAt ? "Shoot" : "Charge"),
+              (e.animFrame = e.pumpAt ? 2 : Math.floor(e.t / 2.5) % 6);
+            break;
+          case "leafAim":
+          case "solar":
+            (e.animName = "Charge"), (e.animFrame = Math.floor(e.t / 4) % 4);
+            break;
+          case "solarFire":
+            (e.animName = "Shoot"),
+              (e.animFrame = Math.min(3, Math.floor(e.t / 3)));
+            break;
+          case "flurry":
+            (e.animName = e.t % 8 < 4 ? "Attack" : "Double"),
+              (e.animFrame = Math.floor(e.t / 2) % 3);
             break;
           case "pulse":
             (e.animName = "Shoot"),
@@ -4465,7 +4696,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           case "flame":
             return !!e.flameEnd;
           case "pump":
-            return e.t > 34;
+            return e.pumpAt > 0 && e.t - e.pumpAt > 20;
+          case "solarFire":
+            return e.t > 20;
           case "pulse":
             return e.t > (e.pulseShots > 1 ? 30 : 16);
           case "flySlam":
@@ -5156,6 +5389,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
           } else if (!E) {
             w.state === "flame" && !w.flameEnd && (U.cdX = w.kit.xCd),
               w.state === "pump" && (U.cdY = w.kit.yCd),
+              w.state === "solar" && this.storeSolar(w),
               (w.flameEnd = 0);
             let N = p ? 1 : Math.max(0.45, 1 - ae.decay * (v - 1)),
               J = Math.round((w.rooted ? u * 0.5 : u) * N);
@@ -6838,6 +7072,26 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         (a.textAlign = "start");
     }
     for (let h of e.beams) {
+      if (h.solar !== void 0) {
+        let C = Math.max(0, 1 - h.age / 14),
+          x = (6 + 10 * h.solar) * (0.4 + 0.6 * C) + (e.tick % 2);
+        a.lineCap = "round";
+        for (let [v, E, Q] of [
+          ["rgba(255,226,122,0.35)", 2.2, 0.9],
+          ["#ffd25e", 1.2, 1],
+          ["#fff6c8", 0.6, 1],
+          ["#ffffff", 0.22, 1],
+        ])
+          (a.globalAlpha = Q * (0.3 + 0.7 * C)),
+            (a.strokeStyle = v),
+            (a.lineWidth = Math.max(1, x * E)),
+            a.beginPath(),
+            a.moveTo(h.x1, h.y1 - 9),
+            a.lineTo(h.x2, h.y2 - 9),
+            a.stroke();
+        (a.globalAlpha = 1), (a.lineCap = "butt");
+        continue;
+      }
       let y = e.tick % 2,
         b = h.x1,
         p = h.y1 - 9,
@@ -7926,6 +8180,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
         FLAMETHROWER: "Flame",
         "HYDRO PUMP": "Pump",
         "WATER PULSE": "Pulse",
+        "SOLAR BEAM": "Solar",
         "HYDRO CANNON": "Cannon",
         "RAZOR LEAF": "Leaf",
         "LEECH SEED": "Seed",
@@ -8503,9 +8758,18 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
                 : "#ff8a3d",
           ))
         : f.id === "venusaur"
-          ? t.rooted
-            ? ue("ROOTED", "#3f8a35", v, E)
-            : G("Stand still to root", v, E + 5.6, 5.8, g.dim)
+          ? (l.solar ?? 0) > 0.05
+            ? ue(
+                l.solar >= 1
+                  ? "SOLAR READY"
+                  : `SOLAR ${Math.round(l.solar * 100)}%`,
+                e.frame % 30 < 15 || l.solar < 1 ? "#b8901e" : "#e0b22e",
+                v,
+                E,
+              )
+            : t.rooted
+              ? ue("ROOTED", "#3f8a35", v, E)
+              : G("Stand still to root", v, E + 5.6, 5.8, g.dim)
           : f.id === "blastoise"
             ? a.inPuddle(t.x, t.y, t.team, !0)
               ? ue("MEGA LAUNCHER", "#2f6fc0", v, E)
@@ -9548,58 +9812,139 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     o(a.player, e + 16, "Your team", g.p1),
       o(a.cpu, e + 24 + r, a.cpu ? "CPU team" : "Opponents", g.cpu);
   }
+  // Move list. The fourth field is the move's type, shown as a tag.
   var Ra = {
     charizard: [
-      ["A", "Claw combo", "3 fast hits. The third is a spinning finisher."],
-      ["RS", "Flare Blitz", "Smash: fiery charging tackle. Launches hard."],
-      ["B", "Air dash", "Long dash with invincibility."],
-      ["X", "Flamethrower", "Long stream of fire. Hurts most up close."],
-      ["Y", "Fly", "Rise, steer the marker, slam down. A or Y lands early."],
-      ["*", "Heat", "Hits build heat for more damage. At 100 you overheat."],
-      ["*", "Blaze", "Low HP: fire hits harder. Can't be burned."],
-    ],
-    venusaur: [
-      ["A", "Vine Whip", "Longest reach. Hit 2 yanks the target in."],
-      ["RS", "Power Whip", "Smash: slow vine slam with huge reach."],
-      ["B", "Roll", "Short dodge. Stay out of reach instead."],
-      ["X", "Razor Leaf", "3 homing leaves (4 rooted). Deflect Dreepy."],
-      ["Y", "Leech Seed", "Lob a seed that slows and drains."],
-      ["*", "Rooted", "Stand still: no knockback, less damage."],
-      ["*", "Sprout", "Untouched seeds become healing grass."],
-    ],
-    blastoise: [
-      ["A", "Shell combo", "Bash, Aqua Tail, then an armored Body Slam."],
-      ["RS", "Skull Bash", "Smash: armored headbutt rush. Hits hardest."],
-      ["B", "Shell Slide", "Brief invincibility, then armored. Bumps enemies."],
-      ["X", "Water Pulse", "Ring shot that dazes. Hold for a 3-shot volley."],
+      [
+        "A",
+        "Claw combo",
+        "3 fast hits. The third is a spinning finisher.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Flare Blitz",
+        "Fiery charging tackle. Charge longer to launch harder.",
+        "OPTIONAL CHARGE",
+      ],
+      ["B", "Air dash", "Long dash with invincibility.", "DODGE"],
+      [
+        "X",
+        "Flamethrower",
+        "Hold for a long stream. Hurts most up close.",
+        "HOLD",
+      ],
       [
         "Y",
-        "Hydro Cannon",
-        "Plant and blast a short, heavy beam. Long recovery.",
+        "Fly",
+        "Rise, steer the marker, slam down. A or Y lands early.",
+        "MULTI-STAGE",
       ],
       [
         "*",
-        "Mega Launcher",
-        "Shots fired from a puddle hit harder and fly further.",
+        "Heat",
+        "Hits build heat for more damage. At 100 you overheat.",
+        "PASSIVE",
+      ],
+    ],
+    venusaur: [
+      ["A", "Vine Whip", "Longest reach. Hit 2 yanks the target in.", "COMBO"],
+      [
+        "RS",
+        "Power Whip",
+        "Slow vine slam with huge reach.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Razor Leaf / Leech Seed",
+        "Tap: 3 homing leaves. Hold: lob a draining seed.",
+        "TAP / HOLD",
+      ],
+      [
+        "Y",
+        "Solar Beam",
+        "Charge; dodge or guard to keep it. Y fires it later.",
+        "STORABLE CHARGE",
+      ],
+      ["B", "Roll", "Short dodge. Stay out of reach instead.", "DODGE"],
+      [
+        "*",
+        "Rooted",
+        "Stand still: no knockback, less damage, faster Solar.",
+        "PASSIVE",
+      ],
+    ],
+    blastoise: [
+      [
+        "A",
+        "Shell combo",
+        "Bash, Aqua Tail, then an armored Body Slam.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Skull Bash",
+        "Armored headbutt rush. Hits hardest.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Water Pulse",
+        "Ring shot that dazes. Hold for a 3-shot volley.",
+        "TAP / HOLD",
+      ],
+      [
+        "Y",
+        "Hydro Cannon",
+        "Hold to build pressure; fires itself when full.",
+        "FORCED CHARGE",
       ],
       [
         "*",
         "Withdraw",
         "Guard in a puddle to block and counter. Release to spin.",
+        "COUNTER",
+      ],
+      [
+        "*",
+        "Mega Launcher",
+        "Shots from a puddle hit harder and fly further.",
+        "PASSIVE",
       ],
     ],
     dragapult: [
       [
         "A",
         "Phantom Claws",
-        "2 ghost swipes and a tail sweep. Finisher +40% on burned.",
+        "2 swipes, then hold A for a flurry or tap for the tail.",
+        "RAPID",
       ],
-      ["RS", "Dragon Rush", "Smash: a long dive straight through the target."],
-      ["B", "Phantom", "Tap: vanish-dodge. Hold: Phantom Force strike."],
-      ["X", "Dragon Darts", "Fire both Dreepy. Press again to recall them."],
-      ["Y", "Will-O-Wisp", "Fast ghost flame. Burn weakens their melee."],
-      ["*", "Hex", "Darts deal +30% to burned targets."],
-      ["*", "Light load", "15% faster while the Dreepy are out."],
+      [
+        "RS",
+        "Dragon Rush",
+        "Long dive straight through the target.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "B",
+        "Phantom",
+        "Tap: vanish-dodge. Hold: Phantom Force strike.",
+        "MULTI-STAGE",
+      ],
+      [
+        "X",
+        "Dragon Darts",
+        "Fire both Dreepy. Press again to recall them.",
+        "SUMMON",
+      ],
+      [
+        "Y",
+        "Will-O-Wisp",
+        "Fast ghost flame. Burn weakens their melee.",
+        "PROJECTILE",
+      ],
+      ["*", "Hex", "Darts deal +30% to burned targets.", "PASSIVE"],
     ],
   };
   function ds(a, e, t, s, i) {
@@ -9629,12 +9974,23 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       G("Left / right: other Pok\xE9mon", e + s - 16, t + 41, 6, g.dim, {
         align: "right",
       }),
-      Ra[r].forEach(([l, f, u], h) => {
+      Ra[r].forEach(([l, f, u, k], h) => {
         let c = t + 56 + h * 21;
         l === "*"
           ? te(e + 18, c - 3, 7, 6, o.color, 1.4)
           : Pe(l, e + 22, c, 3.8),
           G(f, e + 32, c + 2.4, 8, g.chalk, { weight: 700 }),
+          k &&
+            ue(
+              k,
+              k === "PASSIVE" ? g.dim : o.color,
+              e + 36 + ye(f, 8, je, 700),
+              c - 1.6,
+              {
+                size: 4.6,
+                text: g.night,
+              },
+            ),
           G(u, e + 32, c + 11, 6.6, g.haze);
       });
   }
@@ -10285,6 +10641,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       title: "k...h.h.s...h.h.",
       tfill: "k...h.h.s.s.sss.",
       none: "................",
+      rush: "k.hks.hkk.hks.hs",
+      stab: "k..k..k.s.k.k.s.",
+      roll: "k.s.k.s.ssssssss",
     },
     Ha = {
       C: [0, 4, 7],
@@ -10294,6 +10653,10 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       E: [4, 8, 11],
       Dm: [2, 5, 9],
       Em: [4, 7, 11],
+      Bb: [10, 14, 17],
+      Gm: [7, 10, 14],
+      A: [9, 13, 16],
+      Bdim: [11, 14, 17],
     },
     dt = (a, e, t, s = []) =>
       a.map((i, r) => ({
@@ -10383,13 +10746,84 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       ["title", "title", "title", "title", "title", "title", "title", "tfill"],
       Array(8).fill({ bass: "half", arp: "up" }),
     ),
+    // Battle theme in the spirit of a Pokémon trainer battle: a chromatic run-down
+    // intro, a driving A-minor verse over pumping octave bass and a 16th-note
+    // arpeggio, a brighter chorus with a doubled lead, and a rising bridge.
+    Bi = dt(
+      [
+        "A5 G#5 G5 F#5 F5 E5 D#5 D5 C#5 C5 B4 A#4 A4 - - -",
+        "A4 . A4 . A4 . C5 . A4 . A4 . D#5 - E5 -",
+      ],
+      ["A", "E"],
+      ["intro", "stab"],
+      [
+        { bass: "pedal", arp: "off" },
+        { bass: "pump", arp: "off" },
+      ],
+    ),
+    Bv = dt(
+      [
+        "A5 - - - E5 - A5 - B5 - C6 - B5 - A5 -",
+        "G#5 - - - E5 - - - B4 - - - E5 - G#5 -",
+        "F5 - - - C5 - F5 - G5 - A5 - G5 - F5 -",
+        "E5 - - - - - - - D5 - E5 - F5 - G#5 -",
+        "A5 - - - E5 - A5 - C6 - D6 - E6 - - -",
+        "D6 - - - C6 - B5 - A5 - - - G5 - A5 -",
+        "A#5 - - - A5 - G5 - F5 - G5 - A5 - A#5 -",
+        "B5 - G#5 - E5 - B4 - E5 - G#5 - B5 - D6 -",
+      ],
+      ["Am", "E", "F", "E", "Am", "Dm", "Bb", "E"],
+      ["rush", "rush", "rush", "rush", "rush", "rush", "rush", "fill"],
+      [
+        { bass: "pump", arp: "roll" },
+        { bass: "pump", arp: "roll" },
+        { bass: "pump", arp: "roll" },
+        { bass: "pump", arp: "roll" },
+        { bass: "pump", arp: "roll" },
+        { bass: "pump", arp: "roll" },
+        { bass: "pump", arp: "roll" },
+        { bass: "walk", arp: "roll" },
+      ],
+    ),
+    Bc = dt(
+      [
+        "C6 - - - - - - - B5 - C6 - D6 - - -",
+        "D6 - - - - - - - C6 - B5 - G5 - - -",
+        "B5 - - - - - - - A5 - G5 - E5 - - -",
+        "A5 - - - - - - - E5 - A5 - C6 - - -",
+        "D6 - C6 - D6 - F6 - E6 - D6 - C6 - A5 -",
+        "B5 - - - G#5 - - - E5 - G#5 - B5 - E6 -",
+        "C6 - B5 - A5 - G#5 - A5 - B5 - C6 - D6 -",
+        "E6 - - - D#6 - D6 - C#6 - C6 - B5 - G#5 -",
+      ],
+      ["F", "G", "Em", "Am", "Dm", "E", "Am", "E"],
+      ["main", "main", "main", "main", "rush", "rush", "rush", "roll"],
+      Array(8).fill({ bass: "drive", arp: "roll", dbl: !0 }),
+    ),
+    Bb2 = dt(
+      [
+        "A4 - - - - - - - C5 - - - E5 - - -",
+        "F5 - - - - - - - E5 - - - C5 - - -",
+        "D5 - - - - - - - F5 - - - A5 - - -",
+        "G#5 - A5 - B5 - C6 - D6 - E6 - F6 - G#6 -",
+      ],
+      ["Am", "F", "Dm", "E"],
+      ["half", "half", "main", "roll"],
+      [
+        { bass: "half", arp: "roll" },
+        { bass: "half", arp: "roll" },
+        { bass: "drive", arp: "roll" },
+        { bass: "pump", arp: "roll" },
+      ],
+    ),
     ws = {
       battle: {
-        bpm: 168,
-        bars: [...bs, ...za, ...ps, ...za, ...gs],
+        bpm: 176,
+        bars: [...Bi, ...Bv, ...Bc, ...Bv, ...Bb2, ...Bc],
         loopFrom: 2,
         lead: "p25",
         leadVol: 0.1,
+        arpVol: 0.045,
       },
       title: { bpm: 126, bars: ks, loopFrom: 0, lead: "p50", leadVol: 0.085 },
     },
@@ -10541,14 +10975,35 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             hold: C * 0.55,
             vib: f.lens[t] >= 4 ? 16 : 0,
             vibDelay: 0.14,
-          });
+          }),
+            o.dbl &&
+              Qe(
+                l,
+                s,
+                "p12",
+                at(c - 12),
+                at(c - 12),
+                C * 0.9,
+                r.leadVol * 0.55,
+                {
+                  hold: C * 0.5,
+                },
+              );
         }
         let y = o.arp ?? "up";
         if (y !== "off") {
           let C = [u[0], u[1], u[2], u[0] + 12].map((E) => 60 + E),
             x = y === "roll" ? [0, 1, 2, 3, 2, 1, 0, 1] : [0, 1, 2, 3],
             v = C[x[t % x.length]];
-          Qe(l, s, "p12", at(v), at(v), i * 0.85, y === "roll" ? 0.04 : 0.032);
+          Qe(
+            l,
+            s,
+            "p12",
+            at(v),
+            at(v),
+            i * 0.85,
+            r.arpVol ?? (y === "roll" ? 0.04 : 0.032),
+          );
         }
         let b = o.bass ?? "drive",
           p = h + (u[2] - u[0]),
@@ -10560,6 +11015,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             ((k = t === 0 ? h - 12 : p - 12), (M = 7)),
           b === "half" && (t === 6 || t === 14) && ((k = h), (M = 2)),
           b === "pedal" && t % 2 === 0 && (k = t % 4 === 0 ? 40 : 52),
+          b === "pump" && ((k = t % 2 === 0 ? h - 12 : h), (M = 1)),
           b === "walk" &&
             t % 2 === 0 &&
             (k = [h - 12, h - 12, p - 12, p - 12, h, h, p, h + 12][t / 2]),
@@ -11453,6 +11909,46 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
             t.motes(n.who.x, n.who.y, 12, 8, L.water),
             t.glint(n.who, n.who.kit.tall * Bz(n.who) * 0.8, "#8fd0f5");
           break;
+        case "solarStart":
+          S.charge(), t.motes(n.who.x, n.who.y, 14, 6, "#ffe27a", 0.8);
+          break;
+        case "solarStore":
+          S.cdReady(),
+            t.popup(
+              n.who.x,
+              n.who.y - 44,
+              n.c >= 1 ? "SOLAR READY" : `STORED ${Math.round(n.c * 100)}%`,
+              "#ffe27a",
+              n.c >= 1,
+            );
+          break;
+        case "solarRelease":
+          S.smashRelease(1),
+            t.glint(n.who, n.who.kit.tall * Bz(n.who) * 0.8, "#ffe27a"),
+            t.ring(n.who.x, n.who.y - 12, 6, 2.4, 12, "#ffe27a");
+          break;
+        case "cannonFire":
+          S.splash(),
+            t.shake(Math.cos(n.who.dir2), Math.sin(n.who.dir2), 1.5 + 3 * n.c),
+            t.ring(n.who.x, n.who.y - 10, 5, 2 + 2 * n.c, 12, "#8fd0f5");
+          break;
+        case "flurryStart":
+          t.popup(n.who.x, n.who.y - 44, "FLURRY!", "#c9b6ff", !1);
+          break;
+        case "flurryHit": {
+          let R = Math.atan2(n.dy, n.dx) + (Math.random() - 0.5) * 0.9;
+          t.slash(
+            n.who,
+            R,
+            18,
+            0.55,
+            3,
+            Math.random() < 0.5 ? 1 : -1,
+            Math.random() < 0.5 ? "#c9b6ff" : be,
+            7,
+          );
+          break;
+        }
         case "pulse":
           S.splash(),
             t.splash(
@@ -11755,6 +12251,36 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       de = { x: !0, y: !0, assist: !0, kit: "" };
     function Xe() {
       let n = e.player;
+      // Charge tells: Solar gathering light, stored Solar glinting, cannon pressure.
+      for (let T of e.players) {
+        if (T.state === "faint") continue;
+        T.state === "solar" &&
+          (e.tick % 8 === 0 &&
+            t.ring(
+              T.x,
+              T.y - 14,
+              10 + 10 * (1 - T.solarC),
+              -1.1,
+              10,
+              "#ffe27a",
+            ),
+          e.tick % 3 === 0 && t.motes(T.x, T.y, 18, 1, "#fff6c8", 0.5)),
+          (T.slot.solar ?? 0) > 0.05 &&
+            T.state !== "solar" &&
+            e.tick % 20 === 0 &&
+            t.motes(T.x, T.y, 16, 2, "#ffe27a", 0.5),
+          T.state === "pump" &&
+            !T.pumpAt &&
+            e.tick % 3 === 0 &&
+            t.splash(
+              T.x + Math.cos(T.dir2) * 12,
+              T.y + Math.sin(T.dir2) * 12,
+              10,
+              1 + Math.round(T.cannonC * 3),
+              0,
+              0,
+            );
+      }
       for (let T of e.projectiles)
         T.kind === "orb" &&
           e.tick % 2 === 0 &&
@@ -11801,7 +12327,9 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
       }
       for (let T of e.beams)
         e.tick % 2 === 0 &&
-          t.splash(T.x2, T.y2, 9, 3, T.x2 - T.x1, T.y2 - T.y1);
+          (T.solar !== void 0
+            ? T.age < 10 && t.motes(T.x2, T.y2, 9, 3, "#ffe27a", 1.2)
+            : t.splash(T.x2, T.y2, 9, 3, T.x2 - T.x1, T.y2 - T.y1));
       let D = n.slot;
       if (
         (e.players.forEach((T, Z) => {

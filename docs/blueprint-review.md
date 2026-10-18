@@ -93,3 +93,25 @@ select screen with **Select** (Tab on keyboard).
 Numbers live in `BLAST` in `src/game.js`. The CPU fires pulses and volleys at mid range,
 saves Hydro Cannon for close range or when you are recovering, and Withdraws only when it
 is standing in water.
+
+## Move types (Smash-style) and new battle music
+
+Every move now has a type, shown as a tag in the Moves list:
+
+| Type | Smash reference | Where |
+| --- | --- | --- |
+| Combo | Jab strings | Every A attack |
+| Rapid | Rapid jab | Dragapult: hold A after the second claw for a flurry, release for the tail sweep |
+| Optional charge | Smash attacks | Every R-stick smash |
+| Storable charge | Samus Charge Shot, DK Giant Punch | Venusaur Solar Beam: charge, dodge/guard/switch or get hit to keep it, Y fires it later. Full charge stores itself. Rooted charges 60% faster. |
+| Forced charge | Ike Eruption | Blastoise Hydro Cannon: hold to build pressure, release to fire early, fires itself when full, cannot be cancelled |
+| Tap / hold | Different moves on one button | Venusaur X (tap Razor Leaf, hold Leech Seed), Blastoise X (tap shot, hold volley) |
+| Hold | Sustained moves | Charizard Flamethrower |
+| Multi-stage | Up-specials with follow-ups | Charizard Fly, Dragapult Phantom Force |
+| Counter | Counters | Blastoise Withdraw |
+| Summon | Puppet / projectile minions | Dragapult Dragon Darts |
+
+**Music:** a new battle theme at 176 BPM in the style of a Pokémon trainer battle. It opens
+with a chromatic run-down and stabs, then a driving A-minor verse over 16th-note octave bass
+and arpeggios, a brighter chorus with an octave-doubled lead, and a tense half-time bridge
+that climbs back into the chorus.
