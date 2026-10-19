@@ -40,6 +40,8 @@
       fx: 0,
       colors: 0,
       swapSp: 0,
+      // Mid-fight callouts: 0 = icons and sounds, 1 = words as well.
+      cueText: 0,
       dummyCount: 1,
       dummyMode: 0,
       // Free-for-All: how many fighters, you included (3 or 4).
@@ -71,6 +73,7 @@
       "fx",
       "colors",
       "swapSp",
+      "cueText",
     ];
   function Vt() {
     try {
@@ -185,6 +188,12 @@
       key: "swapSp",
       label: "Swap specials (X / Y)",
       options: ["Off", "On"],
+    },
+    {
+      kind: "choice",
+      key: "cueText",
+      label: "Battle callouts",
+      options: ["Icons", "Icons + words"],
     },
     { kind: "header", label: "Practice" },
     {
@@ -3265,6 +3274,53 @@
     yt = { strong: 1.05, weak: 0.95 },
     // Banners that may take the middle of the screen: the round's flow only.
     BANNER_CENTER = /^(READY\?|GO!|K\.O\.!|VICTORY!|DEFEAT|DRAW|TIME)/,
+    // Mid-fight words become icons: there is no time to read in a fight.
+    // Each callout maps to a glyph (and a sound for statuses); move names and
+    // anything the animation already shows are dropped. Numbers stay.
+    CUE_WORDS = [
+      [/^STORED/, null],
+      [/^HEX/, "eye"],
+      [/^(ARMOR|BLOCKED|DETECT|SPIKES UP)/, "shield"],
+      [/^(ANCIENT POWER|OVERCHARGE|ATTACK UP)/, "up"],
+      [/^(ABSORBED|RECOVER|REST$)|REVIVED$/, "plus"],
+      [/^(ITEM INCOMING|GO!$)/, "ball"],
+      [/^(DODGED|SPEED UP)/, "dash"],
+      [/^(REFLECT|SHELL COUNTER|SYNCHRONIZE|BOUNCE)/, "bounce"],
+      [/^SEEDED/, "leaf"],
+      [/^ROOTED/, "root"],
+      [/^COOLED/, "snow"],
+      [/^(MELTED|SACRED FIRE|BURNED)/, "flame"],
+      [/^(SHORTED|DISABLED|NO )/, "no"],
+      [/^LOCKED ON/, "cross"],
+      [/^CONFUSED/, "swirl"],
+      [/^(SHATTER|WALL SPLAT|SPIKED|FLANKED)/, "burst"],
+      [/^FROZEN/, "ice"],
+      [/^(FLINCH|DAZED)/, "stars"],
+      [/^(DROWSY|FELL ASLEEP)/, "z"],
+      [/^POISONED/, "drop"],
+      [/^(LOCK-ON ZAP|PARALYZED)/, "bolt"],
+      [/^LEGEND READY/, "star"],
+      [/^SOLAR READY/, "sun"],
+      [/^SHIELD CRUSH/, "shieldX"],
+      [/^(PARRY|PUNISH|ANALYTIC)/, "spark"],
+      [/^(TECH|SUPER EFFECTIVE)/, "up2"],
+      [/^not very effective/, "down2"],
+    ],
+    ITEM_CUE = {
+      sitrus: "plus",
+      xatk: "up",
+      pokeball: "ball",
+      helmet: "shield",
+      scarf: "dash",
+    },
+    SURGE_CUE = ["sun", "burst", "flame", "snow", "bolt"],
+    ARENA_TIPS = [
+      "Spotlights recharge your specials",
+      "Break cover for Ancient Power \u2014 mind the collapse",
+      "Erupted vents run hot: +25% damage",
+      "Dodge on ice to slide further",
+      "Stand by a live pylon to recharge",
+    ],
     // Free-for-All damage scale per Pokémon. Last one standing rewards
     // range and escapes far more than a duel does, so each kit's damage is
     // tuned for this mode on its own (duels and team modes use 1).
@@ -13929,6 +13985,20 @@
         });
       }
       popup(e, t, s, i, r) {
+        // Words become an icon (plus any number they carry); words with no
+        // icon are dropped, since the animation already shows the move.
+        let ic = null;
+        if (!/^[+-]?\d+$/.test(s)) {
+          let hit = CUE_WORDS.find(([re]) => re.test(s)),
+            num = /([+-]?\d+)(?: HP)?$/.exec(s)?.[1] ?? "";
+          /^RECOIL/.test(s) && (num = "-" + num);
+          ic = hit ? hit[1] : null;
+          if (!A.cueText) {
+            if (!ic && !num) return;
+            s = num;
+          }
+          ic && cueSound(ic);
+        }
         // Stack above any fresh popup at the same spot, so a status word
         // never sits on top of the damage number.
         for (let o = 0; o < 4; o++) {
@@ -13949,6 +14019,7 @@
           max: r ? 46 : 34,
           color: i,
           big: r,
+          icon: ic,
           vy: r ? -0.9 : -0.7,
         });
       }
@@ -13960,18 +14031,26 @@
       // everything that happens mid-fight is a compact pill under the HUD, so
       // it never covers the fighters. One of each at a time: a new one cuts
       // the current one of its kind short.
-      banner(e, t, s = 50, i, top) {
+      banner(e, t, s = 50, i, top, cue) {
         top ??= !BANNER_CENTER.test(e);
+        // A mid-fight banner flashes the screen edge in its colour, so it
+        // registers even when your eyes are on the fight.
+        top &&
+          cue &&
+          ((this.vignette = Math.max(this.vignette, 0.7)),
+          (this.vignetteColor = hexRgb(t)),
+          cue.icon && cueSound(cue.icon));
         this.banners = this.banners.filter((r) => r.text !== e);
         for (let r of this.banners)
           r.top === top && (r.life = Math.min(r.life, 10));
         this.banners.push({
           text: e,
           sub: i,
-          life: top ? Math.min(s, 110) : s,
-          max: top ? Math.min(s, 110) : s,
+          life: top ? Math.min(s, cue && !A.cueText ? 70 : 110) : s,
+          max: top ? Math.min(s, cue && !A.cueText ? 70 : 110) : s,
           color: t,
           top,
+          cue,
         });
       }
       tick() {
@@ -17185,11 +17264,13 @@
         a.ellipse(c, y, 14, 6, 0, 0, Math.PI * 2),
         a.stroke(),
         (a.globalAlpha = 1));
-      let b = [
-        h.xatkT > 0 ? ["ATK+", "#ff6a5a"] : null,
-        h.helmetT > 0 ? ["HELMET", "#c9a26b"] : null,
-        h.scarfT > 0 ? ["SCARF", "#5ab0ff"] : null,
-      ].filter(Boolean);
+      let b = A.cueText
+        ? [
+            h.xatkT > 0 ? ["ATK+", "#ff6a5a"] : null,
+            h.helmetT > 0 ? ["HELMET", "#c9a26b"] : null,
+            h.scarfT > 0 ? ["SCARF", "#5ab0ff"] : null,
+          ].filter(Boolean)
+        : [];
       (a.font = fontOf(6, je, 700)), (a.textAlign = "center");
       b.forEach(([p, k], M) => {
         let P = y + 10 + M * 7;
@@ -17199,6 +17280,63 @@
           a.fillText(p, c, P);
       }),
         (a.textAlign = "start");
+    }
+    // Status strip: one icon per effect on each fighter, over its head, so
+    // a burn, a stun or a buff reads at a glance. Blinks as it runs out.
+    for (let h of [...e.players, ...e.dummies]) {
+      if (h.hidden || h.vanished || h.state === "faint" || h.state === "ko")
+        continue;
+      let sl = h.slot ?? {},
+        T = (k) => Math.max(h[k] ?? 0, sl[k] ?? 0),
+        ch = Math.max(h.chill ?? 0, sl.chill ?? 0),
+        b = [
+          T("burnT") > 0 && ["flame", "#ff8a3d", T("burnT")],
+          T("poisonT") > 0 && ["drop", "#c060d0", T("poisonT")],
+          T("seededT") > 0 && ["leaf", "#9be36b", T("seededT")],
+          T("paraT") > 0 && ["bolt", "#f8d030", T("paraT")],
+          (T("dazeT") > 0 || h.state === "stunned") && [
+            "stars",
+            "#ffe27a",
+            T("dazeT") || 99,
+          ],
+          T("frozenT") > 0
+            ? ["ice", "#bfe8ff", T("frozenT")]
+            : ch > 0 && ["snow", "#bfe8ff", 99, Math.ceil(ch)],
+          T("confT") > 0 && ["swirl", "#ffe27a", T("confT")],
+          T("curseT") > 0 && ["eye", "#b48cff", T("curseT")],
+          (T("drowsyT") > 0 || (h.asleepUntil ?? 0) > e.tick) && [
+            "z",
+            "#cfe3ff",
+            99,
+          ],
+          h.xatkT > 0 && ["up", "#ff6a5a", h.xatkT],
+          h.helmetT > 0 && ["shield", "#c9a26b", h.helmetT],
+          h.scarfT > 0 && ["dash", "#5ab0ff", h.scarfT],
+        ].filter(Boolean);
+      if (!b.length) continue;
+      let c = o(h.px, h.x),
+        y =
+          o(h.py, h.y) -
+          o(h.pz, h.z) -
+          (h.kit ? h.kit.tall * Bz(h) : 30) -
+          (h.kind === "player" && e.players.length > 2 ? 41 : 26),
+        // Party modes zoom the camera out: bigger icons keep them readable.
+        z = e.players.length > 2 ? 1.25 : 1,
+        w = 9 * z;
+      b.forEach(([k, p, left, pips], M) => {
+        let P = c + (M - (b.length - 1) / 2) * w;
+        (left < 45 && e.tick % 8 < 4) ||
+          ((a.fillStyle = "rgba(10,8,22,0.6)"),
+          a.beginPath(),
+          a.arc(P, y, 4.6 * z, 0, Math.PI * 2),
+          a.fill(),
+          cueGlyph(a, k, P, y, 3.4 * z, p),
+          pips &&
+            ((a.fillStyle = p),
+            [0, 1, 2]
+              .slice(0, pips)
+              .forEach((q) => a.fillRect(P - 3 + q * 2.4, y + 5.2, 1.6, 1.6))));
+      });
     }
     // Smash-style player tags: a coloured "P1" / "CPU" flag with a pointer over each fighter.
     for (let h of e.players) {
@@ -19675,8 +19813,11 @@
   // HUD status tag under the name for the second-generation kits.
   function exHudTag(a, t, l, f, v, E, h) {
     let id = f.id,
-      hint = (s) => G(s, v, E + 5.6, 5.8, g.dim);
-    if (t.frozenT > 0) return ue("FROZEN", "#7cc8ec", v, E);
+      hint = (s) => A.cueText && G(s, v, E + 5.6, 5.8, g.dim);
+    if (t.frozenT > 0)
+      return A.cueText
+        ? ue("FROZEN", "#7cc8ec", v, E)
+        : ueIcon("ice", "#7cc8ec", v, E);
     if (id === "garchomp")
       return l.rage > 0
         ? ue(
@@ -20355,6 +20496,15 @@
       l
     );
   }
+  // A status chip as an icon: the chip's colour with a white glyph.
+  function ueIcon(k, c, x, y, h = 6.44) {
+    let w = h * 1.45;
+    return (
+      te(x, y, w, h, c),
+      cueGlyph(d, k, m(x + w / 2), m(y + h / 2), m(h * 0.36), "#ffffff"),
+      w
+    );
+  }
   var ya = (a, e, t, s = !1) => ue(a, Rt[a] ?? "#888", e, t, { right: s });
   function Oe(a, e, t, s, i, r = {}) {
     let o = i * 0.2,
@@ -20740,6 +20890,492 @@
       d.fillRect(0, 0, m(H), m(oe)),
       d.restore();
   }
+  function hexRgb(h) {
+    let n = parseInt(String(h).replace("#", "").slice(0, 6), 16) || 0;
+    return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+  }
+  // A short sound for each status cue, so you hear a burn, a freeze or a
+  // stun land without looking. Throttled: a volley plays one.
+  var cueHeard = {};
+  function cueSound(k) {
+    if (!O()) return;
+    let now = Da();
+    if ((cueHeard[k] ?? -1) > now - 0.12) return;
+    cueHeard[k] = now;
+    switch (k) {
+      case "drop":
+        I("sine", F(79), F(70), 0.07, 0.09),
+          I("sine", F(76), F(66), 0.07, 0.08, 0.07),
+          I("sine", F(73), F(62), 0.08, 0.07, 0.14);
+        break;
+      case "bolt":
+        I("saw", F(74), F(86), 0.05, 0.05),
+          I("p12", F(86), F(74), 0.05, 0.05, 0.05),
+          I("saw", F(74), F(90), 0.06, 0.05, 0.1);
+        break;
+      case "stars":
+        I("p25", F(93), F(93), 0.05, 0.05),
+          I("p25", F(88), F(88), 0.05, 0.05, 0.08),
+          I("p25", F(93), F(93), 0.05, 0.05, 0.16),
+          I("p25", F(88), F(88), 0.05, 0.04, 0.24);
+        break;
+      case "swirl":
+        I("sine", F(76), F(64), 0.28, 0.08, 0, { vib: 60, vibDelay: 0 });
+        break;
+      case "ice":
+        I("tri", F(96), F(96), 0.18, 0.08),
+          I("tri", F(100), F(100), 0.22, 0.06, 0.05),
+          X(0.12, "highpass", 6e3, 1, 0.05);
+        break;
+      case "snow":
+        I("tri", F(91), F(91), 0.1, 0.05);
+        break;
+      case "eye":
+        I("wave", F(52), F(40), 0.35, 0.11, 0, { vib: 40 });
+        break;
+      case "z":
+        I("wave", F(67), F(60), 0.22, 0.06),
+          I("wave", F(64), F(57), 0.22, 0.05, 0.2);
+        break;
+      case "no":
+        I("p50", F(45), F(43), 0.09, 0.07),
+          I("p50", F(40), F(38), 0.12, 0.07, 0.09);
+        break;
+      case "up":
+        I("p25", F(72), F(72), 0.06, 0.06),
+          I("p25", F(76), F(76), 0.06, 0.06, 0.06),
+          I("p25", F(79), F(79), 0.06, 0.06, 0.12),
+          I("p25", F(84), F(84), 0.1, 0.06, 0.18);
+        break;
+      case "up2":
+        I("p25", F(84), F(84), 0.06, 0.06),
+          I("p25", F(91), F(91), 0.12, 0.06, 0.07);
+        break;
+      case "down2":
+        I("p50", F(55), F(55), 0.08, 0.05),
+          I("p50", F(50), F(50), 0.14, 0.05, 0.09);
+        break;
+      case "star":
+        I("p25", F(84), F(84), 0.07, 0.06),
+          I("p25", F(88), F(88), 0.07, 0.06, 0.07),
+          I("p25", F(91), F(91), 0.07, 0.06, 0.14),
+          I("p25", F(96), F(96), 0.16, 0.06, 0.21);
+        break;
+      case "root":
+        I("tri", F(48), F(36), 0.16, 0.12);
+        break;
+      case "leaf":
+        I("tri", F(79), F(86), 0.07, 0.05);
+        break;
+      case "x":
+        I("p50", F(60), F(48), 0.3, 0.07);
+        break;
+      case "dash":
+        X(0.1, "bandpass", 2400, 1.4, 0.08, 5e3);
+        break;
+    }
+  }
+  // One battle-cue icon, centred on (x, y) with radius r in the context's
+  // own pixels. Dark outline first so each reads on any arena floor.
+  function cueGlyph(c, k, x, y, r, col, al = 1) {
+    let ink = "rgba(10,8,22,0.92)",
+      P = (pts, close = !0) => {
+        c.beginPath();
+        pts.forEach(([u, v], i) => (i ? c.lineTo(u, v) : c.moveTo(u, v)));
+        close && c.closePath();
+      },
+      solid = (fill = col) => {
+        (c.strokeStyle = ink),
+          (c.lineWidth = 0.46),
+          c.stroke(),
+          (c.fillStyle = fill),
+          c.fill();
+      },
+      line = (w = 0.34, stroke = col) => {
+        (c.strokeStyle = ink),
+          (c.lineWidth = w + 0.34),
+          c.stroke(),
+          (c.strokeStyle = stroke),
+          (c.lineWidth = w),
+          c.stroke();
+      },
+      star = (n, ro, ri, rot = -Math.PI / 2) => {
+        let pts = [];
+        for (let i = 0; i < n * 2; i++) {
+          let q = rot + (i * Math.PI) / n,
+            rr = i % 2 ? ri : ro;
+          pts.push([Math.cos(q) * rr, Math.sin(q) * rr]);
+        }
+        P(pts);
+      },
+      shield = () => {
+        c.beginPath(),
+          c.moveTo(0, -0.95),
+          c.lineTo(0.82, -0.62),
+          c.lineTo(0.72, 0.2),
+          c.quadraticCurveTo(0.52, 0.72, 0, 1),
+          c.quadraticCurveTo(-0.52, 0.72, -0.72, 0.2),
+          c.lineTo(-0.82, -0.62),
+          c.closePath();
+      };
+    c.save(),
+      c.translate(x, y),
+      c.scale(r, r),
+      (c.globalAlpha *= al),
+      (c.lineJoin = "round"),
+      (c.lineCap = "round");
+    switch (k) {
+      case "flame":
+        c.beginPath(),
+          c.moveTo(0.05, -1),
+          c.bezierCurveTo(0.55, -0.45, 0.9, 0, 0.72, 0.45),
+          c.bezierCurveTo(0.56, 0.98, -0.56, 0.98, -0.72, 0.45),
+          c.bezierCurveTo(-0.84, 0.02, -0.4, -0.18, -0.24, -0.58),
+          c.bezierCurveTo(-0.04, -0.32, 0.14, -0.55, 0.05, -1),
+          c.closePath(),
+          solid(),
+          c.beginPath(),
+          c.ellipse(0, 0.5, 0.28, 0.34, 0, 0, Math.PI * 2),
+          (c.fillStyle = "rgba(255,250,200,0.9)"),
+          c.fill();
+        break;
+      case "drop":
+        c.beginPath(),
+          c.moveTo(0, -1),
+          c.bezierCurveTo(0.35, -0.5, 0.74, -0.08, 0.74, 0.3),
+          c.arc(0, 0.3, 0.74, 0, Math.PI),
+          c.bezierCurveTo(-0.74, -0.08, -0.35, -0.5, 0, -1),
+          c.closePath(),
+          solid(),
+          c.beginPath(),
+          c.arc(-0.26, 0.3, 0.16, 0, Math.PI * 2),
+          (c.fillStyle = "rgba(255,255,255,0.75)"),
+          c.fill();
+        break;
+      case "leaf":
+        c.beginPath(),
+          c.moveTo(-0.82, 0.82),
+          c.quadraticCurveTo(-0.85, -0.85, 0.88, -0.88),
+          c.quadraticCurveTo(0.85, 0.85, -0.82, 0.82),
+          c.closePath(),
+          solid(),
+          P(
+            [
+              [-0.55, 0.55],
+              [0.45, -0.45],
+            ],
+            !1,
+          ),
+          (c.strokeStyle = "rgba(20,60,20,0.7)"),
+          (c.lineWidth = 0.14),
+          c.stroke();
+        break;
+      case "bolt":
+        P([
+          [0.28, -1],
+          [-0.62, 0.14],
+          [-0.06, 0.14],
+          [-0.3, 1],
+          [0.62, -0.2],
+          [0.06, -0.2],
+        ]),
+          solid();
+        break;
+      case "stars":
+        c.save(),
+          c.translate(-0.42, -0.22),
+          star(4, 0.62, 0.2),
+          solid(),
+          c.restore(),
+          c.save(),
+          c.translate(0.5, 0.4),
+          star(4, 0.44, 0.15),
+          solid(),
+          c.restore();
+        break;
+      case "swirl": {
+        c.beginPath();
+        for (let i = 0; i <= 40; i++) {
+          let q = (i / 40) * Math.PI * 3.4,
+            rr = 0.08 + (i / 40) * 0.84;
+          i
+            ? c.lineTo(Math.cos(q) * rr, Math.sin(q) * rr)
+            : c.moveTo(Math.cos(q) * rr, Math.sin(q) * rr);
+        }
+        line(0.28);
+        break;
+      }
+      case "snow":
+        c.beginPath();
+        for (let i = 0; i < 3; i++) {
+          let q = (i * Math.PI) / 3 + Math.PI / 2,
+            u = Math.cos(q),
+            v = Math.sin(q);
+          c.moveTo(-u * 0.92, -v * 0.92), c.lineTo(u * 0.92, v * 0.92);
+          for (let sg of [-1, 1]) {
+            let bx = u * 0.55 * sg,
+              by = v * 0.55 * sg;
+            c.moveTo(bx, by),
+              c.lineTo(bx + (u * sg - v) * 0.28, by + (v * sg + u) * 0.28),
+              c.moveTo(bx, by),
+              c.lineTo(bx + (u * sg + v) * 0.28, by + (v * sg - u) * 0.28);
+          }
+        }
+        line(0.22);
+        break;
+      case "ice":
+        P(
+          [0, 1, 2, 3, 4, 5].map((i) => [
+            Math.cos(-Math.PI / 2 + (i * Math.PI) / 3) * 0.92,
+            Math.sin(-Math.PI / 2 + (i * Math.PI) / 3) * 0.92,
+          ]),
+        ),
+          solid(),
+          P(
+            [
+              [-0.3, -0.45],
+              [0.25, 0.1],
+              [0.1, 0.5],
+            ],
+            !1,
+          ),
+          (c.strokeStyle = "rgba(255,255,255,0.9)"),
+          (c.lineWidth = 0.16),
+          c.stroke();
+        break;
+      case "z":
+        P(
+          [
+            [-0.62, -0.62],
+            [0.62, -0.62],
+            [-0.62, 0.62],
+            [0.62, 0.62],
+          ],
+          !1,
+        ),
+          line(0.34);
+        break;
+      case "eye":
+        c.beginPath(),
+          c.moveTo(-1, 0),
+          c.quadraticCurveTo(0, -0.95, 1, 0),
+          c.quadraticCurveTo(0, 0.95, -1, 0),
+          c.closePath(),
+          solid(),
+          c.beginPath(),
+          c.arc(0, 0, 0.32, 0, Math.PI * 2),
+          (c.fillStyle = ink),
+          c.fill();
+        break;
+      case "shield":
+        shield(),
+          solid(),
+          P(
+            [
+              [-0.4, -0.45],
+              [-0.36, 0.2],
+            ],
+            !1,
+          ),
+          (c.strokeStyle = "rgba(255,255,255,0.7)"),
+          (c.lineWidth = 0.16),
+          c.stroke();
+        break;
+      case "shieldX":
+        shield(),
+          solid(),
+          P(
+            [
+              [0.1, -0.95],
+              [-0.18, -0.3],
+              [0.22, 0.1],
+              [-0.08, 1],
+            ],
+            !1,
+          ),
+          (c.strokeStyle = ink),
+          (c.lineWidth = 0.24),
+          c.stroke();
+        break;
+      case "dash":
+        P(
+          [
+            [-0.85, -0.7],
+            [-0.15, 0],
+            [-0.85, 0.7],
+          ],
+          !1,
+        ),
+          line(0.3),
+          P(
+            [
+              [0.05, -0.7],
+              [0.75, 0],
+              [0.05, 0.7],
+            ],
+            !1,
+          ),
+          line(0.3);
+        break;
+      case "bounce":
+        c.beginPath(),
+          c.arc(0, 0.2, 0.62, Math.PI * 1.02, Math.PI * 1.88),
+          line(0.28),
+          P([
+            [0.52, -0.62],
+            [0.95, -0.12],
+            [0.3, -0.04],
+          ]),
+          solid();
+        break;
+      case "spark":
+        star(4, 1, 0.26), solid();
+        break;
+      case "plus":
+        P([
+          [-0.28, -0.9],
+          [0.28, -0.9],
+          [0.28, -0.28],
+          [0.9, -0.28],
+          [0.9, 0.28],
+          [0.28, 0.28],
+          [0.28, 0.9],
+          [-0.28, 0.9],
+          [-0.28, 0.28],
+          [-0.9, 0.28],
+          [-0.9, -0.28],
+          [-0.28, -0.28],
+        ]),
+          solid();
+        break;
+      case "cross":
+        c.beginPath(),
+          c.arc(0, 0, 0.62, 0, Math.PI * 2),
+          c.moveTo(0, -1),
+          c.lineTo(0, -0.3),
+          c.moveTo(0, 1),
+          c.lineTo(0, 0.3),
+          c.moveTo(-1, 0),
+          c.lineTo(-0.3, 0),
+          c.moveTo(1, 0),
+          c.lineTo(0.3, 0),
+          line(0.22);
+        break;
+      case "no":
+        c.beginPath(),
+          c.arc(0, 0, 0.74, 0, Math.PI * 2),
+          c.moveTo(-0.52, 0.52),
+          c.lineTo(0.52, -0.52),
+          line(0.28);
+        break;
+      case "root":
+      case "down2":
+      case "up2": {
+        let sg = k === "up2" ? -1 : 1;
+        P(
+          [
+            [-0.7, -0.5 * sg],
+            [0, 0.1 * sg],
+            [0.7, -0.5 * sg],
+          ],
+          !1,
+        ),
+          line(0.3),
+          k === "root"
+            ? (P(
+                [
+                  [-0.8, 0.7],
+                  [0.8, 0.7],
+                ],
+                !1,
+              ),
+              line(0.3))
+            : (P(
+                [
+                  [-0.7, 0.2 * sg],
+                  [0, 0.8 * sg],
+                  [0.7, 0.2 * sg],
+                ],
+                !1,
+              ),
+              line(0.3));
+        break;
+      }
+      case "up":
+        P([
+          [0, -1],
+          [0.86, -0.08],
+          [0.32, -0.08],
+          [0.32, 0.95],
+          [-0.32, 0.95],
+          [-0.32, -0.08],
+          [-0.86, -0.08],
+        ]),
+          solid();
+        break;
+      case "burst":
+        star(8, 1, 0.48, -Math.PI / 2 + 0.2),
+          solid(),
+          c.beginPath(),
+          c.arc(0, 0, 0.28, 0, Math.PI * 2),
+          (c.fillStyle = "rgba(255,255,255,0.85)"),
+          c.fill();
+        break;
+      case "star":
+        star(5, 1, 0.44), solid();
+        break;
+      case "ball":
+        c.beginPath(),
+          c.arc(0, 0, 0.9, Math.PI, 0),
+          c.closePath(),
+          (c.fillStyle = col),
+          c.fill(),
+          c.beginPath(),
+          c.arc(0, 0, 0.9, 0, Math.PI),
+          c.closePath(),
+          (c.fillStyle = "#f4f4f4"),
+          c.fill(),
+          c.beginPath(),
+          c.arc(0, 0, 0.9, 0, Math.PI * 2),
+          c.moveTo(-0.9, 0),
+          c.lineTo(0.9, 0),
+          (c.strokeStyle = ink),
+          (c.lineWidth = 0.22),
+          c.stroke(),
+          c.beginPath(),
+          c.arc(0, 0, 0.26, 0, Math.PI * 2),
+          (c.fillStyle = "#f4f4f4"),
+          c.fill(),
+          c.stroke();
+        break;
+      case "x":
+        c.beginPath(),
+          c.moveTo(-0.7, -0.7),
+          c.lineTo(0.7, 0.7),
+          c.moveTo(0.7, -0.7),
+          c.lineTo(-0.7, 0.7),
+          line(0.36);
+        break;
+      case "sun":
+        c.beginPath();
+        for (let i = 0; i < 8; i++) {
+          let q = (i * Math.PI) / 4;
+          c.moveTo(Math.cos(q) * 0.66, Math.sin(q) * 0.66),
+            c.lineTo(Math.cos(q) * 1, Math.sin(q) * 1);
+        }
+        line(0.2), c.beginPath(), c.arc(0, 0, 0.5, 0, Math.PI * 2), solid();
+        break;
+      case "zone":
+        c.beginPath(),
+          c.arc(0, 0, 0.82, 0, Math.PI * 2),
+          line(0.22),
+          c.beginPath(),
+          c.arc(0, 0, 0.34, 0, Math.PI * 2),
+          solid();
+        break;
+    }
+    c.restore();
+  }
   function Ca(a, e, t, s, i, r, o) {
     if (
       ((d = a),
@@ -20826,13 +21462,32 @@
           (d.globalAlpha = c.life < 10 ? c.life / 10 : 1),
           d.translate(m(f(c.x) + p), m(u(c.y))),
           d.scale(b, b),
-          d.rotate(c.big ? -0.05 : 0),
+          d.rotate(c.big ? -0.05 : 0);
+        if (c.icon) {
+          // Icon cue: a coloured disc with the glyph, the number beside it.
+          let R = c.big ? 7.5 : 6,
+            M = c.text ? ye(c.text, c.big ? 11 : 8.5, He, 900) : 0,
+            P = c.text ? -(M + 3) / 2 : 0;
+          (d.fillStyle = "rgba(10,8,22,0.72)"),
+            d.beginPath(),
+            d.arc(m(P), m(-3), m(R + 1.6), 0, Math.PI * 2),
+            d.fill(),
+            (d.strokeStyle = c.color),
+            (d.lineWidth = m(1)),
+            d.stroke(),
+            cueGlyph(d, c.icon, m(P), m(-3), m(R * 0.72), c.color),
+            c.text &&
+              V(c.text, P + R + 3, 0.5, c.big ? 11 : 8.5, c.color, {
+                outline: 2.4,
+                skew: !0,
+              });
+        } else
           V(c.text, 0, 0, k ? (c.big ? 15 : 10.5) : c.big ? 12 : 8.5, c.color, {
             align: "center",
             outline: c.big ? 3 : 2.4,
             skew: !0,
-          }),
-          d.restore();
+          });
+        d.restore();
       }
     }
     if (
@@ -20858,7 +21513,41 @@
       e.match.phase !== "results")
     )
       for (let c of t.banners.filter((r) => r.top).slice(0, 1)) {
-        // The mid-fight pill: slides down under the HUD, then fades.
+        // The mid-fight pill: slides down under the HUD, then fades. As an
+        // icon cue it is a badge: a glyph or the fighter's face, and a number.
+        if (c.cue && !A.cueText) {
+          let y = 1 - c.life / c.max,
+            b = Ee(Math.min(1, y / 0.14)),
+            p = c.life < 12 ? c.life / 12 : 1,
+            k = (e.players.length > 2 ? 58 : 50) - 6 * (1 - b),
+            q = c.cue,
+            M = q.num ? ye(String(q.num), 11, He, 900) + 4 : 0,
+            C = (q.kit ? 26 : 22) + M,
+            x = H / 2 - C / 2,
+            pop = y < 0.12 ? 1 + (1 - y / 0.12) * 0.5 : 1;
+          d.save(),
+            (d.globalAlpha = p * Math.min(1, b * 1.6)),
+            d.translate(m(H / 2), m(k + 10)),
+            d.scale(pop, pop),
+            d.translate(-m(H / 2), -m(k + 10)),
+            te(x, k, C, 20, "rgba(11,9,24,0.72)", 6),
+            (d.fillStyle = c.color),
+            d.fillRect(m(x + 4), m(k), m(C - 8), m(1.2)),
+            d.fillRect(m(x + 4), m(k + 19), m(C - 8), m(0.8));
+          q.kit && o[q.kit]
+            ? (Oe(o[q.kit], "Pain", x + 3, k + 1, 18, { bg: c.color }),
+              q.icon &&
+                cueGlyph(d, q.icon, m(x + 19), m(k + 14.5), m(4.6), "#ff4f4f"))
+            : q.icon &&
+              cueGlyph(d, q.icon, m(x + 12), m(k + 10), m(6.5), c.color);
+          q.num &&
+            V(String(q.num), x + (q.kit ? 26 : 22), k + 14.2, 11, c.color, {
+              outline: 2.2,
+              skew: !0,
+            });
+          d.restore();
+          continue;
+        }
         let y = 1 - c.life / c.max,
           b = Ee(Math.min(1, y / 0.14)),
           p = c.life < 14 ? c.life / 14 : 1,
@@ -21104,13 +21793,17 @@
     // One status at a time, right-aligned on the bottom line.
     let M =
       t.state === "stunned"
-        ? ["DIZZY", g.gold]
+        ? ["DIZZY", g.gold, "stars"]
         : l.burnT > 0
-          ? ["BRN", "#e0602e"]
+          ? ["BRN", "#e0602e", "flame"]
           : (t.seededT ?? 0) > 0
-            ? ["SEED", "#4c9a32"]
+            ? ["SEED", "#4c9a32", "leaf"]
             : f.id === "charizard" && l.heat > 60
-              ? ["HOT", l.heat > 85 && h % 10 < 5 ? "#fff4c2" : "#ff5a2a"]
+              ? [
+                  "HOT",
+                  l.heat > 85 && h % 10 < 5 ? "#fff4c2" : "#ff5a2a",
+                  "flame",
+                ]
               : null;
     if (t.legend && !c) {
       let x = Math.min(1, t.lgMeter / 100),
@@ -21125,7 +21818,10 @@
           1,
         );
     }
-    M && ue(M[0], M[1], s + y - 4, i + 21.4, { right: !0, size: 4.4 }),
+    M &&
+      (A.cueText || !M[2]
+        ? ue(M[0], M[1], s + y - 4, i + 21.4, { right: !0, size: 4.4 })
+        : ueIcon(M[2], M[1], s + y - 4 - 9, i + 21.4, 5.06)),
       d.restore(),
       c &&
         (V("OUT", s + y / 2 + 8, i + 21, 12, g.cpu, {
@@ -21702,15 +22398,15 @@
     let v = r ? H - 206 : 143,
       E = 31.5,
       y0 = v - 4;
-    l.burnT > 0 && (v += ue("BRN", "#e0602e", v, E) + 1.5),
-      (t.seededT ?? 0) > 0 && (v += ue("SEED", "#4c9a32", v, E) + 1.5),
+    let chip = (w, k, c, x = {}) =>
+      (v += (A.cueText ? ue(w, c, v, E, x) : ueIcon(k, c, v, E)) + 1.5);
+    l.burnT > 0 && chip("BRN", "flame", "#e0602e"),
+      (t.seededT ?? 0) > 0 && chip("SEED", "leaf", "#4c9a32"),
       t.state === "stunned" &&
-        (v +=
-          ue("DIZZY", h % 10 < 5 ? g.cpu : g.gold, v, E, { text: g.night }) +
-          1.5),
+        chip("DIZZY", "stars", h % 10 < 5 ? g.cpu : g.gold, { text: g.night }),
       f.id === "charizard"
         ? (l.hp < l.maxHp * 0.3 &&
-            (v += ue("BLAZE", h % 20 < 10 ? "#e04020" : "#f08030", v, E) + 1.5),
+            chip("BLAZE", "up", h % 20 < 10 ? "#e04020" : "#f08030"),
           G("Heat", v, E + 5.6, 5.8, "#ff9a5c", { weight: 700 }),
           (v += 14),
           Tt(
@@ -21737,21 +22433,23 @@
               )
             : t.rooted
               ? ue("ROOTED", "#3f8a35", v, E)
-              : G("Stand still to root", v, E + 5.6, 5.8, g.dim)
+              : A.cueText && G("Stand still to root", v, E + 5.6, 5.8, g.dim)
           : f.id === "blastoise"
             ? a.inPuddle(t.x, t.y, t.team, !0)
               ? ue("MEGA LAUNCHER", "#2f6fc0", v, E)
-              : G("Fire from puddles", v, E + 5.6, 5.8, g.dim)
+              : A.cueText && G("Fire from puddles", v, E + 5.6, 5.8, g.dim)
             : f.id === "magnezone"
               ? a.targetsFor(t.team).some((w) => w.lockT > 0 && w.lockBy === t)
                 ? ue("TARGET LOCKED", h % 16 < 8 ? "#d64538" : "#ef5a4f", v, E)
-                : G("Lock-On, then Zap Cannon", v, E + 5.6, 5.8, g.dim)
+                : A.cueText &&
+                  G("Lock-On, then Zap Cannon", v, E + 5.6, 5.8, g.dim)
               : f.id === "snorlax"
                 ? t.state === "bodySlam"
                   ? ue("BODY SLAM", "#3f8f9e", v, E)
                   : l.cdY === 0
                     ? ue("QUAKE READY", "#c9a25a", v, E)
-                    : G("Body Slam, then Heavy Slam", v, E + 5.6, 5.8, g.dim)
+                    : A.cueText &&
+                      G("Body Slam, then Heavy Slam", v, E + 5.6, 5.8, g.dim)
                 : f.id === "noivern"
                   ? t.state === "boom"
                     ? ue(`BOOM ${Math.round(t.boomC * 100)}%`, "#8a5ccf", v, E)
@@ -22693,7 +23391,12 @@
             align: "left",
           });
         };
-      o(a.picks, 40, "YOU", !1),
+      G(ARENA_TIPS[A.arena] ?? "", H / 2, 198, 6, g.gold, {
+        align: "center",
+        weight: 700,
+        italic: !0,
+      }),
+        o(a.picks, 40, "YOU", !1),
         cpuSide() &&
           o(r, H - 40, A.gameMode === 2 ? `${r.length} CPU RIVALS` : "CPU", !0),
         V("VS", H / 2, 120, 26, "rgba(255,255,255,0.4)", {
@@ -26244,6 +26947,7 @@
     // Settings that only change how this screen looks or sounds; everything
     // else in A can change the simulation, so the host's values are used.
     NET_LOCAL = [
+      "cueText",
       "volume",
       "music",
       "theme",
@@ -29665,6 +30369,9 @@
                   70,
                   void 0,
                   e.players.length > 2,
+                  e.players.length > 2 && n.victim.kit
+                    ? { kit: n.victim.kit.id, icon: "x" }
+                    : void 0,
                 ),
               S.ko(),
               t.speedLines(
@@ -29699,6 +30406,8 @@
                 [L.gold, "#ff8a3d", "#ff4f9a", "#b98be0"][ne[1]],
                 40,
                 `${n.combo} hit combo`,
+                void 0,
+                { icon: "burst", num: n.combo },
               ),
               S.callout(ne[1]),
               (t.vignette = 0.6),
@@ -29829,7 +30538,9 @@
             t.ring(n.x, n.y, 6, 2.6, 16, R.color, !0),
             t.popup(n.x, n.y - 40, W, R.color, !0),
             n.who === D
-              ? t.banner(R.name, R.color, 40)
+              ? t.banner(R.name, R.color, 40, void 0, void 0, {
+                  icon: ITEM_CUE[n.kind] ?? "ball",
+                })
               : t.popup(
                   n.who.x,
                   n.who.y - 56,
@@ -29952,7 +30663,9 @@
             break;
           }
           S.closeCall(),
-            t.banner("CLOSE CALL", L.cool, 46, "dodge refreshed"),
+            t.banner("CLOSE CALL", L.cool, 46, "dodge refreshed", void 0, {
+              icon: "dash",
+            }),
             (t.vignette = 1),
             (t.vignetteColor = "111,211,232"),
             t.ring(n.x, n.y, 6, 3, 18, L.cool, !0),
@@ -30133,6 +30846,8 @@
                 "#ff5a2a",
                 44,
                 "stop attacking to cool down",
+                void 0,
+                { icon: "flame" },
               ),
             t.smoke(n.who.x, n.who.y, 14, 10);
           break;
@@ -30169,6 +30884,8 @@
               "#ef5a4f",
               60,
               D.aliveSlot(1) !== null ? "your partner is coming in" : void 0,
+              void 0,
+              { kit: n.kit.id, icon: "x" },
             ),
             (s.hudShake = 10)),
             S.cry(n.kit.id, 0.25),
@@ -30228,6 +30945,8 @@
             n.side === 0
               ? "you're holding the zone"
               : "the CPU is holding the zone",
+            void 0,
+            { icon: "zone", num: `${n.mark}%` },
           );
           break;
         case "eliminated":
@@ -30238,6 +30957,15 @@
             n.who === e.player && e.match.mode === "ffa"
               ? `you placed #${n.who.place} \xB7 watching the last ${n.left}`
               : `${tagOf(n.who, e).label} is out \xB7 ${n.left} left`,
+            void 0,
+            {
+              kit: n.who.kit?.id,
+              icon: "x",
+              num:
+                n.who === e.player && e.match.mode === "ffa"
+                  ? `#${n.who.place}`
+                  : "",
+            },
           ),
             (t.impact = 4);
           break;
@@ -30367,7 +31095,14 @@
           break;
         case "surgeWarn":
           S.siren(),
-            t.banner(SURGE.names[n.k], SURGE.colors[n.k], 150, SURGE.subs[n.k]),
+            t.banner(
+              SURGE.names[n.k],
+              SURGE.colors[n.k],
+              150,
+              SURGE.subs[n.k],
+              void 0,
+              { icon: SURGE_CUE[n.k] },
+            ),
             t.shake(0, 1, n.k === 1 ? 3 : 1.5);
           break;
         case "surgeStart":
@@ -31035,6 +31770,8 @@
               "#c8d4e6",
               60,
               `${_a(n.who.kit.name)} hangs on with 1 HP`,
+              void 0,
+              { icon: "shield", num: 1 },
             ),
             t.flare(n.x, n.y, 16, 34, "#e9f1ff", 22),
             t.ring(n.x, n.y, 6, 3.2, 16, "#c8d4e6", !0),
@@ -31520,6 +32257,8 @@
               n.who === D ? "#ef5a4f" : L.gold,
               50,
               n.who === D ? "you're dizzy!" : "free hit!",
+              void 0,
+              { icon: "shieldX" },
             );
           break;
         case "launch":
@@ -31741,22 +32480,19 @@
           break;
         }
         case "readyGo":
-          t.popups.push({
-            x: Se,
-            y: B.y0 + 30,
-            text: [
-              "Spotlights recharge your specials",
-              "Break cover for Ancient Power \u2014 mind the collapse",
-              "Erupted vents run hot: +25% damage",
-              "Dodge on ice to slide further",
-              "Stand by a live pylon to recharge",
-            ][e.arena],
-            life: 150,
-            max: 150,
-            color: L.gold,
-            big: !1,
-            vy: -0.05,
-          }),
+          // The arena's rule is on the ready screen; mid-fight it is only
+          // spelled out when callouts include words.
+          A.cueText &&
+            t.popups.push({
+              x: Se,
+              y: B.y0 + 30,
+              text: ARENA_TIPS[e.arena],
+              life: 150,
+              max: 150,
+              color: L.gold,
+              big: !1,
+              vy: -0.05,
+            }),
             t.banner("GO!", L.gold, 40),
             S.go(),
             (t.screenFlash = 2),

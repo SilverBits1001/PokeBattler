@@ -37,6 +37,16 @@ Pokémon: every move with its typical damage and what it does, what each effect
 announcements (combos, surges, items, legendaries) now appear as a small pill under
 the HUD, so only Ready?, Go!, K.O. and the result take the middle of the screen.
 
+Battle callouts are icons and sounds, not words: a fight is too fast to read.
+Each effect on a fighter shows as an icon over its head (flame for burn, drop
+for poison, bolt for paralysis, stars for daze, snowflake and ice for chill and
+freeze, a swirl for confusion, an eye for curses, Z for sleep, and the item
+buffs), and blinks as it runs out. Hits show only their numbers; parries,
+reflects, dodges and guard breaks pop a glyph; faints and eliminations show
+the fallen Pokémon's face. Statuses each have their own short sound, and big
+moments flash the screen edge in their colour. Options → Accessibility →
+Battle callouts → "Icons + words" brings the words back.
+
 Roster (16): Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern,
 Lucario, Garchomp, Scizor, Tyrantrum, Golurk, Rhyperior, Froslass, Gardevoir and
 Metagross. Each has a class from [the design document](docs/design-doc.md) (speedster,

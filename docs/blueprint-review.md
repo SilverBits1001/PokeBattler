@@ -1848,3 +1848,50 @@ Control 43–56%.
 - Keyboard playtest through the real menus for all 16 Pokémon: every move
   starts within 1–4 frames of the key press, no errors.
 - Four-fighter Free-for-All and Zone Control runs: no errors or time-outs.
+
+## Battle callouts: icons and sounds instead of words
+
+Mid-fight text asked the player to read while dodging. Every callout now goes
+through one mapping (`CUE_WORDS`) that turns it into a glyph, a number, or
+nothing:
+
+- **Statuses on a fighter** are a strip of icons over its head, one per
+  effect, drawn from the fighter's own timers: burn (flame), poison (drop),
+  Leech Seed (leaf), paralysis (bolt), daze or stun (stars), chill (snowflake
+  with one pip per stack) and freeze (ice), confusion (swirl), curse (eye),
+  drowsy or asleep (Z), and the X Attack, Rocky Helmet and Choice Scarf
+  buffs. An icon blinks in its last ~¾ second. In party modes the strip is
+  larger and sits above the player tag.
+- **Popups** keep their numbers (damage, heals, recoil, wall splats) and
+  swap their words for a glyph in a dark disc: parry and punish (spark),
+  reflect and counters (bounce arrow), dodge (chevrons), blocked and armour
+  (shield), guard crush (cracked shield), disabled and no effect (slashed
+  circle), super effective and tech (double up-chevron), not very effective
+  (double down-chevron), and so on. Move names (Crunch, Outrage, U-turn...)
+  are dropped: the animation already shows the move.
+- **Mid-fight banners** are now badges: combo tiers show a burst and the hit
+  count, zone capture shows a target and the percentage, items show their
+  icon, surges show their hazard (spotlight, rocks, meteors, blizzard,
+  pylons), and faints, K.O.s in party modes and eliminations show the fallen
+  Pokémon's face with a red X (and your placing in Free-for-All). Each badge
+  also flashes the screen edge in its colour.
+- **The HUD**: burn, Leech Seed, dizzy, Blaze, heat and freeze chips are
+  icons, and the dim how-to hints ("Stand still to root", "Fire from
+  puddles"...) are gone; the Training briefing teaches those.
+- **Sounds**: each status has its own short chiptune cue (bubbles for
+  poison, a buzz for paralysis, chirps for daze, a wobble for confusion, a
+  crystal ping for freeze, a low drone for curses, a falling pair for
+  sleep), and power-ups, super effective, not very effective, Legend Ready
+  and eliminations have theirs. A volley of the same status plays once.
+- The arena's rule ("Spotlights recharge your specials"...) moved from a
+  popup at Go! to the ready screen.
+
+Round flow (Ready?, Go!, K.O. in a duel, Victory, Defeat) still takes the
+middle of the screen as single words. Options → Accessibility → Battle
+callouts → "Icons + words" shows the old words alongside the icons; the
+setting is per player and not sent online.
+
+Checks: an online rollback duel (Froslass vs Gardevoir, Rayquaza and Ho-Oh;
+120 ms, 50 ms jitter, 8% loss) stayed identical over 2,420 compared ticks
+with rematch and leave working; the keyboard playtest for all 16 Pokémon and
+four-fighter Free-for-All and Zone Control runs had no errors.
