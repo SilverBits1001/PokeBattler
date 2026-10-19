@@ -2033,7 +2033,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         crWhiff: 26,
         // Rock Slide: three boulders around the target, with a shadow warning.
         rsCast: 16,
-        rsDelay: 38,
+        rsDelay: 34,
         rsSpread: 30,
         rsR: 16,
         rsDmg: 26,
@@ -11808,12 +11808,37 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           (x = me(x, B.x0 + 12, B.x1 - 12)), (y = me(y, B.y0 + 10, B.y1 - 8));
           let a = Math.atan2(y - e.y, x - e.x) + Math.PI / 2,
             hl = [];
-          for (let k of [0, -1, 1])
+          // A plus of five boulders: one where the target is heading, two
+          // either side and two before and behind, so stepping aside is not
+          // enough. Each foe is hit by one boulder at most.
+          for (let [k, j] of [
+            [0, 0],
+            [-1, 0],
+            [1, 0],
+            [0, -1],
+            [0, 1],
+          ])
             this.exQueue({
               kind: "rock",
-              at: this.tick + c.rsDelay + Math.abs(k) * 6 + (k > 0 ? 3 : 0),
-              x: me(x + Math.cos(a) * k * c.rsSpread, B.x0 + 8, B.x1 - 8),
-              y: me(y + Math.sin(a) * k * c.rsSpread, B.y0 + 6, B.y1 - 4),
+              at:
+                this.tick +
+                c.rsDelay +
+                (Math.abs(k) + Math.abs(j)) * 5 +
+                (k > 0 || j > 0 ? 3 : 0),
+              x: me(
+                x +
+                  Math.cos(a) * k * c.rsSpread +
+                  Math.cos(a - Math.PI / 2) * j * c.rsSpread,
+                B.x0 + 8,
+                B.x1 - 8,
+              ),
+              y: me(
+                y +
+                  Math.sin(a) * k * c.rsSpread +
+                  Math.sin(a - Math.PI / 2) * j * c.rsSpread,
+                B.y0 + 6,
+                B.y1 - 4,
+              ),
               r: c.rsR,
               dmg: c.rsDmg,
               kb: c.rsKb,
@@ -23998,7 +24023,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       [
         "Y",
         "Rock Slide",
-        "Three boulders crash around your target after a shadow warning.",
+        "Five boulders crash down in a cross on your target after a shadow warning.",
         "RANGED",
       ],
       ["B", "Roll", "Heavy roll.", "DODGE"],
