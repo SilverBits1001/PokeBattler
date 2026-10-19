@@ -36,8 +36,16 @@ each.
 READY, call your legendary: E (L2 on a pad) in single-Pokémon modes, or R (L3) in any
 mode. Hold the button to aim with the stick, then release. Zekrom's **Bolt Strike**
 flies along a line through your aim point, after a short red warning, and paralyses
-anyone it hits. Darkrai and Deoxys are coming next. Turn legendaries off in
-Options → Match.
+anyone it hits. **Darkrai's Dark Void** drops a dark pool on the aim point that
+puts everyone inside to sleep, and Nightmare drains them while they sleep.
+**Deoxys** rolls a random Forme each time it appears: Normal fires Psycho Boost at
+the aim point, Attack fires Hyper Beam along a line, Defense uses Recover and
+shields you with a barrier, and Speed makes three Extreme Speed dashes at the
+nearest foe.
+
+Pick your legendary with the **LEGEND** tile at the end of the roster on team select:
+press A on it to cycle Zekrom, Darkrai, Deoxys, Random and Off. Each CPU gets a random
+legendary. Online, both players must have legendaries on for them to appear.
 
 ## Online play
 

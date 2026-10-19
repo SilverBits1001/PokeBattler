@@ -1016,3 +1016,56 @@ Measured with Hard CPU against Hard CPU in all 56 matchups on the Stadium:
 
 Online duel with both sides summoning (120±50 ms, 8% of messages dropped):
 2,231 compared ticks, identical.
+
+## Legendaries, part 2: Darkrai, Deoxys and the picker
+
+- **Darkrai, Dark Void** (`DARKRAI`). A 62 px pool lands on the aim point after
+  a 30-tick purple warning. Everyone inside takes 80 damage and falls asleep
+  for 130 ticks. Nightmare then drains 8 health every 10 ticks from sleepers
+  Darkrai caught, for as long as the pool lingers, but never below 1. Its
+  value is the free follow-up on a sleeping target, not the burst.
+- **Deoxys** (`DEOXYS`). The Forme is rolled from the engine's seeded random
+  when called, so online peers agree. The cut-in names it.
+  - Normal, Psycho Boost: a 50 px burst at the aim point after 22 ticks, 150
+    damage.
+  - Attack, Hyper Beam: Zekrom's line, with a longer 32-tick warning, then a
+    20-tick beam doing 165.
+  - Defense, Recover: heals 18% of max health at once and grants a barrier
+    for 360 ticks that halves damage and cuts knockback to 40%.
+  - Speed, Extreme Speed: three 11-tick dashes, each aimed at the enemy
+    nearest the aim point within 220 px, 48 damage each.
+- **Picker.** The ninth roster tile on team select. A cycles Zekrom, Darkrai,
+  Deoxys, Random and Off (Off sets the `legends` option). Your pick persists;
+  each CPU rolls one when the roulette lands. Chips on the team cards name
+  both sides' legendaries.
+- **Online.** Hello carries each player's pick. The host resolves Random and
+  sends `cfg.legends` (validated against the roster of legendaries).
+  Legendaries are on only when both players have them on. `legends` is now a
+  local setting, and the protocol version is 6 so old builds do not pair with
+  new ones.
+
+Measured with Hard CPU against Hard CPU, 56 matchups each, one fighter with
+the listed legendary and the other with Zekrom:
+
+| Legendary | Lands | Damage per summon | Legendary share of its user's damage |
+|---|---|---|---|
+| Zekrom | 81% | 180 | 18.9% |
+| Darkrai (before) | 85% | 50 | 5.8% |
+| Deoxys Normal | 89% | 173 | 19.3% |
+| Deoxys Attack (before) | 92% | 305 | 30.1% |
+| Deoxys Defense | | heals about 190 | |
+| Deoxys Speed | 98% | 177 | 18.3% |
+
+Hyper Beam came down from 255 to 165 base damage. Dark Void went from 45 to
+80, with sleep from 100 to 130 ticks and Nightmare from 6 to 8.
+
+After the change:
+
+| Legendary | Lands | Damage per summon | Share |
+|---|---|---|---|
+| Darkrai | 82% | 86, plus Nightmare and the free hits on a sleeper | 9.4% direct |
+| Deoxys Attack | 87% | 187 | 19.8% |
+
+Online duel with Darkrai against Deoxys (70±30 ms, 8% of messages dropped),
+including a rematch: 2,457 compared ticks, identical.
+

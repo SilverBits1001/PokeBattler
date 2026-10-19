@@ -32,6 +32,7 @@
       gameMode: 0,
       onlineTag: 0,
       legends: 1,
+      legendPick: 0,
       cpuLevel: 2,
       arena: 1,
       items: 1,
@@ -54,6 +55,7 @@
       "volume",
       "gameMode",
       "onlineTag",
+      "legendPick",
       "cpuLevel",
       "dummyCount",
       "dummyMode",
@@ -2272,6 +2274,47 @@
       para: 120,
       back: 46,
     },
+    // Darkrai's Dark Void: a warned pool that puts everyone inside to sleep;
+    // Nightmare drains sleepers until they wake (a hit wakes them).
+    DARKRAI = {
+      r: 62,
+      warn: 30,
+      dmg: 80,
+      sleep: 130,
+      drain: 8,
+      every: 10,
+      linger: 100,
+    },
+    // Deoxys rolls a Forme when called. Normal: Psycho Boost burst. Attack:
+    // Hyper Beam along a line. Defense: Recover and a barrier. Speed: three
+    // Extreme Speed dashes.
+    DEOXYS = {
+      forms: ["normal", "attack", "defense", "speed"],
+      boostR: 50,
+      boostWarn: 22,
+      boostDmg: 150,
+      beamR: 28,
+      beamWarn: 32,
+      beamT: 20,
+      beamDmg: 165,
+      heal: 0.18,
+      shieldT: 360,
+      shieldDmg: 0.5,
+      shieldKb: 0.4,
+      dashes: 3,
+      dashT: 11,
+      dashR: 18,
+      dashDmg: 48,
+      dashRange: 220,
+    },
+    LEGENDS = ["zekrom", "darkrai", "deoxys"],
+    // The legendary tile on team select cycles these (then Off).
+    LG_PICKS = ["zekrom", "darkrai", "deoxys", "random"],
+    lgRoll = () => LEGENDS[Math.floor(Math.random() * LEGENDS.length)],
+    lgResolve = (a) => {
+      let e = LG_PICKS[a] ?? "zekrom";
+      return e === "random" ? lgRoll() : e;
+    },
     // Blastoise artillery. Mega Launcher: shots fired from its own puddle hit harder
     // and fly further. Withdraw is now guard pressed while standing in a puddle.
     // Venusaur Solar Beam: charge, keep it stored by dodging or guarding, fire later.
@@ -3258,6 +3301,7 @@
           e.scarfT > 0 && e.scarfT--,
           e.apT > 0 && e.apT--,
           e.lockT > 0 && e.lockT--,
+          e.shieldT > 0 && e.shieldT--,
           e.hitstop > 0)
         ) {
           e.hitstop--;
@@ -3784,6 +3828,10 @@
           this.summons.push({
             id: this.nextId++,
             kind: e.legend,
+            form:
+              e.legend === "deoxys"
+                ? DEOXYS.forms[Math.floor(this.rand() * DEOXYS.forms.length)]
+                : null,
             owner: e,
             team: e.team,
             phase: "aim",
@@ -3794,7 +3842,12 @@
             py: e.y - 30,
             alpha: 0,
           }),
-          this.emit({ type: "summon", who: e, kind: e.legend });
+          this.emit({
+            type: "summon",
+            who: e,
+            kind: e.legend,
+            form: this.summons[this.summons.length - 1].form,
+          });
       }
       // Rooted and untouchable while aiming; the stick moves the target.
       // Releasing the button (or running out of time) fires.
@@ -3817,6 +3870,52 @@
       }
       fireLegend(e) {
         let t = e.owner;
+        if (e.kind === "darkrai")
+          Object.assign(e, {
+            phase: "warn",
+            t: 0,
+            x: e.ax,
+            y: e.ay,
+            px: e.ax,
+            py: e.ay,
+          }),
+            this.emit({ type: "voidWarn", who: t, x: e.ax, y: e.ay });
+        else if (e.kind === "deoxys") {
+          let s = e.form;
+          if (s === "defense") {
+            let i = t.slot;
+            (i.hp = Math.min(
+              i.maxHp,
+              i.hp + Math.round(i.maxHp * DEOXYS.heal),
+            )),
+              (t.shieldT = DEOXYS.shieldT),
+              Object.assign(e, { phase: "leave", t: 0, px: t.x, py: t.y }),
+              this.emit({ type: "recover", who: t, x: t.x, y: t.y });
+          } else if (s === "speed")
+            Object.assign(e, {
+              phase: "dash",
+              t: 0,
+              n: 0,
+              px: t.x,
+              py: t.y,
+            }),
+              this.dashTarget(e),
+              this.emit({ type: "dash", who: t, x: t.x, y: t.y });
+          else if (s === "attack") {
+            let i = zekLine(t, e.ax, e.ay);
+            Object.assign(e, i, { phase: "warn", t: 0, px: i.sx, py: i.sy }),
+              this.emit({ type: "beamWarn", who: t });
+          } else
+            Object.assign(e, {
+              phase: "warn",
+              t: 0,
+              x: e.ax,
+              y: e.ay,
+              px: e.ax,
+              py: e.ay - 30,
+            }),
+              this.emit({ type: "boostWarn", who: t, x: e.ax, y: e.ay });
+        }
         if (e.kind === "zekrom") {
           let o = zekLine(t, e.ax, e.ay);
           Object.assign(e, o, { phase: "warn", t: 0, px: o.sx, py: o.sy }),
@@ -3830,6 +3929,50 @@
             });
         }
       }
+      // Speed Forme: the next dash goes to the enemy nearest the aim point.
+      dashTarget(e) {
+        let t = this.victimsFor(e.team)
+            .filter((r) => r.kind === "player")
+            .sort(
+              (r, o) =>
+                Math.hypot(r.x - e.ax, r.y - e.ay) -
+                Math.hypot(o.x - e.ax, o.y - e.ay),
+            )[0],
+          s = t && Math.hypot(t.x - e.ax, t.y - e.ay) < DEOXYS.dashRange,
+          i = s ? t.x : e.ax,
+          r = s ? t.y : e.ay,
+          o = i - e.px,
+          l = r - e.py,
+          f = Math.hypot(o, l) || 1;
+        Object.assign(e, {
+          fx: e.px,
+          fy: e.py,
+          dx: o / f,
+          dy: l / f,
+          tx: me(i + (o / f) * 30, B.x0 + 4, B.x1 - 4),
+          ty: me(r + (l / f) * 30, B.y0 + 4, B.y1 - 4),
+        });
+      }
+      lgBox(e, t, s) {
+        return {
+          id: e.id,
+          team: e.team,
+          owner: e.owner,
+          shape: t,
+          kbMode: "dir",
+          dx: e.dx ?? 0,
+          dy: e.dy ?? 0,
+          heavy: !0,
+          hitstop: 6,
+          hitstun: 20,
+          color: "#ffffff",
+          rehit: 0,
+          attackerStop: !1,
+          legend: !0,
+          src: "legend-" + e.kind,
+          ...s,
+        };
+      }
       updateSummons() {
         if (this.match.phase !== "fight") {
           for (let e of this.summons)
@@ -3840,6 +3983,141 @@
         for (let e of this.summons) {
           if (e.phase === "aim") continue;
           e.t++;
+          if (e.kind === "darkrai") {
+            if (e.phase === "warn")
+              (e.alpha = Math.min(1, e.t / 10)),
+                e.t >= DARKRAI.warn &&
+                  ((e.phase = "void"),
+                  (e.t = 0),
+                  this.hitboxes.push(
+                    this.lgBox(
+                      e,
+                      { kind: "circle", x: e.x, y: e.y, r: DARKRAI.r },
+                      {
+                        dmg: DARKRAI.dmg,
+                        kb: 0.6,
+                        kbMode: "away",
+                        heavy: !1,
+                        hitstun: 8,
+                        color: "#8a5cff",
+                        sleep: DARKRAI.sleep,
+                      },
+                    ),
+                  ),
+                  this.emit({
+                    type: "voidBurst",
+                    who: e.owner,
+                    x: e.x,
+                    y: e.y,
+                  }));
+            else if (e.phase === "void") {
+              // Nightmare: sleepers Darkrai caught keep losing health.
+              if (e.t % DARKRAI.every === 0)
+                for (let t of this.players)
+                  t.nightmareBy === e.owner &&
+                    t.state === "stunned" &&
+                    (t.asleepUntil ?? 0) > this.tick &&
+                    t.slot.hp > 1 &&
+                    ((t.slot.hp = Math.max(1, t.slot.hp - DARKRAI.drain)),
+                    (t.stats.taken += DARKRAI.drain),
+                    (e.owner.stats.dealt += DARKRAI.drain),
+                    this.emit({ type: "nightmare", who: t, x: t.x, y: t.y }));
+              e.t >= DARKRAI.linger && ((e.phase = "leave"), (e.t = 0));
+            } else
+              (e.alpha = Math.max(0, 1 - e.t / 20)), e.t >= 20 && (e.done = !0);
+            continue;
+          }
+          if (e.kind === "deoxys") {
+            let t = e.form;
+            if (e.phase === "warn") {
+              let s = t === "attack" ? DEOXYS.beamWarn : DEOXYS.boostWarn;
+              e.t >= s &&
+                (t === "attack"
+                  ? ((e.phase = "beam"),
+                    (e.t = 0),
+                    this.emit({ type: "beamFire", who: e.owner }))
+                  : ((e.phase = "leave"),
+                    (e.t = 0),
+                    this.hitboxes.push(
+                      this.lgBox(
+                        e,
+                        { kind: "circle", x: e.x, y: e.y, r: DEOXYS.boostR },
+                        {
+                          dmg: DEOXYS.boostDmg,
+                          kb: 7,
+                          kbMode: "away",
+                          hitstun: 22,
+                          color: "#ff9a5c",
+                        },
+                      ),
+                    ),
+                    this.emit({
+                      type: "boostBurst",
+                      who: e.owner,
+                      x: e.x,
+                      y: e.y,
+                    })));
+            } else if (e.phase === "beam")
+              this.hitboxes.push(
+                this.lgBox(
+                  e,
+                  {
+                    kind: "capsule",
+                    x1: e.sx,
+                    y1: e.sy,
+                    x2: e.ex,
+                    y2: e.ey,
+                    r: DEOXYS.beamR,
+                  },
+                  {
+                    dmg: DEOXYS.beamDmg,
+                    kb: 10,
+                    hitstun: 26,
+                    hitstop: 9,
+                    color: "#ffb07a",
+                  },
+                ),
+              ),
+                e.t >= DEOXYS.beamT && ((e.phase = "leave"), (e.t = 0));
+            else if (e.phase === "dash") {
+              let s = Math.min(1, e.t / DEOXYS.dashT);
+              (e.px = e.fx + (e.tx - e.fx) * s),
+                (e.py = e.fy + (e.ty - e.fy) * s),
+                this.hitboxes.push(
+                  this.lgBox(
+                    { ...e, id: e.id * 8 + e.n },
+                    {
+                      kind: "capsule",
+                      x1: e.fx,
+                      y1: e.fy,
+                      x2: e.px,
+                      y2: e.py,
+                      r: DEOXYS.dashR,
+                    },
+                    {
+                      dmg: DEOXYS.dashDmg,
+                      kb: 4,
+                      hitstun: 16,
+                      heavy: !1,
+                      color: "#9be8ff",
+                    },
+                  ),
+                ),
+                e.t >= DEOXYS.dashT &&
+                  (++e.n >= DEOXYS.dashes
+                    ? ((e.phase = "leave"), (e.t = 0))
+                    : ((e.t = 0),
+                      this.dashTarget(e),
+                      this.emit({
+                        type: "dash",
+                        who: e.owner,
+                        x: e.px,
+                        y: e.py,
+                      })));
+            } else
+              (e.alpha = Math.max(0, 1 - e.t / 30)), e.t >= 30 && (e.done = !0);
+            continue;
+          }
           if (e.kind === "zekrom")
             if (e.phase === "warn")
               e.t >= ZEKROM.warn &&
@@ -4732,17 +5010,17 @@
           e.drowsyT > 0 ||
           ((e.drowsyT = SNOR.drowsy), this.emit({ type: "drowsy", who: e }));
       }
-      fallAsleep(e) {
+      fallAsleep(e, t = SNOR.sleep) {
         ["faint", "launched", "down", "getup", "stunned"].includes(e.state) ||
           (e.state === "solar" && this.storeSolar(e),
           e.state === "sphere" && this.storeSphere(e),
           (e.state = "stunned"),
           (e.t = 0),
-          (e.hitstun = SNOR.sleep),
+          (e.hitstun = t),
           (e.combo = 0),
           (e.flameEnd = 0),
           (e.mvx = e.mvy = 0),
-          (e.asleepUntil = this.tick + SNOR.sleep),
+          (e.asleepUntil = this.tick + t),
           this.emit({ type: "asleep", who: e }));
       }
       tickRest(e) {
@@ -8285,6 +8563,9 @@
               ),
               (e.poison && this.poison(t),
               e.burns && this.burn(t),
+              e.sleep &&
+                t.kind === "player" &&
+                (this.fallAsleep(t, e.sleep), (t.nightmareBy = e.owner)),
               e.para &&
                 t.kind === "player" &&
                 t.state !== "guard" &&
@@ -8574,7 +8855,12 @@
             (w.t = 0),
             (w.hitstun = u);
           let U = l ? 1 : Math.max(0.55, 1 - (v - 1) * 0.1),
-            re = i * U * (x ? 1.7 : 1) * (w.seededT > 0 ? 0.4 : 1);
+            re =
+              i *
+              U *
+              (x ? 1.7 : 1) *
+              (w.seededT > 0 ? 0.4 : 1) *
+              (w.shieldT > 0 ? DEOXYS.shieldKb : 1);
           (w.kvx = r * re), (w.kvy = o * re);
         } else if (e.kind === "player") {
           let w = e,
@@ -8593,6 +8879,8 @@
                 : // Venting after an overheat leaves Charizard exposed.
                   w.state === "overheat" &&
                   (re = Math.round(K * FLAME.ventTaken));
+          // Deoxys's barrier halves the damage.
+          w.shieldT > 0 && (re = Math.round(re * DEOXYS.shieldDmg));
           let se = U.hp;
           w.helmetT > 0 &&
             M &&
@@ -10643,7 +10931,8 @@
   function lgCutin(a, e) {
     let t = e.cutin,
       s = LG_INFO[t.kind],
-      i = a.mons?.[t.kind];
+      i = lgSprite(a.mons, t.kind, t.form),
+      fm = t.form && s?.forms?.[t.form];
     if (!s || --t.life <= 0) {
       e.cutin = null;
       return;
@@ -10679,12 +10968,19 @@
       outline: 3,
       outlineColor: "#0b1020",
     }),
-      G(s.move, p + (t.mine ? 2 : -2), h + 41, 9, s.color, {
-        align: t.mine ? "left" : "right",
-        weight: 700,
-        italic: !0,
-        outline: 2.4,
-      }),
+      G(
+        fm ? `${fm[0]} \u00b7 ${fm[1]}` : s.move,
+        p + (t.mine ? 2 : -2),
+        h + 41,
+        9,
+        s.color,
+        {
+          align: t.mine ? "left" : "right",
+          weight: 700,
+          italic: !0,
+          outline: 2.4,
+        },
+      ),
       d.restore();
   }
   // ---- Legendary summons: drawing ----
@@ -10695,7 +10991,33 @@
       color: "#62d0ff",
       rgb: "98,208,255",
     },
+    darkrai: {
+      name: "DARKRAI",
+      move: "DARK VOID",
+      color: "#9a6cff",
+      rgb: "154,108,255",
+    },
+    deoxys: {
+      name: "DEOXYS",
+      move: "PSYCHO BOOST",
+      color: "#ff8a4a",
+      rgb: "255,138,74",
+      forms: {
+        normal: ["NORMAL FORME", "PSYCHO BOOST"],
+        attack: ["ATTACK FORME", "HYPER BEAM"],
+        defense: ["DEFENSE FORME", "RECOVER"],
+        speed: ["SPEED FORME", "EXTREME SPEED"],
+      },
+    },
   };
+  // The sprite set for a summon (Deoxys has one per Forme).
+  function lgSprite(a, e, t) {
+    return a?.[
+      e === "deoxys" && t && t !== "normal"
+        ? "deoxys" + t[0].toUpperCase() + t.slice(1)
+        : e
+    ];
+  }
   // Zekrom's path: from behind the caller, through the aim point, to the wall.
   function zekLine(a, e, t) {
     let s = e - a.x,
@@ -10724,126 +11046,283 @@
       a.stroke(),
       (a.lineCap = "butt");
   }
-  // Under the fighters: the dimmed arena, the aim reticle and path, the
-  // warning band, the strike and its scorch.
+  function lgRing(a, e, t, s, i, r) {
+    (a.strokeStyle = i),
+      (a.lineWidth = r),
+      a.beginPath(),
+      a.arc(e, t, s, 0, Math.PI * 2),
+      a.stroke();
+  }
+  function lgReticle(a, e, t, s) {
+    let i = 13 + Math.sin(s * 0.25) * 2;
+    lgRing(a, e, t, i, "#ffffff", 1.4);
+    for (let r = 0; r < 4; r++) {
+      let o = (r * Math.PI) / 2 + s * 0.04;
+      (a.strokeStyle = "#ffffff"),
+        a.beginPath(),
+        a.moveTo(e + Math.cos(o) * (i + 3), t + Math.sin(o) * (i + 3)),
+        a.lineTo(e + Math.cos(o) * (i + 9), t + Math.sin(o) * (i + 9)),
+        a.stroke();
+    }
+  }
+  function lgWarnBand(a, e, t, s, i, r, o, l) {
+    let f = 0.55 + 0.45 * Math.sin(l * (0.6 + o * 0.8));
+    (a.globalAlpha = 0.12 + 0.3 * o * f),
+      summonBand(a, e, t, s, i, r * 2, "#ff5a3c"),
+      (a.globalAlpha = 0.5 + 0.4 * f),
+      summonBand(a, e, t, s, i, 1.6, "#ffe866");
+  }
+  // Under the fighters: the dimmed arena, aim previews, warnings and the
+  // legendaries' ground effects.
   function summonGround(a, e) {
     let t = e.tick;
     for (let s of e.summons) {
       let i = LG_INFO[s.kind];
       if (!i) continue;
+      let r = s.form;
+      a.save();
       if (s.phase === "aim") {
         (a.fillStyle = `rgba(4,6,18,${0.4 * s.alpha})`),
           a.fillRect(-20, -20, Y + 40, _ + 40);
-        let r = zekLine(s.owner, s.ax, s.ay);
-        a.save(),
-          (a.globalAlpha = 0.16 * s.alpha),
-          summonBand(a, r.sx, r.sy, r.ex, r.ey, ZEKROM.r * 2, i.color),
-          (a.globalAlpha = 0.85 * s.alpha),
-          a.setLineDash([6, 5]),
-          (a.lineDashOffset = -t * 0.8),
-          summonBand(a, r.sx, r.sy, r.ex, r.ey, 1.4, i.color),
-          a.setLineDash([]);
-        let o = 13 + Math.sin(t * 0.25) * 2;
-        (a.strokeStyle = "#ffffff"), (a.lineWidth = 1.4), a.beginPath();
-        a.arc(s.ax, s.ay, o, 0, Math.PI * 2), a.stroke();
-        for (let l = 0; l < 4; l++) {
-          let f = (l * Math.PI) / 2 + t * 0.04;
+        let o = s.alpha;
+        if (s.kind === "zekrom" || r === "attack") {
+          let l = zekLine(s.owner, s.ax, s.ay),
+            f = s.kind === "zekrom" ? ZEKROM.r : DEOXYS.beamR;
+          (a.globalAlpha = 0.16 * o),
+            summonBand(a, l.sx, l.sy, l.ex, l.ey, f * 2, i.color),
+            (a.globalAlpha = 0.85 * o),
+            a.setLineDash([6, 5]),
+            (a.lineDashOffset = -t * 0.8),
+            summonBand(a, l.sx, l.sy, l.ex, l.ey, 1.4, i.color),
+            a.setLineDash([]),
+            lgReticle(a, s.ax, s.ay, t);
+        } else if (r === "defense")
+          (a.globalAlpha = 0.8 * o),
+            a.setLineDash([4, 4]),
+            lgRing(a, s.owner.x, s.owner.y - 8, 26, i.color, 1.6),
+            a.setLineDash([]);
+        else {
+          let l =
+            s.kind === "darkrai"
+              ? DARKRAI.r
+              : r === "speed"
+                ? DEOXYS.dashRange
+                : DEOXYS.boostR;
+          (a.globalAlpha = (r === "speed" ? 0.06 : 0.16) * o),
+            (a.fillStyle = i.color),
+            a.beginPath(),
+            a.arc(s.ax, s.ay, l, 0, Math.PI * 2),
+            a.fill(),
+            (a.globalAlpha = 0.85 * o),
+            a.setLineDash([6, 5]),
+            (a.lineDashOffset = -t * 0.8),
+            lgRing(a, s.ax, s.ay, l, i.color, 1.4),
+            a.setLineDash([]),
+            lgReticle(a, s.ax, s.ay, t);
+        }
+      } else if (s.kind === "zekrom") {
+        if (s.phase === "warn") {
+          lgWarnBand(a, s.sx, s.sy, s.ex, s.ey, ZEKROM.r, s.t / ZEKROM.warn, t);
+          let o = rt(t >> 1);
+          for (let l = 0; l < 8; l++) {
+            let f = o(),
+              u = s.sx + (s.ex - s.sx) * f + (o() - 0.5) * ZEKROM.r * 1.6,
+              h = s.sy + (s.ey - s.sy) * f + (o() - 0.5) * ZEKROM.r * 1.6;
+            (a.globalAlpha = 1),
+              (a.fillStyle = o() < 0.5 ? "#ffffff" : i.color),
+              a.fillRect(Math.round(u), Math.round(h), 2, 2);
+          }
+        } else
+          s.phase === "strike"
+            ? ((a.globalCompositeOperation = "lighter"),
+              (a.globalAlpha = 0.45),
+              summonBand(a, s.sx, s.sy, s.px, s.py, ZEKROM.r * 2.2, i.color),
+              (a.globalAlpha = 1),
+              boltLine(a, s.sx, s.sy, s.px, s.py, t),
+              boltLine(a, s.sx, s.sy - 6, s.px, s.py - 6, t + 7))
+            : ((a.globalAlpha = 0.4 * s.alpha),
+              summonBand(a, s.sx, s.sy, s.ex, s.ey, ZEKROM.r * 1.3, "#1b2236"),
+              (a.globalAlpha = 0.5 * s.alpha),
+              t % 4 < 2 && boltLine(a, s.sx, s.sy, s.ex, s.ey, t));
+      } else if (s.kind === "darkrai") {
+        // The void spreads during the warning, then lingers.
+        let o = s.phase === "warn" ? Ee(Math.min(1, s.t / DARKRAI.warn)) : 1,
+          l = s.phase === "leave" ? s.alpha : 1,
+          f = DARKRAI.r * o,
+          u = a.createRadialGradient(s.x, s.y, 0, s.x, s.y, Math.max(1, f));
+        u.addColorStop(0, `rgba(10,4,24,${0.85 * l})`),
+          u.addColorStop(0.7, `rgba(40,16,80,${0.6 * l})`),
+          u.addColorStop(1, "rgba(60,20,120,0)"),
+          (a.fillStyle = u),
           a.beginPath(),
-            a.moveTo(
-              s.ax + Math.cos(f) * (o + 3),
-              s.ay + Math.sin(f) * (o + 3),
-            ),
-            a.lineTo(
-              s.ax + Math.cos(f) * (o + 9),
-              s.ay + Math.sin(f) * (o + 9),
+          a.ellipse(s.x, s.y, f, f * 0.8, 0, 0, Math.PI * 2),
+          a.fill();
+        for (let h = 0; h < 6; h++) {
+          let c = (h / 6) * Math.PI * 2 + t * 0.02,
+            y = f * (0.5 + 0.4 * Math.sin(t * 0.07 + h));
+          (a.globalAlpha = 0.6 * l),
+            (a.strokeStyle = h % 2 ? "#9a6cff" : "#2a0f4a"),
+            (a.lineWidth = 2),
+            a.beginPath(),
+            a.moveTo(s.x, s.y),
+            a.quadraticCurveTo(
+              s.x + Math.cos(c + 0.6) * y * 0.6,
+              s.y + Math.sin(c + 0.6) * y * 0.5,
+              s.x + Math.cos(c) * y,
+              s.y + Math.sin(c) * y * 0.8,
             ),
             a.stroke();
         }
-        a.restore();
-      } else if (s.phase === "warn") {
-        let r = s.t / ZEKROM.warn,
-          o = 0.55 + 0.45 * Math.sin(t * (0.6 + r * 0.8));
-        a.save(),
-          (a.globalAlpha = 0.12 + 0.3 * r * o),
-          summonBand(a, s.sx, s.sy, s.ex, s.ey, ZEKROM.r * 2, "#ff5a3c"),
-          (a.globalAlpha = 0.5 + 0.4 * o),
-          summonBand(a, s.sx, s.sy, s.ex, s.ey, 1.6, "#ffe866");
-        let l = rt(t >> 1);
-        for (let f = 0; f < 8; f++) {
-          let u = l(),
-            h = s.sx + (s.ex - s.sx) * u + (l() - 0.5) * ZEKROM.r * 1.6,
-            c = s.sy + (s.ey - s.sy) * u + (l() - 0.5) * ZEKROM.r * 1.6;
-          (a.fillStyle = l() < 0.5 ? "#ffffff" : i.color),
-            a.fillRect(Math.round(h), Math.round(c), 2, 2);
-        }
-        a.restore();
-      } else if (s.phase === "strike") {
-        a.save(),
+        s.phase === "warn" &&
+          ((a.globalAlpha = 0.5 + 0.4 * Math.sin(t * 0.5)),
+          a.setLineDash([5, 4]),
+          (a.lineDashOffset = t),
+          lgRing(a, s.x, s.y, DARKRAI.r, "#ff5a8a", 1.6),
+          a.setLineDash([]));
+      } else if (s.kind === "deoxys")
+        if (r === "attack")
+          s.phase === "warn"
+            ? lgWarnBand(
+                a,
+                s.sx,
+                s.sy,
+                s.ex,
+                s.ey,
+                DEOXYS.beamR,
+                s.t / DEOXYS.beamWarn,
+                t,
+              )
+            : s.phase === "beam" &&
+              ((a.globalCompositeOperation = "lighter"),
+              (a.globalAlpha = 0.55),
+              summonBand(
+                a,
+                s.sx,
+                s.sy,
+                s.ex,
+                s.ey,
+                DEOXYS.beamR * 2.2,
+                "#ff7a3a",
+              ),
+              (a.globalAlpha = 0.9),
+              summonBand(a, s.sx, s.sy, s.ex, s.ey, DEOXYS.beamR, "#ffd2a0"),
+              summonBand(a, s.sx, s.sy, s.ex, s.ey, 6, "#ffffff"));
+        else if (r === "normal" && s.phase === "warn") {
+          let o = s.t / DEOXYS.boostWarn;
+          (a.globalAlpha = 0.12 + 0.3 * o * (0.6 + 0.4 * Math.sin(t * 0.7))),
+            (a.fillStyle = "#ff5a3c"),
+            a.beginPath(),
+            a.arc(s.x, s.y, DEOXYS.boostR, 0, Math.PI * 2),
+            a.fill(),
+            (a.globalAlpha = 0.8),
+            lgRing(a, s.x, s.y, DEOXYS.boostR * (1 - o) + 6, "#ffe866", 1.6),
+            lgRing(a, s.x, s.y, DEOXYS.boostR, "#ffe866", 1);
+        } else if (r === "speed" && s.phase === "dash")
           (a.globalCompositeOperation = "lighter"),
-          (a.globalAlpha = 0.45),
-          summonBand(a, s.sx, s.sy, s.px, s.py, ZEKROM.r * 2.2, i.color),
-          (a.globalAlpha = 1),
-          boltLine(a, s.sx, s.sy, s.px, s.py, t),
-          boltLine(a, s.sx, s.sy - 6, s.px, s.py - 6, t + 7),
-          a.restore();
-      } else {
-        a.save(),
-          (a.globalAlpha = 0.4 * s.alpha),
-          summonBand(a, s.sx, s.sy, s.ex, s.ey, ZEKROM.r * 1.3, "#1b2236"),
-          (a.globalAlpha = 0.5 * s.alpha),
-          t % 4 < 2 && boltLine(a, s.sx, s.sy, s.ex, s.ey, t),
-          a.restore();
-      }
+            (a.globalAlpha = 0.6),
+            summonBand(
+              a,
+              s.fx,
+              s.fy,
+              s.px,
+              s.py,
+              DEOXYS.dashR * 1.4,
+              "#9be8ff",
+            ),
+            (a.globalAlpha = 0.9),
+            summonBand(a, s.fx, s.fy, s.px, s.py, 3, "#ffffff");
+      a.restore();
     }
   }
-  // Above the fighters: the legendary itself.
+  // Above the fighters: the legendaries themselves, and Deoxys's barrier.
   function summonAir(a, e) {
     let t = e.tick;
+    for (let s of e.players)
+      if ((s.shieldT ?? 0) > 0 && s.state !== "faint") {
+        let i = s.shieldT < 60 && t % 8 < 4 ? 0.25 : 0.6;
+        a.save(), (a.globalAlpha = i), (a.globalCompositeOperation = "lighter");
+        for (let r = 0; r < 6; r++) {
+          let o = (r / 6) * Math.PI * 2 + t * 0.03,
+            l = o + Math.PI / 3;
+          (a.strokeStyle = r % 2 ? "#ffb07a" : "#9be8ff"),
+            (a.lineWidth = 1.6),
+            a.beginPath(),
+            a.moveTo(s.x + Math.cos(o) * 22, s.y - 10 + Math.sin(o) * 22),
+            a.lineTo(s.x + Math.cos(l) * 22, s.y - 10 + Math.sin(l) * 22),
+            a.stroke();
+        }
+        a.restore();
+      }
     for (let s of e.summons) {
-      let i = e.mons?.[s.kind];
+      let i = lgSprite(e.mons, s.kind, s.form);
       if (!i) continue;
       let r,
         o,
-        l,
-        f,
-        u = s.alpha ?? 1;
+        l = Math.atan2(s.dy ?? 1, s.dx ?? 0),
+        f = i.anims.Idle,
+        u = s.alpha ?? 1,
+        h = s.form;
       if (s.phase === "aim") {
-        let y = Math.atan2(s.ay - s.owner.y, s.ax - s.owner.x);
-        (r = s.owner.x - Math.cos(y) * 30),
+        let c = Math.atan2(s.ay - s.owner.y, s.ax - s.owner.x);
+        (r = s.owner.x - Math.cos(c) * 30),
           (o = s.owner.y - 26 - Math.sin(t * 0.08) * 3),
-          (l = y),
-          (f = i.anims.Idle);
-      } else if (s.phase === "warn")
+          (l = c);
+      } else if (s.kind === "zekrom")
+        s.phase === "warn"
+          ? ((r = s.sx),
+            (o = s.sy - 20 - (s.t / ZEKROM.warn) * 8),
+            (f = i.anims.Charge ?? f))
+          : ((r = s.px),
+            (o = s.py - 18),
+            (f = s.phase === "strike" ? (i.anims.Attack ?? f) : i.anims.Walk));
+      else if (s.kind === "darkrai")
+        (r = s.x),
+          (o = s.y - 16 - Math.sin(t * 0.06) * 3),
+          (l = Math.PI / 2),
+          (f = s.phase === "void" ? (i.anims.SpAttack ?? f) : f);
+      else if (h === "attack")
         (r = s.sx),
-          (o = s.sy - 20 - (s.t / ZEKROM.warn) * 8),
-          (l = Math.atan2(s.dy, s.dx)),
-          (f = i.anims.Charge ?? i.anims.Idle);
-      else
-        (r = s.px),
-          (o = s.py - 18),
-          (l = Math.atan2(s.dy, s.dx)),
+          (o = s.sy - 16),
           (f =
-            s.phase === "strike"
-              ? (i.anims.Attack ?? i.anims.Idle)
-              : i.anims.Walk);
+            s.phase === "beam" ? (i.anims.Shoot ?? f) : (i.anims.Charge ?? f));
+      else if (h === "defense")
+        (r = s.owner.x), (o = s.owner.y - 40), (l = Math.PI / 2);
+      else if (h === "speed")
+        (r = s.px),
+          (o = s.py - 14),
+          (f = s.phase === "dash" ? (i.anims.QuickStrike ?? i.anims.Walk) : f);
+      else
+        (r = s.x ?? s.px),
+          (o = (s.y ?? s.py) - 40),
+          (l = Math.PI / 2),
+          (f = s.phase === "warn" ? (i.anims.Charge ?? f) : f);
       a.save(),
         (a.globalAlpha = 0.35 * u),
         (a.fillStyle = "#05060f"),
         a.beginPath(),
-        a.ellipse(r, o + 22, 26, 7, 0, 0, Math.PI * 2),
+        a.ellipse(r, o + 22, 22, 6, 0, 0, Math.PI * 2),
         a.fill(),
         (a.globalCompositeOperation = "lighter");
-      let h = a.createRadialGradient(r, o, 0, r, o, 46);
-      h.addColorStop(
+      let c = a.createRadialGradient(r, o, 0, r, o, 44);
+      c.addColorStop(
         0,
         `rgba(${LG_INFO[s.kind]?.rgb ?? "255,255,255"},${0.35 * u})`,
       ),
-        h.addColorStop(1, "rgba(0,0,0,0)"),
-        (a.fillStyle = h),
-        a.fillRect(r - 46, o - 46, 92, 92),
+        c.addColorStop(1, "rgba(0,0,0,0)"),
+        (a.fillStyle = c),
+        a.fillRect(r - 44, o - 44, 88, 88),
         (a.globalCompositeOperation = "source-over"),
         (a.globalAlpha = u),
-        et(a, f, Be(f, t, 1), nt(l), r, o, 1.1, i.ground),
+        et(
+          a,
+          f,
+          Be(f, t, 1),
+          nt(l),
+          r,
+          o,
+          s.kind === "zekrom" ? 1.1 : 1.3,
+          i.ground,
+        ),
         a.restore();
     }
   }
@@ -15635,7 +16114,7 @@
   function rs(a) {
     let e = Math.floor(a / 3),
       t = a % 3,
-      s = e === 2 ? (RG.tile + RG.gap) / 2 : 0;
+      s = 0;
     return {
       x: RG.x + s + t * (RG.tile + RG.gap) - e * 2,
       y: RG.y + e * RG.pitch,
@@ -15643,12 +16122,69 @@
     };
   }
   // Cursor moves for the 3-3-2 roster.
+  // Index 8, the last cell, is the legendary tile.
   var RN3 = {
-    left: [2, 0, 1, 5, 3, 4, 7, 6],
-    right: [1, 2, 0, 4, 5, 3, 7, 6],
-    up: [6, 7, 7, 0, 1, 2, 3, 5],
-    down: [3, 4, 5, 6, 6, 7, 0, 2],
+    left: [2, 0, 1, 5, 3, 4, 8, 6, 7],
+    right: [1, 2, 0, 4, 5, 3, 7, 8, 6],
+    up: [6, 7, 8, 0, 1, 2, 3, 4, 5],
+    down: [3, 4, 5, 6, 7, 8, 0, 1, 2],
   };
+  // The legendary tile: your pick's portrait (a ? for Random, dimmed for
+  // Off); A cycles it.
+  function lgTile(a, e) {
+    let { x: t, y: s, s: i } = rs(8),
+      r = a.cursor === 8,
+      o = A.legends ? (LG_PICKS[A.legendPick] ?? "zekrom") : "off",
+      l = LG_INFO[o],
+      f = l?.color ?? g.dim;
+    tapRect(t - 2, s - 2, i + 4, i + 12, () => {
+      (a.cursor = 8), Ue.add("confirm");
+    }),
+      r &&
+        (d.save(),
+        (d.globalCompositeOperation = "lighter"),
+        (d.shadowColor = g.gold),
+        (d.shadowBlur = m(10)),
+        te(t - 2, s - 2, i + 4, i + 4, "rgba(255,216,74,0.6)"),
+        d.restore()),
+      te(t - 1.4, s - 1.4, i + 2.8, i + 2.8, r ? g.gold : "rgba(10,8,22,0.95)");
+    let u = e[o];
+    u
+      ? Oe(u, r ? "Determined" : "Normal", t, s, i, {
+          bg: f,
+          frame: !1,
+          slash: !0,
+        })
+      : (te(t, s, i, i, "#191530"),
+        V(
+          o === "random" ? "?" : "\u2013",
+          t + i / 2,
+          s + i * 0.72,
+          24,
+          o === "random" ? g.gold : g.dim,
+          {
+            align: "center",
+          },
+        )),
+      ue("LEGEND", g.gold, t + 2, s + 2, { text: g.night, size: 4.4 }),
+      V(
+        o === "off" ? "OFF" : o === "random" ? "RANDOM" : l.name,
+        t + i / 2 - 1,
+        s + i + 8,
+        6.4,
+        r ? g.gold : o === "off" ? g.dim : "#ffe9a8",
+        { align: "center", outline: 1.6 },
+      );
+  }
+  // A small chip naming a side's legendary, on its team card.
+  function lgChip(a, e, t) {
+    if (!A.legends || !a) return;
+    let s = a === "random" ? null : LG_INFO[a];
+    ue(`\u2605 ${s ? s.name : "RANDOM"}`, s?.color ?? g.gold, e, t, {
+      text: g.night,
+      size: 4.8,
+    });
+  }
   // One side's card: the lead large, the partner behind, on a team-coloured stage.
   function selCard(a, e, t, s, i, r, o) {
     let l = a.frame,
@@ -16013,6 +16549,9 @@
           }),
         ie && ue("CPU", g.cpu, C + v - 3, x + 2, { right: !0, size: 4.8 });
     });
+    lgTile(a, e),
+      lgChip(LG_PICKS[A.legendPick], 14, 40),
+      s && a.cpuPicks.length && lgChip(a.cpuLegends?.[0], H - 142, 40);
     // Stage plate and the VS emblem.
     let h = H / 2,
       c = 194,
@@ -17735,15 +18274,25 @@
                     ? (I("saw", 900, 1500, 0.18, 0.09, e, { vib: 80 }),
                       I("p25", 1400, 700, 0.22, 0.08, e + 0.1),
                       X(0.25, "bandpass", 3200, 2, 0.14, 1200, e + 0.05))
-                    : a === "zekrom"
-                      ? (I("saw", 170, 80, 0.75, 0.22, e, { vib: 30 }),
-                        I("p50", 340, 150, 0.6, 0.12, e + 0.05),
-                        X(0.5, "bandpass", 2600, 1.5, 0.16, 900, e, !0))
-                      : a === "lucario"
-                        ? (I("p25", 520, 640, 0.14, 0.11, e),
-                          I("p25", 780, 420, 0.22, 0.1, e + 0.12, { vib: 30 }))
-                        : (I("p25", 600, 900, 0.12, 0.1, e),
-                          I("p25", 900, 500, 0.18, 0.1, e + 0.12)));
+                    : a === "darkrai"
+                      ? (I("tri", 220, 110, 0.7, 0.16, e, { vib: 8 }),
+                        I("p25", 330, 160, 0.6, 0.08, e + 0.08, { vib: 6 }),
+                        X(0.6, "lowpass", 700, 2, 0.1, 300, e, !0))
+                      : a === "deoxys"
+                        ? (I("sq", 900, 1300, 0.12, 0.08, e),
+                          I("sq", 1300, 600, 0.18, 0.08, e + 0.12, { vib: 50 }),
+                          I("tri", 400, 900, 0.3, 0.1, e + 0.05))
+                        : a === "zekrom"
+                          ? (I("saw", 170, 80, 0.75, 0.22, e, { vib: 30 }),
+                            I("p50", 340, 150, 0.6, 0.12, e + 0.05),
+                            X(0.5, "bandpass", 2600, 1.5, 0.16, 900, e, !0))
+                          : a === "lucario"
+                            ? (I("p25", 520, 640, 0.14, 0.11, e),
+                              I("p25", 780, 420, 0.22, 0.1, e + 0.12, {
+                                vib: 30,
+                              }))
+                            : (I("p25", 600, 900, 0.12, 0.1, e),
+                              I("p25", 900, 500, 0.18, 0.1, e + 0.12)));
       },
       ready() {
         O() &&
@@ -18457,7 +19006,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 5,
+  var NETV = 6,
     RB_MAX = 40,
     RB_AIM = 4,
     RB_DMAX = 12,
@@ -18497,6 +19046,8 @@
       "slowmo",
       "gameMode",
       "onlineTag",
+      "legendPick",
+      "legends",
       "cpuLevel",
     ],
     B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
@@ -18599,7 +19150,11 @@
       a.teams.length !== 2 ||
       a.teams[0].length !== a.teams[1].length ||
       !a.tune ||
-      typeof a.tune !== "object"
+      typeof a.tune !== "object" ||
+      (a.legends != null &&
+        (!Array.isArray(a.legends) ||
+          a.legends.length !== 2 ||
+          !a.legends.every((e) => LEGENDS.includes(e))))
     )
       return !1;
     for (let [e, t] of Object.entries(a.tune))
@@ -18891,7 +19446,13 @@
     }
     if (NET.m !== r) return r.room.leave().catch(() => {});
     (r.phase = "hello"),
-      netSet({ h: { nick: netShort(NET.nick, 20), team: r.myTeam } });
+      netSet({
+        h: {
+          nick: netShort(NET.nick, 20),
+          team: r.myTeam,
+          lg: A.legends ? LG_PICKS[A.legendPick] : "off",
+        },
+      });
   }
   function netSet(a, e = NET.m) {
     if (!e?.room) return;
@@ -18958,6 +19519,7 @@
       !e.oppTeam.length &&
       netTeam(i.h.team) &&
       ((e.oppTeam = i.h.team),
+      (e.oppLg = i.h.lg),
       i.h.nick && !e.oppName && (e.oppName = i.h.nick));
     // Ping: the host times a few round trips to pick the input delay.
     if (e.host && e.phase === "hello" && e.oppTeam.length) {
@@ -20866,6 +21428,15 @@
             seed: Math.floor(Math.random() * 2147483647),
             delay: R,
             teams: [D.myTeam, D.oppTeam],
+            // Legendaries only when both players have them on; Random rolls
+            // here, fresh for every rematch.
+            legends:
+              A.legends && D.oppLg !== "off"
+                ? [
+                    lgResolve(A.legendPick),
+                    LEGENDS.includes(D.oppLg) ? D.oppLg : lgRoll(),
+                  ]
+                : null,
             names: [netShort(NET.nick, 20), D.oppName],
             tune: W,
           }),
@@ -20878,6 +21449,9 @@
         n.saved || (n.saved = { ...A });
         for (let [W, T] of Object.entries(D.tune))
           NET_LOCAL.includes(W) || (A[W] = T);
+        (A.legends = D.legends ? 1 : 0),
+          (e.match.youLegend = D.legends?.[0] ?? null),
+          (e.match.cpuLegends = [D.legends?.[1] ?? null]);
         (e.localIdx = n.host ? 0 : 1),
           (e.nextId = 1),
           (e.tick = 0),
@@ -21160,6 +21734,8 @@
     function E() {
       if (A.gameMode === 5) return netToLobby();
       let n = A.gameMode !== 1;
+      (e.match.youLegend = lgResolve(A.legendPick)),
+        (e.match.cpuLegends = s.cpuLegends ?? [lgRoll(), lgRoll(), lgRoll()]);
       e.startMatch(
         A.gameMode === 6 ? "vs" : (MODES[A.gameMode] ?? "vs"),
         s.picks,
@@ -21254,6 +21830,20 @@
         E();
         return;
       }
+      if (n.pressed.has("confirm") && s.cursor === 8) {
+        // Zekrom -> Darkrai -> Deoxys -> Random -> Off -> Zekrom.
+        A.legends
+          ? A.legendPick >= LG_PICKS.length - 1
+            ? (A.legends = 0)
+            : A.legendPick++
+          : ((A.legends = 1), (A.legendPick = 0)),
+          Ze(),
+          S.ui(!0),
+          A.legends &&
+            LG_PICKS[A.legendPick] !== "random" &&
+            S.cry(LG_PICKS[A.legendPick], 0.02);
+        return;
+      }
       if (n.pressed.has("confirm")) {
         let W = ge[s.cursor];
         s.picks.length < teamSize() && !s.picks.includes(W)
@@ -21284,6 +21874,7 @@
           S.ui(s.roulette % 8 === 0)),
         s.roulette === 0 &&
           ((s.cpuPicks = Q()),
+          (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]),
           (s.roulette = -1),
           S.select(),
           S.cry(s.cpuPicks[0], 0.08)));
@@ -22666,6 +23257,7 @@
         case "summon":
           (t.cutin = {
             kind: n.kind,
+            form: n.form,
             life: 34,
             max: 34,
             mine: n.who === e.player,
@@ -22683,6 +23275,48 @@
             (t.screenFlash = 5),
             (t.screenFlashColor = "#d8f4ff"),
             (t.impact = 3);
+          break;
+        case "voidWarn":
+          S.wisp(), S.boltHum();
+          break;
+        case "voidBurst":
+          S.phantom(),
+            t.shake(0, 1, 6),
+            (t.screenFlash = 4),
+            (t.screenFlashColor = "#2a1050"),
+            t.ring(n.x, n.y, 8, 3, 26, "#9a6cff", !0);
+          break;
+        case "nightmare":
+          t.popup(n.x, n.y - 40, "-" + DARKRAI.drain, "#b48cff", !1),
+            t.motes(n.x, n.y - 10, 4, 10, "#9a6cff", 0.8);
+          break;
+        case "boostWarn":
+        case "beamWarn":
+          S.boltHum();
+          break;
+        case "boostBurst":
+          S.boom(),
+            t.shake(0, 1, 8),
+            (t.screenFlash = 4),
+            (t.screenFlashColor = "#ffd2a0"),
+            t.ring(n.x, n.y, 10, 3.4, 24, "#ff8a4a", !0),
+            t.ring(n.x, n.y, 6, 2.4, 20, "#ffffff", !0);
+          break;
+        case "beamFire":
+          S.thunder(),
+            t.shake(1, 0, 9),
+            (t.screenFlash = 6),
+            (t.screenFlashColor = "#ffe0c0"),
+            (t.impact = 3);
+          break;
+        case "recover":
+          S.heal(),
+            S.armor(),
+            t.ring(n.x, n.y, 6, 2.6, 26, "#9be8ff", !0),
+            t.popup(n.x, n.y - 46, "RECOVER", "#9be8ff", !0);
+          break;
+        case "dash":
+          S.dodge(), t.shake(0, 1, 2);
           break;
         case "legendReady":
           n.who === e.player &&
