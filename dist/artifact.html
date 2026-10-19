@@ -3344,6 +3344,27 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     // ... and, where damage alone can't do it, how much it takes there.
     // Gardevoir outlasts crowds by staying out of reach, so she takes more.
     FFA_TAKEN = { gardevoir: 1.25 },
+    // Team 2v2 gets its own scale for the same reason: partners change what
+    // each kit is worth (a shooter behind a brawler, say).
+    TEAM_POW = {
+      garchomp: 0.89,
+      snorlax: 0.9,
+      dragapult: 0.91,
+      noivern: 0.92,
+      magnezone: 0.93,
+      charizard: 0.94,
+      froslass: 0.94,
+      gardevoir: 0.98,
+      golurk: 0.98,
+      venusaur: 1.03,
+      metagross: 1.08,
+      blastoise: 1.08,
+      tyrantrum: 1.1,
+      scizor: 1.1,
+      rhyperior: 1.23,
+      lucario: 1.28,
+    },
+    MODE_POW = { ffa: FFA_POW, team: TEAM_POW },
     // In crowds a CPU turns on whoever hit it within t ticks and r pixels.
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
@@ -12822,8 +12843,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             s *
               ae.dmg *
               (lg ? 1 : this.outgoingMult(t) * this.exOut(t, s, k)) *
-              (!lg && this.match.mode === "ffa" && t?.kind === "player"
-                ? (FFA_POW[t.kit.id] ?? 1)
+              (!lg && t?.kind === "player"
+                ? (MODE_POW[this.match.mode]?.[t.kit.id] ?? 1)
                 : 1) *
               (this.match.mode === "ffa" && e.kind === "player"
                 ? (FFA_TAKEN[e.kit.id] ?? 1)
