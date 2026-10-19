@@ -3352,6 +3352,48 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     // ... and, where damage alone can't do it, how much it takes there.
     // Gardevoir outlasts crowds by staying out of reach, so she takes more.
     FFA_TAKEN = { gardevoir: 1.25 },
+    // Team 2v2 gets its own scale for the same reason: partners change what
+    // each kit is worth (a shooter behind a brawler, say).
+    TEAM_POW = {
+      garchomp: 0.83,
+      snorlax: 0.82,
+      dragapult: 0.75,
+      noivern: 0.79,
+      magnezone: 1.04,
+      charizard: 0.87,
+      froslass: 1.09,
+      gardevoir: 0.93,
+      golurk: 1.09,
+      venusaur: 1.06,
+      metagross: 1.2,
+      blastoise: 1.27,
+      tyrantrum: 1.19,
+      scizor: 1.04,
+      rhyperior: 1.3,
+      lucario: 1.21,
+    },
+    // Zone Control: holding a point rewards staying put (Venusaur roots).
+    ZONE_POW = {
+      venusaur: 0.88,
+      froslass: 1.05,
+      charizard: 0.93,
+      noivern: 0.89,
+      golurk: 1.0,
+      gardevoir: 1.01,
+      lucario: 1.05,
+      snorlax: 0.96,
+      dragapult: 1.04,
+      tyrantrum: 1.03,
+      metagross: 1.06,
+      blastoise: 1.01,
+      rhyperior: 1.06,
+      scizor: 1.08,
+      garchomp: 1.07,
+      magnezone: 1.09,
+    },
+    MODE_POW = { ffa: FFA_POW, team: TEAM_POW, zone: ZONE_POW },
+    // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
+    MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.2 } },
     // In crowds a CPU turns on whoever hit it within t ticks and r pixels.
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
@@ -12830,11 +12872,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             s *
               ae.dmg *
               (lg ? 1 : this.outgoingMult(t) * this.exOut(t, s, k)) *
-              (!lg && this.match.mode === "ffa" && t?.kind === "player"
-                ? (FFA_POW[t.kit.id] ?? 1)
+              (!lg && t?.kind === "player"
+                ? (MODE_POW[this.match.mode]?.[t.kit.id] ?? 1)
                 : 1) *
-              (this.match.mode === "ffa" && e.kind === "player"
-                ? (FFA_TAKEN[e.kit.id] ?? 1)
+              (e.kind === "player"
+                ? (MODE_TAKEN[this.match.mode]?.[e.kit.id] ?? 1)
                 : 1) *
               Q *
               ie *
