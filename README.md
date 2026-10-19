@@ -52,15 +52,25 @@ launches them:
   - Defense heals you and raises a barrier that bursts outward.
   - Speed crisscrosses its target with Extreme Speed before diving on it.
 
-Pick your legendary with the **LEGEND** tile at the end of the roster on team select:
-press A on it to cycle Zekrom, Darkrai, Deoxys, Random and Off. Each CPU gets a random
-legendary. Online, both players must have legendaries on for them to appear.
+**Team select** asks for as many Pokémon as the mode needs: one in Standard and the
+party modes, two in Tag Team. The last tile picks a random Pokémon you haven't
+picked, and the CPU never copies yours. Once every fighter is chosen, the legendary
+roster opens: choose Zekrom, Darkrai, Deoxys, Random or Off, and the battle starts.
+Each CPU gets a random legendary. Online, both players must have legendaries on for
+them to appear.
+
+**In battle** the bottom-left tray lists your moves with their buttons and cooldowns,
+and your legendary's meter.
 
 ## Online play
 
-Choose **Online** as the mode on team select (X cycles modes), pick your team and press
-Start. The lobby lists everyone who has the game open right now: pick **Quick match**
+Choose **Online** or **Online Tag Team** as the mode on team select (X cycles modes),
+pick your team and your legendary. The lobby lists everyone who has the game open right now: pick **Quick match**
 to play the next trainer who is searching, or choose a trainer to challenge them.
+Each player picks an arena (Select, or tap the stage plate). If the two picks differ, a
+roulette decides between them before the battle. After a battle, choose **Rematch**,
+**New team** (you pick again, and the two of you are paired again once you're done) or
+**Leave**.
 
 **Friend codes (no claude.ai account needed).** On the Online screen pick **Create a
 friend code** and send the 5-letter code to a friend; they pick **Enter a friend code**

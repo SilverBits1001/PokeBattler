@@ -1191,3 +1191,67 @@ Fault test, results after the fix:
 | Direct link closed | both kicked | carried by the relay, then the direct link redialled |
 | One page hung for 14 s | timed out at 10 s | match resumed |
 | One page switched away for 30 s | timed out | match resumed |
+
+## Team select, online flow, Snorlax and Fly
+
+- **Picks.** Team select asks for `teamSize()` Pokémon: two in Tag Team
+  (offline or online), one otherwise.
+  - Returning from a battle used to keep your lead filled in while the CPU's
+    pick was cleared. Pressing A then did nothing until you undid it, which is
+    why you sometimes had to select twice. It now starts clean, with the cursor
+    on your previous lead.
+  - There's no separate Start press: finishing the picks, and the CPU roulette,
+    opens the legendary roster.
+- **Fair random.** Random picks shuffled with `sort(() => Math.random() -
+  0.5)`, which is biased toward keeping the roster order, so early Pokémon like
+  Charizard came up more. Everything random now uses a Fisher-Yates shuffle
+  (`shuffled`). The CPU roulette, the party-mode extras and the new Random tile
+  prefer Pokémon nobody has picked (`freshPicks`).
+- **Legendary roster.** A full-screen pick of five cards (Zekrom, Darkrai,
+  Deoxys, Random, Off) after the fighters. A confirms and starts the battle, or
+  goes online. B goes back to the fighters. On touch, tap a card, then tap it
+  again. The old legendary tile is now the Random tile.
+- **Online Tag Team.** X now cycles Online, then Online Tag Team, then the
+  next mode. Y still toggles the format. The two-page test played Tag Team
+  online with switches and assists in sync.
+- **After a battle online:** Rematch, New team or Leave.
+  - New team sends `nt` in the match presence. The other page returns to the
+    lobby and searches for that player ("X is picking a new team").
+  - The player who chose New team re-picks. When they return to the lobby they
+    search for the same opponent (`NET.again`, up to three minutes), and the
+    two pair again.
+- **Arenas online.** Hello carries each player's arena (`ar`). The host keeps
+  it if both match, otherwise it draws one at random. `cfg.arenas` carries the
+  two picks, and both pages play a 2.6-second roulette before the battle (the
+  guest delays its ready). Every arena is selectable, including by tapping the
+  stage plate. Protocol version 7.
+- **Snorlax.** He used to soak hits and heal: Yawn (no damage) and Rest. The
+  new kit:
+  - **Body Slam (X):** an armored charge that hits everyone in its path once
+    for 36, with a 25% chance to paralyse, then lands in a small shockwave.
+  - **Earthquake (Y):** two ground shockwaves (24, then 32 over a wider ring),
+    which miss anyone in the air.
+  - **HP:** with real damage he no longer needs the extra bulk. Health went from
+    1400 to 1200.
+  - **Tuning runs, Hard CPUs, all matchups:**
+
+| Version | Stadium | Ruins |
+|---|---|---|
+| New moves, 1400 HP | 75–79% | |
+| 1150 HP | 43% | |
+| 1250 HP | 57% | 68% |
+| 1200 HP, final | 52% | 59% |
+
+  In the final runs every Pokémon was between 39% and 59%.
+- **Charizard's Fly.** It counts as airborne for the whole flight (it used to
+  be only the first 34 ticks, and fully invincible then).
+  - Melee, hitboxes, straight projectiles and ground attacks miss it.
+  - Seeking attacks still hit: Dreepy, Lock-On Zap, and any projectile with a
+    target and a homing value. `victimsFor(team, seek)` and the projectile
+    check implement this.
+  - Checked headless: a melee hitbox and a straight Zap miss, and a homing Zap
+    hits.
+- **Move tray.** Keyboard and pad players get a panel in the bottom-left
+  corner: each move's button, name and cooldown ring with seconds left (heat
+  for Flamethrower), plus the legendary meter.
+

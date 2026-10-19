@@ -819,15 +819,16 @@
         yCd: 150,
       },
 
-      // The 460 kg sleeper. A super-heavyweight that soaks hits with armor, lands
-      // huge single blows, puts foes to sleep with Yawn and naps to heal (Rest).
+      // The 460 kg sleeper. A super-heavyweight that soaks hits with armor and
+      // lands huge blows: an armored Body Slam charge that can paralyse, and an
+      // Earthquake whose two shockwaves hit everyone on the ground.
       snorlax: {
         id: "snorlax",
         name: "SNORLAX",
         type: "NORMAL",
         color: "#3f8f9e",
         typeInk: "#1f1f12",
-        hp: 1400,
+        hp: 1200,
         speed: 1.85,
         weight: 0.45,
         r: 13,
@@ -907,10 +908,10 @@
           armor: !0,
           leap: { dist: 40, grow: 70, air: 22, r: 30, grow2: 14 },
         },
-        xName: "YAWN",
-        yName: "REST",
-        xCd: 240,
-        yCd: 600,
+        xName: "BODY SLAM",
+        yName: "EARTHQUAKE",
+        xCd: 200,
+        yCd: 390,
       },
       // The sound wyvern. Flies over hazards, hits and runs with wide wing
       // strikes, blasts point-blank Boomburst through guard and conjures Hurricanes.
@@ -1821,27 +1822,33 @@
                       (this.holdB = 26),
                       (this.phantomAway = !1));
           } else if (f === "snorlax") {
-            // Wall of a Pokémon: brawl up close, Yawn at range, nap when safe,
-            // and cash in a fully charged Heavy Slam on a sleeping target.
-            let J = (o.asleepUntil ?? 0) > l,
-              fe = !e.losBlocked(t.x, t.y, o.x, o.y);
+            // Juggernaut: Earthquake when foes crowd in, Body Slam to close
+            // the gap, brawl up close, and a charged Heavy Slam on a stunned foe.
+            let J = (o.asleepUntil ?? 0) > l || (o.paraT ?? 0) > 20,
+              fe = !e.losBlocked(t.x, t.y, o.x, o.y),
+              Q = e
+                .targetsFor(t.team)
+                .filter(
+                  (ie) => Math.hypot(ie.x - t.x, ie.y - t.y) < 100,
+                ).length;
             J && y < 150
               ? ((this.smashHold = 40 + Math.floor(r() * 20)),
                 (i.ax = Math.cos(b)),
                 (i.ay = Math.sin(b)))
-              : u.cdY === 0 && u.hp < u.maxHp * 0.5 && y > 110 && r() < 0.5
-                ? (i.pressed.add("special2"),
-                  (this.holdY = 60 + Math.floor(r() * 120)))
-                : y < 34 || (N && y < 50)
-                  ? i.pressed.add("attack")
-                  : u.cdX === 0 && fe && y > 50 && y < 210 && r() < 0.4
-                    ? i.pressed.add("special1")
-                    : y > 60 &&
-                      y < 125 &&
-                      r() < 0.08 &&
-                      ((this.smashHold = 6 + Math.floor(r() * 30)),
-                      (i.ax = Math.cos(b)),
-                      (i.ay = Math.sin(b)));
+              : u.cdY === 0 && y < 92 && !e.floating(o) && (Q > 1 || r() < 0.45)
+                ? i.pressed.add("special2")
+                : u.cdX === 0 && fe && y > 46 && y < 170 && r() < 0.5
+                  ? i.pressed.add("special1")
+                  : y < 34 || (N && y < 50)
+                    ? i.pressed.add("attack")
+                    : u.cdX === 0 && fe && y > 50 && y < 210 && r() < 0.4
+                      ? i.pressed.add("special1")
+                      : y > 60 &&
+                        y < 125 &&
+                        r() < 0.08 &&
+                        ((this.smashHold = 6 + Math.floor(r() * 30)),
+                        (i.ax = Math.cos(b)),
+                        (i.ay = Math.sin(b)));
           } else if (f === "noivern") {
             // Hit and run: Boomburst point-blank, Hurricane to zone, Air Slash poke.
             let fe = !e.losBlocked(t.x, t.y, o.x, o.y);
@@ -2371,6 +2378,27 @@
     // The legendary tile on team select cycles these (then Off).
     LG_PICKS = ["zekrom", "darkrai", "deoxys", "random"],
     lgRoll = () => LEGENDS[Math.floor(Math.random() * LEGENDS.length)],
+    // An unbiased shuffle (Fisher-Yates). Sorting with a random comparator
+    // keeps the roster's order more often than not, which made random picks
+    // favour the first Pokémon in the list.
+    shuffled = (a, e = Math.random) => {
+      let t = [...a];
+      for (let s = t.length - 1; s > 0; s--) {
+        let i = Math.floor(e() * (s + 1));
+        [t[s], t[i]] = [t[i], t[s]];
+      }
+      return t;
+    },
+    // Random Pokémon for a side, preferring ones nobody has picked yet.
+    freshPicks = (a, e, t = Math.random) => {
+      let s = shuffled(
+        ge.filter((i) => !e.includes(i)),
+        t,
+      );
+      return s.length >= a
+        ? s.slice(0, a)
+        : [...s, ...shuffled(ge, t)].slice(0, a);
+    },
     lgResolve = (a) => {
       let e = LG_PICKS[a] ?? "zekrom";
       return e === "random" ? lgRoll() : e;
@@ -2404,8 +2432,10 @@
       analytic: 1.25,
       shock: 120,
     },
-    // Charizard: Fly is steered by hand (no lock-on homing). It is untouchable
-    // only while climbing; cruising low it can be hit. X mid-flight drops a Fire Blast.
+    // Charizard: Fly is steered by hand (no lock-on homing). For the whole flight
+    // melee and straight-flying projectiles pass underneath; only attacks that
+    // seek (Dreepy, locked-on Zap, homing shots) can reach it. X mid-flight
+    // drops a Fire Blast.
     FLY = {
       rise: 10,
       min: 14,
@@ -2418,6 +2448,27 @@
     },
     // Snorlax: Yawn puts a foe to sleep after a delay; Rest heals while snoring.
     SNOR = {
+      // Body Slam: windup, an armored charge, then a belly-flop landing.
+      slamWind: 12,
+      slamDash: 18,
+      slamSpeed: 5.4,
+      slamR: 20,
+      slamDmg: 36,
+      slamKb: 7.4,
+      slamPara: 70,
+      slamParaChance: 0.25,
+      slamLand: 14,
+      slamLandR: 34,
+      slamRec: 18,
+      // Earthquake: two stomps, the second wider and harder. Fliers and
+      // anyone airborne are safe.
+      quakeWind: 14,
+      quakeGap: 18,
+      quakeR1: 72,
+      quakeR2: 112,
+      quakeDmg1: 24,
+      quakeDmg2: 32,
+      quakeRec: 18,
       yawnSpeed: 1.5,
       drowsy: 100,
       sleep: 75,
@@ -2677,8 +2728,7 @@
       get invincible() {
         return this.state === "dodge"
           ? this.t < this.kit.dodge.iframes
-          : (this.state === "flyUp" && this.t >= 3 && this.t < FLY.safe) ||
-              (this.state === "flySlam" && this.t < 5) ||
+          : (this.state === "flySlam" && this.t < 5) ||
               this.state === "faint" ||
               this.state === "summon" ||
               this.state === "phantom" ||
@@ -2714,6 +2764,10 @@
           return e.armor && this.t <= e.startup + e.active ? 1 : 0;
         }
         if (this.state === "rest") return 1 / 0;
+        if (this.state === "bodySlam")
+          return this.t <= SNOR.slamWind + SNOR.slamDash ? 1 : 0;
+        if (this.state === "quake")
+          return this.t <= SNOR.quakeWind + SNOR.quakeGap ? 1 : 0;
         return (this.state === "smashCharge" ||
           (this.state === "smash" &&
             this.t <=
@@ -2729,7 +2783,7 @@
       }
       get airborne() {
         return (
-          (this.state === "flyUp" && this.t < FLY.safe) ||
+          this.state === "flyUp" ||
           (this.state === "flySlam" && this.t < 6) ||
           this.state === "launched"
         );
@@ -3035,10 +3089,15 @@
             (this.dummies = []);
           if (q) {
             (i && r.extra?.length === 2) ||
-              (r.extra = [0, 1].map(() => {
-                let l = [...ge].sort(() => this.rand() - 0.5);
-                return l.slice(0, t.length);
-              }));
+              (r.extra = (() => {
+                let l = [...t, ...s],
+                  f = [];
+                for (let u = 0; u < 2; u++) {
+                  let h = freshPicks(t.length, l, this.rand);
+                  f.push(h), l.push(...h);
+                }
+                return f;
+              })());
             for (let l = 0; l < 2; l++) {
               let f = l + 2,
                 u = new bt(
@@ -3177,10 +3236,15 @@
           s.team !== e && this.canBeHit(s) && t.push(s);
         return t;
       }
-      victimsFor(e) {
+      // Who team e's attacks can hit. Seeking attacks (Dreepy, homing shots)
+      // also reach a Charizard in flight.
+      victimsFor(e, seek = !1) {
         let t = [];
         for (let s of this.players)
-          s.team !== e && !s.invincible && !s.airborne && t.push(s);
+          s.team !== e &&
+            !s.invincible &&
+            (!s.airborne || (seek && s.state === "flyUp")) &&
+            t.push(s);
         for (let s of this.dummies)
           s.team !== e && this.canBeHit(s) && t.push(s);
         return t;
@@ -3468,6 +3532,8 @@
             "qa",
             "rest",
             "restWake",
+            "bodySlam",
+            "quake",
             "counter",
             "stunned",
             "launched",
@@ -3619,6 +3685,12 @@
             break;
           case "yawn":
             this.tickYawn(e, P);
+            break;
+          case "bodySlam":
+            this.tickBodySlam(e, P);
+            break;
+          case "quake":
+            this.tickQuake(e);
             break;
           case "rest":
             this.tickRest(e);
@@ -5116,14 +5188,15 @@
                 this.emit({ type: "pumpStart", who: e }));
         else if (i.id === "snorlax")
           t === "x"
-            ? (e.state = "yawn")
-            : r.hp >= r.maxHp
-              ? ((e.state = "move"),
-                this.emit({ type: "dartsEmpty", who: e, msg: "FULL HP" }))
-              : ((e.state = "rest"),
-                (e.restHealed = 0),
-                (r.cdY = i.yCd),
-                this.emit({ type: "restStart", who: e }));
+            ? ((e.state = "bodySlam"),
+              (e.armorUsed = 0),
+              (e.slamHit = []),
+              (r.cdX = i.xCd),
+              this.emit({ type: "slamWind", who: e }))
+            : ((e.state = "quake"),
+              (e.armorUsed = 0),
+              (r.cdY = i.yCd),
+              this.emit({ type: "quakeWind", who: e }));
         else if (i.id === "noivern")
           t === "x"
             ? ((e.state = "boom"), (e.boomC = 0))
@@ -5179,6 +5252,133 @@
       }
 
       // ---- Snorlax -------------------------------------------------------
+      // Body Slam: aim during the windup, charge in a straight line crushing
+      // everyone in the way (each once), then land in a small shockwave.
+      tickBodySlam(e, t) {
+        let s = SNOR,
+          i = s.slamWind + s.slamDash;
+        if (e.t <= s.slamWind) {
+          this.locomote(e, 0, 0),
+            e.t <= s.slamWind - 2 &&
+              ((e.dir2 = this.aimAssist(e, t, 220)), (e.facing = e.dir2));
+          return;
+        }
+        if (e.t <= i) {
+          let r = Math.cos(e.dir2),
+            o = Math.sin(e.dir2),
+            l = me(e.x + r * s.slamSpeed, B.x0 + e.r, B.x1 - e.r),
+            f = me(e.y + o * s.slamSpeed, B.y0 + e.r, B.y1 - e.r);
+          (e.mvx = e.mvy = 0), (e.x = l), (e.y = f), (e.facing = e.dir2);
+          for (let u of this.victimsFor(e.team)) {
+            if (e.slamHit.includes(u)) continue;
+            let h = u.x - e.x,
+              c = u.y - e.y,
+              y = Math.hypot(h, c);
+            if (y > s.slamR + u.hurtR) continue;
+            e.slamHit.push(u);
+            let b = r * 0.7 + (h / (y || 1)) * 0.3,
+              p = o * 0.7 + (c / (y || 1)) * 0.3,
+              k = Math.hypot(b, p) || 1;
+            this.applyHit(
+              u,
+              e,
+              s.slamDmg,
+              s.slamKb,
+              b / k,
+              p / k,
+              !0,
+              10,
+              26,
+              e.kit.color,
+              u.x,
+              u.y,
+              !1,
+              !1,
+              this.srcLabel(e, "bodyslam"),
+            ),
+              u.kind === "player" &&
+                u.state !== "guard" &&
+                this.rand() < s.slamParaChance &&
+                ((u.paraT = Math.max(u.paraT ?? 0, s.slamPara)),
+                this.emit({ type: "paralyzed", who: u }));
+          }
+          e.t % 3 === 0 &&
+            this.emit({
+              type: "slamDash",
+              who: e,
+              x: e.x,
+              y: e.y,
+              dx: r,
+              dy: o,
+            });
+          return;
+        }
+        if ((this.locomote(e, 0, 0), e.t === i + 1)) {
+          for (let r of this.victimsFor(e.team)) {
+            if (this.floating(r) || e.slamHit.includes(r)) continue;
+            let o = r.x - e.x,
+              l = r.y - e.y,
+              f = Math.hypot(o, l);
+            f < s.slamLandR + r.hurtR &&
+              this.applyHit(
+                r,
+                e,
+                s.slamLand,
+                3.4,
+                o / (f || 1),
+                l / (f || 1),
+                !1,
+                5,
+                16,
+                e.kit.color,
+                r.x,
+                r.y,
+                !1,
+                !1,
+                this.srcLabel(e, "bodyslam"),
+              );
+          }
+          this.emit({ type: "slamLand", who: e, x: e.x, y: e.y });
+        }
+        e.t >= i + s.slamRec && ((e.state = "move"), (e.t = 0));
+      }
+      // Earthquake: rear up, stomp twice; each stomp is a ring of force along
+      // the ground that misses anyone in the air.
+      tickQuake(e) {
+        let t = SNOR;
+        this.locomote(e, 0, 0);
+        let s = (i, r, o, l) => {
+          for (let f of this.victimsFor(e.team)) {
+            if (this.floating(f)) continue;
+            let u = f.x - e.x,
+              h = f.y - e.y,
+              c = Math.hypot(u, h);
+            c < r + f.hurtR &&
+              this.applyHit(
+                f,
+                e,
+                o,
+                l,
+                u / (c || 1),
+                h / (c || 1),
+                i === 2,
+                i === 2 ? 10 : 6,
+                i === 2 ? 24 : 18,
+                "#c9a25a",
+                f.x,
+                f.y,
+                !1,
+                !1,
+                this.srcLabel(e, "quake" + i),
+              );
+          }
+          this.emit({ type: "quake", who: e, x: e.x, y: e.y, r, n: i });
+        };
+        e.t === t.quakeWind && s(1, t.quakeR1, t.quakeDmg1, 4.4),
+          e.t === t.quakeWind + t.quakeGap && s(2, t.quakeR2, t.quakeDmg2, 7),
+          e.t >= t.quakeWind + t.quakeGap + t.quakeRec &&
+            ((e.state = "move"), (e.t = 0));
+      }
       tickYawn(e, t) {
         this.locomote(e, 0, 0),
           e.t <= 6 &&
@@ -5879,7 +6079,7 @@
             s &&
             e.hits < 2 &&
             this.tick - e.lastHit > 18 &&
-            this.victimsFor(e.team).includes(s) &&
+            this.victimsFor(e.team, !0).includes(s) &&
             Math.hypot(s.x - e.x, s.y - e.y) < s.hurtR + 6
           ) {
             let i = (s.burnT ?? 0) > 0,
@@ -7067,6 +7267,17 @@
             break;
           case "yawn":
             (e.animName = "Shoot"), (e.animFrame = fr("Shoot", 2.4, !1));
+            break;
+          case "bodySlam":
+            e.t <= SNOR.slamWind
+              ? ((e.animName = "Hop"), (e.animFrame = 0))
+              : e.t <= SNOR.slamWind + SNOR.slamDash
+                ? ((e.animName = "Walk"), (e.animFrame = fr("Walk", 1.2, !0)))
+                : ((e.animName = "Stomp"), (e.animFrame = fr("Stomp", 2, !1)));
+            break;
+          case "quake":
+            (e.animName = "Stomp"),
+              (e.animFrame = e.t < SNOR.quakeWind ? 0 : fr("Stomp", 2, !1));
             break;
           case "rest":
             (e.animName = "Sleep"), (e.animFrame = fr("Sleep", 30, !0));
@@ -8863,7 +9074,11 @@
                     this.emit({ type: "bellyBounce", who: i });
                   break;
                 }
-                if (i.invincible || i.airborne) {
+                if (
+                  i.invincible ||
+                  (i.airborne &&
+                    !(i.state === "flyUp" && e.target && (e.homing ?? 0) > 0))
+                ) {
                   e.dodged ||
                     ((e.dodged = !0),
                     i.state === "dodge" &&
@@ -13017,14 +13232,7 @@
       }
       if (h.state === "flyUp" || (h.state === "flySlam" && h.t < 6)) {
         let y = 10 + Math.sin(e.tick * 0.5) * 2,
-          b =
-            h.state === "flyUp" && h.t >= FLY.safe
-              ? e.tick % 10 < 5
-                ? "#ffffff"
-                : "#ef5a4f"
-              : h.isRival
-                ? "#ef5a4f"
-                : L.flame;
+          b = h.isRival ? "#ef5a4f" : L.flame;
         (a.strokeStyle = b),
           (a.lineWidth = 1),
           (a.globalAlpha = 0.9),
@@ -15391,6 +15599,8 @@
         FLY: "Fly",
         YAWN: "Yawn",
         REST: "Rest",
+        "BODY SLAM": "Slam",
+        EARTHQUAKE: "Quake",
         BOOMBURST: "Boom",
         HURRICANE: "Hurricane",
         "AURA SPHERE": "Sphere",
@@ -15681,7 +15891,7 @@
       return;
     }
     if (s.screen === "online") {
-      onlineScreen(s, o), ga(s), Lt(s), touchDraw(s, e);
+      onlineScreen(s, o), arenaRoll(), ga(s), Lt(s), touchDraw(s, e);
       return;
     }
     if (s.screen === "menu") {
@@ -15798,6 +16008,7 @@
     t.cutin && lgCutin(e, t),
       s.debug && as(e),
       s.hintT > 0 && !s.paused && e.match.phase === "fight" && ts(e, s),
+      !s.paused && e.match.phase === "fight" && moveTray(e, s),
       e.match.phase === "results" && os(e, s, o),
       ga(s),
       s.paused && hs(e, s, o),
@@ -16622,11 +16833,11 @@
                 ? ue("TARGET LOCKED", h % 16 < 8 ? "#d64538" : "#ef5a4f", v, E)
                 : G("Lock-On, then Zap Cannon", v, E + 5.6, 5.8, g.dim)
               : f.id === "snorlax"
-                ? t.state === "rest"
-                  ? ue("RESTING", "#3f8f9e", v, E)
-                  : l.cdY === 0 && l.hp < l.maxHp
-                    ? ue("REST READY", "#3f8f9e", v, E)
-                    : G("Yawn, then Heavy Slam", v, E + 5.6, 5.8, g.dim)
+                ? t.state === "bodySlam"
+                  ? ue("BODY SLAM", "#3f8f9e", v, E)
+                  : l.cdY === 0
+                    ? ue("QUAKE READY", "#c9a25a", v, E)
+                    : G("Body Slam, then Heavy Slam", v, E + 5.6, 5.8, g.dim)
                 : f.id === "noivern"
                   ? t.state === "boom"
                     ? ue(`BOOM ${Math.round(t.boomC * 100)}%`, "#8a5ccf", v, E)
@@ -16744,6 +16955,71 @@
         V(t.kit.name, h, f + 20, 12, g.chalk, { skew: !0 }),
         d.restore();
     }
+  }
+  // Your moves, always on screen: button, name and cooldown. Touch players
+  // see the same on their on-screen buttons.
+  var tc = (a) => a.split(/[ -]/).map(_a).join(" ");
+  function moveTray(a, e) {
+    if (e.source === "touch") return;
+    let t = a.player;
+    if (!t?.kit || t.state === "faint") return;
+    let s = t.kit,
+      i = t.slot,
+      r = e.source === "pad",
+      o = t.slots.length === 1,
+      l = (h, c) =>
+        h > 0 ? [1 - h / Math.max(1, c), `${(h / 60).toFixed(1)}s`] : [1, ""],
+      f = [
+        [
+          r ? "X" : "L",
+          tc(s.xName),
+          ...(s.id === "charizard"
+            ? t.state === "overheat"
+              ? [t.t / FLAME.overheat, "OVERHEAT"]
+              : [1, `Heat ${Math.round(i.heat ?? 0)}%`]
+            : s.id === "dragapult"
+              ? i.horns.includes("loaded") || i.horns.includes("out")
+                ? [1, ""]
+                : [0, "Darts out"]
+              : l(i.cdX, s.xCd)),
+        ],
+        [r ? "Y" : "I", tc(s.yName), ...l(i.cdY, s.yCd)],
+        [r ? "B" : "K", "Dodge", ...l(i.cdDodge, s.dodge.cooldown)],
+        [r ? "RS" : "↑", tc(s.smash.name ?? "Smash"), 1, ""],
+      ];
+    t.legend &&
+      f.push([
+        r ? (o ? "L2" : "L3") : o ? "E" : "R",
+        LG_INFO[t.legend]?.name ? tc(LG_INFO[t.legend].name) : "Legend",
+        Math.min(1, t.lgMeter / 100),
+        t.lgMeter >= 100 ? "" : `${Math.floor(t.lgMeter)}%`,
+      ]);
+    let u = 118,
+      h = 11,
+      c = 6,
+      y = oe - 18 - f.length * h;
+    d.save(), te(c, y - 7, u, f.length * h + 4, "rgba(11,9,24,0.7)", 4);
+    f.forEach(([b, p, k, M], P) => {
+      let C = y + P * h,
+        x = k >= 1 && !M;
+      hudBtn(
+        c + 8,
+        C,
+        b.length > 2 ? b.slice(0, 2) : b,
+        Math.max(0, Math.min(1, k)),
+        0,
+      ),
+        G(p, c + 16, C + 2.3, 6.2, x ? g.chalk : g.haze, { weight: 600 }),
+        G(
+          x ? "READY" : M,
+          c + u - 5,
+          C + 2.3,
+          5.6,
+          x ? g.gold : M === "OVERHEAT" ? g.cpu : "#cfcaea",
+          { align: "right", weight: 700 },
+        );
+    }),
+      d.restore();
   }
   function ts(a, e) {
     if (e.source === "touch") return;
@@ -17073,52 +17349,140 @@
     up: [6, 7, 8, 0, 1, 2, 3, 4, 5],
     down: [3, 4, 5, 6, 7, 8, 0, 1, 2],
   };
-  // The legendary tile: your pick's portrait (a ? for Random, dimmed for
-  // Off); A cycles it.
-  function lgTile(a, e) {
+  // The last tile picks a random Pokémon you haven't picked yet.
+  function rndTile(a) {
     let { x: t, y: s, s: i } = rs(8),
-      r = a.cursor === 8,
-      o = A.legends ? (LG_PICKS[A.legendPick] ?? "zekrom") : "off",
-      l = LG_INFO[o],
-      f = l?.color ?? g.dim;
+      r = a.cursor === 8;
     tapRect(t - 2, s - 2, i + 4, i + 12, () => {
       (a.cursor = 8), Ue.add("confirm");
     }),
       r &&
         (d.save(),
         (d.globalCompositeOperation = "lighter"),
-        (d.shadowColor = g.gold),
+        (d.shadowColor = g.p1),
         (d.shadowBlur = m(10)),
-        te(t - 2, s - 2, i + 4, i + 4, "rgba(255,216,74,0.6)"),
+        te(t - 2, s - 2, i + 4, i + 4, "rgba(51,214,255,0.6)"),
         d.restore()),
-      te(t - 1.4, s - 1.4, i + 2.8, i + 2.8, r ? g.gold : "rgba(10,8,22,0.95)");
-    let u = e[o];
-    u
-      ? Oe(u, r ? "Determined" : "Normal", t, s, i, {
-          bg: f,
-          frame: !1,
-          slash: !0,
-        })
-      : (te(t, s, i, i, "#191530"),
+      te(t - 1.4, s - 1.4, i + 2.8, i + 2.8, r ? g.p1 : "rgba(10,8,22,0.95)"),
+      te(t, s, i, i, "#191530"),
+      V("?", t + i / 2, s + i * 0.72, 24, r ? g.gold : g.chalk, {
+        align: "center",
+        outline: 2,
+      }),
+      V("RANDOM", t + i / 2 - 1, s + i + 8, 6.4, r ? g.p1 : g.chalk, {
+        align: "center",
+        outline: 1.6,
+      });
+  }
+  // The legendary roster: opens once every fighter is chosen.
+  var LG_CARDS = [
+    ["zekrom", "Fusion Bolt", "Dives along a line, then", "calls down a storm"],
+    ["darkrai", "Dark Void", "A sleep pool, then", "Nightmare drains them"],
+    ["deoxys", "Psycho Boost", "A random Forme each", "time it is called"],
+    ["random", "Any of the three", "Rolled fresh for", "every battle"],
+    ["off", "No legendaries", "Battle without", "summons this time"],
+  ];
+  function lgRoster(a, e) {
+    let t = a.lgT ?? 0,
+      s = Ee(Math.min(1, t / 10));
+    (d.globalAlpha = s),
+      (d.fillStyle = "rgba(5,4,14,0.84)"),
+      d.fillRect(0, 0, m(H), m(oe)),
+      V("CHOOSE YOUR LEGENDARY", H / 2, 34, 17, g.gold, {
+        align: "center",
+        skew: !0,
+        outline: 2.6,
+      }),
+      G(
+        "It answers when your meter fills. Pick Off to battle without one.",
+        H / 2,
+        45,
+        6.2,
+        g.haze,
+        { align: "center" },
+      );
+    let i = 82,
+      r = 120,
+      o = 8,
+      l = (H - (i * 5 + o * 4)) / 2;
+    LG_CARDS.forEach(([f, u, h, c], y) => {
+      let b = a.lgCursor === y,
+        p = LG_INFO[f],
+        k = p?.color ?? (f === "random" ? g.gold : g.dim),
+        M = l + y * (i + o),
+        P = 58 + (1 - s) * 20 + (b ? -4 + Math.sin(t * 0.12) * 1.5 : 0);
+      tapRect(M, P, i, r, () => {
+        a.lgCursor === y ? Ue.add("confirm") : ((a.lgCursor = y), S.ui(!0));
+      }),
+        b &&
+          (d.save(),
+          (d.globalCompositeOperation = "lighter"),
+          (d.shadowColor = k),
+          (d.shadowBlur = m(14)),
+          te(M - 2, P - 2, i + 4, r + 4, k + "99", 8),
+          d.restore()),
+        Ae(M, P, i, r, k, { bright: b });
+      let C = e[f];
+      C
+        ? Oe(C, b ? "Determined" : "Normal", M + 9, P + 7, i - 18, {
+            bg: k,
+            frame: !1,
+            slash: !0,
+          })
+        : (te(M + 9, P + 7, i - 18, i - 18, "#191530", 6),
+          V(
+            f === "random" ? "?" : "OFF",
+            M + i / 2,
+            P + (f === "random" ? 54 : 46),
+            f === "random" ? 34 : 14,
+            k,
+            {
+              align: "center",
+              outline: 2,
+            },
+          )),
         V(
-          o === "random" ? "?" : "\u2013",
-          t + i / 2,
-          s + i * 0.72,
-          24,
-          o === "random" ? g.gold : g.dim,
+          f === "random" ? "RANDOM" : f === "off" ? "OFF" : p.name,
+          M + i / 2,
+          P + 82,
+          10.5,
+          b ? g.chalk : k,
           {
             align: "center",
+            outline: 2,
           },
-        )),
-      ue("LEGEND", g.gold, t + 2, s + 2, { text: g.night, size: 4.4 }),
-      V(
-        o === "off" ? "OFF" : o === "random" ? "RANDOM" : l.name,
-        t + i / 2 - 1,
-        s + i + 8,
-        6.4,
-        r ? g.gold : o === "off" ? g.dim : "#ffe9a8",
-        { align: "center", outline: 1.6 },
-      );
+        ),
+        G(u, M + i / 2, P + 92, 6.4, k, { align: "center", weight: 700 }),
+        G(h, M + i / 2, P + 102, 5.4, g.haze, { align: "center" }),
+        G(c, M + i / 2, P + 109, 5.4, g.haze, { align: "center" });
+    });
+    let f = 196;
+    G(
+      cpuSide()
+        ? "The CPU brings a random legendary."
+        : A.gameMode === 5
+          ? "Online, legendaries appear when both players have one."
+          : "Training starts with a full meter.",
+      H / 2,
+      f,
+      6.2,
+      g.haze,
+      { align: "center" },
+    );
+    (d.fillStyle = "rgba(5,4,14,0.96)"), d.fillRect(0, m(oe - 18), m(H), m(18));
+    let u = 12;
+    for (let [h, c] of [
+      ["←→", "Choose"],
+      ["A", A.gameMode === 5 ? "Confirm and go online" : "Confirm and battle"],
+      ["B", "Back"],
+    ]) {
+      let y = Pe(h, u + 4, oe - 7, 3.2),
+        b = { A: "confirm", B: "back" }[h];
+      b && tapRect(u - 2, oe - 16, y + ye(c, 6.2) + 10, 16, () => Ue.add(b)),
+        G(c, u + y + 1.5, oe - 4.6, 6.2, g.chalk, { weight: 600 }),
+        (u += y + ye(c, 6.2) + 10);
+    }
+    d.globalAlpha = 1;
   }
   // A small chip naming a side's legendary, on its team card.
   function lgChip(a, e, t) {
@@ -17351,7 +17715,9 @@
     let i = ["Easy", "Normal", "Hard"][A.cpuLevel],
       r = ["#4df08a", g.gold, g.cpu][A.cpuLevel],
       o = ue(
-        MODE_NAMES[A.gameMode] ?? "VS CPU",
+        A.gameMode === 5 && A.onlineTag
+          ? "ONLINE TAG TEAM"
+          : (MODE_NAMES[A.gameMode] ?? "VS CPU"),
         s ? g.cpu : A.gameMode === 5 ? g.p1 : g.dim,
         H - 12,
         10,
@@ -17493,16 +17859,15 @@
           }),
         ie && ue("CPU", g.cpu, C + v - 3, x + 2, { right: !0, size: 4.8 });
     });
-    lgTile(a, e),
-      lgChip(LG_PICKS[A.legendPick], 14, 40),
-      s && a.cpuPicks.length && lgChip(a.cpuLegends?.[0], H - 142, 40);
+    rndTile(a);
     // Stage plate and the VS emblem.
     let h = H / 2,
       c = 194,
       y =
         ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030"][A.arena] ??
         "#cfcaea";
-    te(h - 52, c - 9, 104, 18, "rgba(10,8,22,0.88)", 5),
+    tapRect(h - 52, c - 9, 104, 18, () => Ue.add("select")),
+      te(h - 52, c - 9, 104, 18, "rgba(10,8,22,0.88)", 5),
       G("BATTLE STAGE", h, c - 2.5, 4.6, g.haze, {
         align: "center",
         weight: 700,
@@ -17534,38 +17899,14 @@
         align: "center",
         skew: !0,
       });
-    // Controls and the start prompt.
-    let p = 247;
-    if (
-      a.picks.length === teamSize() &&
-      (!s || a.cpuPicks.length === teamSize())
-    ) {
-      let M = 1 + 0.04 * Math.sin(t * 0.2);
-      d.save(),
-        d.translate(m(h), m(p)),
-        d.scale(M, M),
-        d.translate(-m(h), -m(p)),
-        tapRect(h - 76, p - 9, 152, 18, () => Ue.add("start")),
-        te(h - 72, p - 7, 144, 14, g.gold),
-        V(
-          A.gameMode === 5
-            ? "Press Start to go online"
-            : "Press Start to battle",
-          h,
-          p + 4,
-          11,
-          g.night,
-          { align: "center" },
-        ),
-        d.restore();
-    }
+    // Controls.
     let k = 12;
     for (let [M, P, C] of [
       ["A", "Pick", "#cfcaea"],
       ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
       [
         "X",
-        `Mode: ${["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team"][A.gameMode] ?? "VS CPU"}`,
+        `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team"][A.gameMode] ?? "VS CPU")}`,
         "#cfcaea",
       ],
       ...(s
@@ -17593,6 +17934,7 @@
       G(P, k + x + 1.5, oe - 4.6, 6.2, C, { weight: 600 }),
         (k += x + ye(P, 6.2) + 10);
     }
+    a.lgPhase && lgRoster(a, e);
   }
   // Results backdrop: a triangle lattice that ripples out from the winner,
   // turning light rays and drifting shards. Warm gold for a win, cold blue and
@@ -17955,21 +18297,29 @@
     Le <= 0 ||
       (d.save(),
       (d.globalAlpha = Le),
-      (NET.m ? ["Rematch", "Leave"] : qa).forEach((q, le) => {
-        let ve = 228 + le * 86 - (1 - Le) * 20,
+      (NET.m ? ["Rematch", "New team", "Leave"] : qa).forEach((q, le) => {
+        let ve = 214 + le * 80 - (1 - Le) * 20,
           Ce = 228,
           de = le === e.resultIndex;
-        tapRect(ve, Ce, 82, 22, () => {
+        tapRect(ve, Ce, 76, 22, () => {
           (e.resultIndex = le), Ue.add("confirm");
         });
-        te(ve + 1.4, Ce + 2, 82, 22, "rgba(0,0,0,0.5)"),
-          te(ve, Ce, 82, 22, de ? g.gold : g.plate2),
-          V(q, ve + 82 / 2 - 1, Ce + 16, 12, de ? g.night : g.chalk, {
-            align: "center",
-          });
+        te(ve + 1.4, Ce + 2, 76, 22, "rgba(0,0,0,0.5)"),
+          te(ve, Ce, 76, 22, de ? g.gold : g.plate2),
+          V(
+            q,
+            ve + 76 / 2 - 1,
+            Ce + 16,
+            q.length > 9 ? 9.5 : 11,
+            de ? g.night : g.chalk,
+            {
+              align: "center",
+            },
+          );
       }),
       NET.m && netRematchNote(),
-      d.restore());
+      d.restore()),
+      NET.m && arenaRoll();
   }
   // Online results: who has asked for a rematch so far.
   function netRematchNote() {
@@ -18098,6 +18448,112 @@
     ],
   ];
   var arenaThumbs = [];
+  function arenaThumb(c) {
+    if (!arenaThumbs[c]) {
+      // Bake the live features (lava, ice, pylons) into the thumbnail.
+      let k = Va(c),
+        M = k.getContext("2d");
+      for (let [P, C, x, v] of c === 2 ? CRATER.pools : [])
+        (M.fillStyle = tilePat(M, 2, !1) || "#ff6a1a"),
+          M.beginPath(),
+          M.ellipse(P, C, x, v, 0, 0, Math.PI * 2),
+          M.fill();
+      for (let [P, C, x, v] of c === 3 ? FROST.rinks : [])
+        (M.fillStyle = tilePat(M, 3, !1) || "#a9d6f2"),
+          M.beginPath(),
+          M.ellipse(P, C, x, v, 0, 0, Math.PI * 2),
+          M.fill();
+      for (let [P, C] of c === 4 ? PLANT.pylons : [])
+        (M.fillStyle = "#ffd25e"), M.fillRect(P - 6, C - 14, 12, 18);
+      for (let [P, C] of c === 1 ? RUINS.spots : [])
+        (M.fillStyle = "#8a8477"),
+          M.beginPath(),
+          M.ellipse(P, C - 6, 14, 11, 0, 0, Math.PI * 2),
+          M.fill();
+      arenaThumbs[c] = k;
+    }
+    return arenaThumbs[c];
+  }
+  // Online, when the two players picked different arenas: a roulette that
+  // flicks between the two picks and lands on the one the host drew.
+  function arenaRoll() {
+    let a = NET.m,
+      e = a?.roll;
+    if (!e || a.phase !== "ready") return;
+    let t = Date.now() - e.at;
+    if (t > NET_ROLL + 300) return;
+    let i = Math.min(1, t / (NET_ROLL - 700)),
+      r = e.a.indexOf(e.pick),
+      o = 12 + (r === 0 ? 0 : 1),
+      l = Math.floor((1 - Math.pow(1 - i, 2.2)) * o) % 2,
+      f = i >= 1;
+    l !== e.last && ((e.last = l), f ? S.select() : S.ui(l === 1));
+    d.save(),
+      (d.fillStyle = "rgba(5,4,14,0.86)"),
+      d.fillRect(0, 0, m(H), m(oe)),
+      V(f ? "BATTLE STAGE" : "DECIDING THE ARENA", H / 2, 52, 16, g.gold, {
+        align: "center",
+        skew: !0,
+        outline: 2.4,
+      });
+    let u = 150,
+      h = u * 0.56;
+    e.a.forEach((c, y) => {
+      let b = H / 2 - u - 10 + y * (u + 20),
+        p = 78,
+        k = y === l,
+        M = f && !k;
+      arenaThumb(c),
+        k &&
+          (d.save(),
+          (d.globalCompositeOperation = "lighter"),
+          (d.shadowColor = g.gold),
+          (d.shadowBlur = m(16)),
+          te(b - 3, p - 3, u + 6, h + 6, "rgba(255,216,74,0.7)", 4),
+          d.restore()),
+        te(b - 1.5, p - 1.5, u + 3, h + 3, k ? g.gold : "#1b1730", 3),
+        (d.globalAlpha = M ? 0.3 : 1),
+        d.drawImage(
+          arenaThumbs[c],
+          B.x0,
+          B.y0 - 30,
+          B.x1 - B.x0,
+          B.y1 - B.y0 + 30,
+          m(b),
+          m(p),
+          m(u),
+          m(h),
+        ),
+        (d.globalAlpha = 1),
+        V(
+          ARENAS[c].name.toUpperCase(),
+          b + u / 2,
+          p + h + 16,
+          12,
+          k ? g.gold : g.chalk,
+          {
+            align: "center",
+            outline: 2,
+          },
+        ),
+        G(
+          y === 0 ? "Your pick" : `${netOppName(14)}'s pick`,
+          b + u / 2,
+          p + h + 26,
+          6.4,
+          g.haze,
+          {
+            align: "center",
+          },
+        );
+    }),
+      f &&
+        G("Get ready!", H / 2, 230, 9, g.chalk, {
+          align: "center",
+          weight: 700,
+        }),
+      d.restore();
+  }
   function arenaPane(a, e, t, s, i) {
     V("Change Arena", t + 16, s + 22, 14, g.chalk, { skew: !0 }),
       G(
@@ -18114,29 +18570,7 @@
       l = s + 42,
       f = e.inContent ? e.arenaCursor : a.arena;
     ARENAS.forEach((h, c) => {
-      if (!arenaThumbs[c]) {
-        // Bake the live features (lava, ice, pylons) into the thumbnail.
-        let k = Va(c),
-          M = k.getContext("2d");
-        for (let [P, C, x, v] of c === 2 ? CRATER.pools : [])
-          (M.fillStyle = tilePat(M, 2, !1) || "#ff6a1a"),
-            M.beginPath(),
-            M.ellipse(P, C, x, v, 0, 0, Math.PI * 2),
-            M.fill();
-        for (let [P, C, x, v] of c === 3 ? FROST.rinks : [])
-          (M.fillStyle = tilePat(M, 3, !1) || "#a9d6f2"),
-            M.beginPath(),
-            M.ellipse(P, C, x, v, 0, 0, Math.PI * 2),
-            M.fill();
-        for (let [P, C] of c === 4 ? PLANT.pylons : [])
-          (M.fillStyle = "#ffd25e"), M.fillRect(P - 6, C - 14, 12, 18);
-        for (let [P, C] of c === 1 ? RUINS.spots : [])
-          (M.fillStyle = "#8a8477"),
-            M.beginPath(),
-            M.ellipse(P, C - 6, 14, 11, 0, 0, Math.PI * 2),
-            M.fill();
-        arenaThumbs[c] = k;
-      }
+      arenaThumb(c);
       let y = t + 18 + c * (r + 6),
         b = c === f;
       te(y - 1, l - 1, r + 2, o + 2, b ? g.p1 : "#1b1730", 2),
@@ -18446,7 +18880,7 @@
     snorlax: [
       [
         "A",
-        "Body Slam combo",
+        "Slap combo",
         "Two heavy slaps, then an armored belly flop that shakes the ground.",
         "COMBO",
       ],
@@ -18458,15 +18892,15 @@
       ],
       [
         "X",
-        "Yawn",
-        "Slow drifting bubble. Whoever it touches falls asleep shortly after.",
-        "TRAP",
+        "Body Slam",
+        "Armored charge that crushes everyone in its path. May paralyse.",
+        "CHARGE",
       ],
       [
         "Y",
-        "Rest",
-        "Hold to nap and heal. Snores knock foes back; light hits won't wake you.",
-        "HOLD",
+        "Earthquake",
+        "Two shockwaves along the ground around you. Anyone in the air is safe.",
+        "AREA",
       ],
       [
         "B",
@@ -19970,7 +20404,9 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 6,
+  var NETV = 7,
+    // How long the arena roulette plays when the two players picked different arenas.
+    NET_ROLL = 2600,
     RB_MAX = 40,
     RB_AIM = 4,
     RB_DMAX = 12,
@@ -20118,7 +20554,19 @@
       (a.legends != null &&
         (!Array.isArray(a.legends) ||
           a.legends.length !== 2 ||
-          !a.legends.every((e) => LEGENDS.includes(e))))
+          !a.legends.every((e) => LEGENDS.includes(e)))) ||
+      (a.arenas != null &&
+        (!Array.isArray(a.arenas) ||
+          a.arenas.length !== 2 ||
+          !a.arenas.every(
+            (e) => Number.isInteger(e) && e >= 0 && e < ARENAS.length,
+          ))) ||
+      (a.tune.arena != null &&
+        !(
+          Number.isInteger(a.tune.arena) &&
+          a.tune.arena >= 0 &&
+          a.tune.arena < ARENAS.length
+        ))
     )
       return !1;
     for (let [e, t] of Object.entries(a.tune))
@@ -20320,7 +20768,9 @@
     );
     NET.incoming =
       NET.st === "idle" || NET.st === "search" ? (s?.peer ?? null) : null;
-    if (NET.st === "search") {
+    NET.again && t >= NET.again.until && (NET.again = null);
+    let ag = !!NET.again && NET.want === NET.again.peer;
+    if (NET.st === "search" && !ag) {
       let i = e.find((r) => r.peer === NET.want);
       if (
         !i ||
@@ -20415,6 +20865,7 @@
           nick: netShort(NET.nick, 20),
           team: r.myTeam,
           lg: A.legends ? LG_PICKS[A.legendPick] : "off",
+          ar: A.arena,
         },
       });
   }
@@ -20484,6 +20935,10 @@
       netTeam(i.h.team) &&
       ((e.oppTeam = i.h.team),
       (e.oppLg = i.h.lg),
+      (e.oppArena =
+        Number.isInteger(i.h.ar) && i.h.ar >= 0 && i.h.ar < ARENAS.length
+          ? i.h.ar
+          : null),
       i.h.nick && !e.oppName && (e.oppName = i.h.nick));
     // Ping: the host times a few round trips to pick the input delay.
     if (e.host && e.phase === "hello" && e.oppTeam.length) {
@@ -20503,11 +20958,20 @@
       i.pi !== e.pong &&
       ((e.pong = i.pi), netSet({ po: i.pi }));
     // Settings and the start signal.
-    if (!e.host && i.cfg?.v === NETV && i.cfg.e > e.epoch && netCfgOk(i.cfg))
-      (e.cfg = i.cfg),
-        (e.epoch = i.cfg.e),
-        (e.phase = "ready"),
-        netSet({ rd: e.epoch });
+    if (!e.host && i.cfg?.v === NETV && i.cfg.e > e.epoch && netCfgOk(i.cfg)) {
+      (e.cfg = i.cfg), (e.epoch = i.cfg.e), (e.phase = "ready");
+      let r = i.cfg.arenas;
+      (e.roll =
+        r && r[0] !== r[1]
+          ? { a: [r[1], r[0]], pick: i.cfg.tune.arena, at: s }
+          : null),
+        (e.rdAt = e.roll ? s + NET_ROLL : 0);
+    }
+    !e.host &&
+      e.phase === "ready" &&
+      s >= (e.rdAt ?? 0) &&
+      e.pres.rd !== e.epoch &&
+      netSet({ rd: e.epoch });
     // The guest starts when "go" reaches it, so the host waits half a round
     // trip before starting too: both clocks begin at the same moment.
     if (e.host && e.phase === "ready" && i.rd === e.epoch) {
@@ -20523,6 +20987,7 @@
       i.rm === e.epoch &&
       a.host(e.rtt ?? 120);
     e.oppRm = i.rm === e.epoch;
+    if (i.nt === e.epoch && e.phase === "results") return a.newTeam();
     // Inputs and their acknowledgements.
     e.phase === "play" && a.inputs(i);
   }
@@ -22262,10 +22727,9 @@
         (s.flash = 6),
         (s.selectT = 0),
         (s.roulette = -1),
-        n
-          ? ((s.picks = s.picks.slice(0, 1)),
-            (s.cursor = Math.max(0, ge.indexOf(s.picks[0] ?? "charizard"))))
-          : ((s.picks = []), (s.cursor = 0)),
+        (s.cursor = n ? Math.max(0, ge.indexOf(s.picks[0] ?? "charizard")) : 0),
+        (s.picks = []),
+        (s.lgPhase = !1),
         (s.cpuPicks = []),
         (k = !0),
         le(),
@@ -22365,6 +22829,12 @@
         (e.localIdx = 0),
         (NET.team = [...s.picks]),
         NET.st === "away" && (NET.st = "idle"),
+        NET.again &&
+          Date.now() < NET.again.until &&
+          !NET.m &&
+          ((NET.st = "search"),
+          (NET.want = NET.again.peer),
+          (NET.wantT = Date.now())),
         netInit(),
         netPresence(s.picks),
         P2P.autoJoin &&
@@ -22444,6 +22914,19 @@
     }
     // Hooks netMatchTick calls as the other page answers.
     var netHooks = {
+      // The other player chose a new team: wait for them in the lobby.
+      newTeam() {
+        let n = NET.m,
+          D = n.opp,
+          R = netShort(n.oppName, 14);
+        netEnd(`${R} is picking a new team`),
+          s.screen === "play" && netToLobby(),
+          (NET.again = { peer: D, until: Date.now() + 18e4, name: R }),
+          (NET.st = "search"),
+          (NET.want = D),
+          (NET.wantT = Date.now()),
+          netPresence();
+      },
       left(n) {
         let D = NET.m?.oppName ? netShort(NET.m.oppName, 14) : "Your opponent";
         netEnd(n ? `${D} left the match` : `Lost the connection to ${D}`),
@@ -22459,6 +22942,12 @@
           ),
           W = {};
         for (let T of Object.keys(A)) NET_LOCAL.includes(T) || (W[T] = A[T]);
+        // Each player picked an arena: if they differ, one is drawn at random
+        // and both pages play a short roulette before the battle.
+        let Ar = [A.arena, D.oppArena ?? A.arena];
+        (W.arena = Ar[0] === Ar[1] ? Ar[0] : Ar[Math.random() < 0.5 ? 0 : 1]),
+          (D.roll =
+            Ar[0] !== Ar[1] ? { a: Ar, pick: W.arena, at: Date.now() } : null);
         (D.epoch += 1),
           (D.cfg = {
             v: NETV,
@@ -22476,6 +22965,7 @@
                   ]
                 : null,
             names: [netShort(NET.nick, 20), D.oppName],
+            arenas: Ar,
             tune: W,
           }),
           (D.phase = "ready"),
@@ -22759,7 +23249,8 @@
       D.phase === "play" && (D.phase = "results");
       s.resultsT < 50 ||
         (w(n, (R) => {
-          (s.resultIndex = (s.resultIndex ?? 0) ? 0 : 1),
+          (s.resultIndex =
+            ((s.resultIndex ?? 0) + (R === "left" || R === "up" ? 2 : 1)) % 3),
             S.ui(R === "right" || R === "down");
         }),
         (n.pressed.has("confirm") || n.pressed.has("start")) &&
@@ -22767,7 +23258,20 @@
             ? D.phase === "results" &&
               D.rm !== D.epoch &&
               ((D.rm = D.epoch), netSet({ rm: D.epoch }), S.select())
-            : (netSet({ bye: 1 }), netEnd(""), netToLobby())));
+            : s.resultIndex === 1
+              ? // New team: tell the other player, then pick again. The two
+                // of you meet again in the lobby once the new team is set.
+                (netSet({ nt: D.epoch }),
+                (NET.again = {
+                  peer: D.opp,
+                  until: Date.now() + 18e4,
+                  name: netShort(D.oppName, 14),
+                }),
+                setTimeout(() => NET.m === D && netEnd(""), 500),
+                x(!0),
+                netAway(),
+                S.select())
+              : (netSet({ bye: 1 }), netEnd(""), netToLobby())));
     }
     function E() {
       if (A.gameMode === 5) return netToLobby();
@@ -22792,11 +23296,7 @@
         Me.play(battleSong());
     }
     function Q() {
-      for (let n = 0; n < 20; n++) {
-        let D = [...ge].sort(() => Math.random() - 0.5).slice(0, teamSize());
-        if (!D.every((W) => s.picks.includes(W))) return D;
-      }
-      return ge.slice(0, teamSize());
+      return freshPicks(teamSize(), s.picks);
     }
     touchInit(() => s),
       p && ((l.hidden = !0), (s.screen = "menu")),
@@ -22836,15 +23336,19 @@
         n.pressed.has(W) && R !== W && D(W);
     }
     function U(n) {
+      if (s.lgPhase) return lgInput(n);
       let D = cpuSide();
       w(n, (W) => {
         (s.cursor = RN3[W][s.cursor] ?? s.cursor), S.ui(!0);
       }),
         n.pressed.has("special1") &&
-          ((A.gameMode =
-            MODE_ORDER[
-              (MODE_ORDER.indexOf(A.gameMode) + 1) % MODE_ORDER.length
-            ] ?? 0),
+          (A.gameMode === 5 && !A.onlineTag
+            ? (A.onlineTag = 1)
+            : ((A.onlineTag = 0),
+              (A.gameMode =
+                MODE_ORDER[
+                  (MODE_ORDER.indexOf(A.gameMode) + 1) % MODE_ORDER.length
+                ] ?? 0)),
           Ze(),
           (s.picks = s.picks.slice(0, teamSize())),
           (s.cpuPicks = []),
@@ -22864,26 +23368,10 @@
       let R =
         s.picks.length === teamSize() &&
         (!cpuSide() || s.cpuPicks.length === teamSize());
-      if ((n.pressed.has("start") || n.pressed.has("confirm")) && R) {
-        E();
-        return;
-      }
-      if (n.pressed.has("confirm") && s.cursor === 8) {
-        // Zekrom -> Darkrai -> Deoxys -> Random -> Off -> Zekrom.
-        A.legends
-          ? A.legendPick >= LG_PICKS.length - 1
-            ? (A.legends = 0)
-            : A.legendPick++
-          : ((A.legends = 1), (A.legendPick = 0)),
-          Ze(),
-          S.ui(!0),
-          A.legends &&
-            LG_PICKS[A.legendPick] !== "random" &&
-            S.cry(LG_PICKS[A.legendPick], 0.02);
-        return;
-      }
+      if (R && s.roulette <= 0) return lgOpen();
       if (n.pressed.has("confirm")) {
-        let W = ge[s.cursor];
+        // The last tile picks a random Pokémon you haven't picked yet.
+        let W = s.cursor === 8 ? freshPicks(1, s.picks)[0] : ge[s.cursor];
         s.picks.length < teamSize() && !s.picks.includes(W)
           ? (s.picks.push(W),
             (s.pickBump = 1),
@@ -22897,25 +23385,60 @@
       }
       n.pressed.has("back") &&
         (s.cpuPicks.length || s.roulette > 0
-          ? ((s.cpuPicks = []), (s.roulette = -1), s.picks.pop(), S.back())
+          ? ((s.cpuPicks = []),
+            (s.roulette = -1),
+            (s.lgPhase = !1),
+            s.picks.pop(),
+            S.back())
           : s.picks.length
             ? (s.picks.pop(), S.back())
             : toMenu());
+    }
+    // The legendary roster opens once every fighter is chosen. Confirming
+    // starts the battle (or goes online) straight away.
+    function lgOpen() {
+      (s.lgPhase = !0),
+        (s.lgT = 0),
+        (s.lgCursor = A.legends ? Math.min(A.legendPick, 3) : 4),
+        S.ui(!0);
+    }
+    function lgInput(n) {
+      s.lgT++,
+        w(n, (D) => {
+          (D === "left" || D === "right") &&
+            ((s.lgCursor = (s.lgCursor + (D === "left" ? 4 : 1)) % 5),
+            S.ui(D === "right"),
+            s.lgCursor < 3 && S.cry(LG_PICKS[s.lgCursor], 0.02));
+        });
+      if (s.lgT > 8 && (n.pressed.has("confirm") || n.pressed.has("start"))) {
+        s.lgCursor === 4
+          ? (A.legends = 0)
+          : ((A.legends = 1), (A.legendPick = s.lgCursor)),
+          Ze(),
+          (s.lgPhase = !1),
+          E();
+        return;
+      }
+      n.pressed.has("back") &&
+        ((s.lgPhase = !1),
+        (s.cpuPicks = []),
+        (s.roulette = -1),
+        s.picks.pop(),
+        S.back());
     }
     function re() {
       s.roulette <= 0 ||
         (s.roulette--,
         s.roulette % 4 === 0 &&
-          ((s.rouletteShow = [...ge]
-            .sort(() => Math.random() - 0.5)
-            .slice(0, teamSize())),
+          ((s.rouletteShow = freshPicks(teamSize(), s.picks)),
           S.ui(s.roulette % 8 === 0)),
         s.roulette === 0 &&
           ((s.cpuPicks = Q()),
           (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]),
           (s.roulette = -1),
           S.select(),
-          S.cry(s.cpuPicks[0], 0.08)));
+          S.cry(s.cpuPicks[0], 0.08),
+          lgOpen()));
     }
     let se = (n) => Re[n] && Re[n].kind !== "header";
     function N(n) {
@@ -23955,6 +24478,41 @@
                 0.7,
               )),
             t.popup(n.who.x, n.who.y - 38, "MAGNET PULL", "#c8d4e6", !1);
+          break;
+        case "slamWind":
+          S.charge(), t.dust(n.who.x, n.who.y, 6, 0, 0, 1.2);
+          break;
+        case "slamDash":
+          t.dust(n.x - n.dx * 10, n.y, 4, -n.dx, -n.dy, 1.4),
+            t.shake(n.dx, n.dy, 1.5);
+          break;
+        case "slamLand":
+          S.slam(),
+            t.shake(0, 1, 7),
+            t.shockRing(n.x, n.y, SNOR.slamLandR, "#e8d2a8", 8),
+            t.dust(n.x, n.y, 14, 0, 0, 2);
+          break;
+        case "quakeWind":
+          S.charge();
+          break;
+        case "quake":
+          S.slam(),
+            t.shake(0, 1, n.n === 2 ? 10 : 6),
+            (t.impact = n.n === 2 ? 3 : 1),
+            t.shockRing(n.x, n.y, n.r, "#c9a25a", n.n === 2 ? 14 : 10),
+            t.ring(n.x, n.y, 10, n.r / 10, 18, "#e8d2a8", !0),
+            t.dust(n.x, n.y, n.n === 2 ? 24 : 14, 0, 0, 2.6);
+          for (let R = 0; R < 10; R++) {
+            let D = (R / 10) * Math.PI * 2 + n.n;
+            t.dust(
+              n.x + Math.cos(D) * n.r * 0.8,
+              n.y + Math.sin(D) * n.r * 0.55,
+              2,
+              Math.cos(D),
+              Math.sin(D),
+              1.6,
+            );
+          }
           break;
         case "yawn":
           S.charge(),
