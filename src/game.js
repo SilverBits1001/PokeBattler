@@ -403,7 +403,7 @@
         color: "#ff8a3d",
         typeInk: "#2a1206",
         hp: 795,
-        power: 0.80,
+        power: 0.8,
         speed: 2.9,
         weight: 1.05,
         r: 9,
@@ -659,7 +659,7 @@
         color: "#a184f5",
         typeInk: "#170c33",
         hp: 725,
-        power: 0.90,
+        power: 0.9,
         speed: 3.25,
         weight: 1.2,
         r: 8,
@@ -842,7 +842,7 @@
         color: "#3f8f9e",
         typeInk: "#1f1f12",
         hp: 1050,
-        power: 0.80,
+        power: 0.8,
         speed: 1.85,
         weight: 0.45,
         r: 13,
@@ -1119,7 +1119,7 @@
         color: "#4f6fd8",
         typeInk: "#0f1838",
         hp: 965,
-        power: 1.20,
+        power: 1.2,
         speed: 3.3,
         weight: 1.1,
         r: 9,
@@ -1491,7 +1491,7 @@
         color: "#8d7f73",
         typeInk: "#241f1a",
         hp: 1095,
-        power: 0.90,
+        power: 0.9,
         speed: 1.95,
         weight: 0.45,
         r: 12,
@@ -1757,7 +1757,7 @@
         xName: "MOONBLAST",
         yName: "PSYCHIC",
         xCd: 90,
-        yCd: 160,
+        yCd: 200,
       },
       // A steel supercomputer. Zen Headbutt to close in, Magnet Rise to float
       // over the ground at speed, and Clear Body shrugs off every slow.
@@ -2040,12 +2040,12 @@
         // Moonblast: a slow fairy orb.
         mbWind: 12,
         mbSpeed: 3.2,
-        mbDmg: 20,
+        mbDmg: 22,
         mbKb: 5,
         mbRec: 12,
         // Psychic: lift a foe and throw them; turns shots around.
         psWind: 10,
-        psRange: 150,
+        psRange: 115,
         psCone: 0.75,
         psHold: 26,
         psDmg: 44,
@@ -3505,7 +3505,7 @@
       warn: 26,
       strike: 14,
       leave: 28,
-      dmg: 45,
+      dmg: 50,
       kb: 9,
       r: 22,
       hitstun: 26,
@@ -3576,7 +3576,7 @@
     // revives a fainted Tag Team partner), rolls out a ring of fire, then
     // keeps a ring of fire around its caller that burns foes inside.
     HOOH = {
-      heal: 0.25,
+      heal: 0.2,
       revive: 0.3,
       ringT: 16,
       ringR: 96,
@@ -4365,6 +4365,7 @@
           i ? r.round++ : ((r.round = 1), (r.wins = 0), (r.losses = 0)),
           (r.phase = "fight"),
           (r.result = null),
+          (r.reborn = []),
           (r.combo = 0),
           (r.endT = 0),
           (r.dealt = 0),
@@ -12653,12 +12654,17 @@
               amount: Math.round(s.hp - h0),
               who: p,
             });
-          for (let q of p.slots)
-            q !== p.slot &&
-              q.hp <= 0 &&
-              ((q.hp = Math.round(q.maxHp * O.revive)),
-              (q.burnT = q.poisonT = 0),
-              this.emit({ type: "rebirth", who: p, kit: q.kit }));
+          // Rebirth brings a fainted partner back once per team per match.
+          let rb = (this.match.reborn ??= []);
+          if (!rb.includes(p.team))
+            for (let q of p.slots)
+              q !== p.slot &&
+                q.hp <= 0 &&
+                !rb.includes(p.team) &&
+                ((q.hp = Math.round(q.maxHp * O.revive)),
+                (q.burnT = q.poisonT = 0),
+                rb.push(p.team),
+                this.emit({ type: "rebirth", who: p, kit: q.kit }));
         }
         this.emit({ type: "hoohHeal", who: w, x: w.x, y: w.y });
       }

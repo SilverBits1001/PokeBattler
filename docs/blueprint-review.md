@@ -1480,7 +1480,7 @@ play a different role:
 |---|---|---|---|
 | Groudon, Precipice Blades | Area control | Three rings of blades erupt outward from the aim point, a beat apart (dodge between them). Anyone caught gets a scene; otherwise Drought scorches the centre for 4 s and burns anyone standing in it | Zone Control (it clears the zone), 2v2 |
 | Rayquaza, Dragon Ascent | Hunter | Marks up to three foes, nearest the aim point first, and dives on each in turn. Each mark locks just before the dive, so a late dodge escapes. Everyone hit shares one scene | Free-for-All |
-| Ho-Oh, Sacred Fire | Support | Heals your side 25%, cleanses burn, poison, paralysis, chill, sleep and freeze, and revives a fainted Tag Team partner at 30% (Rebirth). Then a ring of fire rolls out and stays around you for 3.5 s, burning foes inside | Tag Team, 2v2, comebacks |
+| Ho-Oh, Sacred Fire | Support | Heals your side 20%, cleanses burn, poison, paralysis, chill, sleep and freeze, and revives a fainted Tag Team partner at 30% (Rebirth, once per match). Then a ring of fire rolls out and stays around you for 3.5 s, burning foes inside | Tag Team, 2v2, comebacks |
 
 The legendary picker shows all six in two rows, plus Random and Off. Older
 saved picks keep their choice.
