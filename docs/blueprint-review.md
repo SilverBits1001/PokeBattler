@@ -1069,3 +1069,83 @@ After the change:
 Online duel with Darkrai against Deoxys (70±30 ms, 8% of messages dropped),
 including a rematch: 2,457 compared ticks, identical.
 
+## Legendaries, part 3: Final Smash cinematics
+
+The goal was for a legendary to feel like a Smash Ultimate Final Smash: a
+moment that stops the match, not just a big hitbox.
+
+- **Activation freeze** (`ULT.intro`, 42 ticks). Calling freezes the whole
+  battle. The camera eases in on the caller, the arena darkens behind slow god
+  rays, a summoning circle turns under the caller (PixelLab sheet
+  `ultSigil`), and the legendary materialises beside them, washed white, with a
+  rising chord. The cut-in now runs along the bottom of the screen with speed
+  lines, so it doesn't cover the legendary. Aiming starts when the freeze ends.
+- **Catch, then a scene** (`CINE`). Every legendary hitbox carries `catch`. Any
+  fighter it damages is recorded on the summon, and on the next tick the
+  battle freezes again (`phase: "cine"`). Hits during the scene are ordinary
+  hitboxes on everyone caught, timed on beats, so damage, knockback, KOs and
+  rollback all go through the normal paths. The finisher adds slow motion, an
+  impact frame (black with white silhouettes) and a PixelLab blast. A missed
+  call gets no scene. Legendary hits pierce guard.
+- **World freeze.** While any summon is in its intro or scene, the engine's
+  `step()` only runs the scene and resolves hits. Players, projectiles,
+  hazards, items and the clock all hold. Inputs during the freeze are ignored.
+  The freeze is part of the simulation, so online peers agree on it.
+- **Scenes:**
+
+| | Opening | Beats | Finisher | Length |
+|---|---|---|---|---|
+| Zekrom | dive, 45 | 4 lightning strikes, 12 each | thunder pillar, 80, paralyses | 128 ticks |
+| Darkrai | void, 40, sleep | 4 Nightmare lashes, 12 each | Dark Pulse, 55, sleep 80 | 132 |
+| Deoxys Normal | Psycho Boost, 40 | 3 psychic pulses, 16 each | orb hurled down, 70 | 104 |
+| Deoxys Attack | Hyper Beam, 30 | 6 beam ticks, 14 each, carried along the beam | 60 | 112 |
+| Deoxys Speed | first dash, 30 | 6 crisscross dashes, 10 each | dive from above, 66 | 108 |
+| Deoxys Defense | none | none | heal 18%, barrier, shockwave 25 | 70 |
+
+- **Presentation.** Each scene has its own backdrop: a storm with rain and
+  sheet lightning for Zekrom, a crescent moon and drifting shadow for Darkrai,
+  and deep space with an aurora and a double helix for Deoxys. Bystanders fade
+  out, letterbox bars slide in, and the camera frames the target with the
+  legendary beside it. The big sprites get a rim light in the legendary's
+  colour so dark bodies read on dark skies. Combo banners and punish popups
+  are muted during a scene.
+- **PixelLab effects** (VFX workbench, imported to `assets/vfx.js`):
+  - `ultBolt`, a blue thunder pillar
+  - `ultPulse`, the dark pulse
+  - `ultBoom`, the psychic explosion
+  - `ultSigil`, the summoning circle
+  - `ultBarrier`, the hexagonal barrier, also used for the Defense shield
+  - `ultHit`, a beat hit spark
+- **Sprite fix.** Some PMD sheets (Darkrai's SpAttack, several of Deoxys's)
+  alias another animation and have no frame size, so they drew nothing. The
+  loader now skips them and callers fall back to Idle.
+- **Meter.** With longer scenes, gain is now 0.105 per point dealt and 0.075
+  per point taken, scaled by 0.6 with more than two fighters. Measured with
+  Hard CPUs over 16 matches each:
+
+| | Summons per match | Scenes per summon | Time frozen |
+|---|---|---|---|
+| 1v1 | 1.69 | 96% | 12.4% |
+| Free-for-all | 1.50 | 83% | 7.0% |
+
+- **Held on the ground.** The first balance run showed half of all scenes
+  landing only their opening hit. Lighter fighters were launched by it, and
+  airborne fighters can't be hit, so every beat whiffed. Scenes now set
+  launched or floored fighters back on their feet and cancel their knockback
+  when they start. The finisher launches them again.
+- **Balance.** One fighter had the listed legendary and the other had Zekrom.
+  Hard CPUs played all 56 matchups twice:
+
+| | Lands | Damage per summon | Share of its user's damage | Win rate vs Zekrom |
+|---|---|---|---|---|
+| Zekrom | 89% | 200 | 18.7% | 43% (mirror) |
+| Darkrai | 92% | 163, plus sleep | 15.9% | 49% |
+| Deoxys Normal | 80% | 155 | 14.6% | 45% |
+| Deoxys Attack | 89% | 183 | 17.6% | 52% |
+| Deoxys Speed | 100% | 191 | 19.0% | 55% |
+| Deoxys Defense | | heals 166 per match, plus a barrier | 2.1% | 56% |
+
+- **Online.** A duel at 120±50 ms with 8% of messages dropped, with meter
+  gain raised on both sides so summons happen often: 3,472 compared ticks,
+  including about 1,000 scene ticks and 500 intro ticks. No divergence.
+

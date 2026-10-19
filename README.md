@@ -34,14 +34,23 @@ each.
 
 **Legendaries.** Dealing and taking damage fills a meter under your name. When it reads
 READY, call your legendary: E (L2 on a pad) in single-Pokémon modes, or R (L3) in any
-mode. Hold the button to aim with the stick, then release. Zekrom's **Bolt Strike**
-flies along a line through your aim point, after a short red warning, and paralyses
-anyone it hits. **Darkrai's Dark Void** drops a dark pool on the aim point that
-puts everyone inside to sleep, and Nightmare drains them while they sleep.
-**Deoxys** rolls a random Forme each time it appears: Normal fires Psycho Boost at
-the aim point, Attack fires Hyper Beam along a line, Defense uses Recover and
-shields you with a barrier, and Speed makes three Extreme Speed dashes at the
-nearest foe.
+mode. Calling it works like a Final Smash. The battle freezes, the camera closes in,
+and the legendary bursts into being beside you over a summoning circle. Then hold the
+button to aim with the stick and release. If its opening attack lands, the battle
+freezes again for a cinematic on everyone it caught, ending in a finisher that
+launches them:
+
+- **Zekrom, Fusion Bolt.** It dives along a warned line. Anyone hit is pinned under a
+  storm while Zekrom calls down lightning, then it charges and slams down with a
+  thunder pillar that paralyses.
+- **Darkrai, Dark Void.** A dark pool puts everyone inside to sleep. Under a moonlit
+  sky, shadow tendrils drain the sleepers before a Dark Pulse blast, and they stay
+  asleep afterwards.
+- **Deoxys** rolls a random Forme each time:
+  - Normal hurls Psycho Boost.
+  - Attack sweeps a target down the arena with Hyper Beam.
+  - Defense heals you and raises a barrier that bursts outward.
+  - Speed crisscrosses its target with Extreme Speed before diving on it.
 
 Pick your legendary with the **LEGEND** tile at the end of the roster on team select:
 press A on it to cycle Zekrom, Darkrai, Deoxys, Random and Off. Each CPU gets a random

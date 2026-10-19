@@ -2255,8 +2255,10 @@
     // Legendaries: a meter filled by damage dealt and taken. When it is full
     // the player calls their legendary for one big move they aim themselves.
     LEGEND = {
-      dealt: 0.13,
-      taken: 0.09,
+      dealt: 0.105,
+      taken: 0.075,
+      // With more than two fighters there is more damage to go round.
+      crowd: 0.6,
       aimT: 54,
       minAim: 8,
       aimSpeed: 4.2,
@@ -2267,7 +2269,7 @@
       warn: 26,
       strike: 14,
       leave: 28,
-      dmg: 170,
+      dmg: 45,
       kb: 9,
       r: 22,
       hitstun: 26,
@@ -2279,7 +2281,7 @@
     DARKRAI = {
       r: 62,
       warn: 30,
-      dmg: 80,
+      dmg: 40,
       sleep: 130,
       drain: 8,
       every: 10,
@@ -2291,12 +2293,12 @@
     DEOXYS = {
       forms: ["normal", "attack", "defense", "speed"],
       boostR: 50,
-      boostWarn: 22,
-      boostDmg: 150,
+      boostWarn: 40,
+      boostDmg: 40,
       beamR: 28,
       beamWarn: 32,
       beamT: 20,
-      beamDmg: 165,
+      beamDmg: 30,
       heal: 0.18,
       shieldT: 360,
       shieldDmg: 0.5,
@@ -2304,9 +2306,67 @@
       dashes: 3,
       dashT: 11,
       dashR: 18,
-      dashDmg: 48,
+      dashDmg: 30,
       dashRange: 220,
     },
+    // Final Smash beats. Calling freezes the battle for `intro` ticks of
+    // spectacle. A summon whose opening hit lands freezes it again and plays
+    // a scene on everyone it caught: small hits on the `hits` beats, then the
+    // finisher on `fin`; the scene lasts `len` ticks. Keyed by legendary, or
+    // by Forme for Deoxys.
+    ULT = { intro: 42 },
+    CINE = {
+      zekrom: {
+        len: 128,
+        hits: [28, 42, 56, 70],
+        dmg: 12,
+        fin: 100,
+        finDmg: 80,
+        finKb: 11,
+      },
+      darkrai: {
+        len: 132,
+        hits: [26, 42, 58, 74],
+        dmg: 12,
+        fin: 102,
+        finDmg: 55,
+        finKb: 6,
+        sleep: 80,
+      },
+      normal: {
+        len: 104,
+        hits: [20, 36, 52],
+        dmg: 16,
+        fin: 74,
+        finDmg: 70,
+        finKb: 10,
+      },
+      attack: {
+        len: 112,
+        hits: [12, 24, 36, 48, 60, 72],
+        dmg: 14,
+        fin: 88,
+        finDmg: 60,
+        finKb: 11,
+      },
+      defense: {
+        len: 70,
+        hits: [],
+        dmg: 0,
+        fin: 44,
+        finDmg: 25,
+        finKb: 8,
+      },
+      speed: {
+        len: 108,
+        hits: [10, 20, 30, 40, 50, 60],
+        dmg: 10,
+        fin: 84,
+        finDmg: 66,
+        finKb: 10,
+      },
+    },
+    cineKey = (a) => (a.kind === "deoxys" ? (a.form ?? "normal") : a.kind),
     LEGENDS = ["zekrom", "darkrai", "deoxys"],
     // The legendary tile on team select cycles these (then Off).
     LG_PICKS = ["zekrom", "darkrai", "deoxys", "random"],
@@ -3144,6 +3204,13 @@
         for (let i of this.projectiles)
           (i.px = i.x), (i.py = i.y), (i.pz = i.z);
         for (let i of this.dreepy) (i.px = i.x), (i.py = i.y), (i.pz = i.z);
+        if (this.frozen()) {
+          this.updateSummons(), this.resolveHits();
+          for (let i of this.bodies())
+            i.flash > 0 && i.flash--, i.tint > 0 && i.tint--;
+          this.slowTicks > 0 && this.slowTicks--;
+          return;
+        }
         this.match.phase === "fight" && this.intro <= 0 && this.match.ticks++,
           this.intro > 0 &&
             (this.intro--, this.intro === 20 && this.emit({ type: "readyGo" }));
@@ -3834,8 +3901,10 @@
                 : null,
             owner: e,
             team: e.team,
-            phase: "aim",
+            phase: "intro",
             t: 0,
+            caught: [],
+            cined: !1,
             ax: me(i, B.x0 + 10, B.x1 - 10),
             ay: me(r, B.y0 + 10, B.y1 - 10),
             px: e.x,
@@ -3860,7 +3929,7 @@
         s.t++,
           (s.ax = me(s.ax + t.mx * LEGEND.aimSpeed, B.x0 + 10, B.x1 - 10)),
           (s.ay = me(s.ay + t.my * LEGEND.aimSpeed, B.y0 + 10, B.y1 - 10)),
-          (s.alpha = Math.min(1, s.t / 10)),
+          (s.alpha = 1),
           (e.facing = Math.atan2(s.ay - e.y, s.ax - e.x));
         let i =
           t.held.has("legend") ||
@@ -3882,16 +3951,12 @@
             this.emit({ type: "voidWarn", who: t, x: e.ax, y: e.ay });
         else if (e.kind === "deoxys") {
           let s = e.form;
-          if (s === "defense") {
-            let i = t.slot;
-            (i.hp = Math.min(
-              i.maxHp,
-              i.hp + Math.round(i.maxHp * DEOXYS.heal),
-            )),
-              (t.shieldT = DEOXYS.shieldT),
-              Object.assign(e, { phase: "leave", t: 0, px: t.x, py: t.y }),
-              this.emit({ type: "recover", who: t, x: t.x, y: t.y });
-          } else if (s === "speed")
+          if (s === "defense")
+            // Recover is a scene of its own: Deoxys descends, the barrier
+            // builds, then it heals and the barrier bursts outward.
+            Object.assign(e, { px: t.x, py: t.y, x: t.x, y: t.y }),
+              this.startCine(e);
+          else if (s === "speed")
             Object.assign(e, {
               phase: "dash",
               t: 0,
@@ -3969,19 +4034,159 @@
           rehit: 0,
           attackerStop: !1,
           legend: !0,
+          pierceGuard: !0,
+          catch: e._s ?? e,
           src: "legend-" + e.kind,
           ...s,
         };
       }
+      // Freezes the battle and starts the scene on everyone caught.
+      startCine(e) {
+        let t = e.caught,
+          s = 0,
+          i = 0;
+        // The caught are held in place for the scene: a fighter the opening
+        // hit launched or floored is set back on its feet so every beat lands
+        // (the finisher launches it again).
+        for (let r of t)
+          (s += r.x),
+            (i += r.y),
+            (r.kvx = r.kvy = 0),
+            ["launched", "down", "getup"].includes(r.state) &&
+              ((r.state = "hurt"), (r.t = 0), (r.hitstun = 40), (r.z = 0));
+        Object.assign(e, {
+          phase: "cine",
+          t: 0,
+          cined: !0,
+          alpha: 1,
+          cx: t.length ? s / t.length : e.owner.x,
+          cy: t.length ? i / t.length : e.owner.y,
+        }),
+          this.emit({
+            type: "cineStart",
+            who: e.owner,
+            kind: e.kind,
+            form: e.form,
+            x: e.cx,
+            y: e.cy,
+          });
+      }
+      // One beat of the scene: a hit on every caught fighter still standing.
+      cineHit(e, t, s, i, r) {
+        let o = CINE[cineKey(e)];
+        for (let l of e.caught) {
+          if (l.state === "faint") continue;
+          let f = l.x - e.cx,
+            u = l.y - e.cy,
+            h = Math.hypot(f, u);
+          h < 4 &&
+            ((f = e.dx ?? (l.x >= e.owner.x ? 1 : -1)),
+            (u = e.dy ?? 0),
+            (h = Math.hypot(f, u) || 1)),
+            (f /= h),
+            (u /= h),
+            this.hitboxes.push(
+              this.lgBox(
+                { ...e, id: e.id * 64 + t + 1, dx: f, dy: u },
+                { kind: "circle", x: l.x, y: l.y, r: l.hurtR + 8 },
+                {
+                  dmg: s,
+                  kb: i,
+                  kbMode: "dir",
+                  heavy: r,
+                  hitstun: r ? 30 : 40,
+                  hitstop: r ? 14 : 4,
+                  catch: null,
+                  color: LG_INFO[e.kind]?.color ?? "#ffffff",
+                  ...(r && e.kind === "zekrom" ? { para: ZEKROM.para } : {}),
+                  ...(r && o.sleep ? { sleep: o.sleep } : {}),
+                },
+              ),
+            );
+        }
+        this.emit({
+          type: r ? "cineFin" : "cineHit",
+          who: e.owner,
+          kind: e.kind,
+          form: e.form,
+          x: e.cx,
+          y: e.cy,
+          k: t,
+          vs: e.caught.map((l) => [l.x, l.y]),
+        });
+      }
+      tickCine(e) {
+        let t = CINE[cineKey(e)],
+          s = e.owner;
+        e.t++;
+        // Hyper Beam carries everyone it caught along the beam.
+        if (e.form === "attack" && e.t < t.fin)
+          for (let i of e.caught)
+            (i.x = me(i.x + e.dx * 0.7, B.x0 + 10, B.x1 - 10)),
+              (i.y = me(i.y + e.dy * 0.7, B.y0 + 10, B.y1 - 10));
+        e.form === "attack" &&
+          e.t < t.fin &&
+          ((e.cx = me(e.cx + e.dx * 0.7, B.x0 + 10, B.x1 - 10)),
+          (e.cy = me(e.cy + e.dy * 0.7, B.y0 + 10, B.y1 - 10)));
+        let i = t.hits.indexOf(e.t);
+        if (
+          (i >= 0 && this.cineHit(e, i, t.dmg, 1.2, !1),
+          e.t === t.fin &&
+            (e.form === "defense"
+              ? ((s.slot.hp = Math.min(
+                  s.slot.maxHp,
+                  s.slot.hp + Math.round(s.slot.maxHp * DEOXYS.heal),
+                )),
+                (s.shieldT = DEOXYS.shieldT),
+                this.hitboxes.push(
+                  this.lgBox(
+                    e,
+                    { kind: "circle", x: s.x, y: s.y, r: 76 },
+                    {
+                      dmg: t.finDmg,
+                      kb: t.finKb,
+                      kbMode: "away",
+                      catch: null,
+                      color: "#9be8ff",
+                    },
+                  ),
+                ),
+                this.emit({ type: "recover", who: s, x: s.x, y: s.y }))
+              : (this.cineHit(e, 99, t.finDmg, t.finKb, !0),
+                this.slow(40, 0.35))),
+          e.t >= t.len)
+        )
+          (e.phase = "leave"), (e.t = 0), (e.alpha = 1);
+      }
+      // True while a summon's intro or scene holds the battle still.
+      frozen() {
+        return this.summons.some(
+          (e) => e.phase === "intro" || e.phase === "cine",
+        );
+      }
       updateSummons() {
-        if (this.match.phase !== "fight") {
+        if (this.match.phase !== "fight" && !this.frozen()) {
           for (let e of this.summons)
             e.owner.state === "summon" && (e.owner.state = "move");
           this.summons = [];
           return;
         }
+        let fz = this.frozen();
         for (let e of this.summons) {
+          if (fz && e.phase !== "intro" && e.phase !== "cine") continue;
+          if (e.phase === "intro") {
+            ++e.t >= ULT.intro && ((e.phase = "aim"), (e.t = 0), (e.alpha = 1));
+            continue;
+          }
           if (e.phase === "aim") continue;
+          if (e.phase === "cine") {
+            this.tickCine(e);
+            continue;
+          }
+          if (e.caught.length && !e.cined) {
+            this.startCine(e);
+            continue;
+          }
           e.t++;
           if (e.kind === "darkrai") {
             if (e.phase === "warn")
@@ -4085,7 +4290,7 @@
                 (e.py = e.fy + (e.ty - e.fy) * s),
                 this.hitboxes.push(
                   this.lgBox(
-                    { ...e, id: e.id * 8 + e.n },
+                    { ...e, id: e.id * 8 + e.n, _s: e },
                     {
                       kind: "capsule",
                       x1: e.fx,
@@ -4160,6 +4365,8 @@
                   rehit: 0,
                   attackerStop: !1,
                   legend: !0,
+                  pierceGuard: !0,
+                  catch: e,
                   para: ZEKROM.para,
                   src: "legend-zekrom",
                 }),
@@ -4179,7 +4386,10 @@
         if (!(s > 0) || String(i).includes("legend")) return;
         let r = (o, l) => {
           if (!o?.legend || o.lgMeter >= 100) return;
-          (o.lgMeter = Math.min(100, o.lgMeter + s * l)),
+          (o.lgMeter = Math.min(
+            100,
+            o.lgMeter + s * l * (this.players.length > 2 ? LEGEND.crowd : 1),
+          )),
             o.lgMeter >= 100 && this.emit({ type: "legendReady", who: o });
         };
         e.kind === "player" && r(e, LEGEND.taken);
@@ -8513,7 +8723,8 @@
                     1.05,
                 ),
               ));
-            let h = !!e.hex && (t.burnT ?? 0) > 0;
+            let h = !!e.hex && (t.burnT ?? 0) > 0,
+              hp0 = t.kind === "player" ? t.slot.hp : 0;
             if (
               (this.applyHit(
                 t,
@@ -8579,6 +8790,13 @@
               let c = e.owner.slot;
               c.heat = Math.min(100, c.heat + e.heat);
             }
+            // A legendary's opening hit catches whoever it damaged.
+            e.catch &&
+              t.kind === "player" &&
+              t.slot.hp < hp0 &&
+              !e.catch.cined &&
+              !e.catch.caught.includes(t) &&
+              e.catch.caught.push(t);
           }
           if (e.fire && this.ice.length) {
             let t = e.shape.kind === "circle" ? e.shape.x : e.shape.x2,
@@ -9092,6 +9310,9 @@
     for (let [e, t] of Object.entries(window.__ASSETS__)) {
       let s = {};
       for (let [r, o] of Object.entries(t.anims)) {
+        // Some sheets in the repository alias another animation and carry
+        // no frame size; leave them out so callers fall back to Idle.
+        if (!o.fw || !o.fh) continue;
         // Sheets are drawn straight from the decoded image; tinted copies are
         // made on first use and kept under a memory budget (see tintOf).
         let l = await Qt(o.src),
@@ -9961,10 +10182,17 @@
         this.banners[0] && this.banners[0].life--;
         this.banners = this.banners.filter((e) => e.life > 0);
       }
-      follow(e) {
+      follow(e, zo) {
         let t = Y / 2,
           s = _ / 2,
           i = 1;
+        if (zo) {
+          let r = e[0];
+          (this.camX += (r.x - this.camX) * 0.14),
+            (this.camY += (r.y - this.camY) * 0.14),
+            (this.camZ += (zo - this.camZ) * 0.12);
+          return;
+        }
         if (e.length) {
           let r = 1 / 0,
             o = -1 / 0,
@@ -10933,6 +11161,10 @@
       s = LG_INFO[t.kind],
       i = lgSprite(a.mons, t.kind, t.form),
       fm = t.form && s?.forms?.[t.form];
+    if (t.wait > 0) {
+      t.wait--;
+      return;
+    }
     if (!s || --t.life <= 0) {
       e.cutin = null;
       return;
@@ -10942,7 +11174,7 @@
       l = t.life < 10 ? t.life / 10 : 1,
       f = t.mine ? 1 : -1,
       u = (1 - o) * -260 * f + r * 0.35 * f,
-      h = 70,
+      h = 184,
       c = 48;
     d.save(), (d.globalAlpha = l), d.translate(m(u), 0);
     let y = d.createLinearGradient(0, 0, m(H), 0);
@@ -10953,6 +11185,23 @@
       (d.fillStyle = "#ffffff"),
       d.fillRect(0, m(h - 1.5), m(H), m(1.5)),
       d.fillRect(0, m(h + c), m(H), m(1.5));
+    // Speed lines streaming through the band, and a white flash as it lands.
+    let sl = rt(7);
+    for (let n = 0; n < 16; n++) {
+      let w = 20 + sl() * 60,
+        x =
+          ((((sl() * H * 2 - r * (14 + sl() * 10) * f) % (H + 120)) + H + 120) %
+            (H + 120)) -
+          60,
+        yy = h + 3 + sl() * (c - 6);
+      (d.globalAlpha = l * (0.15 + sl() * 0.3)),
+        d.fillRect(m(x), m(yy), m(w), m(0.8));
+    }
+    (d.globalAlpha = l),
+      r < 4 &&
+        ((d.globalAlpha = l * (1 - r / 4)),
+        te(-30, h, H + 60, c, "#ffffff", 22),
+        (d.globalAlpha = l));
     let b = t.mine ? 70 : H - 70 - 64;
     i &&
       Oe(i, "Determined", b, h - 4, 56, {
@@ -11072,13 +11321,699 @@
       (a.globalAlpha = 0.5 + 0.4 * f),
       summonBand(a, e, t, s, i, 1.6, "#ffe866");
   }
+  // ---- Final Smash cinematics: drawing ----
+  // Fighters to fade out while a scene plays (filled by ultBackdrop each frame).
+  var CINE_DIM = new Set();
+  // How strongly a summon's intro or scene is showing, 0..1.
+  function cineK(a) {
+    if (a.phase === "intro")
+      return Math.min(1, a.t / 6) * Math.min(1, (ULT.intro - a.t) / 10 + 0.45);
+    if (a.phase !== "cine") return 0;
+    let e = CINE[cineKey(a)];
+    return Math.min(1, a.t / 10) * Math.min(1, (e.len - a.t) / 14);
+  }
+  // A legendary drawn large, optionally washed white (materialising, flashes).
+  function lgBig(a, e, t, s, i, r, o, l, f, u = 0) {
+    let h = e.anims[t] ?? e.anims.Idle,
+      c = Be(h, s, 1),
+      y = nt(i);
+    let rim = e.rim && h.tints.get(e.rim);
+    if (rim && f > 0.05) {
+      a.globalAlpha = f * 0.9;
+      let n = { ...h, img: rim };
+      for (let [x, w] of [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+      ])
+        et(a, n, c, y, r + x * l, o + w * l, l, e.ground);
+    }
+    (a.globalAlpha = f),
+      et(a, h, c, y, r, o, l, e.ground),
+      u > 0 &&
+        ((a.globalAlpha = f * Math.min(1, u)),
+        et(a, { ...h, img: h.white }, c, y, r, o, l, e.ground));
+  }
+  function glowAt(a, e, t, s, i, r) {
+    if (r <= 0) return;
+    let o = a.createRadialGradient(e, t, 0, e, t, s);
+    o.addColorStop(0, `rgba(${i},${r})`),
+      o.addColorStop(0.45, `rgba(${i},${r * 0.4})`),
+      o.addColorStop(1, `rgba(${i},0)`),
+      (a.globalCompositeOperation = "lighter"),
+      (a.fillStyle = o),
+      a.fillRect(e - s, t - s, s * 2, s * 2),
+      (a.globalCompositeOperation = "source-over");
+  }
+  // The world behind a scene: a storm for Zekrom, a moonlit night for Darkrai,
+  // deep space for Deoxys. Activation darkens the arena around a summoning
+  // circle instead.
+  function ultBackdrop(a, e) {
+    CINE_DIM.clear();
+    let t = e.tick;
+    for (let s of e.summons) {
+      let i = cineK(s);
+      if (i <= 0) continue;
+      let r = LG_INFO[s.kind];
+      a.save();
+      if (s.phase === "intro") {
+        let o = s.owner;
+        (a.fillStyle = `rgba(3,4,14,${0.72 * i})`),
+          a.fillRect(-60, -60, Y + 120, _ + 120),
+          glowAt(a, o.x, o.y - 20, 150, r.rgb, 0.4 * i);
+        // Slow god rays turning behind the caller.
+        a.globalCompositeOperation = "lighter";
+        for (let l = 0; l < 10; l++) {
+          let f = (l / 10) * Math.PI * 2 + t * 0.012,
+            u = 0.07;
+          (a.globalAlpha = (l % 2 ? 0.07 : 0.12) * i),
+            (a.fillStyle = l % 3 ? r.color : "#fff3c0"),
+            a.beginPath(),
+            a.moveTo(o.x, o.y - 20),
+            a.lineTo(
+              o.x + Math.cos(f - u) * 420,
+              o.y - 20 + Math.sin(f - u) * 420,
+            ),
+            a.lineTo(
+              o.x + Math.cos(f + u) * 420,
+              o.y - 20 + Math.sin(f + u) * 420,
+            ),
+            a.closePath(),
+            a.fill();
+        }
+        (a.globalAlpha = 1), (a.globalCompositeOperation = "source-over");
+        let l = Ee(Math.min(1, s.t / 12));
+        vfxDraw(
+          a,
+          "ultSigil",
+          vfxFrame("ultSigil", t),
+          o.x,
+          o.y + 2,
+          0.35 + 0.45 * l,
+          i,
+        );
+        a.restore();
+        continue;
+      }
+      // Everyone not in the scene fades into the backdrop.
+      if (i > 0.25) {
+        let o = new Set(s.caught);
+        s.form === "defense" && o.add(s.owner);
+        for (let l of e.bodies()) o.has(l) || CINE_DIM.add(l);
+      }
+      let o = a.createLinearGradient(0, 0, 0, _);
+      s.kind === "zekrom"
+        ? (o.addColorStop(0, "#02040c"),
+          o.addColorStop(0.55, "#0a1636"),
+          o.addColorStop(1, "#04081a"))
+        : s.kind === "darkrai"
+          ? (o.addColorStop(0, "#04020a"),
+            o.addColorStop(0.6, "#180a2e"),
+            o.addColorStop(1, "#08030f"))
+          : (o.addColorStop(0, "#000003"),
+            o.addColorStop(0.5, "#0e0420"),
+            o.addColorStop(1, "#02010a")),
+        (a.globalAlpha = 0.94 * i),
+        (a.fillStyle = o),
+        a.fillRect(-60, -60, Y + 120, _ + 120);
+      let l = rt(s.id * 31 + 7);
+      if (s.kind === "zekrom") {
+        // Sheet lightning, distant forks and driving rain.
+        let f = (s.t + s.id * 5) % 23 < 2 || (s.t + 9) % 37 < 2;
+        f &&
+          ((a.globalAlpha = 0.18 * i),
+          (a.fillStyle = "#9fd8ff"),
+          a.fillRect(-60, -60, Y + 120, _ + 120));
+        if ((s.t + s.id * 3) % 29 < 4) {
+          let u = l() * Y;
+          (a.globalAlpha = 0.5 * i),
+            (a.globalCompositeOperation = "lighter"),
+            boltLine(a, u, -40, u + (l() - 0.5) * 80, _ * (0.3 + l() * 0.3), t),
+            (a.globalCompositeOperation = "source-over");
+        }
+        (a.strokeStyle = "#7fa8d8"), (a.lineWidth = 1);
+        for (let u = 0; u < 90; u++) {
+          let h = ((l() * (Y + 200) + t * 3) % (Y + 200)) - 100,
+            c = ((l() * (_ + 120) + t * 11 + u * 3) % (_ + 120)) - 60;
+          (a.globalAlpha = (0.15 + l() * 0.25) * i),
+            a.beginPath(),
+            a.moveTo(h, c),
+            a.lineTo(h - 3, c + 10),
+            a.stroke();
+        }
+      } else if (s.kind === "darkrai") {
+        // A huge crescent moon, stars and drifting shadow.
+        for (let f = 0; f < 70; f++) {
+          let u = l() * Y,
+            h = l() * _ * 0.7,
+            c = 0.5 + 0.5 * Math.sin(t * 0.08 + f);
+          (a.globalAlpha = (0.2 + 0.6 * c) * i),
+            (a.fillStyle = f % 5 ? "#d8c8ff" : "#ffffff"),
+            a.fillRect(Math.round(u), Math.round(h), 1, 1);
+        }
+        let f = s.cx + 120,
+          u = s.cy - 150;
+        glowAt(a, f, u, 90, "190,170,255", 0.35 * i),
+          (a.globalAlpha = 0.9 * i),
+          (a.fillStyle = "#efe6ff"),
+          a.beginPath(),
+          a.arc(f, u, 34, 0, Math.PI * 2),
+          a.fill(),
+          (a.fillStyle = "#180a2e"),
+          a.beginPath(),
+          a.arc(f + 13, u - 8, 31, 0, Math.PI * 2),
+          a.fill();
+        for (let h = 0; h < 7; h++) {
+          let c = (h / 7) * Math.PI * 2 + t * 0.01,
+            y = 110 + 40 * Math.sin(t * 0.02 + h);
+          (a.globalAlpha = 0.22 * i),
+            (a.fillStyle = h % 2 ? "#2a0f4a" : "#05020c"),
+            a.beginPath(),
+            a.ellipse(
+              s.cx + Math.cos(c) * y,
+              s.cy + Math.sin(c) * y * 0.6,
+              70,
+              30,
+              c,
+              0,
+              Math.PI * 2,
+            ),
+            a.fill();
+        }
+      } else {
+        // Deep space: stars, an aurora band and Deoxys's double helix.
+        for (let f = 0; f < 90; f++) {
+          let u = (l() * Y - t * (0.2 + (f % 3) * 0.3) + Y * 4) % Y,
+            h = l() * _;
+          (a.globalAlpha = (0.3 + 0.5 * l()) * i),
+            (a.fillStyle = f % 7 ? "#ffffff" : "#ffb07a"),
+            a.fillRect(Math.round(u), Math.round(h), f % 11 ? 1 : 2, 1);
+        }
+        a.globalCompositeOperation = "lighter";
+        for (let f = 0; f < 3; f++) {
+          (a.globalAlpha = 0.1 * i),
+            (a.strokeStyle = f === 1 ? "#5fd8ff" : "#ff8a4a"),
+            (a.lineWidth = 18 - f * 5),
+            a.beginPath();
+          for (let u = -40; u <= Y + 40; u += 16) {
+            let h = _ * 0.32 + Math.sin(u * 0.012 + t * 0.02 + f) * 26 + f * 10;
+            u === -40 ? a.moveTo(u, h) : a.lineTo(u, h);
+          }
+          a.stroke();
+        }
+        for (let f = 0; f < 2; f++) {
+          (a.globalAlpha = 0.3 * i),
+            (a.strokeStyle = f ? "#ff8a4a" : "#5fd8ff"),
+            (a.lineWidth = 2),
+            a.beginPath();
+          for (let u = -20; u <= Y + 20; u += 6) {
+            let h =
+              s.cy + 70 + Math.sin(u * 0.03 + t * 0.06 + f * Math.PI) * 18;
+            u === -20 ? a.moveTo(u, h) : a.lineTo(u, h);
+          }
+          a.stroke();
+        }
+        a.globalAlpha = 0.18 * i;
+        for (let f = -20; f <= Y + 20; f += 18) {
+          let u = s.cy + 70 + Math.sin(f * 0.03 + t * 0.06) * 18,
+            h = s.cy + 70 + Math.sin(f * 0.03 + t * 0.06 + Math.PI) * 18;
+          (a.strokeStyle = "#ffffff"),
+            (a.lineWidth = 1),
+            a.beginPath(),
+            a.moveTo(f, u),
+            a.lineTo(f, h),
+            a.stroke();
+        }
+        a.globalCompositeOperation = "source-over";
+      }
+      // A spotlight on whoever is caught.
+      (a.globalAlpha = 1), glowAt(a, s.cx, s.cy - 10, 90, r.rgb, 0.3 * i);
+      a.restore();
+    }
+  }
+  // Ground marks during intros and scenes.
+  function cineGround(a, e, t, s) {
+    if (t.phase === "intro") return;
+    let i = CINE[cineKey(t)],
+      r = t.t,
+      o = cineK(t);
+    if (t.kind === "darkrai") {
+      let l = 74 * Ee(Math.min(1, r / 18)),
+        f = a.createRadialGradient(t.cx, t.cy, 0, t.cx, t.cy, Math.max(1, l));
+      f.addColorStop(0, `rgba(6,2,16,${0.9 * o})`),
+        f.addColorStop(0.7, `rgba(50,18,96,${0.6 * o})`),
+        f.addColorStop(1, "rgba(60,20,120,0)"),
+        (a.fillStyle = f),
+        a.beginPath(),
+        a.ellipse(t.cx, t.cy, l, l * 0.7, 0, 0, Math.PI * 2),
+        a.fill();
+    } else if (t.form === "defense") {
+      let l = t.owner,
+        f = Ee(Math.min(1, r / i.fin));
+      (a.globalAlpha = 0.7 * o),
+        a.setLineDash([5, 4]),
+        (a.lineDashOffset = -e.tick),
+        lgRing(a, l.x, l.y, 20 + 50 * f, "#9be8ff", 1.6),
+        a.setLineDash([]);
+    } else if (t.form === "attack") {
+      (a.globalAlpha = 0.35 * o),
+        summonBand(a, t.sx, t.sy, t.cx, t.cy, 26, "#3a1206");
+    } else {
+      // Scorched ground under the caught after each beat.
+      let l = i.hits.filter((f) => f <= r).length + (r >= i.fin ? 3 : 0);
+      (a.globalAlpha = Math.min(0.6, 0.12 * l) * o),
+        (a.fillStyle = "#05060f"),
+        a.beginPath(),
+        a.ellipse(t.cx, t.cy + 2, 18 + l * 4, 7 + l * 1.5, 0, 0, Math.PI * 2),
+        a.fill();
+    }
+  }
+  // The legendaries themselves during intros and scenes. Each works from its
+  // caller's side of the target, low enough to stay clear of the HUD.
+  function cineAir(a, e, t, s) {
+    let i = e.tick,
+      r = LG_INFO[t.kind],
+      o = t.t,
+      sd = (t.cx ?? t.ax) >= t.owner.x ? -1 : 1,
+      fc = sd > 0 ? Math.PI : 0;
+    s = { ...s, rim: r.color };
+    if (t.phase === "intro") {
+      // The legendary bursts into being beside its caller, washed white,
+      // then settles to its aiming spot as the intro ends.
+      let l = t.owner,
+        f = ULT.intro,
+        u = Math.min(1, o / 6);
+      // An aura around the caller: rising sparks and pulsing rings.
+      glowAt(a, l.x, l.y - 14, 34, "255,230,140", 0.55 * u),
+        (a.globalCompositeOperation = "lighter");
+      let h = rt(i >> 1);
+      for (let c = 0; c < 14; c++) {
+        let y = h() * Math.PI * 2,
+          b = 6 + h() * 14,
+          p = ((i * 1.6 + c * 9) % 34) / 34;
+        (a.globalAlpha = (1 - p) * 0.9 * u),
+          (a.fillStyle = c % 3 ? "#ffe27a" : r.color),
+          a.fillRect(
+            Math.round(l.x + Math.cos(y) * b),
+            Math.round(l.y - 4 - p * 46),
+            2,
+            2,
+          );
+      }
+      for (let c = 0; c < 2; c++) {
+        let y = ((o * 1.5 + c * 12) % 24) / 24,
+          b = 10 + y * 30;
+        (a.globalAlpha = (1 - y) * 0.6 * u),
+          (a.strokeStyle = c ? r.color : "#fff3c0"),
+          (a.lineWidth = 1.5),
+          a.beginPath(),
+          a.ellipse(l.x, l.y, b, b * 0.4, 0, 0, Math.PI * 2),
+          a.stroke();
+      }
+      a.globalCompositeOperation = "source-over";
+      if (o < 8) return;
+      let c = Math.min(1, (o - 8) / 16),
+        y = o > f - 10 ? (o - (f - 10)) / 10 : 0,
+        b = Math.atan2(t.ay - l.y, t.ax - l.x),
+        p = l.x - Math.cos(b) * (46 - 16 * y),
+        k = l.y - 4 - 10 * Ee(c) - 12 * y,
+        M = 1 + 0.7 * Ee(c) - 0.4 * y;
+      glowAt(a, p, k - 24, 70 * M, r.rgb, 0.55 * Math.min(1, (o - 8) / 4)),
+        lgBig(
+          a,
+          s,
+          "Idle",
+          i,
+          Math.PI / 2,
+          p,
+          k,
+          M,
+          Math.min(1, (o - 8) / 3),
+          1.4 - c * 1.4,
+        );
+      return;
+    }
+    let l = CINE[cineKey(t)],
+      f = cineK(t),
+      u = l.hits,
+      h = l.fin,
+      c = -99;
+    // The most recent beat, for flashes.
+    for (let y of u) y <= o && (c = y);
+    let y = o - c < 3 ? 0.3 : 0;
+    if (t.kind === "zekrom") {
+      // Zekrom hovers beside the target and calls lightning down on every
+      // beat, charges, then dives onto it and leaves.
+      let b = t.cx + sd * 64 + Math.sin(o * 0.05) * 6,
+        p = t.cy - 30 + Math.sin(o * 0.09) * 4,
+        k = "Idle";
+      o < 16 && (p -= (1 - Ee(o / 16)) * 140),
+        o >= h - 26 && o < h && (k = "Charge");
+      if (o >= h) {
+        let M = Math.min(1, (o - h) / 4);
+        (b += (t.cx - sd * 10 - b) * M), (k = "Attack");
+        o > h + 10 && ((p -= (o - h - 10) * 8), (b -= sd * (o - h - 10) * 3));
+      }
+      a.globalCompositeOperation = "lighter";
+      for (let M of u)
+        if (o >= M && o < M + 7)
+          for (let P of t.caught)
+            (a.globalAlpha = 1 - (o - M) / 7),
+              boltLine(a, b, p - 40, P.x, P.y - 10, i + M),
+              glowAt(a, P.x, P.y - 10, 30, r.rgb, 0.6);
+      if (k === "Charge") {
+        let M = (o - (h - 26)) / 26,
+          P = rt(i);
+        for (let C = 0; C < 4; C++) {
+          let x = P() * Math.PI * 2,
+            v = 30 + P() * 30;
+          (a.globalAlpha = 0.7),
+            boltLine(
+              a,
+              b + Math.cos(x) * v,
+              p - 30 + Math.sin(x) * v * 0.7,
+              b,
+              p - 30,
+              i + C,
+            );
+        }
+        glowAt(a, b, p - 30, 50 + 40 * M, r.rgb, 0.5 + 0.4 * M);
+      }
+      (a.globalCompositeOperation = "source-over"),
+        glowAt(a, b, p - 30, 60, r.rgb, 0.35 * f),
+        lgBig(a, s, k, i, fc, b, p, 1.8, f, y);
+    } else if (t.kind === "darkrai") {
+      // Darkrai looms beside the sleeper; shadow tendrils lash on each beat.
+      let b = t.cx - sd * 48,
+        p = t.cy - 22 + Math.sin(o * 0.05) * 3,
+        k = o >= h - 12 && o < h + 16 ? "SpAttack" : "Idle";
+      for (let M of t.caught) {
+        let P = o - c < 8 ? 1 : 0.45;
+        for (let C = 0; C < 3; C++) {
+          let x = Math.sin(i * 0.07 + C * 2) * 18;
+          (a.globalAlpha = P * f * (C ? 0.5 : 0.9)),
+            (a.strokeStyle = C ? "#2a0f4a" : "#9a6cff"),
+            (a.lineWidth = C ? 3 : 1.5),
+            a.beginPath(),
+            a.moveTo(b, p - 30),
+            a.quadraticCurveTo(
+              (b + M.x) / 2 + x,
+              (p + M.y) / 2 - 30,
+              M.x + (C - 1) * 4,
+              M.y - 12,
+            ),
+            a.stroke();
+        }
+        o - c < 6 && glowAt(a, M.x, M.y - 12, 28, r.rgb, 0.7);
+      }
+      glowAt(a, b, p - 30, 70, "60,20,120", 0.6 * f),
+        lgBig(
+          a,
+          s,
+          k,
+          i,
+          sd > 0 ? 0 : Math.PI,
+          b,
+          p,
+          2,
+          f * Math.min(1, o / 14),
+          y,
+        );
+      // Its eye glints as the finisher comes.
+      o >= h - 20 &&
+        o < h &&
+        i % 6 < 3 &&
+        glowAt(a, b, p - 62, 14, "122,240,255", 0.9);
+    } else if (t.form === "attack") {
+      // Hyper Beam: a thick beam with energy rings racing along it.
+      let b = t.sx,
+        p = t.sy,
+        k = o < h ? 1 : Math.max(0, 1 - (o - h) / 12),
+        M = 28 + Math.sin(i * 0.9) * 4;
+      if (k > 0) {
+        let P = 1e3,
+          C = b + t.dx * P,
+          x = p - 14 + t.dy * P;
+        (a.globalCompositeOperation = "lighter"),
+          (a.globalAlpha = 0.5 * k),
+          summonBand(a, b, p - 14, C, x, M * 2 * k, "#ff6a2a"),
+          (a.globalAlpha = 0.85 * k),
+          summonBand(a, b, p - 14, C, x, M * k, "#ffc890"),
+          (a.globalAlpha = k),
+          summonBand(a, b, p - 14, C, x, 8 * k, "#ffffff");
+        for (let v = 0; v < 14; v++) {
+          let E = ((i * 9 + v * 46) % 640) + 20;
+          (a.globalAlpha = 0.5 * k),
+            (a.strokeStyle = "#fff3c0"),
+            (a.lineWidth = 1.5),
+            a.beginPath(),
+            a.ellipse(
+              b + t.dx * E,
+              p - 14 + t.dy * E,
+              4,
+              M * 0.7 * k,
+              Math.atan2(t.dy, t.dx),
+              0,
+              Math.PI * 2,
+            ),
+            a.stroke();
+        }
+        (a.globalCompositeOperation = "source-over"),
+          glowAt(
+            a,
+            b + t.dx * 16,
+            p - 14 + t.dy * 16,
+            50,
+            "255,170,90",
+            0.8 * k,
+          );
+      }
+      lgBig(
+        a,
+        s,
+        o < h ? "Shoot" : "Idle",
+        i,
+        Math.atan2(t.dy, t.dx),
+        b - t.dx * 14,
+        p - 10,
+        1.8,
+        f,
+        y * 0.5,
+      );
+    } else if (t.form === "speed") {
+      // A blur that crosses through the caught from a new angle each beat,
+      // then drops on them from above.
+      a.globalCompositeOperation = "lighter";
+      for (let b = 0; b < u.length; b++) {
+        let p = u[b],
+          k = o - (p - 5);
+        if (k < 0 || k > 18) continue;
+        let M = b * 2.39 + t.id,
+          P = Math.cos(M),
+          C = Math.sin(M) * 0.7,
+          x = Math.min(1, k / 10),
+          v = t.cx + P * 110,
+          E = t.cy - 8 + C * 110,
+          Q = t.cx - P * 110 * (2 * x - 1),
+          ie = t.cy - 8 - C * 110 * (2 * x - 1),
+          an = k > 10 ? 1 - (k - 10) / 8 : 1;
+        (a.globalAlpha = 0.6 * an),
+          summonBand(a, v, E, Q, ie, 12, "#5fd8ff"),
+          (a.globalAlpha = 0.9 * an),
+          summonBand(a, v, E, Q, ie, 2.5, "#ffffff");
+        if (k <= 10) {
+          a.globalCompositeOperation = "source-over";
+          for (let K = 3; K >= 1; K--)
+            lgBig(
+              a,
+              s,
+              "QuickStrike",
+              i,
+              M + Math.PI,
+              Q + P * 12 * K,
+              ie + C * 12 * K,
+              1.5,
+              0.25 / K,
+              1,
+            );
+          lgBig(a, s, "QuickStrike", i, M + Math.PI, Q, ie, 1.6, 1, 0),
+            (a.globalCompositeOperation = "lighter");
+        }
+      }
+      if (o >= h - 8) {
+        let b = Math.min(1, (o - (h - 8)) / 8),
+          p = t.cy - 10 - 150 * (1 - Ee(b));
+        (a.globalAlpha = o < h + 12 ? 0.7 : 0),
+          summonBand(a, t.cx, p - 80, t.cx, p, 14, "#5fd8ff"),
+          (a.globalCompositeOperation = "source-over"),
+          lgBig(
+            a,
+            s,
+            "QuickStrike",
+            i,
+            Math.PI / 2,
+            t.cx,
+            p - 4,
+            1.8,
+            f,
+            o < h + 3 ? 0.8 : 0,
+          );
+      }
+      a.globalCompositeOperation = "source-over";
+    } else if (t.form === "defense") {
+      // Deoxys descends beside its caller, a beam of healing light builds
+      // the barrier, then it bursts outward.
+      let b = t.owner,
+        p = Math.min(1, o / 26),
+        k = b.y - 160 + 140 * Ee(p),
+        X = b.x + 46,
+        M = Ee(me((o - 8) / (h - 8), 0, 1));
+      (a.globalCompositeOperation = "lighter"),
+        (a.globalAlpha = 0.35 * f),
+        summonBand(a, X, k - 40, b.x, b.y - 10, 18, "#5fd8ff"),
+        (a.globalAlpha = 0.6 * f),
+        summonBand(a, X, k - 40, b.x, b.y - 10, 5, "#e0fbff");
+      let P = rt(i >> 1);
+      for (let C = 0; C < 12; C++) {
+        let x = ((i * 1.2 + C * 11) % 40) / 40;
+        (a.globalAlpha = (1 - x) * f),
+          (a.fillStyle = C % 2 ? "#9be8ff" : "#ffffff"),
+          a.fillRect(
+            Math.round(b.x + (P() - 0.5) * 40),
+            Math.round(b.y - x * 60),
+            2,
+            2,
+          );
+      }
+      (a.globalCompositeOperation = "source-over"),
+        vfxDraw(
+          a,
+          "ultBarrier",
+          vfxFrame("ultBarrier", i),
+          b.x,
+          b.y - 12,
+          0.2 + 0.75 * M,
+          f,
+        ),
+        o >= h &&
+          o < h + 16 &&
+          ((a.globalAlpha = 1 - (o - h) / 16),
+          lgRing(a, b.x, b.y - 8, 20 + (o - h) * 5, "#e0fbff", 3)),
+        glowAt(a, X, k - 36, 50, "95,216,255", 0.5 * f),
+        lgBig(
+          a,
+          s,
+          "Idle",
+          i,
+          Math.PI,
+          X,
+          k,
+          1.6,
+          f,
+          o >= h && o < h + 4 ? 0.8 : 0,
+        );
+    } else {
+      // Psycho Boost: Deoxys beside the target charges an orb overhead,
+      // holding the caught with psychic bonds, then hurls the orb down.
+      let b = t.cx + sd * 66,
+        p = t.cy - 26 + Math.sin(o * 0.08) * 3,
+        k = 4 + 16 * Math.min(1, o / h),
+        M = b - sd * 26,
+        P = p - 50;
+      if (o >= h) {
+        let C = Math.min(1, (o - h) / 4);
+        (M += (t.cx - M) * C), (P += (t.cy - 12 - P) * C), (k *= 1 - C * 0.5);
+      }
+      for (let C of t.caught) {
+        (a.globalAlpha = (o - c < 6 ? 0.9 : 0.4) * f),
+          (a.strokeStyle = "#ff7ab8"),
+          (a.lineWidth = 1.5),
+          a.beginPath();
+        for (let x = 0; x <= 10; x++) {
+          let v = x / 10,
+            E = b + (C.x - b) * v + Math.sin(v * 9 + i * 0.4) * 4,
+            Q = p - 40 + (C.y - 12 - (p - 40)) * v;
+          x ? a.lineTo(E, Q) : a.moveTo(E, Q);
+        }
+        a.stroke();
+      }
+      glowAt(a, b, p - 30, 60, r.rgb, 0.35 * f),
+        lgBig(a, s, o < h ? "Charge" : "Idle", i, fc, b, p, 1.8, f, y);
+      if (o < h + 5) {
+        glowAt(a, M, P, k * 3, "255,140,90", 0.9),
+          (a.globalAlpha = 1),
+          (a.fillStyle = "#ff6a8a"),
+          a.beginPath(),
+          a.arc(M, P, k, 0, Math.PI * 2),
+          a.fill(),
+          (a.fillStyle = "#ffd2a0"),
+          a.beginPath(),
+          a.arc(M, P, k * 0.7, 0, Math.PI * 2),
+          a.fill(),
+          (a.fillStyle = "#ffffff"),
+          a.beginPath(),
+          a.arc(M, P, k * 0.38, 0, Math.PI * 2),
+          a.fill();
+        // Energy streams pulled into the orb.
+        let C = rt(i >> 1);
+        a.globalCompositeOperation = "lighter";
+        for (let x = 0; x < 8 && o < h; x++) {
+          let v = C() * Math.PI * 2,
+            E = k + 10 + ((i * 2 + x * 7) % 30);
+          (a.globalAlpha = 0.7),
+            (a.strokeStyle = x % 2 ? "#ffb07a" : "#ff7ab8"),
+            a.beginPath(),
+            a.moveTo(M + Math.cos(v) * E, P + Math.sin(v) * E),
+            a.lineTo(M + Math.cos(v) * (E - 6), P + Math.sin(v) * (E - 6)),
+            a.stroke();
+        }
+        a.globalCompositeOperation = "source-over";
+      }
+    }
+  }
+  // Where the camera looks during an intro or scene, and how close.
+  function cineFocus(a) {
+    if (a.phase === "intro") return { x: a.owner.x, y: a.owner.y - 30 };
+    if (a.form === "attack")
+      return { x: (a.sx + a.cx) / 2, y: (a.sy + a.cy) / 2 - 14 };
+    if (a.form === "defense") return { x: a.owner.x + 20, y: a.owner.y - 34 };
+    let e = a.cx >= a.owner.x ? -1 : 1;
+    return { x: a.cx + e * 30, y: a.cy - 36 };
+  }
+  function cineZoom(a) {
+    if (a.phase === "intro") return 1.2 + 0.5 * Ee(Math.min(1, a.t / 14));
+    let e = CINE[cineKey(a)];
+    return a.form === "attack"
+      ? 1.35
+      : a.t >= e.fin
+        ? 1.4
+        : a.form === "speed"
+          ? 1.5
+          : 1.65;
+  }
+  // Letterbox bars while a scene plays.
+  function cineBars(a, e) {
+    let t = 0;
+    for (let s of e.summons) s.phase === "cine" && (t = Math.max(t, cineK(s)));
+    t > 0 &&
+      ((a.globalAlpha = 1),
+      (a.fillStyle = "#000000"),
+      a.fillRect(0, 0, Y, Math.round(30 * t)),
+      a.fillRect(0, _ - Math.round(30 * t), Y, Math.round(30 * t)));
+  }
   // Under the fighters: the dimmed arena, aim previews, warnings and the
   // legendaries' ground effects.
   function summonGround(a, e) {
     let t = e.tick;
+    ultBackdrop(a, e);
     for (let s of e.summons) {
       let i = LG_INFO[s.kind];
       if (!i) continue;
+      if (s.phase === "intro" || s.phase === "cine") {
+        a.save(), cineGround(a, e, s, i), a.restore();
+        continue;
+      }
       let r = s.form;
       a.save();
       if (s.phase === "aim") {
@@ -11241,6 +12176,7 @@
       if ((s.shieldT ?? 0) > 0 && s.state !== "faint") {
         let i = s.shieldT < 60 && t % 8 < 4 ? 0.25 : 0.6;
         a.save(), (a.globalAlpha = i), (a.globalCompositeOperation = "lighter");
+        vfxDraw(a, "ultBarrier", vfxFrame("ultBarrier", t), s.x, s.y - 12, 0.5);
         for (let r = 0; r < 6; r++) {
           let o = (r / 6) * Math.PI * 2 + t * 0.03,
             l = o + Math.PI / 3;
@@ -11256,6 +12192,10 @@
     for (let s of e.summons) {
       let i = lgSprite(e.mons, s.kind, s.form);
       if (!i) continue;
+      if (s.phase === "intro" || s.phase === "cine") {
+        a.save(), cineAir(a, e, s, i), a.restore();
+        continue;
+      }
       let r,
         o,
         l = Math.atan2(s.dy ?? 1, s.dx ?? 0),
@@ -12197,7 +13137,9 @@
     ].sort((h, c) => h.y - c.y);
     for (let h of f)
       h.max !== void 0 && h.kind === void 0
-        ? ht2(a, h, e.tick)
+        ? ((a.globalAlpha = CINE_DIM.size ? 0.12 : 1),
+          ht2(a, h, e.tick),
+          (a.globalAlpha = 1))
         : da(a, h, e, o(h.px, h.x), o(h.py, h.y), o(h.pz, h.z));
     for (let h of e.vines)
       h.y2 >= h.y1 && ca(a, h.x1, h.y1, h.x2, h.y2, h.ext, e.tick);
@@ -12810,6 +13752,7 @@
         a.fillRect(0, 0, Y, _);
     }
     surgeScreen(a, e);
+    cineBars(a, e);
     if (t.speed > 0) {
       let h = rt(e.tick >> 1);
       (a.strokeStyle = t.speedColor), (a.lineWidth = 1);
@@ -12928,6 +13871,7 @@
         C.vanished &&
         (v = C.isRival ? (t.tick % 23 < 2 ? 0.12 : 0.03) : 0.28),
       C && C.state === "pfStrike" && (v = Math.min(1, 0.25 + C.t / 7)),
+      CINE_DIM.has(e) && (v *= 0.1),
       o && v < 0.5)
     ) {
       a.restore();
@@ -18065,6 +19009,26 @@
           (I("saw", 70, 160, 0.42, 0.1, 0, { vib: 12 }),
           X(0.42, "bandpass", 1200, 4, 0.1, 3200, 0, !0));
       },
+      ultStart() {
+        O() &&
+          (X(0.75, "bandpass", 300, 2, 0.26, 4200, 0, !0),
+          I("saw", 110, 440, 0.7, 0.07, 0, { vib: 6 }),
+          I("tri", 523, 523, 0.5, 0.11, 0.62),
+          I("tri", 659, 659, 0.5, 0.09, 0.62),
+          I("tri", 784, 784, 0.6, 0.09, 0.62),
+          I("tri", 1046, 1046, 0.7, 0.08, 0.68));
+      },
+      ultHit() {
+        O() &&
+          (I("p25", 900, 260, 0.09, 0.12), X(0.09, "highpass", 3e3, 1, 0.16));
+      },
+      ultFin() {
+        O() &&
+          (I("sine", 90, 24, 0.9, 1),
+          X(0.9, "lowpass", 3e3, 0.7, 0.75, 80, 0, !0),
+          X(0.5, "highpass", 5e3, 0.7, 0.22),
+          I("p50", 300, 40, 0.5, 0.22));
+      },
       legendReady() {
         O() &&
           (I("tri", 660, 660, 0.09, 0.12),
@@ -22158,7 +23122,7 @@
                 ? (S.armor(),
                   t.popup(n.victim.x, n.victim.y - 40, "ARMOR", "#e8d2a8", !1))
                 : ((t.vignette = 1), (t.vignetteColor = "214,64,64"), S.hurt());
-          else if (!n.multi && W) {
+          else if (!n.multi && W && !String(n.src).includes("legend")) {
             S.combo(n.combo);
             let ne =
               n.combo === 5
@@ -22222,6 +23186,7 @@
             t.ring(n.x, n.y - 12, 6, 2.4, 14, "#ef5a4f");
           break;
         case "punish":
+          if (e.frozen()) break;
           t.popup(
             n.x,
             n.y - 56,
@@ -23258,14 +24223,74 @@
           (t.cutin = {
             kind: n.kind,
             form: n.form,
-            life: 34,
-            max: 34,
+            life: 40,
+            max: 40,
+            wait: 10,
             mine: n.who === e.player,
           }),
-            S.cry(n.kind, 0.05),
-            S.charge(),
-            t.shake(0, 1, 3);
+            S.ultStart(),
+            S.cry(n.kind, 0.2),
+            t.shake(0, 1, 6),
+            (t.screenFlash = 6),
+            (t.screenFlashColor = "#ffffff"),
+            (t.impact = 2),
+            t.ring(n.who.x, n.who.y, 6, 4, 24, "#fff3c0", !0),
+            t.ring(
+              n.who.x,
+              n.who.y,
+              4,
+              2.6,
+              30,
+              LG_INFO[n.kind]?.color ?? "#ffffff",
+              !0,
+            );
           break;
+        case "cineStart":
+          S.ultFin(),
+            S.cry(n.kind, 0.15),
+            t.shake(0, 1, 8),
+            (t.screenFlash = 5),
+            (t.screenFlashColor = LG_INFO[n.kind]?.color ?? "#ffffff"),
+            (t.impact = 3);
+          break;
+        case "cineHit": {
+          S.ultHit(), t.shake(0, 1, 4);
+          let R = LG_INFO[n.kind]?.color ?? "#ffffff";
+          for (let [D, W] of n.vs ?? [])
+            t.sheet("ultHit", D, W - 12, n.kind === "darkrai" ? 1.1 : 1.4),
+              n.kind === "zekrom"
+                ? (t.sheet("bolt", D, W + 2, 0.55), S.zap?.())
+                : t.ring(D, W, 4, 2.4, 14, R, !0),
+              t.flare(D, W - 10, 6, 16, R, 8);
+          (t.screenFlash = 2), (t.screenFlashColor = R);
+          break;
+        }
+        case "cineFin": {
+          let R = LG_INFO[n.kind]?.color ?? "#ffffff";
+          S.ultFin(), n.kind === "zekrom" && S.thunder();
+          for (let [D, W] of n.vs ?? [])
+            n.kind === "zekrom"
+              ? t.sheet("ultBolt", D, W + 4, 1.15)
+              : n.kind === "darkrai"
+                ? t.sheet("ultPulse", D, W - 8, 1.45)
+                : n.form === "speed"
+                  ? (t.sheet("ultBoom", D, W - 8, 0.9),
+                    t.sheet("ultHit", D, W - 12, 2.4))
+                  : t.sheet(
+                      "ultBoom",
+                      D,
+                      W - 8,
+                      n.form === "attack" ? 1.15 : 1.35,
+                    ),
+              t.ring(D, W, 10, 5, 30, R, !0),
+              t.ring(D, W, 6, 3.4, 26, "#ffffff", !0);
+          t.shake(0, 1, 16),
+            t.punch(n.x, n.y, 0.14),
+            (t.impact = 5),
+            (t.screenFlash = 4),
+            (t.screenFlashColor = "#ffffff");
+          break;
+        }
         case "boltWarn":
           S.boltHum();
           break;
@@ -24620,20 +25645,25 @@
       T && NET.m?.phase === "play" && NET.m.room && netSendInputs(NET.m);
       let Z = W ? Math.min(1, De / Ut) : 1,
         ne = s.screen === "play";
-      !ne || e.match.phase !== "fight"
-        ? t.follow([])
-        : e.players.some((ee) => ee.vanished) ||
-          t.follow(
-            e
-              .bodies()
-              .filter(
-                (ee) =>
-                  ee.kind !== "assist" &&
-                  !ee.hidden &&
-                  !(ee.kind === "player" && ee.state === "faint"),
-              )
-              .map((ee) => ({ x: ee.x, y: ee.y - ee.z * 0.5 })),
-          ),
+      let Cz =
+        ne &&
+        e.summons.find((ee) => ee.phase === "intro" || ee.phase === "cine");
+      Cz
+        ? t.follow([cineFocus(Cz)], cineZoom(Cz))
+        : !ne || e.match.phase !== "fight"
+          ? t.follow([])
+          : e.players.some((ee) => ee.vanished) ||
+            t.follow(
+              e
+                .bodies()
+                .filter(
+                  (ee) =>
+                    ee.kind !== "assist" &&
+                    !ee.hidden &&
+                    !(ee.kind === "player" && ee.state === "faint"),
+                )
+                .map((ee) => ({ x: ee.x, y: ee.y - ee.z * 0.5 })),
+            ),
         t.computeView();
       // Online: the visual offset left by a rollback correction fades out.
       let Vo = NET.m?.phase === "play" && ne ? NET.m.vo : null;
