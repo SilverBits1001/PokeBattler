@@ -1407,3 +1407,202 @@ Charizard, Blastoise and Snorlax (1200) are unchanged.
 No errors in any run. The online duel on this build (rollback with 120 ms
 latency, 50 ms jitter and 8% packet loss, legendaries on) compared 1,957
 ticks with no divergence, and rematch and leave worked.
+
+## Eight more Pokémon and three more legendaries
+
+The roster grows from 8 to 16, built against [the design document](design-doc.md).
+Each newcomer has one primary class, a signature mechanic, a real weakness, an
+answer to ranged pressure and a way out of trouble. Their move types match the
+real Pokémon.
+
+### How the new kits are built
+
+Their specials run through one shared move engine (`exStart` / `tickEx` in
+`src/game.js`). Each move is a short timeline of windup, action and recovery.
+Flags on the fighter tell the rest of the engine what is true at that moment:
+untouchable, airborne, hidden, armored, recovering, or dangerous to a CPU.
+Tuning for all eight sits in one table, `EXK`.
+
+Abilities are real effects, not labels:
+
+- **Rough Skin:** melee attackers take 6% back.
+- **Technician:** moves of 24 base damage or less hit 30% harder.
+- **Strong Jaw:** bites hit 25% harder.
+- **Iron Fist:** punches hit 20% harder.
+- **Solid Rock:** super-effective hits deal 25% less.
+- **Cursed Body:** a 30% chance that a special which hits Froslass disables
+  the attacker's specials for 1.5 seconds.
+- **Synchronize:** burn, poison, paralysis or chill on Gardevoir is returned to
+  whoever caused it.
+- **Clear Body:** never slowed by seeds, daze, Magnet Pull, chill or Rock Tomb.
+
+New types (Ice, Rock, Ground, Psychic, Fairy, Bug, Dark) join the type chart.
+They are as mild as the rest of it (±5%): types flavour a fight without
+deciding it.
+
+### The eight
+
+| Pokémon | Class | Signature | Weakness | Answer to range | Escape |
+|---|---|---|---|---|---|
+| Garchomp (Dragon/Ground) | Speedster | **Dig**: burrow, steer unseen, erupt under them. **Outrage**: 3.5 s rampage (+25% speed and damage), then confusion (slow, no Dig) | Low health; confusion after Outrage; the mound shows where it is | Dig travels under shots | Dig, long dash |
+| Scizor (Bug/Steel) | Skirmisher (duelist) | **Bullet Punch**: priority jab with three charges that refill one at a time; chains on hit. **Technician** | Short reach, no ranged move | U-turn closes and leaves; Bullet Punch reaches 40 px | **U-turn** hops back, or tags the partner in |
+| Tyrantrum (Rock/Dragon) | Heavyweight (grappler) | **Crunch**: lunging grab that goes through guard, two shakes, then a throw you aim | Slow, big; a whiffed Crunch is very punishable | **Rock Slide**: three boulders around a distant target | Roll only, so it must take hits (armored tail and Head Smash) |
+| Golurk (Ground/Ghost) | Heavyweight (juggernaut) | **Shadow Punch**: a homing rocket fist that flies through cover. **Iron Fist** | Slowest attacks; Fly's landing is telegraphed | Shadow Punch from range | **Fly**: rockets up, untouchable by ground attacks, lands up to 210 px away |
+| Rhyperior (Ground/Rock) | Controller (fortress) | **Rock Tomb** raises cover pillars (two at most). **Rock Wrecker** fired into its own pillar shatters it into shrapnel | Slowest mover; a mobile foe gets around the pillars | Rock Tomb raises cover between it and a distant foe; a Rock Wrecker boulder smashes the shots in its way | Pillars to hide behind, armored windups |
+| Froslass (Ice/Ghost) | Trickster | **Chill**: each icy hit slows 12%; three freeze for 0.7 s, then frost immunity for 4 s. **Double Team** leaves an ice doll that bursts on contact | Lowest health; little burst damage | Icy Wind cone, Ice Beam | **Double Team** vanishes and reappears up to 110 px away, or behind a locked foe |
+| Gardevoir (Psychic/Fairy) | Controller (caster) | **Psychic**: lift a foe, steer, throw them; turns nearby shots around. **Future Sight** marks a delayed blast | Fragile, weak up close | Moonblast; Psychic reflects | **Teleport** dodge (a blink) |
+| Metagross (Steel/Psychic) | Heavyweight (bruiser) | **Magnet Rise**: 4 s hover, faster, above ground attacks and hazards, but no guard. **Clear Body** | Hammer Arm slows it; no guard while floating | Zen Headbutt closes 90 px; Magnet Rise speed | Agility dash, Magnet Rise |
+
+Crowd control stays short, as the design document asks:
+
+- The freeze is the longest at 0.7 s. A hit breaks it, and frost immunity
+  follows.
+- Crunch and Psychic hold for about half a second.
+- The daze from Dynamic Punch only slows.
+- None of them can chain into another on the same foe.
+
+Each Pokémon has a Tag Team assist built from its own moves (Dig ambush,
+Bullet Punch flurry, Rock Slide, Shadow Punch, Rock Wrecker, Icy Wind,
+Moonblast, Zen Headbutt). Each also has CPU play that uses its gimmick:
+
+- Tyrantrum Crunches anyone who guards.
+- Rhyperior fires Rock Wrecker through its own pillars.
+- Froslass finishes a freeze.
+- Gardevoir uses Psychic when shots come in.
+- Garchomp digs to reach shooters.
+
+### Three more legendaries
+
+The first three each land one big hit and play a scene. The new three each
+play a different role:
+
+| Legendary | Role | What it does | Best in |
+|---|---|---|---|
+| Groudon, Precipice Blades | Area control | Three rings of blades erupt outward from the aim point, a beat apart (dodge between them). Anyone caught gets a scene; otherwise Drought scorches the centre for 4 s and burns anyone standing in it | Zone Control (it clears the zone), 2v2 |
+| Rayquaza, Dragon Ascent | Hunter | Marks up to three foes, nearest the aim point first, and dives on each in turn. Each mark locks just before the dive, so a late dodge escapes. Everyone hit shares one scene | Free-for-All |
+| Ho-Oh, Sacred Fire | Support | Heals your side 25%, cleanses burn, poison, paralysis, chill, sleep and freeze, and revives a fainted Tag Team partner at 30% (Rebirth). Then a ring of fire rolls out and stays around you for 3.5 s, burning foes inside | Tag Team, 2v2, comebacks |
+
+The legendary picker shows all six in two rows, plus Random and Off. Older
+saved picks keep their choice.
+
+### Balancing the sixteen
+
+All sixteen were rebalanced together, old and new, by CPU-versus-CPU round
+robins on all five arenas (Hard CPUs on both sides, items off). Every pairing
+was played both ways, six times per arena: 900 games per Pokémon. Balance comes
+from trade-offs, not identical stats:
+
+- **Design changes, where a kit was the problem.**
+  - Solid Rock now reduces super-effective hits, like the real ability.
+  - Rock Tomb raises cover between Rhyperior and a distant foe, and a Rock
+    Wrecker boulder smashes the shots in its way.
+  - Snorlax's Body Slam reaches further and absorbs two hits, so it can
+    close on shooters.
+  - Ground types take 20% less from Electric moves.
+  - Ice Beam and Future Sight were trimmed.
+  - Gardevoir moved from a pure zoner to a mid-range controller.
+  - Gardevoir and Froslass were kept fragile, at most 1,000 health. Their
+    escapes recharge faster instead (Teleport, Psychic, Double Team).
+- **Catch-up legendary meter.** Taking damage now fills it faster than dealing
+  it (0.11 against 0.08 per point), so the side that is behind gets its
+  legendary first. That keeps a counter-pick from snowballing.
+- **Two levers per Pokémon, tuned last.** Each Pokémon has a health total
+  and a damage scale (`power`). They were stepped toward 50% in small, damped
+  moves. Health stays within its class: the fragile kits are capped at 1,000
+  and the heavyweights are kept above 1,050.
+
+Result (Stadium, Ruins, Crater, Frostfall, Power Plant):
+
+| Pokémon | Stadium | Ruins | Crater | Frostfall | Power Plant | Average |
+|---|---|---|---|---|---|---|
+| Magnezone | 54% | 55% | 56% | 52% | 54% | 54% |
+| Metagross | 47% | 58% | 54% | 60% | 43% | 52% |
+| Snorlax | 51% | 59% | 53% | 48% | 49% | 52% |
+| Garchomp | 51% | 52% | 51% | 49% | 57% | 52% |
+| Blastoise | 54% | 51% | 51% | 47% | 56% | 52% |
+| Noivern | 44% | 47% | 58% | 56% | 51% | 51% |
+| Lucario | 53% | 49% | 56% | 52% | 44% | 51% |
+| Tyrantrum | 47% | 56% | 47% | 44% | 57% | 50% |
+| Scizor | 51% | 45% | 46% | 49% | 56% | 49% |
+| Golurk | 56% | 46% | 47% | 53% | 43% | 49% |
+| Charizard | 47% | 49% | 48% | 48% | 52% | 49% |
+| Rhyperior | 51% | 50% | 47% | 52% | 44% | 49% |
+| Froslass | 53% | 44% | 51% | 46% | 48% | 48% |
+| Venusaur | 50% | 45% | 51% | 44% | 49% | 48% |
+| Dragapult | 49% | 48% | 38% | 50% | 52% | 47% |
+| Gardevoir | 42% | 46% | 48% | 50% | 44% | 46% |
+
+Every average is between 46% and 54%. Of the 120 pairings, 115 sit below 80%
+for either side (60 games each). The five strongest counters remain:
+
+| Pairing | Result | Why |
+|---|---|---|
+| Blastoise vs Gardevoir | Blastoise 88% | Pump beams and Shell guard out-trade her at every range |
+| Gardevoir vs Snorlax | Gardevoir 83% | The slowest heavyweight against a controller |
+| Scizor vs Gardevoir | Scizor 83% | Bullet Punch rushdown; steel shrugs off fairy |
+| Charizard vs Snorlax | Snorlax 85% | Thick Fat |
+| Noivern vs Snorlax | Noivern 82% | It flies over Earthquake |
+
+Final health and damage scale:
+
+| Pokémon | Health | Damage scale |
+|---|---|---|
+| Charizard | 810 | 0.80 |
+| Venusaur | 980 | 0.80 |
+| Blastoise | 1,120 | 0.80 |
+| Dragapult | 715 | 0.86 |
+| Magnezone | 1,000 | 0.81 |
+| Snorlax | 1,080 | 0.80 |
+| Noivern | 875 | 0.84 |
+| Lucario | 985 | 0.80 |
+| Garchomp | 980 | 1.26 |
+| Scizor | 970 | 1.15 |
+| Tyrantrum | 1,110 | 0.91 |
+| Golurk | 1,095 | 0.91 |
+| Rhyperior | 1,070 | 0.82 |
+| Froslass | 1,000 | 1.60 |
+| Gardevoir | 1,000 | 1.41 |
+| Metagross | 1,135 | 0.90 |
+
+Froslass's scale is high because her own move numbers are small: most of
+what she does is chill and freeze, not damage.
+
+### Four-fighter matches
+
+Free-for-All, Team 2v2 and Zone Control were run with random line-ups from all
+sixteen and random legendaries from all six:
+
+- 100 mixed games with no errors and no time-outs. All six legendaries were
+  called and dealt damage.
+- 240 Free-for-All games for win rates. An even share is 25% each.
+
+Two problems turned up, and both were fixed:
+
+- **A grab was a free hit for everyone else.** A fighter held by Psychic or
+  Crunch now can only be hurt by whoever is holding it.
+- **CPUs only ever chased the nearest foe,** so anyone who hung back was never
+  punished. In crowds, a CPU now turns on whoever just hit it.
+
+Free-for-All still rewards caution. The ranged and evasive kits win most often:
+
+- Gardevoir 49%, Froslass 45%, Garchomp 44%, Noivern 35%.
+- The brawlers win least: Metagross, Scizor, Tyrantrum, Charizard and Golurk
+  at 10–11%.
+
+That is the nature of last-one-standing with four, not a duel imbalance.
+
+### Online
+
+Rollback duels were run on the published build with 120 ms latency, 50 ms
+jitter and 8% packet loss, covering all eight new Pokémon and the three new
+legendaries:
+
+| Teams | Legendaries | Ticks compared |
+|---|---|---|
+| Garchomp vs Froslass | Groudon and Rayquaza | 1,730 |
+| Tyrantrum vs Gardevoir | Rayquaza and Ho-Oh | 2,282 and 1,811 |
+| Scizor vs Metagross | Groudon and Ho-Oh | 2,398 |
+| Golurk vs Rhyperior | Rayquaza and Ho-Oh | 3,725 |
+
+Every duel stayed identical on both pages, with no errors, and rematch and
+leave worked.
