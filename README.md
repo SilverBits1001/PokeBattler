@@ -37,6 +37,16 @@ Pokémon: every move with its typical damage and what it does, what each effect
 announcements (combos, surges, items, legendaries) now appear as a small pill under
 the HUD, so only Ready?, Go!, K.O. and the result take the middle of the screen.
 
+**Arcade** (main menu): six duels in a row against rivals drawn from the
+roster, Easy to Hard, on a different arena each stage. Stage six is a boss
+with 1.5x HP and its legendary half charged. Lose and you can Continue (retry
+the stage); your clear time, continues and best are kept on this device.
+
+**Vibration**: controllers rumble and phones vibrate on hits taken (harder
+for heavy hits and K.O.s), heavy hits landed, guard breaks, parries,
+Legend Ready, summons, arena surges and the result. Options → Accessibility →
+Vibration turns it off. (iPhone browsers don't allow web pages to vibrate.)
+
 Battle callouts are icons and sounds, not words: a fight is too fast to read.
 Each effect on a fighter shows as an icon over its head (flame for burn, drop
 for poison, bolt for paralysis, stars for daze, snowflake and ice for chill and

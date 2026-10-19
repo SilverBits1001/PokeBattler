@@ -42,6 +42,7 @@
       swapSp: 0,
       // Mid-fight callouts: 0 = icons and sounds, 1 = words as well.
       cueText: 0,
+      rumble: 1,
       dummyCount: 1,
       dummyMode: 0,
       // Free-for-All: how many fighters, you included (3 or 4).
@@ -74,6 +75,7 @@
       "colors",
       "swapSp",
       "cueText",
+      "rumble",
     ];
   function Vt() {
     try {
@@ -194,6 +196,12 @@
       key: "cueText",
       label: "Battle callouts",
       options: ["Icons", "Icons + words"],
+    },
+    {
+      kind: "choice",
+      key: "rumble",
+      label: "Vibration (controller / phone)",
+      options: ["Off", "On"],
     },
     { kind: "header", label: "Practice" },
     {
@@ -3314,6 +3322,15 @@
       scarf: "dash",
     },
     SURGE_CUE = ["sun", "burst", "flame", "snow", "bolt"],
+    // Arcade: six duels in a row, each rival tougher, the last a boss with
+    // more HP and its legendary half charged. Continues retry the stage.
+    ARC = {
+      stages: 6,
+      levels: [0, 0, 1, 1, 2, 2],
+      bossHp: 1.5,
+      bossMeter: 55,
+      key: "starter-brawl-arcade-v1",
+    },
     ARENA_TIPS = [
       "Spotlights recharge your specials",
       "Break cover for Ancient Power \u2014 mind the collapse",
@@ -17281,6 +17298,20 @@
       }),
         (a.textAlign = "start");
     }
+    // The arcade boss: a red aura that pulses under its feet.
+    for (let h of e.players) {
+      if (!h.boss || h.state === "faint") continue;
+      let c = o(h.px, h.x),
+        y = o(h.py, h.y),
+        b = 0.5 + 0.5 * Math.sin(e.tick * 0.12);
+      (a.globalAlpha = 0.35 + 0.35 * b),
+        (a.strokeStyle = "#ff3b4f"),
+        (a.lineWidth = 2),
+        a.beginPath(),
+        a.ellipse(c, y, 17 + b * 3, 7 + b, 0, 0, Math.PI * 2),
+        a.stroke(),
+        (a.globalAlpha = 1);
+    }
     // Status strip: one icon per effect on each fighter, over its head, so
     // a burn, a stun or a buff reads at a glance. Blinks as it runs out.
     for (let h of [...e.players, ...e.dummies]) {
@@ -20894,6 +20925,34 @@
     let n = parseInt(String(h).replace("#", "").slice(0, 6), 16) || 0;
     return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
   }
+  // Rumble on a gamepad, vibration on a phone: the big moments are felt as
+  // well as seen and heard. Patterns are [on, off, on...] in milliseconds.
+  function buzz(strong, weak, ms, pattern) {
+    if (!A.rumble) return;
+    try {
+      if (wt === "pad") {
+        // A new effect cancels the running one, so pulses are timed apart.
+        let at = 0;
+        for (let [i, v] of (pattern ?? [ms]).entries())
+          i % 2 === 0 &&
+            setTimeout(
+              () =>
+                oa()
+                  ?.vibrationActuator?.playEffect?.("dual-rumble", {
+                    duration: v,
+                    strongMagnitude: strong,
+                    weakMagnitude: weak,
+                  })
+                  ?.catch?.(() => {}),
+              at,
+            ),
+            (at += v);
+      } else
+        wt === "touch" &&
+          navigator.vibrate &&
+          navigator.vibrate(pattern ?? Math.round(ms * (0.4 + strong * 0.6)));
+    } catch {}
+  }
   // A short sound for each status cue, so you hear a burn, a freeze or a
   // stun land without looking. Throttled: a volley plays one.
   var cueHeard = {};
@@ -20974,6 +21033,26 @@
         X(0.1, "bandpass", 2400, 1.4, 0.08, 5e3);
         break;
     }
+  }
+  // Arcade results: what the buttons offer after each fight.
+  function arcOpts(ui, match) {
+    let a = ui.arcade;
+    return match.result !== "win"
+      ? ["Continue", "Quit"]
+      : a.stage >= ARC.stages - 1
+        ? ["Play again", "Quit"]
+        : ["Next fight", "Quit"];
+  }
+  function arcRecord() {
+    try {
+      return JSON.parse(localStorage.getItem(ARC.key)) ?? {};
+    } catch {
+      return {};
+    }
+  }
+  function arcClock(t) {
+    let s = Math.floor(t / 60);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   }
   // One battle-cue icon, centred on (x, y) with radius r in the context's
   // own pixels. Dark outline first so each reads on any arena floor.
@@ -23274,6 +23353,115 @@
     }
     return i && s.push(i), s;
   }
+  // Arcade ladder: the six rivals in a row, the next one up close.
+  function arcLadder(a, e, t) {
+    let q = a.arcade,
+      riv = q.rivals ?? [],
+      st = q.stage,
+      boss = st === ARC.stages - 1,
+      R = riv[st],
+      ar = (q.arena0 + st) % ARENAS.length;
+    V(
+      boss ? "FINAL STAGE" : `STAGE ${st + 1}`,
+      H / 2,
+      30,
+      18,
+      boss ? g.cpu : g.gold,
+      {
+        align: "center",
+        skew: !0,
+        outline: 2.6,
+      },
+    ),
+      G(`ARCADE · ${ARENAS[ar]?.name ?? "Stadium"}`, H / 2, 41, 6.4, g.haze, {
+        align: "center",
+        weight: 700,
+      });
+    // The ladder.
+    for (let o = 0; o < ARC.stages; o++) {
+      let l = 51 + o * 66,
+        f = 52,
+        u = o === st,
+        h = o < st,
+        c = riv[o],
+        y = o === ARC.stages - 1;
+      te(
+        l - 1.5,
+        f - 1.5,
+        57,
+        51,
+        u ? (y ? g.cpu : g.gold) : "rgba(255,255,255,0.08)",
+        5,
+      ),
+        y && o > st
+          ? (te(l, f, 54, 48, "#1a1024", 5),
+            V("?", l + 27, f + 34, 26, "rgba(255,74,99,0.55)", {
+              align: "center",
+            }))
+          : c &&
+            Oe(e[c], h ? "Pain" : u ? "Determined" : "Normal", l, f, 48, {
+              bg: xe[c].color,
+              frame: !1,
+              grey: h,
+            }),
+        h && cueGlyph(d, "x", m(l + 44), m(f + 40), m(6), "#ff4f4f"),
+        y && cueGlyph(d, "star", m(l + 47), m(f + 6), m(5), g.gold),
+        G(y ? "BOSS" : `${o + 1}`, l + 27, f + 58, 5.6, u ? g.chalk : g.dim, {
+          align: "center",
+          weight: 700,
+        }),
+        o < ARC.stages - 1 &&
+          ((d.fillStyle = h ? g.gold : "rgba(255,255,255,0.2)"),
+          d.fillRect(m(l + 56), m(f + 23), m(8), m(2)));
+    }
+    // You against the next rival.
+    let P = Math.sin(t * 0.1) * 1.5,
+      C = a.picks[0];
+    C &&
+      (Oe(e[C], "Determined", 60, 128 + P, 54, {
+        bg: xe[C].color,
+        frame: !1,
+        slash: !0,
+      }),
+      V(xe[C].name, 122, 150, 10, g.chalk),
+      G("YOU", 122, 160, 6, g.p1, { weight: 700 })),
+      V("VS", H / 2, 166, 22, "rgba(255,255,255,0.4)", {
+        align: "center",
+        skew: !0,
+      }),
+      R &&
+        (Oe(e[R], boss ? "Angry" : "Determined", H - 114, 128 - P, 54, {
+          bg: xe[R].color,
+          frame: !1,
+          slash: !0,
+        }),
+        V(xe[R].name, H - 122, 150, 10, g.chalk, { align: "right" }),
+        G(
+          boss
+            ? "BOSS · 1.5x HP · legendary half charged"
+            : (["EASY", "EASY", "NORMAL", "NORMAL", "HARD"][st] ?? "HARD"),
+          H - 122,
+          160,
+          6,
+          boss ? g.cpu : g.haze,
+          { align: "right", weight: 700 },
+        ));
+    let M = arcRecord();
+    G(
+      `Time ${arcClock(q.time)}   Continues ${q.continues}` +
+        (M.bestTime ? `   Best clear ${arcClock(M.bestTime)}` : ""),
+      H / 2,
+      190,
+      6,
+      g.haze,
+      { align: "center", weight: 600 },
+    ),
+      G(ARENA_TIPS[ar] ?? "", H / 2, 201, 6, g.gold, {
+        align: "center",
+        weight: 700,
+        italic: !0,
+      });
+  }
   function readyScreen(a, e) {
     let t = a.readyT ?? 0,
       s = Ee(Math.min(1, t / 10)),
@@ -23350,7 +23538,8 @@
         g.dim,
         { align: "center", italic: !0 },
       );
-    } else {
+    } else if (a.arcade) arcLadder(a, e, t);
+    else {
       // A summary of who fights whom, where.
       V(
         A.gameMode === 5 ? "READY TO GO ONLINE" : "READY?",
@@ -23414,14 +23603,23 @@
       d.scale(l, l),
       d.translate(-m(r), -m(o)),
       te(r - 50, o - 10, 100, 19, g.gold, 6),
-      V(A.gameMode === 5 ? "GO ONLINE" : "START", r, o + 5, 11, g.night, {
-        align: "center",
-      }),
+      V(
+        A.gameMode === 5 ? "GO ONLINE" : a.arcade ? "FIGHT" : "START",
+        r,
+        o + 5,
+        11,
+        g.night,
+        {
+          align: "center",
+        },
+      ),
       d.restore(),
       Pe("A", r + 58, o, 3.6),
       tapRect(r - 120, o - 9, 50, 18, () => Ue.add("back")),
       Pe("B", r - 104, o, 3.6),
-      G("Back", r - 98, o + 2.2, 6, g.chalk, { weight: 600 }),
+      G(a.arcade?.stage ? "Quit" : "Back", r - 98, o + 2.2, 6, g.chalk, {
+        weight: 600,
+      }),
       (d.globalAlpha = 1);
   }
   // Free-for-All rivals on team select: one small card each.
@@ -24368,7 +24566,9 @@
         d.restore();
     }),
       G(
-        `Series ${r.wins}\u2013${r.losses}`,
+        e.arcade
+          ? `Arcade \xB7 stage ${e.arcade.stage + 1} of ${ARC.stages}`
+          : `Series ${r.wins}\u2013${r.losses}`,
         $ + U - 22,
         w + re - 7,
         6.4,
@@ -24376,11 +24576,39 @@
         { align: "right", italic: !0 },
       ),
       d.restore();
+    // Arcade cleared: the run's time, continues and best.
+    if (e.arcade?.final && o) {
+      let q = e.arcade,
+        k = Ee(Math.min(1, (s - 30) / 14));
+      k > 0 &&
+        (d.save(),
+        (d.globalAlpha = k),
+        te(24, 86, 200, 40, "rgba(11,9,24,0.82)", 6),
+        (d.fillStyle = g.gold),
+        d.fillRect(m(28), m(86), m(192), m(1.4)),
+        cueGlyph(d, "star", m(42), m(103), m(9), g.gold),
+        V("ARCADE CLEAR!", 56, 107, 14, g.gold, { skew: !0, outline: 2.2 }),
+        G(
+          `Time ${arcClock(q.final.time)}   Continues ${q.continues}` +
+            (q.final.best ? "   NEW BEST!" : ""),
+          56,
+          119,
+          6.4,
+          q.final.best ? g.gold : g.chalk,
+          { weight: 700 },
+        ),
+        d.restore());
+    }
     let Le = Ee((s - 40) / 12);
     Le <= 0 ||
       (d.save(),
       (d.globalAlpha = Le),
-      (NET.m ? ["Rematch", "New team", "Leave"] : qa).forEach((q, le) => {
+      (NET.m
+        ? ["Rematch", "New team", "Leave"]
+        : e.arcade
+          ? arcOpts(e, r)
+          : qa
+      ).forEach((q, le) => {
         let ve = 214 + le * 80 - (1 - Le) * 20,
           Ce = 228,
           de = le === e.resultIndex;
@@ -26948,6 +27176,7 @@
     // else in A can change the simulation, so the host's values are used.
     NET_LOCAL = [
       "cueText",
+      "rumble",
       "volume",
       "music",
       "theme",
@@ -28670,6 +28899,13 @@
       color: "#ff8a3d",
     },
     {
+      id: "arcade",
+      label: "Arcade",
+      desc: "Six fights in a row against tougher rivals, then a boss. Clear it as fast as you can.",
+      mon: "garchomp",
+      color: "#ff4f6d",
+    },
+    {
       id: "online",
       label: "Online",
       desc: "Battle a friend with a code, or anyone online right now.",
@@ -28717,6 +28953,14 @@
     };
     if (a === "battle")
       r(-0.7, 0.2, -0.1, -0.7), r(-0.3, 0.6, 0.3, -0.3), r(0.1, 0.8, 0.7, -0.1);
+    else if (a === "arcade")
+      // A trophy.
+      r(-0.5, -0.6, 0.5, -0.6),
+        r(-0.5, -0.6, -0.3, 0),
+        r(0.5, -0.6, 0.3, 0),
+        r(-0.3, 0, 0.3, 0),
+        r(0, 0, 0, 0.45),
+        r(-0.35, 0.65, 0.35, 0.65);
     else if (a === "online") {
       for (let o = 1; o <= 2; o++)
         d.beginPath(),
@@ -29409,14 +29653,23 @@
         (s.menuOpts = !0), (s.inContent = !0), S.select();
         return;
       }
-      (A.gameMode =
-        R === "battle"
-          ? 0
-          : R === "online"
-            ? 5
-            : R === "training"
-              ? 1
-              : PARTY[s.partyIndex ?? 0][0]),
+      (s.arcade =
+        R === "arcade"
+          ? {
+              stage: 0,
+              continues: 0,
+              time: 0,
+              arena0: Math.floor(Math.random() * ARENAS.length),
+            }
+          : null),
+        (A.gameMode =
+          R === "battle" || R === "arcade"
+            ? 0
+            : R === "online"
+              ? 5
+              : R === "training"
+                ? 1
+                : PARTY[s.partyIndex ?? 0][0]),
         Ze(),
         x(!1);
     }
@@ -29885,17 +30138,29 @@
     function E() {
       if (A.gameMode === 5) return netToLobby();
       let n = A.gameMode !== 1;
+      s.arcade &&
+        ((s.cpuPicks = [arcRival()]),
+        (s.cpuLegends = [
+          s.arcade.legends[s.arcade.stage],
+          lgRoll(),
+          lgRoll(),
+        ]));
       (e.match.youLegend = lgResolve(A.legendPick)),
         (e.match.cpuLegends = s.cpuLegends ?? [lgRoll(), lgRoll(), lgRoll()]);
       // Free-for-All rivals were rolled on team select: the first is the
       // CPU, the rest come in as the extra fighters.
       A.gameMode === 2 &&
         (e.match.extraPreset = s.cpuPicks.slice(1).map((R) => [R]));
+      let Ar = A.arena;
+      s.arcade &&
+        (A.arena = (s.arcade.arena0 + s.arcade.stage) % ARENAS.length);
       e.startMatch(
         A.gameMode === 6 ? "vs" : (MODES[A.gameMode] ?? "vs"),
         s.picks,
         n ? (A.gameMode === 2 ? s.cpuPicks.slice(0, 1) : s.cpuPicks) : [],
       ),
+        (A.arena = Ar),
+        s.arcade && arcSetup(),
         (s.screen = "play"),
         (l.hidden = !0),
         (s.flash = 10),
@@ -29910,6 +30175,53 @@
     }
     function Q() {
       return freshPicks(cpuNeed(), s.picks);
+    }
+    // Arcade: the ladder's rivals are drawn once per run, never your pick.
+    function arcRival() {
+      let a = s.arcade;
+      (!a.rivals || a.forPick !== s.picks[0]) &&
+        ((a.rivals = freshPicks(ARC.stages, s.picks)),
+        (a.legends = a.rivals.map(() => lgRoll())),
+        (a.forPick = s.picks[0]));
+      return a.rivals[a.stage];
+    }
+    function arcSetup() {
+      let a = s.arcade,
+        c = e.cpu;
+      if (!c) return;
+      c.brain && (c.brain.level = ARC.levels[a.stage]);
+      if (a.stage === ARC.stages - 1) {
+        let o = c.slot;
+        (c.boss = !0),
+          (o.maxHp = Math.round(o.maxHp * ARC.bossHp)),
+          (o.hp = o.maxHp),
+          c.legend && (c.lgMeter = ARC.bossMeter);
+      }
+    }
+    function arcPick(n) {
+      let a = s.arcade;
+      (a.time += e.match.ticks ?? 0),
+        n === "Quit"
+          ? ((s.arcade = null), toMenu())
+          : n === "Continue"
+            ? (a.continues++, E())
+            : (n === "Play again"
+                ? ((a.stage = 0),
+                  (a.continues = 0),
+                  (a.time = 0),
+                  (a.rivals = null),
+                  (a.saved = !1))
+                : a.stage++,
+              (s.screen = "select"),
+              (s.paused = !1),
+              (s.flash = 6),
+              (s.lgPhase = !1),
+              (s.readyPhase = !0),
+              (s.readyT = 0),
+              (s.cpuPicks = [arcRival()]),
+              (k = !0),
+              le(),
+              Me.play("title"));
     }
     touchInit(() => s),
       p && ((l.hidden = !0), (s.screen = "menu")),
@@ -29956,6 +30268,7 @@
         (s.cursor = rosterNav(s.cursor, W)), S.ui(!0);
       }),
         n.pressed.has("special1") &&
+          !s.arcade &&
           (A.gameMode === 5 && !A.onlineTag
             ? (A.onlineTag = 1)
             : ((A.onlineTag = 0),
@@ -29970,6 +30283,7 @@
           S.ui(!0),
           s.picks.length === teamSize() && cpuSide() && (s.roulette = 48)),
         n.pressed.has("special2") &&
+          !s.arcade &&
           (D
             ? ((A.cpuLevel = (A.cpuLevel + 1) % 3), Ze(), S.ui(!0))
             : A.gameMode === 5 &&
@@ -29978,6 +30292,7 @@
               (s.picks = s.picks.slice(0, teamSize())),
               S.ui(!0))),
         n.pressed.has("select") &&
+          !s.arcade &&
           ((A.arena = (A.arena + 1) % ARENAS.length), Ze(), S.ui(!0)),
         // Free-for-All: three or four fighters.
         n.pressed.has("guard") &&
@@ -30083,7 +30398,11 @@
         (s.readyPhase = !1), E();
         return;
       }
-      n.pressed.has("back") && ((s.readyPhase = !1), lgOpen(), S.back());
+      n.pressed.has("back") &&
+        (s.arcade?.stage
+          ? ((s.arcade = null), toMenu())
+          : ((s.readyPhase = !1), lgOpen()),
+        S.back());
     }
     function re() {
       s.roulette <= 0 ||
@@ -30092,7 +30411,7 @@
           ((s.rouletteShow = freshPicks(cpuNeed(), s.picks)),
           S.ui(s.roulette % 8 === 0)),
         s.roulette === 0 &&
-          ((s.cpuPicks = Q()),
+          ((s.cpuPicks = s.arcade ? [arcRival()] : Q()),
           (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]),
           (s.roulette = -1),
           S.select(),
@@ -30263,22 +30582,26 @@
             : pe());
     }
     function Yt(n) {
+      let O = s.arcade ? arcOpts(s, e.match) : null,
+        N = O ? O.length : 3;
       s.resultsT < 50 ||
         (w(n, (D) => {
           let R = D === "up" || D === "left";
-          (s.resultIndex = (s.resultIndex + (R ? 2 : 1)) % 3), S.ui(R);
+          (s.resultIndex = (s.resultIndex + (R ? N - 1 : 1)) % N), S.ui(R);
         }),
         (n.pressed.has("confirm") || n.pressed.has("start")) &&
           (S.select(),
-          s.resultIndex === 0
-            ? (e.rematch(),
-              (s.cards = []),
-              (s.trail = {}),
-              (s.hintT = 0),
-              Me.play(battleSong()))
-            : s.resultIndex === 1
-              ? x(!0)
-              : v()));
+          O
+            ? arcPick(O[s.resultIndex % N])
+            : s.resultIndex === 0
+              ? (e.rematch(),
+                (s.cards = []),
+                (s.trail = {}),
+                (s.hintT = 0),
+                Me.play(battleSong()))
+              : s.resultIndex === 1
+                ? x(!0)
+                : v()));
     }
     let Le = new Map();
     function q(n, D, R) {
@@ -30305,6 +30628,15 @@
                   : n.color === L.leaf || n.color === "#9be36b"
                     ? "grass"
                     : "none";
+          // Feel it: hits you take buzz harder than hits you land.
+          R
+            ? n.ko
+              ? buzz(1, 1, 280)
+              : n.heavy
+                ? buzz(0.7, 0.9, 130)
+                : !n.multi && buzz(0.25, 0.55, 55)
+            : n.attacker === e.player &&
+              (n.ko ? buzz(0.8, 1, 220) : n.heavy && buzz(0.15, 0.45, 45));
           if (n.multi && !n.heavy)
             t.hitSpark(n.x, n.y - T, n.dx, n.dy, !1, n.color),
               t.shake(n.dx, n.dy, 0.9),
@@ -30658,6 +30990,7 @@
           }
           break;
         case "closeCall":
+          n.who === e.player && buzz(0.1, 0.5, 70);
           if (n.who !== e.player) {
             S.dodge(), t.popup(n.x, n.y - 36, "DODGED", L.cool, !1);
             break;
@@ -30730,6 +31063,7 @@
             t.shake(n.p.vx, n.p.vy, 3);
           break;
         case "parry":
+          (n.who === e.player || n.attacker === e.player) && buzz(0.3, 0.7, 70);
           S.reflect(),
             S.armor(),
             t.hitSpark(
@@ -30878,6 +31212,7 @@
             (t.heal(n.x, n.y, 2), e.tick % 20 === 0 && n.who === D && S.heal());
           break;
         case "faint":
+          n.who === D && buzz(1, 1, 0, [180, 90, 320]);
           n.who === D &&
             (t.banner(
               `${n.kit.name} FAINTED`,
@@ -30907,6 +31242,30 @@
           }
           break;
         case "roundEnd":
+          if (
+            s.arcade &&
+            n.result === "win" &&
+            s.arcade.stage === ARC.stages - 1 &&
+            !s.arcade.saved
+          ) {
+            let a = s.arcade,
+              T = a.time + (e.match.ticks ?? 0),
+              Z = arcRecord();
+            (a.saved = !0),
+              (a.final = {
+                time: T,
+                best: !Z.bestTime || T < Z.bestTime,
+              }),
+              (Z.clears = (Z.clears ?? 0) + 1),
+              (Z.bestTime = Math.min(Z.bestTime ?? 1 / 0, T)),
+              (Z.bestCont = Math.min(Z.bestCont ?? 1 / 0, a.continues));
+            try {
+              localStorage.setItem(ARC.key, JSON.stringify(Z));
+            } catch {}
+          }
+          n.result === "win"
+            ? buzz(0.4, 0.8, 0, [70, 60, 70, 60, 160])
+            : buzz(0.9, 0.6, 450);
           le(),
             Me.play(n.result === "win" ? "victory" : "defeat"),
             n.result === "win"
@@ -30950,6 +31309,7 @@
           );
           break;
         case "eliminated":
+          n.who === e.player && buzz(1, 1, 0, [180, 90, 320]);
           t.banner(
             n.who === e.player ? "OUT!" : "ELIMINATED",
             n.who.team === e.player.team ? "#ef5a4f" : L.gold,
@@ -31094,6 +31454,7 @@
           S.charge();
           break;
         case "surgeWarn":
+          buzz(0.35, 0.2, 0, [90, 120, 90, 120, 90]);
           S.siren(),
             t.banner(
               SURGE.names[n.k],
@@ -31763,6 +32124,7 @@
             (t.impact = 4);
           break;
         case "sturdy":
+          n.who === e.player && buzz(0.9, 0.9, 200);
           S.guardBreak(),
             S.callout(2),
             t.banner(
@@ -31848,6 +32210,7 @@
           break;
         // ---- Legendaries ----
         case "summon":
+          buzz(1, 1, 0, n.who === e.player ? [120, 60, 400] : [300]);
           (t.cutin = {
             kind: n.kind,
             form: n.form,
@@ -32024,6 +32387,7 @@
           S.dodge(), t.shake(0, 1, 2);
           break;
         case "legendReady":
+          n.who === e.player && buzz(0.3, 0.8, 0, [50, 70, 50, 70, 120]);
           n.who === e.player &&
             (S.legendReady(),
             t.popup(n.who.x, n.who.y - 46, "LEGEND READY", "#ffd84a", !0));
@@ -32228,6 +32592,7 @@
               t.popup(n.who.x, n.who.y - 38, "SHIELD CRUSH", "#ffb37a", !1);
           break;
         case "perfectGuard":
+          n.who === e.player && buzz(0.3, 0.7, 70);
           S.parry(),
             (t.impact = 3),
             (t.screenFlash = 2),
@@ -32239,6 +32604,9 @@
             n.attacker && t.shake(n.attacker.x - n.x, n.attacker.y - n.y, 5);
           break;
         case "guardBreak":
+          n.who === e.player
+            ? buzz(1, 0.8, 260)
+            : e.players.length <= 2 && buzz(0.3, 0.6, 80);
           S.guardBreak(),
             (t.impact = 3),
             t.shake(0, 1, 7),
@@ -32480,6 +32848,12 @@
           break;
         }
         case "readyGo":
+          e.cpu?.boss &&
+            ((t.vignette = 1),
+            (t.vignetteColor = "255,59,79"),
+            t.shake(0, 1, 4),
+            S.siren(),
+            buzz(0.9, 0.6, 0, [200, 100, 200]));
           // The arena's rule is on the ready screen; mid-fight it is only
           // spelled out when callouts include words.
           A.cueText &&

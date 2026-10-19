@@ -1895,3 +1895,37 @@ Checks: an online rollback duel (Froslass vs Gardevoir, Rayquaza and Ho-Oh;
 120 ms, 50 ms jitter, 8% loss) stayed identical over 2,420 compared ticks
 with rematch and leave working; the keyboard playtest for all 16 Pokémon and
 four-fighter Free-for-All and Zone Control runs had no errors.
+
+## Arcade ladder and vibration
+
+### Arcade
+
+A run is six duels. The rivals are drawn once per run from the roster
+(never your own pick, no repeats), the CPU level climbs Easy, Easy, Normal,
+Normal, Hard, Hard, and the arena changes every stage from a random start.
+The last stage is a boss: 1.5x HP, its legendary meter starts at 55%, a red
+aura pulses under it, and the fight opens with a siren, a red edge flash and
+a rumble. Between fights a ladder screen shows the six rivals (beaten ones
+greyed with an X, the boss a "?" until you reach it), you against the next
+one, its difficulty, the arena's rule, the run time and continues. Losing
+offers Continue, which retries the same stage at once; Quit returns to the
+menu. Clearing shows ARCADE CLEAR with the time and continues, and keeps
+clears, best time and fewest continues on the device. The run sets the CPU
+level and arena per fight without changing your own Options.
+
+### Vibration
+
+`buzz()` rumbles the controller (dual-rumble, pulses timed apart because a
+new effect cancels the running one) or vibrates the phone, depending on what
+was last used. Patterns: a light tap for hits taken, stronger for heavy hits,
+a long one for being K.O.'d, a lighter one for heavy hits and K.O.s you land,
+plus guard breaks, parries and perfect guards, Close Call, Sturdy, Legend
+Ready (three pulses), summons, arena surge warnings, faints and the round
+result. Options → Accessibility → Vibration turns it off; it is never sent
+online.
+
+Checks: a full arcade run (with a loss and a Continue) reached the clear,
+saved the record and restored the player's Options; fake controller and
+phone recorded rumbles during a Hard CPU fight and none once Vibration was
+off; an online duel (Lucario vs Blastoise) stayed identical over 3,199
+ticks; the keyboard playtest for all 16 Pokémon had no errors.
