@@ -31,6 +31,7 @@
       deadzone: 0.2,
       gameMode: 0,
       onlineTag: 0,
+      legends: 1,
       cpuLevel: 2,
       arena: 1,
       items: 1,
@@ -130,6 +131,12 @@
         "Online",
         "Tag Team",
       ],
+    },
+    {
+      kind: "choice",
+      key: "legends",
+      label: "Legendaries",
+      options: ["Off", "On"],
     },
     {
       kind: "choice",
@@ -1354,6 +1361,32 @@
           y = Math.hypot(h, c),
           b = Math.atan2(c, h),
           p = t.state === "move" || t.state === "switchIn";
+        // Legendary: aim at where the target is heading, then let go.
+        if (t.state === "summon") {
+          let N = e.summons.find((J) => J.owner === t && J.phase === "aim");
+          if (N) {
+            let J = o.x + (o.mvx ?? 0) * 10 - N.ax,
+              ae0 = o.y + (o.mvy ?? 0) * 10 - N.ay,
+              Z = Math.hypot(J, ae0);
+            return (
+              Z > 8 && ((i.mx = J / Z), (i.my = ae0 / Z)),
+              (Z > 14 && N.t < 30 + s.punish * 12) || r() < 0.08
+                ? i.held.add("legend")
+                : 0,
+              i
+            );
+          }
+        }
+        if (
+          p &&
+          t.legend &&
+          t.lgMeter >= 100 &&
+          y < 230 &&
+          o.kind === "player" &&
+          !o.invincible &&
+          r() < 0.04 + 0.05 * s.punish
+        )
+          return i.pressed.add("legend"), i.held.add("legend"), i;
         if (
           (this.holdX > 0 &&
             (f === "charizard" && u.heat > 72
@@ -2217,6 +2250,28 @@
       hitstun: 5,
       dmg: 6,
     },
+    // Legendaries: a meter filled by damage dealt and taken. When it is full
+    // the player calls their legendary for one big move they aim themselves.
+    LEGEND = {
+      dealt: 0.13,
+      taken: 0.09,
+      aimT: 54,
+      minAim: 8,
+      aimSpeed: 4.2,
+    },
+    // Zekrom's Bolt Strike: a warned line through the aim point, then a
+    // lightning-charged dive along it that paralyses.
+    ZEKROM = {
+      warn: 26,
+      strike: 14,
+      leave: 28,
+      dmg: 170,
+      kb: 9,
+      r: 22,
+      hitstun: 26,
+      para: 120,
+      back: 46,
+    },
     // Blastoise artillery. Mega Launcher: shots fired from its own puddle hit harder
     // and fly further. Withdraw is now guard pressed while standing in a puddle.
     // Venusaur Solar Beam: charge, keep it stored by dodging or guarding, fire later.
@@ -2471,6 +2526,8 @@
         this.pulseShots = 0;
         this.mega = !1;
         this.brain = null;
+        this.legend = null;
+        this.lgMeter = 0;
         (this.slots = r.map((o) => {
           let l = xe[o];
           return {
@@ -2520,6 +2577,7 @@
           : (this.state === "flyUp" && this.t >= 3 && this.t < FLY.safe) ||
               (this.state === "flySlam" && this.t < 5) ||
               this.state === "faint" ||
+              this.state === "summon" ||
               this.state === "phantom" ||
               this.state === "counter" ||
               (this.state === "pfStrike" && this.t < 3) ||
@@ -2723,6 +2781,7 @@
         this.heatVents = [];
         this.icicles = [];
         this.drops = [];
+        this.summons = [];
         this.surge = null;
         this.surgeT = SURGE.first;
         this.arc = null;
@@ -2843,6 +2902,7 @@
           (this.arc = null),
           (this.arcT = PLANT.cycle / 2),
           (this.drops = []),
+          (this.summons = []),
           (this.surge = null),
           (this.surgeT = SURGE.first),
           (this.arcPair = 0),
@@ -2894,6 +2954,14 @@
         } else (this.dummies = []), this.syncDummies();
         (this.zone = null), (this.zscore = [0, 0]);
         e === "zone" && this.placeZone(!0);
+        // Everyone brings a legendary when they are on; Training starts full.
+        for (let o of this.players)
+          (o.legend = A.legends
+            ? ((o === this.players[0]
+                ? this.match.youLegend
+                : this.match.cpuLegends?.[o.cpuIndex ?? 0]) ?? "zekrom")
+            : null),
+            (o.lgMeter = e === "practice" ? 100 : 0);
         (this.intro = 70),
           this.emit({
             type: "roundStart",
@@ -3046,6 +3114,7 @@
         this.assists = this.assists.filter((i) => !i.done);
         for (let i of this.dummies) this.updateDummy(i);
         this.updateProjectiles(),
+          this.updateSummons(),
           this.updateDreepy(),
           this.updateGround(),
           this.updateArena(),
@@ -3109,9 +3178,14 @@
           "assist",
           "guard",
           "smash",
+          "legend",
         ];
         for (let v of r)
           v !== "smash" && t.pressed.has(v) && (e.buf[v] = A.bufferTicks + 1);
+        // With no partner to call, the assist button calls the legendary.
+        e.slots.length === 1 &&
+          t.pressed.has("assist") &&
+          (e.buf.legend = A.bufferTicks + 1);
         let o = Math.hypot(t.ax, t.ay);
         e.rsHeld = o > 0.6;
         let l = t.held.has("lock") && this.targetsFor(e.team).length > 1;
@@ -3238,6 +3312,30 @@
             "smashCharge",
             "smash",
           ].includes(e.state);
+        if (
+          f("legend") &&
+          h &&
+          e.legend &&
+          e.lgMeter >= 100 &&
+          !this.summons.some((v) => v.owner === e) &&
+          ![
+            "hurt",
+            "stunned",
+            "launched",
+            "down",
+            "getup",
+            "switchIn",
+            "overheat",
+            "summon",
+          ].includes(e.state)
+        ) {
+          u("legend"), this.callLegend(e, P);
+          return;
+        }
+        if (e.state === "summon") {
+          this.tickSummonAim(e, t);
+          return;
+        }
         if (f("switch") && C) {
           u("switch"), this.doSwitch(e, e.aliveSlot(1), !1);
           return;
@@ -3673,6 +3771,143 @@
             (e.moveId = this.nextId++),
             this.emit({ type: "qa", who: e }));
         }
+      }
+      // ---- Legendaries ----
+      callLegend(e, t) {
+        let s = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+          i = s ? s.x : e.x + Math.cos(t) * 110,
+          r = s ? s.y : e.y + Math.sin(t) * 110;
+        (e.lgMeter = 0),
+          (e.state = "summon"),
+          (e.t = 0),
+          (e.mvx = e.mvy = 0),
+          this.summons.push({
+            id: this.nextId++,
+            kind: e.legend,
+            owner: e,
+            team: e.team,
+            phase: "aim",
+            t: 0,
+            ax: me(i, B.x0 + 10, B.x1 - 10),
+            ay: me(r, B.y0 + 10, B.y1 - 10),
+            px: e.x,
+            py: e.y - 30,
+            alpha: 0,
+          }),
+          this.emit({ type: "summon", who: e, kind: e.legend });
+      }
+      // Rooted and untouchable while aiming; the stick moves the target.
+      // Releasing the button (or running out of time) fires.
+      tickSummonAim(e, t) {
+        let s = this.summons.find((r) => r.owner === e && r.phase === "aim");
+        if ((this.locomote(e, 0, 0), (e.animName = "Charge"), !s)) {
+          (e.state = "move"), (e.t = 0);
+          return;
+        }
+        s.t++,
+          (s.ax = me(s.ax + t.mx * LEGEND.aimSpeed, B.x0 + 10, B.x1 - 10)),
+          (s.ay = me(s.ay + t.my * LEGEND.aimSpeed, B.y0 + 10, B.y1 - 10)),
+          (s.alpha = Math.min(1, s.t / 10)),
+          (e.facing = Math.atan2(s.ay - e.y, s.ax - e.x));
+        let i =
+          t.held.has("legend") ||
+          (e.slots.length === 1 && t.held.has("assist"));
+        ((s.t >= LEGEND.minAim && !i) || s.t >= LEGEND.aimT) &&
+          (this.fireLegend(s), (e.state = "move"), (e.t = 0));
+      }
+      fireLegend(e) {
+        let t = e.owner;
+        if (e.kind === "zekrom") {
+          let o = zekLine(t, e.ax, e.ay);
+          Object.assign(e, o, { phase: "warn", t: 0, px: o.sx, py: o.sy }),
+            this.emit({
+              type: "boltWarn",
+              who: t,
+              x1: o.sx,
+              y1: o.sy,
+              x2: o.ex,
+              y2: o.ey,
+            });
+        }
+      }
+      updateSummons() {
+        if (this.match.phase !== "fight") {
+          for (let e of this.summons)
+            e.owner.state === "summon" && (e.owner.state = "move");
+          this.summons = [];
+          return;
+        }
+        for (let e of this.summons) {
+          if (e.phase === "aim") continue;
+          e.t++;
+          if (e.kind === "zekrom")
+            if (e.phase === "warn")
+              e.t >= ZEKROM.warn &&
+                ((e.phase = "strike"),
+                (e.t = 0),
+                this.emit({
+                  type: "boltStrike",
+                  who: e.owner,
+                  x1: e.sx,
+                  y1: e.sy,
+                  x2: e.ex,
+                  y2: e.ey,
+                }));
+            else if (e.phase === "strike") {
+              let t = Math.min(1, e.t / ZEKROM.strike),
+                s = t * t;
+              (e.px = e.sx + (e.ex - e.sx) * s),
+                (e.py = e.sy + (e.ey - e.sy) * s),
+                this.hitboxes.push({
+                  id: e.id,
+                  team: e.team,
+                  owner: e.owner,
+                  shape: {
+                    kind: "capsule",
+                    x1: e.sx,
+                    y1: e.sy,
+                    x2: e.px,
+                    y2: e.py,
+                    r: ZEKROM.r,
+                  },
+                  dmg: ZEKROM.dmg,
+                  kb: ZEKROM.kb,
+                  kbMode: "dir",
+                  dx: e.dx,
+                  dy: e.dy,
+                  heavy: !0,
+                  hitstop: 8,
+                  hitstun: ZEKROM.hitstun,
+                  color: "#9be8ff",
+                  rehit: 0,
+                  attackerStop: !1,
+                  legend: !0,
+                  para: ZEKROM.para,
+                  src: "legend-zekrom",
+                }),
+                e.t >= ZEKROM.strike && ((e.phase = "leave"), (e.t = 0));
+            } else
+              (e.px += e.dx * 9),
+                (e.py += e.dy * 9 - 2),
+                (e.alpha = Math.max(0, 1 - e.t / ZEKROM.leave)),
+                e.t >= ZEKROM.leave && (e.done = !0);
+        }
+        for (let e of this.summons)
+          e.done && this.match.mode === "practice" && (e.owner.lgMeter = 100);
+        this.summons = this.summons.filter((e) => !e.done);
+      }
+      // Damage fills the meter: more for dealing it than for taking it.
+      gainMeter(e, t, s, i) {
+        if (!(s > 0) || String(i).includes("legend")) return;
+        let r = (o, l) => {
+          if (!o?.legend || o.lgMeter >= 100) return;
+          (o.lgMeter = Math.min(100, o.lgMeter + s * l)),
+            o.lgMeter >= 100 && this.emit({ type: "legendReady", who: o });
+        };
+        e.kind === "player" && r(e, LEGEND.taken);
+        let o =
+          t?.kind === "player" ? t : t?.kind === "assist" ? t.summoner : null;
+        o && o !== e && r(o, LEGEND.dealt);
       }
       callAssist(e, t) {
         let s = e.assistSlot(),
@@ -7947,6 +8182,7 @@
               t.t <= 8 &&
               e.owner.kind === "player" &&
               !e.push &&
+              !e.legend &&
               e.rehit === 0 &&
               Math.hypot(e.owner.x - t.x, e.owner.y - t.y) < 34
             ) {
@@ -8047,7 +8283,14 @@
                 !!e.pierceGuard,
                 e.smash ?? 0,
               ),
-              (e.poison && this.poison(t), e.burns && this.burn(t), 0),
+              (e.poison && this.poison(t),
+              e.burns && this.burn(t),
+              e.para &&
+                t.kind === "player" &&
+                t.state !== "guard" &&
+                ((t.paraT = Math.max(t.paraT ?? 0, e.para)),
+                this.emit({ type: "paralyzed", who: t })),
+              0),
               e.heat &&
                 e.owner.kind === "player" &&
                 e.owner.kit.id === "charizard")
@@ -8065,7 +8308,7 @@
                 ((r.melt = FROST.melt),
                 this.emit({ type: "melt", x: t, y: i }));
           }
-          if (e.owner && e.owner.kind !== "dummy")
+          if (e.owner && e.owner.kind !== "dummy" && !e.legend)
             for (let t of this.rocks)
               t.state === "solid" &&
                 this.shapeHits(e.shape, t.x, t.y, t.r) &&
@@ -8267,11 +8510,13 @@
           this.counter(e, t, s);
           return;
         }
-        let x = !1,
+        // A legendary's hit is neutral: no type match-up or caller bonuses.
+        let lg = String(k).includes("legend"),
+          x = !1,
           v = 0,
           E = !1,
           Q =
-            e.kind === "player"
+            e.kind === "player" && !lg
               ? Ua(this.attackerType(t), e.kit.type) *
                 (e.kit.type2 ? Ua(this.attackerType(t), e.kit.type2) : 1)
               : 1,
@@ -8286,12 +8531,13 @@
           K = Math.round(
             s *
               ae.dmg *
-              this.outgoingMult(t) *
+              (lg ? 1 : this.outgoingMult(t)) *
               Q *
               ie *
               (an ? MAGNE.analytic : 1) *
               (e.kind === "player" &&
               e.kit.thickFat &&
+              !lg &&
               this.attackerType(t) === "FIRE"
                 ? SNOR.thickFat
                 : 1),
@@ -8393,6 +8639,7 @@
               (U.sturdy = !0),
               this.emit({ type: "sturdy", who: w, x: w.x, y: w.y })),
             (w.stats.taken += se - U.hp),
+            this.gainMeter(w, t, se - U.hp, k),
             t && t.kind === "player")
           ) {
             let N = t;
@@ -8664,6 +8911,7 @@
       KeyI: ["special2"],
       KeyQ: ["switch"],
       KeyE: ["assist"],
+      KeyR: ["legend"],
       KeyO: ["guard"],
       KeyF: ["guard"],
       Backspace: ["back"],
@@ -8714,6 +8962,7 @@
       h && t.add("special2"),
       e(4) && t.add("switch"),
       e(6) && t.add("assist"),
+      e(10) && t.add("legend"),
       e(5) && t.add("lock"),
       (e(7) || (a.buttons[7]?.value ?? 0) > 0.35) && t.add("guard"),
       e(9) && t.add("start"),
@@ -10389,6 +10638,215 @@
       a.lineTo(r, o), a.stroke();
     }
   }
+  // The Smash-style cut-in when a legendary is called: a slanted band with
+  // its portrait, name and move, sliding in from the caller's side.
+  function lgCutin(a, e) {
+    let t = e.cutin,
+      s = LG_INFO[t.kind],
+      i = a.mons?.[t.kind];
+    if (!s || --t.life <= 0) {
+      e.cutin = null;
+      return;
+    }
+    let r = t.max - t.life,
+      o = Ee(Math.min(1, r / 9)),
+      l = t.life < 10 ? t.life / 10 : 1,
+      f = t.mine ? 1 : -1,
+      u = (1 - o) * -260 * f + r * 0.35 * f,
+      h = 70,
+      c = 48;
+    d.save(), (d.globalAlpha = l), d.translate(m(u), 0);
+    let y = d.createLinearGradient(0, 0, m(H), 0);
+    y.addColorStop(0, "rgba(6,8,20,0.92)"),
+      y.addColorStop(0.5, `rgba(${s.rgb},0.85)`),
+      y.addColorStop(1, "rgba(6,8,20,0.92)"),
+      te(-30, h, H + 60, c, y, 22),
+      (d.fillStyle = "#ffffff"),
+      d.fillRect(0, m(h - 1.5), m(H), m(1.5)),
+      d.fillRect(0, m(h + c), m(H), m(1.5));
+    let b = t.mine ? 70 : H - 70 - 64;
+    i &&
+      Oe(i, "Determined", b, h - 4, 56, {
+        flip: !t.mine,
+        bg: s.color,
+        frame: !1,
+        slash: !0,
+      });
+    let p = t.mine ? 150 : H - 150;
+    V(s.name, p, h + 28, 26, "#ffffff", {
+      align: t.mine ? "left" : "right",
+      skew: !0,
+      outline: 3,
+      outlineColor: "#0b1020",
+    }),
+      G(s.move, p + (t.mine ? 2 : -2), h + 41, 9, s.color, {
+        align: t.mine ? "left" : "right",
+        weight: 700,
+        italic: !0,
+        outline: 2.4,
+      }),
+      d.restore();
+  }
+  // ---- Legendary summons: drawing ----
+  var LG_INFO = {
+    zekrom: {
+      name: "ZEKROM",
+      move: "BOLT STRIKE",
+      color: "#62d0ff",
+      rgb: "98,208,255",
+    },
+  };
+  // Zekrom's path: from behind the caller, through the aim point, to the wall.
+  function zekLine(a, e, t) {
+    let s = e - a.x,
+      i = t - a.y,
+      r = Math.hypot(s, i) || 1;
+    (s /= r), (i /= r);
+    let o = me(a.x - s * ZEKROM.back, B.x0 + 4, B.x1 - 4),
+      l = me(a.y - i * ZEKROM.back, B.y0 + 4, B.y1 - 4),
+      f = 1e3;
+    return (
+      s > 0.01 && (f = Math.min(f, (B.x1 - e) / s)),
+      s < -0.01 && (f = Math.min(f, (B.x0 - e) / s)),
+      i > 0.01 && (f = Math.min(f, (B.y1 - t) / i)),
+      i < -0.01 && (f = Math.min(f, (B.y0 - t) / i)),
+      (f = Math.max(f, 0)),
+      { sx: o, sy: l, ex: e + s * f, ey: t + i * f, dx: s, dy: i }
+    );
+  }
+  function summonBand(a, e, t, s, i, r, o) {
+    (a.strokeStyle = o),
+      (a.lineWidth = r),
+      (a.lineCap = "round"),
+      a.beginPath(),
+      a.moveTo(e, t),
+      a.lineTo(s, i),
+      a.stroke(),
+      (a.lineCap = "butt");
+  }
+  // Under the fighters: the dimmed arena, the aim reticle and path, the
+  // warning band, the strike and its scorch.
+  function summonGround(a, e) {
+    let t = e.tick;
+    for (let s of e.summons) {
+      let i = LG_INFO[s.kind];
+      if (!i) continue;
+      if (s.phase === "aim") {
+        (a.fillStyle = `rgba(4,6,18,${0.4 * s.alpha})`),
+          a.fillRect(-20, -20, Y + 40, _ + 40);
+        let r = zekLine(s.owner, s.ax, s.ay);
+        a.save(),
+          (a.globalAlpha = 0.16 * s.alpha),
+          summonBand(a, r.sx, r.sy, r.ex, r.ey, ZEKROM.r * 2, i.color),
+          (a.globalAlpha = 0.85 * s.alpha),
+          a.setLineDash([6, 5]),
+          (a.lineDashOffset = -t * 0.8),
+          summonBand(a, r.sx, r.sy, r.ex, r.ey, 1.4, i.color),
+          a.setLineDash([]);
+        let o = 13 + Math.sin(t * 0.25) * 2;
+        (a.strokeStyle = "#ffffff"), (a.lineWidth = 1.4), a.beginPath();
+        a.arc(s.ax, s.ay, o, 0, Math.PI * 2), a.stroke();
+        for (let l = 0; l < 4; l++) {
+          let f = (l * Math.PI) / 2 + t * 0.04;
+          a.beginPath(),
+            a.moveTo(
+              s.ax + Math.cos(f) * (o + 3),
+              s.ay + Math.sin(f) * (o + 3),
+            ),
+            a.lineTo(
+              s.ax + Math.cos(f) * (o + 9),
+              s.ay + Math.sin(f) * (o + 9),
+            ),
+            a.stroke();
+        }
+        a.restore();
+      } else if (s.phase === "warn") {
+        let r = s.t / ZEKROM.warn,
+          o = 0.55 + 0.45 * Math.sin(t * (0.6 + r * 0.8));
+        a.save(),
+          (a.globalAlpha = 0.12 + 0.3 * r * o),
+          summonBand(a, s.sx, s.sy, s.ex, s.ey, ZEKROM.r * 2, "#ff5a3c"),
+          (a.globalAlpha = 0.5 + 0.4 * o),
+          summonBand(a, s.sx, s.sy, s.ex, s.ey, 1.6, "#ffe866");
+        let l = rt(t >> 1);
+        for (let f = 0; f < 8; f++) {
+          let u = l(),
+            h = s.sx + (s.ex - s.sx) * u + (l() - 0.5) * ZEKROM.r * 1.6,
+            c = s.sy + (s.ey - s.sy) * u + (l() - 0.5) * ZEKROM.r * 1.6;
+          (a.fillStyle = l() < 0.5 ? "#ffffff" : i.color),
+            a.fillRect(Math.round(h), Math.round(c), 2, 2);
+        }
+        a.restore();
+      } else if (s.phase === "strike") {
+        a.save(),
+          (a.globalCompositeOperation = "lighter"),
+          (a.globalAlpha = 0.45),
+          summonBand(a, s.sx, s.sy, s.px, s.py, ZEKROM.r * 2.2, i.color),
+          (a.globalAlpha = 1),
+          boltLine(a, s.sx, s.sy, s.px, s.py, t),
+          boltLine(a, s.sx, s.sy - 6, s.px, s.py - 6, t + 7),
+          a.restore();
+      } else {
+        a.save(),
+          (a.globalAlpha = 0.4 * s.alpha),
+          summonBand(a, s.sx, s.sy, s.ex, s.ey, ZEKROM.r * 1.3, "#1b2236"),
+          (a.globalAlpha = 0.5 * s.alpha),
+          t % 4 < 2 && boltLine(a, s.sx, s.sy, s.ex, s.ey, t),
+          a.restore();
+      }
+    }
+  }
+  // Above the fighters: the legendary itself.
+  function summonAir(a, e) {
+    let t = e.tick;
+    for (let s of e.summons) {
+      let i = e.mons?.[s.kind];
+      if (!i) continue;
+      let r,
+        o,
+        l,
+        f,
+        u = s.alpha ?? 1;
+      if (s.phase === "aim") {
+        let y = Math.atan2(s.ay - s.owner.y, s.ax - s.owner.x);
+        (r = s.owner.x - Math.cos(y) * 30),
+          (o = s.owner.y - 26 - Math.sin(t * 0.08) * 3),
+          (l = y),
+          (f = i.anims.Idle);
+      } else if (s.phase === "warn")
+        (r = s.sx),
+          (o = s.sy - 20 - (s.t / ZEKROM.warn) * 8),
+          (l = Math.atan2(s.dy, s.dx)),
+          (f = i.anims.Charge ?? i.anims.Idle);
+      else
+        (r = s.px),
+          (o = s.py - 18),
+          (l = Math.atan2(s.dy, s.dx)),
+          (f =
+            s.phase === "strike"
+              ? (i.anims.Attack ?? i.anims.Idle)
+              : i.anims.Walk);
+      a.save(),
+        (a.globalAlpha = 0.35 * u),
+        (a.fillStyle = "#05060f"),
+        a.beginPath(),
+        a.ellipse(r, o + 22, 26, 7, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalCompositeOperation = "lighter");
+      let h = a.createRadialGradient(r, o, 0, r, o, 46);
+      h.addColorStop(
+        0,
+        `rgba(${LG_INFO[s.kind]?.rgb ?? "255,255,255"},${0.35 * u})`,
+      ),
+        h.addColorStop(1, "rgba(0,0,0,0)"),
+        (a.fillStyle = h),
+        a.fillRect(r - 46, o - 46, 92, 92),
+        (a.globalCompositeOperation = "source-over"),
+        (a.globalAlpha = u),
+        et(a, f, Be(f, t, 1), nt(l), r, o, 1.1, i.ground),
+        a.restore();
+    }
+  }
   // Looming ground marks for falling rocks and meteors, and the surge set-pieces.
   function surgeGround(a, e) {
     let t = e.tick;
@@ -11078,6 +11536,7 @@
     zoneGround(a, e);
     arenaLive(a, e);
     surgeGround(a, e);
+    summonGround(a, e);
     lightPools(a, e);
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
@@ -11841,6 +12300,7 @@
     ua(a, t, !1);
     sheetsDraw(a, t, !1);
     dropsAir(a, e);
+    summonAir(a, e);
     for (let h of t.ambient)
       (a.globalAlpha = 0.18 + 0.14 * Math.sin(h.ph * 2)),
         (a.fillStyle = "#f4ead0"),
@@ -13912,7 +14372,8 @@
             }),
           d.restore();
       }
-    s.debug && as(e),
+    t.cutin && lgCutin(e, t),
+      s.debug && as(e),
       s.hintT > 0 && !s.paused && e.match.phase === "fight" && ts(e, s),
       e.match.phase === "results" && os(e, s, o),
       ga(s),
@@ -13990,6 +14451,59 @@
   // and tag, name, Poke Balls, a glowing HP bar and guard strip. Your card
   // carries the cooldown buttons underneath; a fighter who is out dims and
   // shows where they placed.
+  // The legendary meter: icon, fill, and a pulsing READY (with the button
+  // to press, on your own side) once it is full.
+  function lgGauge(a, e, t, s, i, r, o, l) {
+    let f = LG_INFO[t.legend],
+      u = Math.min(1, t.lgMeter / 100),
+      h = u >= 1,
+      c = e.frame;
+    te(s, i, r, 9, "rgba(6,4,10,0.82)", 3);
+    let y = o ? s + r - 11 : s + 1.5;
+    l[t.legend] &&
+      Oe(l[t.legend], "Normal", y, i + 0.5, 8, { bg: f.color, frame: !1 });
+    let b = o ? s + 3 : s + 12,
+      p = r - 15;
+    if (
+      (te(b, i + 3, p, 3, g.track2, 1),
+      te(
+        o ? b + p * (1 - u) : b,
+        i + 3,
+        p * u,
+        3,
+        h ? (c % 20 < 10 ? "#ffe066" : "#ffffff") : f.color,
+        1,
+      ),
+      !h)
+    )
+      return;
+    d.save(),
+      (d.globalCompositeOperation = "lighter"),
+      (d.globalAlpha = 0.35 + 0.25 * Math.sin(c * 0.2)),
+      te(b - 1, i + 1.5, p + 2, 6, f.color, 2),
+      d.restore();
+    let k =
+      t === a.player &&
+      !(t.brain?.net && !t.brain.local) &&
+      e.source !== "touch";
+    G("READY", o ? b + p - 2 : b + 2, i + 7.6, 5, "#0b0918", {
+      align: o ? "right" : "left",
+      weight: 800,
+    }),
+      k &&
+        Pe(
+          e.source === "pad"
+            ? t.slots.length === 1
+              ? "L2"
+              : "L3"
+            : t.slots.length === 1
+              ? "E"
+              : "R",
+          o ? s - 5 : s + r + 5,
+          i + 4.5,
+          3.4,
+        );
+  }
   function partyCard(a, e, t, s, i, r, o) {
     let l = t.slot,
       f = l.kit,
@@ -14050,7 +14564,20 @@
             : f.id === "charizard" && l.heat > 60
               ? ["HOT", l.heat > 85 && h % 10 < 5 ? "#fff4c2" : "#ff5a2a"]
               : null;
-    M && ue(M[0], M[1], s + y - 4, i + 25.4, { right: !0, size: 4.4 }),
+    if (t.legend && !c) {
+      let x = Math.min(1, t.lgMeter / 100),
+        v = LG_INFO[t.legend]?.color ?? g.gold;
+      te(s + 52, i + 26.4, 40, 2.2, g.track2, 1),
+        te(
+          s + 52,
+          i + 26.4,
+          40 * x,
+          2.2,
+          x >= 1 ? (h % 20 < 10 ? "#ffe066" : "#ffffff") : v,
+          1,
+        );
+    }
+    M && ue(M[0], M[1], s + y - 4, i + 21.4, { right: !0, size: 4.4 }),
       d.restore(),
       c &&
         (V("OUT", s + y / 2 + 8, i + 21, 12, g.cpu, {
@@ -14085,8 +14612,17 @@
       ),
       hudBtn(s + 30, i + b + 7, "Y", P(l.cdY, f.yCd), C.y ?? 0);
     let x = t.slots.findIndex((v, E) => E !== t.active && v.hp > 0) >= 0;
-    Pe("L1", s + 42, i + b + 7, 2.6, !(t.switchCd === 0 && x)),
-      Pe("L2", s + 51, i + b + 7, 2.6, !(t.assistCd === 0 && x)),
+    t.slots.length > 1
+      ? (Pe("L1", s + 42, i + b + 7, 2.6, !(t.switchCd === 0 && x)),
+        Pe("L2", s + 51, i + b + 7, 2.6, !(t.assistCd === 0 && x)))
+      : t.legend &&
+        Pe(
+          e.source === "pad" ? "L2" : "E",
+          s + 44,
+          i + b + 7,
+          3,
+          t.lgMeter < 100,
+        ),
       f.id === "charizard" &&
         Tt(
           s + 58,
@@ -14174,8 +14710,8 @@
         });
     }
     s.lock &&
-      (Pe("R1", 14, 64, 3.4),
-      G("Locked on", 22, 66.5, 7, s.kit.color, {
+      (Pe("R1", 14, 74, 3.4),
+      G("Locked on", 22, 76.5, 7, s.kit.color, {
         weight: 700,
         italic: !0,
         outline: 2,
@@ -14512,6 +15048,7 @@
       V(f.name, r ? b + 70 : b + 5, 51.3, 8.4, g.chalk, {
         align: r ? "right" : "left",
       });
+    t.legend && lgGauge(a, e, t, b, 56, 74, r, o);
     // Types above the bar.
     let p = f.type2 ? [f.type, f.type2] : [f.type],
       k = r ? H - 50 : 50;
@@ -16977,6 +17514,24 @@
           X(0.3, "bandpass", 2400, 1.5, 0.35, 300),
           I("sq", 880, 110, 0.25, 0.08, 0.02));
       },
+      // Legendaries: a long thunderclap, the warning hum and the ready chime.
+      thunder() {
+        O() &&
+          (X(0.9, "lowpass", 1400, 0.8, 0.42, 90, 0, !0),
+          I("saw", 120, 38, 0.8, 0.24, 0, { vib: 25 }),
+          X(0.25, "highpass", 3800, 1, 0.22, 2600, 0.02));
+      },
+      boltHum() {
+        O() &&
+          (I("saw", 70, 160, 0.42, 0.1, 0, { vib: 12 }),
+          X(0.42, "bandpass", 1200, 4, 0.1, 3200, 0, !0));
+      },
+      legendReady() {
+        O() &&
+          (I("tri", 660, 660, 0.09, 0.12),
+          I("tri", 880, 880, 0.09, 0.12, 0.09),
+          I("tri", 1320, 1320, 0.22, 0.14, 0.18));
+      },
       snore() {
         O() &&
           (I("p50", 70, 110, 0.5, 0.18),
@@ -17180,11 +17735,15 @@
                     ? (I("saw", 900, 1500, 0.18, 0.09, e, { vib: 80 }),
                       I("p25", 1400, 700, 0.22, 0.08, e + 0.1),
                       X(0.25, "bandpass", 3200, 2, 0.14, 1200, e + 0.05))
-                    : a === "lucario"
-                      ? (I("p25", 520, 640, 0.14, 0.11, e),
-                        I("p25", 780, 420, 0.22, 0.1, e + 0.12, { vib: 30 }))
-                      : (I("p25", 600, 900, 0.12, 0.1, e),
-                        I("p25", 900, 500, 0.18, 0.1, e + 0.12)));
+                    : a === "zekrom"
+                      ? (I("saw", 170, 80, 0.75, 0.22, e, { vib: 30 }),
+                        I("p50", 340, 150, 0.6, 0.12, e + 0.05),
+                        X(0.5, "bandpass", 2600, 1.5, 0.16, 900, e, !0))
+                      : a === "lucario"
+                        ? (I("p25", 520, 640, 0.14, 0.11, e),
+                          I("p25", 780, 420, 0.22, 0.1, e + 0.12, { vib: 30 }))
+                        : (I("p25", 600, 900, 0.12, 0.1, e),
+                          I("p25", 900, 500, 0.18, 0.1, e + 0.12)));
       },
       ready() {
         O() &&
@@ -17911,8 +18470,18 @@
         "switch",
         "assist",
         "guard",
+        "legend",
       ],
-      held: ["attack", "dodge", "guard", "lock", "special1", "special2"],
+      held: [
+        "attack",
+        "dodge",
+        "guard",
+        "lock",
+        "special1",
+        "special2",
+        "legend",
+        "assist",
+      ],
     },
     // Settings that only change how this screen looks or sounds; everything
     // else in A can change the simulation, so the host's values are used.
@@ -17954,7 +18523,9 @@
   function netEnc(a) {
     let e = 0;
     NET_BUTTONS.pressed.forEach((t, s) => a.pressed.has(t) && (e |= 1 << s)),
-      NET_BUTTONS.held.forEach((t, s) => a.held.has(t) && (e |= 1 << (s + 7)));
+      NET_BUTTONS.held.forEach(
+        (t, s) => a.held.has(t) && (e |= 1 << (s + NET_BUTTONS.pressed.length)),
+      );
     let t = (s) => B64[Math.max(1, Math.min(63, Math.round(s * 31) + 32))];
     return (
       B64[e & 63] +
@@ -17975,7 +18546,9 @@
       s = new Set(),
       i = new Set();
     NET_BUTTONS.pressed.forEach((r, o) => e & (1 << o) && s.add(r)),
-      NET_BUTTONS.held.forEach((r, o) => e & (1 << (o + 7)) && i.add(r));
+      NET_BUTTONS.held.forEach(
+        (r, o) => e & (1 << (o + NET_BUTTONS.pressed.length)) && i.add(r),
+      );
     let r = t(3),
       o = t(4),
       l = t(5),
@@ -19852,6 +20425,9 @@
           ["guard", "GUARD", ["guard"], 458, 160, 8],
           ["lock", "LOCK", ["lock"], 390, 160, 8],
           ["smash", "SMASH", ["smash"], 370, 245, 9],
+          ...(e.player.legend
+            ? [["legend", "LEGEND", ["legend"], 54, 108, 8]]
+            : []),
           ...(e.player.slots.length > 1
             ? [
                 ["switch", "SWITCH", ["switch"], 30, 132, 8],
@@ -22085,6 +22661,33 @@
             t.shockRing(n.who.x, n.who.y, 22, "#f8d030", 6),
             n.locked &&
               t.popup(n.who.x, n.who.y - 50, "LOCK-ON ZAP!", "#f8d030", !0);
+          break;
+        // ---- Legendaries ----
+        case "summon":
+          (t.cutin = {
+            kind: n.kind,
+            life: 34,
+            max: 34,
+            mine: n.who === e.player,
+          }),
+            S.cry(n.kind, 0.05),
+            S.charge(),
+            t.shake(0, 1, 3);
+          break;
+        case "boltWarn":
+          S.boltHum();
+          break;
+        case "boltStrike":
+          S.thunder(),
+            t.shake(n.x2 - n.x1, n.y2 - n.y1, 9),
+            (t.screenFlash = 5),
+            (t.screenFlashColor = "#d8f4ff"),
+            (t.impact = 3);
+          break;
+        case "legendReady":
+          n.who === e.player &&
+            (S.legendReady(),
+            t.popup(n.who.x, n.who.y - 46, "LEGEND READY", "#ffd84a", !0));
           break;
         case "paralyzed":
           S.guardBreak(),

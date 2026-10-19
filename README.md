@@ -26,6 +26,19 @@ switched in Options → Match, or with X / Select on team select. Accessibility 
 
 Roster: Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern, Lucario.
 
+## Modes and legendaries
+
+**Standard** (the default) is one Pokémon a side. Press X on team select for
+**Tag Team**: two Pokémon each, with Switch and Assist. Party modes use one Pokémon
+each.
+
+**Legendaries.** Dealing and taking damage fills a meter under your name. When it reads
+READY, call your legendary: E (L2 on a pad) in single-Pokémon modes, or R (L3) in any
+mode. Hold the button to aim with the stick, then release. Zekrom's **Bolt Strike**
+flies along a line through your aim point, after a short red warning, and paralyses
+anyone it hits. Darkrai and Deoxys are coming next. Turn legendaries off in
+Options → Match.
+
 ## Online play
 
 Choose **Online** as the mode on team select (X cycles modes), pick your team and press

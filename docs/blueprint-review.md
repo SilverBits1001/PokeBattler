@@ -958,3 +958,61 @@ Stadium, three on each of the five arenas):
 | Roster range, Stadium | 42–62% | 43–60% |
 | Holding X against the Hard CPU | 81% | 0% |
 | Tapping X against the Hard CPU | 0% | 0% |
+
+## Modes: Standard and Tag Team
+
+- **Standard** (mode 0, the default) is one Pokémon a side.
+- **Tag Team** (mode 6) is the old two-Pokémon match with Switch and Assist. X on
+  team select steps through `MODE_ORDER` (Standard, Tag Team, Training,
+  Free-for-All, Team 2v2, Zone, Online).
+- Party modes field one Pokémon each.
+- **Online** has a Standard/Tag Team format (`onlineTag`, Y on team select). Lobby
+  presence carries `fmt`, and only trainers on the same format are listed. The
+  host's settings must give both teams the same size. Protocol v5.
+- Switch and Assist hints and touch buttons only show with a partner.
+
+## Legendaries, part 1: the meter and Zekrom
+
+Design: a summon you aim, not a transformation. Long transformations are hard
+to fight against, which is why Smash Ultimate replaced Giga Bowser with short
+cinematics. A summon is a few seconds of spectacle that the target can see
+coming and dodge.
+
+- **Meter** (`lgMeter`, 0–100, on each fighter). Filled by damage dealt (0.13
+  per point) and taken (0.09), never by legendary damage. Training starts full
+  and refills.
+- **Calling.** E or L2 (the assist button when you have no partner), or R or L3
+  in any mode. The caller is rooted and invincible while aiming (`summon`
+  state). The stick moves the aim point; releasing (after at least 8 ticks), or
+  reaching 54 ticks, fires.
+- **Zekrom, Bolt Strike** (`ZEKROM`). A line from behind the caller, through the
+  aim point, to the wall. It gets a 26-tick red warning band, then Zekrom dives
+  along it in 14 ticks. The hit does 170 damage (about 220 after the global
+  multiplier), is heavy, and paralyses for 120 ticks.
+- **Fairness.** A legendary's hit is neutral: no type match-up and no caller
+  bonuses (heat, X Attack, Thick Fat). It can't break Ruins cover for Ancient
+  Power.
+- **CPU.** Calls when its meter is full and a target is within 230 px (more
+  eagerly on harder levels). It aims at where the target is heading.
+- **Presentation.** The arena dims while aiming, with a dashed path and a
+  reticle. A Smash-style cut-in shows the portrait, name and move, there's a
+  thunderclap, and the screen flashes on the strike. A meter with READY and the
+  button sits on the HUD and the party cards.
+- **Online.** `legend` is a pressed and held button in the input encoding (held
+  bits follow the pressed list instead of a hardcoded 7). Summons live on the
+  engine, so rollback snapshots cover them.
+- **Sprites.** Zekrom, Darkrai and Deoxys (Normal, Attack, Defense and Speed
+  Formes) come from the PMD Sprite Repository, with credits bundled.
+
+Measured with Hard CPU against Hard CPU in all 56 matchups on the Stadium:
+
+| | Before (slower meter) | Now |
+|---|---|---|
+| Summons per match (both fighters) | 0.71 | 1.75 |
+| Median time to first summon | 34 s | 21 s |
+| Hit rate | | 81% |
+| Legendary share of all damage | 7.7% | 19.8% |
+| Win-rate range | 36–66% | 39–57% (39–70% with legendaries off) |
+
+Online duel with both sides summoning (120±50 ms, 8% of messages dropped):
+2,231 compared ticks, identical.
