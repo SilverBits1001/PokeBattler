@@ -402,7 +402,8 @@
         type: "FIRE",
         color: "#ff8a3d",
         typeInk: "#2a1206",
-        hp: 920,
+        hp: 855,
+        power: 0.82,
         speed: 2.9,
         weight: 1.05,
         r: 9,
@@ -495,7 +496,8 @@
         type2: "POISON",
         color: "#6cc04a",
         typeInk: "#0f2a08",
-        hp: 1060,
+        hp: 1015,
+        power: 0.88,
         speed: 2.35,
         weight: 0.85,
         r: 11,
@@ -568,7 +570,8 @@
         type: "WATER",
         color: "#5aa9e6",
         typeInk: "#06203a",
-        hp: 1240,
+        hp: 1155,
+        power: 0.82,
         speed: 2.15,
         weight: 0.6,
         r: 10,
@@ -654,7 +657,8 @@
         type2: "GHOST",
         color: "#a184f5",
         typeInk: "#170c33",
-        hp: 750,
+        hp: 705,
+        power: 0.84,
         speed: 3.25,
         weight: 1.2,
         r: 8,
@@ -743,7 +747,8 @@
         type2: "STEEL",
         color: "#f2d64b",
         typeInk: "#2a2205",
-        hp: 1080,
+        hp: 1015,
+        power: 0.84,
         speed: 2.25,
         weight: 0.7,
         r: 9,
@@ -835,7 +840,8 @@
         type: "NORMAL",
         color: "#3f8f9e",
         typeInk: "#1f1f12",
-        hp: 1200,
+        hp: 1135,
+        power: 0.86,
         speed: 1.85,
         weight: 0.45,
         r: 13,
@@ -929,7 +935,8 @@
         type2: "DRAGON",
         color: "#8a5ccf",
         typeInk: "#1c1033",
-        hp: 930,
+        hp: 900,
+        power: 0.92,
         speed: 3.1,
         weight: 1.15,
         r: 9,
@@ -1018,7 +1025,8 @@
         type2: "STEEL",
         color: "#4a7fd6",
         typeInk: "#0e1a33",
-        hp: 1090,
+        hp: 1020,
+        power: 0.83,
         speed: 3.05,
         weight: 1,
         r: 8,
@@ -1109,7 +1117,8 @@
         type2: "GROUND",
         color: "#4f6fd8",
         typeInk: "#0f1838",
-        hp: 960,
+        hp: 1000,
+        power: 1.3,
         speed: 3.3,
         weight: 1.1,
         r: 9,
@@ -1202,7 +1211,8 @@
         type2: "STEEL",
         color: "#e0393e",
         typeInk: "#330a0c",
-        hp: 960,
+        hp: 1000,
+        power: 1.26,
         speed: 2.95,
         weight: 0.95,
         r: 9,
@@ -1294,7 +1304,8 @@
         type2: "DRAGON",
         color: "#c4553a",
         typeInk: "#2e100a",
-        hp: 1150,
+        hp: 1130,
+        power: 0.95,
         speed: 2.25,
         weight: 0.55,
         r: 11,
@@ -1387,7 +1398,8 @@
         type2: "GHOST",
         color: "#4f8a8b",
         typeInk: "#0c2122",
-        hp: 1130,
+        hp: 1120,
+        power: 0.98,
         speed: 2.05,
         weight: 0.5,
         r: 11,
@@ -1477,7 +1489,8 @@
         type2: "ROCK",
         color: "#8d7f73",
         typeInk: "#241f1a",
-        hp: 1150,
+        hp: 1105,
+        power: 0.9,
         speed: 1.95,
         weight: 0.45,
         r: 12,
@@ -1568,7 +1581,8 @@
         type2: "GHOST",
         color: "#9ad8f0",
         typeInk: "#0c2a36",
-        hp: 900,
+        hp: 1000,
+        power: 1.35,
         speed: 3.1,
         weight: 1.25,
         r: 8,
@@ -1605,6 +1619,7 @@
             shape: "circle",
             reach: 16,
             radius: 13,
+            chill: 1,
           },
           {
             anim: "Twirl",
@@ -1626,7 +1641,7 @@
           dist: 92,
           ticks: 13,
           iframes: 9,
-          cooldown: 34,
+          cooldown: 30,
           anim: "Walk",
         },
         smash: {
@@ -1647,7 +1662,7 @@
         },
         xName: "ICY WIND",
         yName: "DOUBLE TEAM",
-        xCd: 100,
+        xCd: 90,
         yCd: 280,
       },
       // The embrace Pokémon. Moonblast from range, Psychic to lift a foe and
@@ -1660,7 +1675,8 @@
         type2: "FAIRY",
         color: "#5fc98a",
         typeInk: "#0d2a18",
-        hp: 900,
+        hp: 1000,
+        power: 1.35,
         speed: 2.55,
         weight: 1.15,
         r: 8,
@@ -1717,7 +1733,7 @@
           dist: 104,
           ticks: 9,
           iframes: 9,
-          cooldown: 44,
+          cooldown: 34,
           anim: "Idle",
         },
         smash: {
@@ -1749,7 +1765,8 @@
         type2: "PSYCHIC",
         color: "#5a8fd0",
         typeInk: "#0d1d33",
-        hp: 1180,
+        hp: 1150,
+        power: 0.93,
         speed: 2.3,
         weight: 0.5,
         r: 11,
@@ -2979,7 +2996,10 @@
             ? y < 30
               ? i.pressed.add("attack")
               : smash(2 + Math.floor(r() * 8))
-            : u.cdY === 0 && y < 40 && hp < 0.5 && r() < 0.2
+            : u.cdY === 0 &&
+                y < 40 &&
+                (hp < 0.5 || op?.state === "attack") &&
+                r() < 0.3
               ? (i.held.delete("lock"),
                 (i.mx = -Math.cos(b)),
                 (i.my = -Math.sin(b)),
@@ -3001,9 +3021,11 @@
               !p.dead &&
               Math.hypot(p.x - t.x, p.y - t.y) < 60,
           );
-          (shots || y < 120) && u.cdY === 0 && r() < (shots ? 0.5 : 0.25)
+          (shots || y < 120) &&
+          u.cdY === 0 &&
+          r() < (shots ? 0.5 : y < 60 ? 0.6 : 0.25)
             ? i.pressed.add("special2")
-            : y < 26 && u.cdDodge === 0 && r() < 0.35
+            : y < 34 && u.cdDodge === 0 && r() < 0.5
               ? dash(b + Math.PI + (r() < 0.5 ? 0.7 : -0.7))
               : y < 28 || (N && y < 44)
                 ? i.pressed.add("attack")
