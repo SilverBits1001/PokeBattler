@@ -37,6 +37,17 @@ Pokémon: every move with its typical damage and what it does, what each effect
 announcements (combos, surges, items, legendaries) now appear as a small pill under
 the HUD, so only Ready?, Go!, K.O. and the result take the middle of the screen.
 
+**Screens.** The start screen is a face-off: two Pokémon glare at each other
+across a blue and red split (a new pair every few seconds) under the logo, with
+the whole roster running along the bottom. Team select shows each side's
+Pokémon as a large portrait (its Determined face), the CPU's turned to face
+yours. In battle there is one move list, bottom left: a key per move with its
+cooldown as a clock-wipe and the seconds left, a coloured rim and glow when it's
+ready, and live values (Heat, charges, the legendary meter) as small badges. The
+camera holds still when a fight ends, and the arena does no more damage once it's
+decided. In the pause menu, Moves has a scrolling strip of bigger faces (tap one
+or use left and right), and Training's Pokémon tab lists all eighteen.
+
 **Living arenas.** Every arena has its own surroundings (stands with a crowd and a
 big screen, a broken colonnade with braziers, a basalt rim with lavafalls, pines
 under an aurora, turbines and control panels), detail along its walls, light
@@ -67,7 +78,8 @@ Shield blocks everything from the front and weakens melee attackers; Sacred Swor
 run faster), Smoke Ball (a cloud that hides whoever is inside) and Leftovers
 (slow healing).
 
-**Arcade** (main menu): six duels in a row against rivals drawn from the
+**Arcade** (main menu): pick your Pokémon (no CPU roulette: who waits on each
+stage stays a secret until you reach it), then six duels in a row against rivals drawn from the
 roster, Easy to Hard, on a different arena each stage. Stage six is a boss
 with 1.5x HP and its legendary half charged. Lose and you can Continue (retry
 the stage); your clear time, continues and best are kept on this device.
