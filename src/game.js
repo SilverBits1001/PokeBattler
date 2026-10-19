@@ -387,6 +387,13 @@
       FLYING: "#a890f0",
       FIGHTING: "#c03028",
       POISON: "#a040a0",
+      ICE: "#98d8d8",
+      ROCK: "#b8a038",
+      GROUND: "#e0c068",
+      PSYCHIC: "#f85888",
+      FAIRY: "#ee99ac",
+      BUG: "#a8b820",
+      DARK: "#705848",
     },
     xe = {
       charizard: {
@@ -1090,6 +1097,739 @@
         xCd: 70,
         yCd: 210,
       },
+      // ---- Generation two of the roster -----------------------------------
+      // These eight run their specials through the shared "ex" move engine
+      // (see exStart / tickEx); their tuning lives in EXK below.
+      // The land shark. Dig under, erupt beneath them, and Outrage when it is
+      // time to finish; Rough Skin punishes anyone who brawls with it.
+      garchomp: {
+        id: "garchomp",
+        name: "GARCHOMP",
+        type: "DRAGON",
+        type2: "GROUND",
+        color: "#4f6fd8",
+        typeInk: "#0f1838",
+        hp: 880,
+        speed: 3.3,
+        weight: 1.1,
+        r: 9,
+        hurtR: 11,
+        size: 1,
+        tall: 30,
+        role: "Speedster \xB7 burrower",
+        ex: !0,
+        roughSkin: !0,
+        stats: { speed: 5, power: 4, defense: 2, range: 2, difficulty: 3 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 4,
+            active: 3,
+            recovery: 8,
+            lunge: 9,
+            dmg: 24,
+            kb: 1.8,
+            heavy: !1,
+            shape: "circle",
+            reach: 15,
+            radius: 13,
+            claw: !0,
+          },
+          {
+            anim: "Double",
+            startup: 4,
+            active: 3,
+            recovery: 9,
+            lunge: 9,
+            dmg: 26,
+            kb: 2.1,
+            heavy: !1,
+            shape: "circle",
+            reach: 16,
+            radius: 14,
+            claw: !0,
+          },
+          {
+            anim: "Swing",
+            startup: 7,
+            active: 4,
+            recovery: 15,
+            lunge: 12,
+            dmg: 42,
+            kb: 6.4,
+            heavy: !0,
+            shape: "circle",
+            reach: 18,
+            radius: 17,
+            claw: !0,
+          },
+        ],
+        dodge: {
+          kind: "dash",
+          dist: 96,
+          ticks: 10,
+          iframes: 8,
+          cooldown: 34,
+          anim: "Walk",
+        },
+        smash: {
+          name: "STONE EDGE",
+          anim: "Shoot",
+          windup: 9,
+          maxCharge: 42,
+          active: 4,
+          recovery: 26,
+          lunge: 0,
+          dmg: 22,
+          kb: 5.2,
+          shape: "circle",
+          reach: 20,
+          radius: 13,
+          custom: "stoneEdge",
+        },
+        xName: "OUTRAGE",
+        yName: "DIG",
+        xCd: 430,
+        yCd: 300,
+      },
+      // A steel mantis. Bullet Punch comes out faster than anything, stacks
+      // three deep, and Technician makes every quick hit count; U-turn hits
+      // and hops out (or tags your partner in).
+      scizor: {
+        id: "scizor",
+        name: "SCIZOR",
+        type: "BUG",
+        type2: "STEEL",
+        color: "#e0393e",
+        typeInk: "#330a0c",
+        hp: 900,
+        speed: 2.95,
+        weight: 0.95,
+        r: 9,
+        hurtR: 11,
+        size: 0.95,
+        tall: 30,
+        role: "Duelist \xB7 technician",
+        ex: !0,
+        technician: !0,
+        stats: { speed: 4, power: 4, defense: 3, range: 2, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 3,
+            active: 3,
+            recovery: 8,
+            lunge: 8,
+            dmg: 19,
+            kb: 1.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 16,
+            radius: 13,
+            claw: !0,
+          },
+          {
+            anim: "Double",
+            startup: 3,
+            active: 3,
+            recovery: 9,
+            lunge: 8,
+            dmg: 21,
+            kb: 1.9,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 13,
+            claw: !0,
+          },
+          {
+            anim: "Swing",
+            startup: 6,
+            active: 4,
+            recovery: 15,
+            lunge: 10,
+            dmg: 38,
+            kb: 6,
+            heavy: !0,
+            shape: "circle",
+            reach: 19,
+            radius: 16,
+            claw: !0,
+          },
+        ],
+        dodge: {
+          kind: "dash",
+          dist: 88,
+          ticks: 9,
+          iframes: 8,
+          cooldown: 32,
+          anim: "Walk",
+        },
+        smash: {
+          name: "X-SCISSOR",
+          anim: "MultiScratch",
+          windup: 8,
+          maxCharge: 40,
+          active: 5,
+          recovery: 24,
+          lunge: 32,
+          dmg: 46,
+          kb: 6.8,
+          shape: "circle",
+          reach: 14,
+          radius: 18,
+          pierce: !0,
+        },
+        xName: "BULLET PUNCH",
+        yName: "U-TURN",
+        xCd: 0,
+        yCd: 250,
+      },
+      // A tyrant lizard. Strong Jaw bites, a Crunch that grabs through guard,
+      // Rock Slide to reach shooters and a Head Smash it shrugs off.
+      tyrantrum: {
+        id: "tyrantrum",
+        name: "TYRANTRUM",
+        type: "ROCK",
+        type2: "DRAGON",
+        color: "#c4553a",
+        typeInk: "#2e100a",
+        hp: 1150,
+        speed: 2.25,
+        weight: 0.55,
+        r: 11,
+        hurtR: 13,
+        size: 0.95,
+        tall: 38,
+        role: "Bruiser \xB7 grappler",
+        ex: !0,
+        strongJaw: !0,
+        stats: { speed: 2, power: 5, defense: 4, range: 2, difficulty: 2 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 5,
+            active: 3,
+            recovery: 9,
+            lunge: 9,
+            dmg: 28,
+            kb: 2.2,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 15,
+            bite: !0,
+          },
+          {
+            anim: "Double",
+            startup: 5,
+            active: 3,
+            recovery: 10,
+            lunge: 9,
+            dmg: 30,
+            kb: 2.5,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 15,
+            bite: !0,
+          },
+          {
+            anim: "Swing",
+            startup: 8,
+            active: 4,
+            recovery: 17,
+            lunge: 8,
+            dmg: 50,
+            kb: 7,
+            heavy: !0,
+            shape: "circle",
+            reach: 20,
+            radius: 19,
+            armor: !0,
+          },
+        ],
+        dodge: {
+          kind: "roll",
+          dist: 72,
+          ticks: 14,
+          iframes: 9,
+          cooldown: 40,
+          anim: "Hop",
+        },
+        smash: {
+          name: "HEAD SMASH",
+          anim: "Attack",
+          windup: 12,
+          maxCharge: 50,
+          active: 7,
+          recovery: 30,
+          lunge: 62,
+          dmg: 60,
+          kb: 8.2,
+          shape: "circle",
+          reach: 12,
+          radius: 18,
+          pierce: !0,
+          armor: !0,
+        },
+        xName: "CRUNCH",
+        yName: "ROCK SLIDE",
+        xCd: 230,
+        yCd: 290,
+      },
+      // An ancient golem. Iron Fist punches, a homing Shadow Punch rocket,
+      // and it blasts off with Fly to crash down across the arena.
+      golurk: {
+        id: "golurk",
+        name: "GOLURK",
+        type: "GROUND",
+        type2: "GHOST",
+        color: "#4f8a8b",
+        typeInk: "#0c2122",
+        hp: 1130,
+        speed: 2.05,
+        weight: 0.5,
+        r: 11,
+        hurtR: 13,
+        size: 1,
+        tall: 40,
+        role: "Juggernaut \xB7 rocket fists",
+        ex: !0,
+        ironFist: !0,
+        stats: { speed: 2, power: 5, defense: 4, range: 4, difficulty: 3 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 5,
+            active: 3,
+            recovery: 10,
+            lunge: 8,
+            dmg: 27,
+            kb: 2.4,
+            heavy: !1,
+            shape: "circle",
+            reach: 18,
+            radius: 15,
+          },
+          {
+            anim: "Strike",
+            startup: 5,
+            active: 3,
+            recovery: 10,
+            lunge: 8,
+            dmg: 29,
+            kb: 2.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 18,
+            radius: 15,
+          },
+          {
+            anim: "Swing",
+            startup: 9,
+            active: 4,
+            recovery: 17,
+            lunge: 8,
+            dmg: 48,
+            kb: 7.2,
+            heavy: !0,
+            shape: "circle",
+            reach: 21,
+            radius: 19,
+            armor: !0,
+          },
+        ],
+        dodge: {
+          kind: "hover",
+          dist: 76,
+          ticks: 14,
+          iframes: 9,
+          cooldown: 42,
+          anim: "Hop",
+        },
+        smash: {
+          name: "DYNAMIC PUNCH",
+          anim: "Strike",
+          windup: 12,
+          maxCharge: 50,
+          active: 6,
+          recovery: 30,
+          lunge: 26,
+          dmg: 56,
+          kb: 7.6,
+          shape: "circle",
+          reach: 14,
+          radius: 19,
+          daze: !0,
+        },
+        xName: "SHADOW PUNCH",
+        yName: "FLY",
+        xCd: 140,
+        yCd: 360,
+      },
+      // A walking fortress. Raises Rock Tomb pillars to wall off the arena,
+      // then fires Rock Wrecker through them; Solid Rock blunts heavy blows.
+      rhyperior: {
+        id: "rhyperior",
+        name: "RHYPERIOR",
+        type: "GROUND",
+        type2: "ROCK",
+        color: "#8d7f73",
+        typeInk: "#241f1a",
+        hp: 1190,
+        speed: 1.95,
+        weight: 0.45,
+        r: 12,
+        hurtR: 14,
+        size: 1.05,
+        tall: 34,
+        role: "Fortress \xB7 zoner",
+        ex: !0,
+        solidRock: !0,
+        stats: { speed: 1, power: 5, defense: 5, range: 4, difficulty: 3 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 5,
+            active: 3,
+            recovery: 10,
+            lunge: 7,
+            dmg: 28,
+            kb: 2.4,
+            heavy: !1,
+            shape: "circle",
+            reach: 18,
+            radius: 15,
+          },
+          {
+            anim: "Strike",
+            startup: 5,
+            active: 3,
+            recovery: 11,
+            lunge: 7,
+            dmg: 31,
+            kb: 2.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 18,
+            radius: 15,
+          },
+          {
+            anim: "Swing",
+            startup: 9,
+            active: 4,
+            recovery: 18,
+            lunge: 6,
+            dmg: 50,
+            kb: 7.4,
+            heavy: !0,
+            shape: "circle",
+            reach: 21,
+            radius: 19,
+            armor: !0,
+          },
+        ],
+        dodge: {
+          kind: "roll",
+          dist: 64,
+          ticks: 14,
+          iframes: 9,
+          cooldown: 44,
+          anim: "Hop",
+        },
+        smash: {
+          name: "HORN DRILL",
+          anim: "Rumble",
+          windup: 12,
+          maxCharge: 46,
+          active: 10,
+          recovery: 30,
+          lunge: 50,
+          dmg: 54,
+          kb: 7.8,
+          shape: "circle",
+          reach: 12,
+          radius: 17,
+          pierce: !0,
+          armor: !0,
+        },
+        xName: "ROCK WRECKER",
+        yName: "ROCK TOMB",
+        xCd: 210,
+        yCd: 230,
+      },
+      // A snow spirit. Every cold touch stacks chill (three freeze for a moment),
+      // Double Team leaves an ice doll behind, and Cursed Body jams attackers.
+      froslass: {
+        id: "froslass",
+        name: "FROSLASS",
+        type: "ICE",
+        type2: "GHOST",
+        color: "#9ad8f0",
+        typeInk: "#0c2a36",
+        hp: 800,
+        speed: 3.1,
+        weight: 1.25,
+        r: 8,
+        hurtR: 10,
+        size: 0.95,
+        tall: 30,
+        role: "Trickster \xB7 freezer",
+        ex: !0,
+        cursedBody: !0,
+        stats: { speed: 4, power: 3, defense: 2, range: 3, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 4,
+            active: 3,
+            recovery: 8,
+            lunge: 9,
+            dmg: 20,
+            kb: 1.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 15,
+            radius: 13,
+          },
+          {
+            anim: "Double",
+            startup: 4,
+            active: 3,
+            recovery: 9,
+            lunge: 9,
+            dmg: 22,
+            kb: 1.8,
+            heavy: !1,
+            shape: "circle",
+            reach: 16,
+            radius: 13,
+          },
+          {
+            anim: "Twirl",
+            startup: 7,
+            active: 5,
+            recovery: 14,
+            lunge: 8,
+            dmg: 34,
+            kb: 5.6,
+            heavy: !0,
+            shape: "circle",
+            reach: 12,
+            radius: 20,
+            chill: 1,
+          },
+        ],
+        dodge: {
+          kind: "air",
+          dist: 92,
+          ticks: 13,
+          iframes: 9,
+          cooldown: 34,
+          anim: "Walk",
+        },
+        smash: {
+          name: "ICE BEAM",
+          anim: "Shoot",
+          windup: 9,
+          maxCharge: 44,
+          active: 8,
+          recovery: 24,
+          lunge: 0,
+          dmg: 30,
+          kb: 4.2,
+          shape: "circle",
+          reach: 20,
+          radius: 10,
+          beam: { len: 150, grow: 50, r: 7, style: "ice" },
+          chill: 1,
+        },
+        xName: "ICY WIND",
+        yName: "DOUBLE TEAM",
+        xCd: 130,
+        yCd: 280,
+      },
+      // The embrace Pokémon. Moonblast from range, Psychic to lift a foe and
+      // throw them where you like, Future Sight to trap the ground ahead,
+      // and Synchronize hands any status straight back to its source.
+      gardevoir: {
+        id: "gardevoir",
+        name: "GARDEVOIR",
+        type: "PSYCHIC",
+        type2: "FAIRY",
+        color: "#5fc98a",
+        typeInk: "#0d2a18",
+        hp: 830,
+        speed: 2.55,
+        weight: 1.15,
+        r: 8,
+        hurtR: 10,
+        size: 1.05,
+        tall: 30,
+        role: "Psychic \xB7 controller",
+        ex: !0,
+        synchronize: !0,
+        stats: { speed: 3, power: 3, defense: 2, range: 5, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 4,
+            active: 3,
+            recovery: 9,
+            lunge: 6,
+            dmg: 20,
+            kb: 1.8,
+            heavy: !1,
+            shape: "circle",
+            reach: 19,
+            radius: 13,
+          },
+          {
+            anim: "Double",
+            startup: 4,
+            active: 3,
+            recovery: 10,
+            lunge: 6,
+            dmg: 22,
+            kb: 2,
+            heavy: !1,
+            shape: "circle",
+            reach: 20,
+            radius: 13,
+          },
+          {
+            anim: "Appeal",
+            startup: 8,
+            active: 4,
+            recovery: 15,
+            lunge: 4,
+            dmg: 34,
+            kb: 6,
+            heavy: !0,
+            shape: "circle",
+            reach: 14,
+            radius: 22,
+          },
+        ],
+        dodge: {
+          kind: "blink",
+          dist: 104,
+          ticks: 9,
+          iframes: 9,
+          cooldown: 44,
+          anim: "Idle",
+        },
+        smash: {
+          name: "FUTURE SIGHT",
+          anim: "SpAttack",
+          windup: 8,
+          maxCharge: 44,
+          active: 2,
+          recovery: 18,
+          lunge: 0,
+          dmg: 44,
+          kb: 6,
+          shape: "circle",
+          reach: 60,
+          radius: 30,
+          custom: "futureSight",
+        },
+        xName: "MOONBLAST",
+        yName: "PSYCHIC",
+        xCd: 110,
+        yCd: 300,
+      },
+      // A steel supercomputer. Zen Headbutt to close in, Magnet Rise to float
+      // over the ground at speed, and Clear Body shrugs off every slow.
+      metagross: {
+        id: "metagross",
+        name: "METAGROSS",
+        type: "STEEL",
+        type2: "PSYCHIC",
+        color: "#5a8fd0",
+        typeInk: "#0d1d33",
+        hp: 1120,
+        speed: 2.3,
+        weight: 0.5,
+        r: 11,
+        hurtR: 13,
+        size: 1.2,
+        tall: 28,
+        role: "Bruiser \xB7 hover",
+        ex: !0,
+        clearBody: !0,
+        stats: { speed: 3, power: 5, defense: 4, range: 2, difficulty: 3 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 5,
+            active: 3,
+            recovery: 9,
+            lunge: 9,
+            dmg: 27,
+            kb: 2.2,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 15,
+          },
+          {
+            anim: "Double",
+            startup: 5,
+            active: 3,
+            recovery: 10,
+            lunge: 9,
+            dmg: 29,
+            kb: 2.4,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 15,
+          },
+          {
+            anim: "Swing",
+            startup: 8,
+            active: 4,
+            recovery: 16,
+            lunge: 10,
+            dmg: 46,
+            kb: 6.8,
+            heavy: !0,
+            shape: "circle",
+            reach: 19,
+            radius: 18,
+          },
+        ],
+        dodge: {
+          kind: "dash",
+          dist: 86,
+          ticks: 11,
+          iframes: 8,
+          cooldown: 40,
+          anim: "Walk",
+        },
+        smash: {
+          name: "HAMMER ARM",
+          anim: "Swing",
+          windup: 12,
+          maxCharge: 46,
+          active: 6,
+          recovery: 30,
+          lunge: 22,
+          dmg: 60,
+          kb: 8,
+          shape: "circle",
+          reach: 14,
+          radius: 20,
+          armor: !0,
+          hammer: !0,
+        },
+        xName: "ZEN HEADBUTT",
+        yName: "MAGNET RISE",
+        xCd: 170,
+        yCd: 460,
+      },
     },
     ge = [
       "charizard",
@@ -1100,6 +1840,14 @@
       "snorlax",
       "noivern",
       "lucario",
+      "garchomp",
+      "scizor",
+      "tyrantrum",
+      "golurk",
+      "rhyperior",
+      "froslass",
+      "gardevoir",
+      "metagross",
     ],
     ut = 360,
     // Deliberate pacing: every move commits a little longer, so attacks can be
@@ -1120,6 +1868,200 @@
       a.seedCd && (a.seedCd = Math.round(a.seedCd * PACE.cooldown)),
       (a.yCd = Math.round(a.yCd * PACE.cooldown));
   }
+  // Tuning for the second-generation kits. Frame counts are in ticks (60/s).
+  var EXK = {
+      garchomp: {
+        pref: 22,
+        // Outrage: a roar, then a rampage; afterwards Garchomp is confused.
+        roar: 18,
+        outrage: 210,
+        rageSpeed: 1.25,
+        rageDmg: 1.25,
+        confuse: 66,
+        confSpeed: 0.65,
+        // Dig: burrow, travel unseen, erupt under them.
+        digIn: 10,
+        digMin: 14,
+        digMax: 64,
+        digSpeed: 1.55,
+        digR: 30,
+        digDmg: 40,
+        digKb: 7,
+        digRec: 22,
+        // Rough Skin: melee attackers take this share of the damage they dealt.
+        roughSkin: 0.06,
+        // Stone Edge: spikes erupting along a line.
+        edgeN: 4,
+        edgeGap: 24,
+        edgeEvery: 4,
+      },
+      scizor: {
+        pref: 20,
+        // Bullet Punch: three stored charges, each refilling on its own.
+        bpMax: 3,
+        bpRecharge: 78,
+        bpStart: 2,
+        bpDash: 6,
+        bpSpeed: 7,
+        bpDmg: 14,
+        bpKb: 2.4,
+        bpRec: 9,
+        // U-turn: dash through, then hop back out (or tag out).
+        utWind: 6,
+        utDash: 12,
+        utSpeed: 6.5,
+        utDmg: 30,
+        utKb: 4.6,
+        utBack: 16,
+        utBackSpeed: 5,
+        utRec: 16,
+        utRefund: 0.4,
+        // Technician: moves this weak or weaker hit 30% harder.
+        techMax: 24,
+        tech: 1.3,
+      },
+      tyrantrum: {
+        pref: 18,
+        strongJaw: 1.25,
+        // Crunch: a lunging bite that grabs through guard.
+        crWind: 12,
+        crLunge: 6,
+        crSpeed: 5,
+        crReach: 24,
+        crHold: 34,
+        crShake: 9,
+        crThrow: 30,
+        crThrowKb: 7.4,
+        crWhiff: 26,
+        // Rock Slide: three boulders around the target, with a shadow warning.
+        rsCast: 16,
+        rsDelay: 38,
+        rsSpread: 30,
+        rsR: 16,
+        rsDmg: 26,
+        rsKb: 4,
+      },
+      golurk: {
+        pref: 26,
+        ironFist: 1.2,
+        // Shadow Punch: a rocket fist that homes in and passes through cover.
+        spWind: 14,
+        spSpeed0: 1.6,
+        spAccel: 0.14,
+        spSpeed: 5.2,
+        spHome: 0.075,
+        spDmg: 30,
+        spKb: 5,
+        spRec: 12,
+        // Fly: blast off, steer the landing spot, crash down.
+        flyWind: 10,
+        flyAir: 38,
+        flyRange: 210,
+        flyStep: 6.5,
+        flyR: 34,
+        flyDmg: 40,
+        flyKb: 6.8,
+        flyRec: 22,
+        daze: 90,
+      },
+      rhyperior: {
+        pref: 70,
+        solidRock: 0.8,
+        // Rock Wrecker: a heavy boulder shot; fired into its own pillar it
+        // shatters into shrapnel.
+        rwWind: 16,
+        rwSpeed: 4.4,
+        rwDmg: 42,
+        rwKb: 6.6,
+        rwRec: 22,
+        shardN: 8,
+        shardDmg: 14,
+        // Rock Tomb: raise a pillar of cover where you aim.
+        rtWind: 12,
+        rtRange: 150,
+        rtR: 13,
+        rtHp: 70,
+        rtLife: 480,
+        rtMax: 2,
+        rtDmg: 20,
+        rtSlow: 90,
+        rtRec: 14,
+      },
+      froslass: {
+        pref: 48,
+        // Chill stacks slow; three freeze briefly, then frost immunity.
+        chillMax: 3,
+        chillDecay: 150,
+        chillSlow: 0.12,
+        freeze: 42,
+        frostImm: 240,
+        // Icy Wind: a cone gust.
+        iwWind: 10,
+        iwActive: 10,
+        iwRange: 100,
+        iwCone: 0.62,
+        iwDmg: 16,
+        iwKb: 3.6,
+        iwRec: 12,
+        // Double Team: vanish, leave an ice doll, reappear.
+        dtDist: 110,
+        dtVanish: 10,
+        dtRec: 6,
+        dollLife: 100,
+        dollR: 30,
+        dollDmg: 18,
+        // Cursed Body: chance to disable the attacker's specials.
+        curse: 0.3,
+        curseT: 90,
+      },
+      gardevoir: {
+        pref: 90,
+        // Moonblast: a slow fairy orb.
+        mbWind: 12,
+        mbSpeed: 2.8,
+        mbDmg: 32,
+        mbKb: 5,
+        mbRec: 12,
+        // Psychic: lift a foe and throw them; turns shots around.
+        psWind: 10,
+        psRange: 150,
+        psCone: 0.75,
+        psHold: 26,
+        psDmg: 28,
+        psKb: 7.8,
+        psReflectR: 50,
+        psRec: 10,
+        // Future Sight: a delayed blast.
+        fsDelay: 64,
+      },
+      metagross: {
+        pref: 20,
+        // Zen Headbutt: a lunging headbutt that can flinch.
+        zhWind: 10,
+        zhDash: 12,
+        zhSpeed: 7.5,
+        zhDmg: 34,
+        zhKb: 6.2,
+        zhFlinch: 0.3,
+        zhRec: 18,
+        // Magnet Rise: hover over the ground, faster, but unable to guard.
+        mrLift: 8,
+        mrTime: 240,
+        mrSpeed: 1.3,
+        // Hammer Arm lowers Metagross's own speed for a while.
+        hammerT: 150,
+        hammerSpeed: 0.8,
+      },
+    },
+    // The shared "ex" states a CPU should treat as an incoming strike.
+    EX_DANGER = {
+      dig: 34,
+      uturn: 24,
+      crunch: 30,
+      zen: 28,
+      bullet: 20,
+      fly: 40,
+    };
   var qt = [
       {
         react: 32,
@@ -1516,8 +2458,9 @@
             ((this.strafe = r() < 0.5 ? -1 : 1),
             (this.strafeT = 70 + Math.floor(r() * 90)));
         let M = u.horns.filter((N) => N === "loaded").length,
-          P =
-            f === "charizard"
+          P = EXK[f]
+            ? EXK[f].pref
+            : f === "charizard"
               ? u.heat > 78
                 ? 110
                 : 16
@@ -1740,7 +2683,8 @@
               (i.ay = Math.sin(b)),
               i
             );
-          if (f === "charizard")
+          if (EXK[f]) this.exThink(e, t, o, y, b, u, s, r, N, i);
+          else if (f === "charizard")
             y > 55 && y < 120 && u.cdDodge === 0 && u.heat < 70 && r() < 0.35
               ? ((i.mx = Math.cos(b)),
                 (i.my = Math.sin(b)),
@@ -1926,8 +2870,186 @@
         }
         return i;
       }
+      // CPU play for the second-generation kits. e: engine, t: this fighter,
+      // o: target, y: distance, b: angle to it, u: slot, s: skill, r: rand,
+      // N: a deliberate mistake this time, i: the input being built.
+      exThink(e, t, o, y, b, u, s, r, N, i) {
+        let f = t.kit.id,
+          los = !e.losBlocked(t.x, t.y, o.x, o.y),
+          op = o.kind === "player" ? o : null,
+          hp = u.hp / u.maxHp,
+          smash = (n) => {
+            (this.smashHold = n), (i.ax = Math.cos(b)), (i.ay = Math.sin(b));
+          },
+          dash = (a) => {
+            u.cdDodge === 0 &&
+              ((i.mx = Math.cos(a)),
+              (i.my = Math.sin(a)),
+              i.pressed.add("dodge"));
+          };
+        if (f === "garchomp") {
+          // Rampage while Outrage lasts; Dig in from range; claw up close.
+          let rage = u.rage > 0;
+          y < 30 || (N && y < 50) || (rage && y < 40)
+            ? i.pressed.add("attack")
+            : u.cdX === 0 && !rage && y < 120 && r() < 0.3
+              ? i.pressed.add("special1")
+              : u.cdY === 0 && y > 70 && y < 280 && r() < 0.4
+                ? (i.pressed.add("special2"),
+                  (this.holdY = Math.round(
+                    me((y - 20) / (t.kit.speed * A.speedScale * 1.55), 14, 60),
+                  )))
+                : y > 50 && y < 110 && r() < 0.14
+                  ? smash(4 + Math.floor(r() * 30))
+                  : y > 50 && y < 130 && r() < (rage ? 0.5 : 0.25) && dash(b);
+        } else if (f === "scizor") {
+          // Bullet Punch is the poke and the punish; U-turn in and out.
+          let bp = e.exBp(u),
+            chain =
+              t.state === "ex" && t.exMove === "bullet" && t.exHit && bp > 0;
+          chain && r() < 0.6
+            ? i.pressed.add("special1")
+            : y < 26 || (N && y < 44)
+              ? r() < 0.25 && bp > 0
+                ? i.pressed.add("special1")
+                : i.pressed.add("attack")
+              : bp > 0 && y < 64 && r() < 0.45
+                ? i.pressed.add("special1")
+                : u.cdY === 0 && y > 24 && y < 96 && r() < 0.35
+                  ? i.pressed.add("special2")
+                  : y > 30 && y < 70 && r() < 0.14
+                    ? smash(4 + Math.floor(r() * 28))
+                    : y > 50 && y < 120 && r() < 0.25 && dash(b);
+        } else if (f === "tyrantrum") {
+          // A guard is an invitation to Crunch. Rock Slide reaches shooters.
+          let guarding =
+            op && (op.state === "guard" || op.state === "withdraw");
+          guarding && u.cdX === 0 && y < 60
+            ? i.pressed.add("special1")
+            : y < 28 || (N && y < 46)
+              ? i.pressed.add("attack")
+              : u.cdX === 0 && y < 46 && r() < 0.3
+                ? i.pressed.add("special1")
+                : u.cdY === 0 && y > 80 && y < 300 && r() < 0.4
+                  ? i.pressed.add("special2")
+                  : y > 40 && y < 120 && r() < 0.12
+                    ? smash(6 + Math.floor(r() * 36))
+                    : y > 60 && y < 140 && r() < 0.18 && dash(b);
+        } else if (f === "golurk") {
+          // Rocket fists from range, Fly in (or out when cornered).
+          let cornered = y < 44 && hp < 0.4;
+          u.cdY === 0 && cornered && r() < 0.25
+            ? i.pressed.add("special2")
+            : y < 30 || (N && y < 48)
+              ? i.pressed.add("attack")
+              : u.cdX === 0 && y > 50 && y < 300 && r() < 0.45
+                ? i.pressed.add("special1")
+                : u.cdY === 0 && y > 110 && y < 220 && r() < 0.25
+                  ? i.pressed.add("special2")
+                  : y > 30 &&
+                    y < 90 &&
+                    r() < 0.12 &&
+                    smash(6 + Math.floor(r() * 40));
+        } else if (f === "rhyperior") {
+          // Wall them in with Rock Tomb, then Rock Wrecker down the lane.
+          let mine = e.rocks.filter((k) => k.exPillar && k.owner === t),
+            shatter = mine.find(
+              (k) =>
+                Math.hypot(k.x - o.x, k.y - o.y) < 44 &&
+                Math.abs($e(Math.atan2(k.y - t.y, k.x - t.x), b)) < 0.5,
+            );
+          u.cdX === 0 && shatter && r() < 0.6
+            ? i.pressed.add("special1")
+            : y < 32 || (N && y < 50)
+              ? i.pressed.add("attack")
+              : u.cdY === 0 && y > 50 && y < 150 && r() < 0.3
+                ? i.pressed.add("special2")
+                : u.cdX === 0 && los && y > 50 && y < 300 && r() < 0.45
+                  ? i.pressed.add("special1")
+                  : y > 40 &&
+                    y < 110 &&
+                    r() < 0.1 &&
+                    smash(6 + Math.floor(r() * 36));
+        } else if (f === "froslass") {
+          // Stack chill with Icy Wind, finish the freeze up close, and
+          // Double Team out when it goes wrong.
+          let chilled = op && (op.chill ?? 0) >= 2,
+            frozen = op && (op.frozenT ?? 0) > 0;
+          frozen && y < 60
+            ? y < 30
+              ? i.pressed.add("attack")
+              : smash(2 + Math.floor(r() * 8))
+            : u.cdY === 0 && y < 40 && hp < 0.5 && r() < 0.2
+              ? (i.held.delete("lock"),
+                (i.mx = -Math.cos(b)),
+                (i.my = -Math.sin(b)),
+                i.pressed.add("special2"))
+              : u.cdX === 0 && y < 100 && r() < 0.45
+                ? i.pressed.add("special1")
+                : chilled && y < 40
+                  ? i.pressed.add("attack")
+                  : y < 26 || (N && y < 42)
+                    ? i.pressed.add("attack")
+                    : y > 60 && y < 190 && los && r() < 0.14
+                      ? smash(4 + Math.floor(r() * 30))
+                      : y > 60 && y < 130 && r() < 0.18 && dash(b);
+        } else if (f === "gardevoir") {
+          // Keep away: Moonblast, Future Sight ahead of them, Psychic throws.
+          let shots = e.projectiles.some(
+            (p) =>
+              p.team !== t.team &&
+              !p.dead &&
+              Math.hypot(p.x - t.x, p.y - t.y) < 60,
+          );
+          (shots || y < 120) && u.cdY === 0 && r() < (shots ? 0.5 : 0.25)
+            ? i.pressed.add("special2")
+            : y < 26 && u.cdDodge === 0 && r() < 0.35
+              ? dash(b + Math.PI + (r() < 0.5 ? 0.7 : -0.7))
+              : y < 28 || (N && y < 44)
+                ? i.pressed.add("attack")
+                : u.cdX === 0 && los && y > 50 && y < 300 && r() < 0.5
+                  ? i.pressed.add("special1")
+                  : y > 70 &&
+                    y < 170 &&
+                    r() < 0.14 &&
+                    smash(
+                      10 +
+                        Math.round(me((y - 60) / 110, 0, 1) * 44) +
+                        Math.floor(r() * 4),
+                    );
+        } else if (f === "metagross") {
+          // Magnet Rise to get moving, Zen Headbutt in, brawl, Hammer Arm.
+          u.cdY === 0 && !(u.riseT > 0) && (y > 120 || r() < 0.06)
+            ? i.pressed.add("special2")
+            : y < 30 || (N && y < 48)
+              ? i.pressed.add("attack")
+              : u.cdX === 0 && y > 40 && y < 110 && r() < 0.4
+                ? i.pressed.add("special1")
+                : y > 30 && y < 80 && r() < 0.12
+                  ? smash(6 + Math.floor(r() * 36))
+                  : y > 60 && y < 140 && r() < 0.2 && dash(b);
+        }
+      }
       threat(e, t, s, i) {
         let r = Math.atan2(t.y - s.y, t.x - s.x);
+        if (
+          s.kind === "player" &&
+          s.state === "ex" &&
+          s.exDanger &&
+          i < s.exDanger + t.hurtR + 12
+        )
+          return { dir: r, melee: !0, projectile: !1 };
+        for (let q of e.exq)
+          if (
+            q.team !== t.team &&
+            q.at - e.tick < 22 &&
+            Math.hypot(q.x - t.x, q.y - t.y) < q.r + t.hurtR + 6
+          )
+            return {
+              dir: Math.atan2(t.y - q.y, t.x - q.x),
+              melee: !1,
+              projectile: !0,
+            };
         if (s.kind === "player") {
           let o = s;
           if (o.state === "attack") {
@@ -2316,6 +3438,48 @@
       dashDmg: 30,
       dashRange: 220,
     },
+    // Groudon's Precipice Blades: three rings of blades erupt outward from
+    // the aim point, a beat apart; then Drought leaves the centre scorched.
+    GROUDON = {
+      r1: 46,
+      r2: 86,
+      r3: 124,
+      warn: 34,
+      gap: 14,
+      dmg: 34,
+      kb: 7.2,
+      scorchR: 46,
+      scorchT: 240,
+      scorchDmg: 8,
+      every: 30,
+    },
+    // Rayquaza's Dragon Ascent: marks up to three foes, nearest the aim
+    // first, and dives on each in turn. Each dive locks shortly before it hits.
+    RAYQUAZA = {
+      targets: 3,
+      range: 420,
+      mark: 26,
+      lock: 7,
+      dive: 10,
+      r: 26,
+      dmg: 42,
+      kb: 8.4,
+    },
+    // Ho-Oh's Sacred Fire: heals and cleanses its caller's side (Rebirth also
+    // revives a fainted Tag Team partner), rolls out a ring of fire, then
+    // keeps a ring of fire around its caller that burns foes inside.
+    HOOH = {
+      heal: 0.25,
+      revive: 0.3,
+      ringT: 16,
+      ringR: 96,
+      dmg: 30,
+      kb: 6.4,
+      wallT: 210,
+      wallR: 70,
+      wallDmg: 10,
+      every: 30,
+    },
     // Final Smash beats. Calling freezes the battle for `intro` ticks of
     // spectacle. A summon whose opening hit lands freezes it again and plays
     // a scene on everyone it caught: small hits on the `hits` beats, then the
@@ -2323,6 +3487,22 @@
     // by Forme for Deoxys.
     ULT = { intro: 42 },
     CINE = {
+      groudon: {
+        len: 124,
+        hits: [26, 44, 62, 80],
+        dmg: 12,
+        fin: 98,
+        finDmg: 70,
+        finKb: 11,
+      },
+      rayquaza: {
+        len: 120,
+        hits: [20, 32, 44, 56, 68],
+        dmg: 10,
+        fin: 92,
+        finDmg: 72,
+        finKb: 11,
+      },
       zekrom: {
         len: 128,
         hits: [28, 42, 56, 70],
@@ -2374,9 +3554,18 @@
       },
     },
     cineKey = (a) => (a.kind === "deoxys" ? (a.form ?? "normal") : a.kind),
-    LEGENDS = ["zekrom", "darkrai", "deoxys"],
-    // The legendary tile on team select cycles these (then Off).
-    LG_PICKS = ["zekrom", "darkrai", "deoxys", "random"],
+    LEGENDS = ["zekrom", "darkrai", "deoxys", "groudon", "rayquaza", "hooh"],
+    // The saved legendary choice indexes this list (new ones are appended,
+    // so an older save keeps its pick).
+    LG_PICKS = [
+      "zekrom",
+      "darkrai",
+      "deoxys",
+      "random",
+      "groudon",
+      "rayquaza",
+      "hooh",
+    ],
     lgRoll = () => LEGENDS[Math.floor(Math.random() * LEGENDS.length)],
     // An unbiased shuffle (Fisher-Yates). Sorting with a random comparator
     // keeps the roster's order more often than not, which made random picks
@@ -2546,6 +3735,70 @@
   TX.GRASS.POISON = -1;
   TX.FIGHTING.POISON = -1;
   TX.ELECTRIC.FLYING = 1;
+  // The second-generation types, as mild as the rest of the chart.
+  Object.assign(TX, {
+    ICE: {
+      DRAGON: 1,
+      GRASS: 1,
+      FLYING: 1,
+      GROUND: 1,
+      FIRE: -1,
+      WATER: -1,
+      STEEL: -1,
+      ICE: -1,
+    },
+    ROCK: {
+      FIRE: 1,
+      FLYING: 1,
+      ICE: 1,
+      BUG: 1,
+      FIGHTING: -1,
+      GROUND: -1,
+      STEEL: -1,
+    },
+    GROUND: {
+      FIRE: 1,
+      ELECTRIC: 1,
+      POISON: 1,
+      ROCK: 1,
+      STEEL: 1,
+      GRASS: -1,
+      BUG: -1,
+      FLYING: -1,
+    },
+    PSYCHIC: { FIGHTING: 1, POISON: 1, PSYCHIC: -1, STEEL: -1, DARK: -1 },
+    FAIRY: { DRAGON: 1, FIGHTING: 1, DARK: 1, FIRE: -1, POISON: -1, STEEL: -1 },
+    BUG: {
+      GRASS: 1,
+      PSYCHIC: 1,
+      DARK: 1,
+      FIRE: -1,
+      FIGHTING: -1,
+      FLYING: -1,
+      GHOST: -1,
+      STEEL: -1,
+      POISON: -1,
+      FAIRY: -1,
+    },
+    DARK: { PSYCHIC: 1, GHOST: 1, FIGHTING: -1, DARK: -1, FAIRY: -1 },
+  });
+  Object.assign(TX.FIRE, { ICE: 1, BUG: 1, ROCK: -1 });
+  Object.assign(TX.WATER, { GROUND: 1, ROCK: 1 });
+  Object.assign(TX.GRASS, { GROUND: 1, ROCK: 1, BUG: -1 });
+  Object.assign(TX.ELECTRIC, { GROUND: -1 });
+  Object.assign(TX.FIGHTING, {
+    ICE: 1,
+    ROCK: 1,
+    DARK: 1,
+    PSYCHIC: -1,
+    BUG: -1,
+    FAIRY: -1,
+  });
+  Object.assign(TX.FLYING, { BUG: 1, ROCK: -1 });
+  Object.assign(TX.GHOST, { PSYCHIC: 1, GHOST: 1, DARK: -1 });
+  Object.assign(TX.POISON, { FAIRY: 1, GROUND: -1, ROCK: -1 });
+  Object.assign(TX.STEEL, { ICE: 1, ROCK: 1, FAIRY: 1 });
+  Object.assign(TX.DRAGON, { FAIRY: -1 });
   function Ua(a, e) {
     let t = TX[a]?.[e];
     if (t) return t > 0 ? yt.strong : yt.weak;
@@ -2731,6 +3984,7 @@
           : (this.state === "flySlam" && this.t < 5) ||
               this.state === "faint" ||
               this.state === "summon" ||
+              (this.state === "ex" && this.exInv) ||
               this.state === "phantom" ||
               this.state === "counter" ||
               (this.state === "pfStrike" && this.t < 3) ||
@@ -2740,6 +3994,11 @@
       get vanished() {
         return (
           this.state === "phantom" ||
+          (this.state === "ex" && this.exHidden) ||
+          (this.state === "dodge" &&
+            this.kit.dodge.kind === "blink" &&
+            this.t >= 2 &&
+            this.t <= 5) ||
           (this.state === "dodge" &&
             this.kit.dodge.kind === "phantom" &&
             this.t >= 2 &&
@@ -2757,6 +4016,7 @@
       }
       get armorBudget() {
         if (this.state === "withdraw") return 1 / 0;
+        if (this.state === "ex") return this.exArmor ?? 0;
         if (this.state === "spin") return this.t < 42 ? 1 : 0;
         if (this.state === "dodge" && this.kit.dodge.kind === "shell") return 1;
         if (this.state === "attack") {
@@ -2785,6 +4045,7 @@
         return (
           this.state === "flyUp" ||
           (this.state === "flySlam" && this.t < 6) ||
+          (this.state === "ex" && this.exAir) ||
           this.state === "launched"
         );
       }
@@ -2939,6 +4200,9 @@
         this.icicles = [];
         this.drops = [];
         this.summons = [];
+        this.exq = [];
+        this.exDone = [];
+        this.dolls = [];
         this.surge = null;
         this.surgeT = SURGE.first;
         this.arc = null;
@@ -3060,6 +4324,9 @@
           (this.arcT = PLANT.cycle / 2),
           (this.drops = []),
           (this.summons = []),
+          (this.exq = []),
+          (this.exDone = []),
+          (this.dolls = []),
           (this.surge = null),
           (this.surgeT = SURGE.first),
           (this.arcPair = 0),
@@ -3243,7 +4510,7 @@
         for (let s of this.players)
           s.team !== e &&
             !s.invincible &&
-            (!s.airborne || (seek && s.state === "flyUp")) &&
+            (!s.airborne || (seek && (s.state === "flyUp" || s.exAir))) &&
             t.push(s);
         for (let s of this.dummies)
           s.team !== e && this.canBeHit(s) && t.push(s);
@@ -3289,6 +4556,7 @@
         for (let i of this.dummies) this.updateDummy(i);
         this.updateProjectiles(),
           this.updateSummons(),
+          this.exUpdate(),
           this.updateDreepy(),
           this.updateGround(),
           this.updateArena(),
@@ -3442,10 +4710,10 @@
         e.t++;
         let h = this.intro <= 20 && this.match.phase === "fight",
           c =
-            (e.seededT > 0 ? 0.5 : 1) *
-            (e.dazeT > 0 ? 0.65 : 1) *
+            (e.seededT > 0 && !s.clearBody ? 0.5 : 1) *
+            (e.dazeT > 0 && !s.clearBody ? 0.65 : 1) *
             (e.paraT > 0 ? 0.45 : 1) *
-            (e.magT > 0 ? MAGNE.pullSlow : 1),
+            (e.magT > 0 && !s.clearBody ? MAGNE.pullSlow : 1),
           y = t.mx * c,
           b = t.my * c,
           p = Math.hypot(t.mx, t.my),
@@ -3456,6 +4724,7 @@
           this.tickFaint(e);
           return;
         }
+        this.exTick(e);
         if (s.id === "venusaur") {
           let v = p < 0.25 && e.state !== "dodge" && e.state !== "hurt";
           e.stillT = v ? e.stillT + 1 : 0;
@@ -3486,6 +4755,7 @@
             "getup",
             "smashCharge",
             "smash",
+            "ex",
           ].includes(e.state);
         if (
           f("legend") &&
@@ -3502,6 +4772,7 @@
             "switchIn",
             "overheat",
             "summon",
+            "ex",
           ].includes(e.state)
         ) {
           u("legend"), this.callLegend(e, P);
@@ -3542,6 +4813,7 @@
             "smashCharge",
             "smash",
             "guardEnd",
+            "ex",
           ].includes(e.state) ||
           (e.state === "hurt" && e.t < A.hitstunDodgeCancel) ||
           (e.state === "switchIn" && e.t < 4);
@@ -3586,7 +4858,7 @@
               u("guard"), this.startWithdraw(e);
               break;
             }
-            if (t.held.has("guard") && e.state === "move") {
+            if (t.held.has("guard") && e.state === "move" && !(i.riseT > 0)) {
               u("guard"), this.startGuard(e);
               break;
             }
@@ -3624,6 +4896,9 @@
               (e.prevMoveAngle = k));
             break;
           }
+          case "ex":
+            this.tickEx(e, P, y, b, p, k);
+            break;
           case "attack":
             this.tickAttack(e, P, p);
             break;
@@ -4010,6 +5285,7 @@
           (this.fireLegend(s), (e.state = "move"), (e.t = 0));
       }
       fireLegend(e) {
+        if (LG_SCALE[e.kind]) return this.exFireLegend(e);
         let t = e.owner;
         if (e.kind === "darkrai")
           Object.assign(e, {
@@ -4255,11 +5531,23 @@
             this.tickCine(e);
             continue;
           }
-          if (e.caught.length && !e.cined) {
+          // Rayquaza finishes its dives before the scene starts.
+          if (
+            e.caught.length &&
+            !e.cined &&
+            !(
+              e.kind === "rayquaza" &&
+              (e.phase === "mark" || e.phase === "dive")
+            )
+          ) {
             this.startCine(e);
             continue;
           }
           e.t++;
+          if (LG_SCALE[e.kind]) {
+            this.exLegend(e);
+            continue;
+          }
           if (e.kind === "darkrai") {
             if (e.phase === "warn")
               (e.alpha = Math.min(1, e.t / 10)),
@@ -4622,6 +5910,7 @@
             melee: !0,
             hex: r.hex,
             burns: r.fang,
+            chill: r.chill,
           });
         }
         if (e.t > r.startup + r.active && e.swingHit) {
@@ -4731,7 +6020,14 @@
               1 - Math.min(1, c / o.ticks),
               o.kind === "shell" ? 1.6 : 2.4,
             ),
-          h = e.t <= o.ticks ? f * (u(e.t) - u(e.t - 1)) : 0;
+          h =
+            o.kind === "blink"
+              ? e.t === 4
+                ? f
+                : 0
+              : e.t <= o.ticks
+                ? f * (u(e.t) - u(e.t - 1))
+                : 0;
         if (
           (this.moveBody(e, Math.cos(e.dodgeDir) * h, Math.sin(e.dodgeDir) * h),
           (o.kind === "air" || o.kind === "rise" || o.kind === "bounce") &&
@@ -5090,7 +6386,8 @@
           });
         }
         s.proj && e.t === r + 1 && this.fireAirSlash(e, i);
-        if (!s.proj && e.t > r && e.t <= r + s.active) {
+        e.kit.ex && e.t === r + 1 && this.exSmashFire(e, i);
+        if (!s.proj && !s.custom && e.t > r && e.t <= r + s.active) {
           let bm = s.beam
               ? this.beamEnd(
                   e.x + o * 10,
@@ -5146,6 +6443,8 @@
             poison: s.poison,
             burns: !!s.blitz,
             smash: Math.max(0.01, i),
+            chill: s.chill,
+            daze: s.daze ? EXK.golurk.daze : 0,
           });
         }
         e.t >= r + s.active + s.recovery + (e.swingHit ? 0 : ae.whiffLag) &&
@@ -5153,6 +6452,17 @@
           this.locomote(e, 0, 0);
       }
       startSpecial(e, t, s) {
+        if (e.kit.ex)
+          return (
+            (e.t = 0),
+            (e.dir2 = s),
+            (e.facing = s),
+            (e.moveId = this.nextId++),
+            (e.combo = 0),
+            (e.mvx *= 0.4),
+            (e.mvy *= 0.4),
+            this.exStart(e, t, s)
+          );
         let i = e.kit,
           r = e.slot;
         if (
@@ -6705,7 +8015,9 @@
       paralyze(e) {
         e.kind === "player" &&
           e.state !== "faint" &&
-          ((e.paraT = MAGNE.para), this.emit({ type: "paralyzed", who: e }));
+          ((e.paraT = MAGNE.para),
+          this.emit({ type: "paralyzed", who: e }),
+          this.exSync(e, "para", this.hitBy));
       }
       // Conductor: electric damage in water charges the whole puddle for a while.
       electrify(e, t, s) {
@@ -7137,7 +8449,8 @@
             i.speed *
             A.speedScale *
             (e.scarfT > 0 ? SCARF.speed : 1) *
-            (e.apT > 0 ? RUINS.apSpeed : 1);
+            (e.apT > 0 ? RUINS.apSpeed : 1) *
+            this.exSpeed(e);
         i.id === "blastoise" &&
           this.inPuddle(e.x, e.y, e.team, !0) &&
           (r *= 1.35),
@@ -7212,6 +8525,9 @@
                 (e.lastStepFrame = r),
                 (e.animFrame = r);
             } else e.animName = "Idle";
+            break;
+          case "ex":
+            (e.animName = e.exAnim ?? "Idle"), (e.animFrame = e.exFrame ?? -1);
             break;
           case "attack":
             (e.animName = t.basic()[e.combo].anim), (e.animFrame = -2);
@@ -7560,7 +8876,7 @@
                 : Math.floor(e.t / 3) % 8),
             (e.t === 14 || e.t === 20) &&
               this.launchDreepy(e, t, null, e.t === 14 ? 0 : 1, !0, s);
-        }
+        } else e.kit.ex && this.exAssist(e, t, s);
         e.t === 52 && this.emit({ type: "assistOut", who: e }),
           e.t >= 60 && (e.done = !0);
       }
@@ -7793,6 +9109,7 @@
           e.kind === "player" &&
           (e.airborne ||
             e.kit.flier ||
+            (e.slot.riseT ?? 0) > 0 ||
             e.state === "faint" ||
             (e.state === "dodge" &&
               (e.kit.dodge.kind === "air" || e.kit.dodge.kind === "rise")))
@@ -8393,7 +9710,8 @@
               (() => {
                 let o =
                   r && (r.kind === "player" ? r : (r.summoner ?? r.owner));
-                o &&
+                !e.exPillar &&
+                  o &&
                   o.kind === "player" &&
                   ((o.apT = RUINS.apTicks),
                   this.emit({ type: "ancientPower", who: o }));
@@ -8443,6 +9761,8 @@
             let s = t.basic()[e.combo];
             return e.t > s.startup + s.active;
           }
+          case "ex":
+            return !!e.exRec;
           case "smash":
             return e.t > 2 + (t.smash.leap ? t.smash.leap.air : t.smash.active);
           case "boomFire":
@@ -8727,7 +10047,8 @@
             (e.kind === "leaf" ||
               e.kind === "wisp" ||
               e.kind === "zap" ||
-              e.kind === "aura") &&
+              e.kind === "aura" ||
+              e.exHome) &&
             e.target &&
             e.age > 4 &&
             this.targetsFor(e.team).includes(e.target)
@@ -8740,6 +10061,7 @@
               );
             (e.vx = Math.cos(s) * t), (e.vy = Math.sin(s) * t);
           }
+          e.ex && this.exProjTick(e);
           if (
             ((e.x += e.vx),
             (e.y += e.vy),
@@ -8788,6 +10110,7 @@
                 (e.hits.push(t), this.hitRock(t, e.dmg, e.x, e.y, e.owner));
           }
           let rk =
+            !e.ghost &&
             e.kind !== "wisp" &&
             e.kind !== "yawn" &&
             e.kind !== "airslash" &&
@@ -8797,6 +10120,7 @@
                 Math.hypot(t.x - e.x, t.y - e.y) < t.r + e.r,
             );
           if (rk) {
+            e.ex && this.exProjRock(e, rk);
             this.hitRock(rk, e.dmg, e.x, e.y, e.owner),
               (e.dead = !0),
               this.emit({ type: "projDie", p: e, wall: !0 });
@@ -8938,6 +10262,7 @@
               ));
             let h = !!e.hex && (t.burnT ?? 0) > 0,
               hp0 = t.kind === "player" ? t.slot.hp : 0;
+            e.mtype && (this.moveType = e.mtype);
             if (
               (this.applyHit(
                 t,
@@ -8985,7 +10310,10 @@
                 !!e.pierceGuard,
                 e.smash ?? 0,
               ),
-              (e.poison && this.poison(t),
+              (e.mtype && (this.moveType = null),
+              (e.chill || e.daze || e.flinch || e.exTag) &&
+                this.exOnHit(e, t, t.kind !== "player" || t.slot.hp < hp0),
+              e.poison && this.poison(t),
               e.burns && this.burn(t),
               e.sleep &&
                 t.kind === "player" &&
@@ -9079,7 +10407,11 @@
                 if (
                   i.invincible ||
                   (i.airborne &&
-                    !(i.state === "flyUp" && e.target && (e.homing ?? 0) > 0))
+                    !(
+                      (i.state === "flyUp" || i.exAir) &&
+                      e.target &&
+                      (e.homing ?? 0) > 0
+                    ))
                 ) {
                   e.dodged ||
                     ((e.dodged = !0),
@@ -9110,6 +10442,7 @@
               }
               e.pierce ? e.hits.push(t) : (e.dead = !0);
               let s = Math.hypot(e.vx, e.vy) || 1;
+              e.mtype && (this.moveType = e.mtype);
               this.applyHit(
                 t,
                 e.owner,
@@ -9127,6 +10460,8 @@
                 !1,
                 this.srcLabel(e.owner, e.reflected ? "reflect" : e.kind),
               ),
+                (this.moveType = null),
+                e.chill && this.exChill(t, e.chill, e.owner),
                 e.kind === "wisp" && this.burn(t),
                 e.kind === "pulse" && this.soak(t, e.team),
                 e.kind === "zap" && this.paralyze(t),
@@ -9156,7 +10491,9 @@
           this.emit({ type: "burnImmune", who: e });
           return;
         }
-        (e.slot.poisonT = 240), this.emit({ type: "poisoned", who: e });
+        (e.slot.poisonT = 240),
+          this.emit({ type: "poisoned", who: e }),
+          this.exSync(e, "poison", this.hitBy);
       }
       burn(e) {
         if (e.kind === "player") {
@@ -9166,7 +10503,7 @@
             this.emit({ type: "burnImmune", who: e });
             return;
           }
-          t.slot.burnT = he.burn;
+          (t.slot.burnT = he.burn), this.exSync(t, "burn", this.hitBy);
         } else if (e.kind === "dummy") e.burnT = he.burn;
         else return;
         this.emit({ type: "burned", who: e });
@@ -9195,6 +10532,1954 @@
           i * (1 + 0.4 * (s.heat / 100)) * (s.hp < s.maxHp * 0.3 ? 1.3 : 1)
         );
       }
+      // ---- The "ex" move engine ----------------------------------------
+      // Specials for the second-generation kits run in one shared state,
+      // "ex", with the move named in e.exMove. Each move is a small timeline
+      // of windup, action and recovery; flags on the fighter tell the rest of
+      // the engine what is true right now (exInv: untouchable, exAir: in the
+      // air, exHidden: not drawn or targeted, exArmor: hits it can absorb,
+      // exRec: in recovery and punishable, exDanger: radius a CPU should fear).
+      exStart(e, b, s) {
+        let k = e.kit.id,
+          sl = e.slot,
+          c = EXK[k];
+        (e.exMove = null),
+          (e.exHit = !1),
+          (e.exInv = e.exAir = e.exHidden = e.exRec = !1),
+          (e.exArmor = 0),
+          (e.exDanger = 0),
+          (e.armorUsed = 0),
+          (e.exBack = e.exErupt = e.exThrow = 0),
+          (e.exList = []),
+          (e.grab = null);
+        let go = (m, n) => {
+            (e.state = "ex"), (e.exMove = m), (e.exAnim = n), (e.exFrame = 0);
+          },
+          no = () => {
+            (e.state = "move"), (e.t = 0);
+          };
+        switch (k + b) {
+          case "garchompx":
+            if ((sl.confT ?? 0) > 0) return no();
+            go("roar", "RearUp"),
+              (e.exArmor = 1),
+              (sl.cdX = e.kit.xCd),
+              this.emit({ type: "roar", who: e });
+            break;
+          case "garchompy":
+            if ((sl.confT ?? 0) > 0) return no();
+            go("dig", "Charge"),
+              (sl.cdY = e.kit.yCd),
+              this.emit({ type: "digStart", who: e });
+            break;
+          case "scizorx":
+            if (this.exBp(sl) <= 0) return no();
+            this.exUseBp(sl),
+              go("bullet", "Attack"),
+              (e.dir2 = this.aimAssist(e, s, 130)),
+              (e.facing = e.dir2),
+              this.emit({ type: "bulletPunch", who: e, n: this.exBp(sl) });
+            break;
+          case "scizory":
+            go("uturn", "Hop"), (sl.cdY = e.kit.yCd);
+            break;
+          case "tyrantrumx":
+            go("crunch", "Attack"),
+              (sl.cdX = e.kit.xCd),
+              this.emit({ type: "crunchWind", who: e });
+            break;
+          case "tyrantrumy":
+            go("rockslide", "Shoot"), (sl.cdY = e.kit.yCd);
+            break;
+          case "golurkx":
+            go("spunch", "Charge"), (sl.cdX = e.kit.xCd);
+            break;
+          case "golurky": {
+            go("fly", "Charge"), (e.exArmor = 1), (sl.cdY = e.kit.yCd);
+            let tg = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+              ok = tg && Math.hypot(tg.x - e.x, tg.y - e.y) < c.flyRange;
+            (e.markX = me(
+              ok ? tg.x : e.x + Math.cos(s) * 120,
+              B.x0 + 16,
+              B.x1 - 16,
+            )),
+              (e.markY = me(
+                ok ? tg.y : e.y + Math.sin(s) * 120,
+                B.y0 + 14,
+                B.y1 - 10,
+              )),
+              (e.flyX = e.x),
+              (e.flyY = e.y);
+            break;
+          }
+          case "rhyperiorx":
+            go("wrecker", "Charge"), (e.exArmor = 1), (sl.cdX = e.kit.xCd);
+            break;
+          case "rhyperiory":
+            go("tomb", "Attack"), (sl.cdY = e.kit.yCd);
+            break;
+          case "froslassx":
+            go("icywind", "Charge"),
+              (sl.cdX = e.kit.xCd),
+              this.emit({ type: "icyWind", who: e });
+            break;
+          case "froslassy":
+            go("double", "Twirl"),
+              (sl.cdY = e.kit.yCd),
+              (e.exInv = e.exHidden = !0),
+              this.dolls.push({
+                id: this.nextId++,
+                x: e.x,
+                y: e.y,
+                team: e.team,
+                owner: e,
+                life: c.dollLife,
+                facing: e.facing,
+              }),
+              this.emit({ type: "doubleTeam", who: e, x: e.x, y: e.y });
+            break;
+          case "gardevoirx":
+            go("moon", "Charge"), (sl.cdX = e.kit.xCd);
+            break;
+          case "gardevoiry":
+            go("psychic", "SpAttack"),
+              (sl.cdY = e.kit.yCd),
+              this.emit({ type: "psychicWind", who: e });
+            break;
+          case "metagrossx":
+            go("zen", "Charge"), (sl.cdX = e.kit.xCd);
+            break;
+          case "metagrossy":
+            go("rise", "Charge"), (sl.cdY = e.kit.yCd);
+            break;
+          default:
+            no();
+        }
+      }
+      exEnd(e) {
+        (e.state = "move"),
+          (e.t = 0),
+          (e.exMove = null),
+          (e.exInv = e.exAir = e.exHidden = e.exRec = !1),
+          (e.exArmor = 0),
+          (e.exDanger = 0),
+          (e.exBack = e.exErupt = e.exThrow = 0),
+          (e.alpha = 1),
+          e.exZ && ((e.z = 0), (e.exZ = !1)),
+          e.grab && this.exRelease(e);
+      }
+      // Frame `r` ticks apart of animation n, looping or held on the last frame.
+      exFr(e, n, r, l, f = 0) {
+        let u = e.mon.anims[n]?.frames ?? 1,
+          h = Math.floor(Math.max(0, e.t - f) / r);
+        (e.exAnim = n), (e.exFrame = l ? h % u : Math.min(u - 1, h));
+      }
+      exAim(e, P, s) {
+        (e.dir2 = this.aimAssist(e, P, s)), (e.facing = e.dir2);
+      }
+      // One hit from an ex move. Returns whether it did damage.
+      exHit(v, o, dmg, kb, dx, dy, q = {}) {
+        let hp0 = v.kind === "player" ? v.slot.hp : 0;
+        (this.moveType = q.mtype ?? null),
+          this.applyHit(
+            v,
+            o,
+            dmg,
+            kb,
+            dx,
+            dy,
+            !!q.heavy,
+            q.hitstop ?? (q.heavy ? A.hitstopHeavy : A.hitstopLight),
+            q.hitstun ?? (q.heavy ? A.hitstunHeavy : A.hitstunLight),
+            q.color ?? o.kit?.color ?? "#ffffff",
+            q.x ?? v.x,
+            q.y ?? v.y,
+            !!q.stop,
+            !!q.multi,
+            this.srcLabel(o, q.src ?? "ex"),
+            !!q.melee,
+            !!q.pierceGuard,
+          ),
+          (this.moveType = null);
+        let ok = v.kind === "player" ? v.slot.hp < hp0 : !0;
+        return (
+          ok && q.chill && this.exChill(v, q.chill, o),
+          ok &&
+            q.slow &&
+            v.kind === "player" &&
+            (v.tombT = Math.max(v.tombT ?? 0, q.slow)),
+          ok
+        );
+      }
+      // Everyone on team's other side within r of (x, y), pushed outward.
+      exArea(o, team, x, y, r, dmg, kb, q = {}) {
+        let n = 0;
+        for (let v of this.victimsFor(team, !!q.seek)) {
+          if (q.ground && this.floating(v)) continue;
+          if (q.list && q.list.includes(v)) continue;
+          let dx = v.x - x,
+            dy = v.y - y,
+            d = Math.hypot(dx, dy);
+          if (d > r + v.hurtR) continue;
+          q.list && q.list.push(v);
+          let ux = d > 1 ? dx / d : Math.cos(o.facing ?? 0),
+            uy = d > 1 ? dy / d : Math.sin(o.facing ?? 0);
+          this.exHit(v, o, dmg, kb, ux, uy, { ...q, x: v.x, y: v.y }) && n++;
+        }
+        return n;
+      }
+      // A ground hit some ticks from now, drawn as a warning until then.
+      exQueue(q) {
+        this.exq.push({ id: this.nextId++, t0: this.tick, ...q });
+      }
+      exUpdate() {
+        this.hitBy = null;
+        let keep = [];
+        for (let q of this.exq) {
+          if (this.tick < q.at) {
+            keep.push(q);
+            continue;
+          }
+          let o = q.owner;
+          o &&
+            this.exArea(o, q.team, q.x, q.y, q.r, q.dmg, q.kb, {
+              heavy: q.heavy,
+              src: q.src,
+              mtype: q.mtype,
+              ground: q.ground,
+              hitstun: q.hitstun,
+              list: q.list,
+              chill: q.chill,
+              color: q.color,
+            }),
+            this.emit({
+              type: "exBoom",
+              kind: q.kind,
+              x: q.x,
+              y: q.y,
+              r: q.r,
+              who: o,
+            }),
+            this.exDone.push({
+              id: q.id,
+              kind: q.kind,
+              x: q.x,
+              y: q.y,
+              r: q.r,
+              at: this.tick,
+            });
+        }
+        this.exq = keep;
+        this.exDone.length &&
+          (this.exDone = this.exDone.filter((q) => this.tick - q.at < 28));
+        // Froslass's ice dolls burst when a foe comes close, or at the end.
+        let dk = [];
+        for (let d of this.dolls) {
+          d.life--;
+          let near = this.targetsFor(d.team).some(
+            (v) =>
+              v.kind === "player" &&
+              Math.hypot(v.x - d.x, v.y - d.y) < 14 + v.hurtR,
+          );
+          if (near || d.life <= 0) {
+            let c = EXK.froslass;
+            this.exArea(d.owner, d.team, d.x, d.y, c.dollR, c.dollDmg, 4, {
+              src: "icedoll",
+              mtype: "ICE",
+              chill: 1,
+              hitstun: 20,
+              color: "#cfefff",
+            }),
+              this.emit({ type: "dollBurst", x: d.x, y: d.y, who: d.owner });
+          } else dk.push(d);
+        }
+        this.dolls = dk;
+        // Rock Tomb pillars crumble with time; a broken one is gone for good.
+        if (this.rocks.some((r) => r.exPillar)) {
+          for (let r of this.rocks)
+            r.exPillar &&
+              r.state === "solid" &&
+              --r.life <= 0 &&
+              ((r.state = "broken"),
+              this.emit({ type: "pillarCrumble", x: r.x, y: r.y }));
+          this.rocks = this.rocks.filter(
+            (r) => !r.exPillar || r.state === "solid",
+          );
+        }
+      }
+      // Timers every fighter carries: buffs, chill, freeze, curses, grabs.
+      exTick(e) {
+        let X = EXK;
+        for (let s of e.slots) {
+          s.rage > 0 &&
+            --s.rage === 0 &&
+            ((s.confT = X.garchomp.confuse),
+            s === e.slot && this.emit({ type: "confused", who: e }));
+          s.confT > 0 && (s.confT--, (s.cdY = Math.max(s.cdY, s.confT)));
+          s.riseT > 0 &&
+            --s.riseT === 0 &&
+            s === e.slot &&
+            this.emit({ type: "riseEnd", who: e });
+          s.hammerT > 0 && s.hammerT--;
+          if (s.kit.id === "scizor") {
+            let n = this.exBp(s);
+            n < X.scizor.bpMax &&
+              --s.bpT <= 0 &&
+              ((s.bp = n + 1),
+              (s.bpT = s.bp < X.scizor.bpMax ? X.scizor.bpRecharge : 0),
+              s === e.slot && this.emit({ type: "bpReady", who: e, n: s.bp })),
+              (s.cdX = this.exBp(s) > 0 ? 0 : Math.max(1, s.bpT));
+          }
+          s.curseT > 0 &&
+            (s.curseT--,
+            (s.cdX = Math.max(s.cdX, s.curseT)),
+            (s.cdY = Math.max(s.cdY, s.curseT)));
+        }
+        e.chillT > 0 &&
+          --e.chillT === 0 &&
+          e.chill > 0 &&
+          (e.chill--, e.chill > 0 && (e.chillT = X.froslass.chillDecay));
+        e.frozenT > 0 &&
+          (e.state !== "stunned" ? (e.frozenT = 0) : e.frozenT--);
+        e.frostImmT > 0 && e.frostImmT--;
+        e.tombT > 0 && e.tombT--;
+        e.state !== "ex"
+          ? (e.exHidden && (e.alpha = 1),
+            e.exZ && ((e.z = 0), (e.exZ = !1)),
+            (e.exHidden = e.exInv = e.exAir = e.exRec = !1),
+            (e.exArmor = 0),
+            (e.exDanger = 0),
+            e.grab && this.exRelease(e))
+          : e.grab &&
+            e.exMove !== "crunch" &&
+            e.exMove !== "psychic" &&
+            this.exRelease(e);
+        // Held by a grab that has ended: let go.
+        e.heldBy &&
+          (e.heldBy.grab !== e || e.heldBy.state !== "ex") &&
+          ((e.heldBy = null),
+          (e.z = 0),
+          e.state === "stunned" && (e.hitstun = Math.min(e.hitstun, e.t + 6)));
+      }
+      exRelease(e) {
+        let v = e.grab;
+        (e.grab = null),
+          v &&
+            v.heldBy === e &&
+            ((v.heldBy = null),
+            (v.z = 0),
+            v.state === "stunned" &&
+              (v.hitstun = Math.min(v.hitstun, v.t + 6)));
+      }
+      // Movement multiplier from buffs and slows. Clear Body ignores slows.
+      exSpeed(e) {
+        let s = e.slot,
+          X = EXK,
+          m = 1;
+        return (
+          s.rage > 0 && (m *= X.garchomp.rageSpeed),
+          s.confT > 0 && (m *= X.garchomp.confSpeed),
+          s.riseT > 0 && (m *= X.metagross.mrSpeed),
+          s.hammerT > 0 && (m *= X.metagross.hammerSpeed),
+          e.kit.clearBody ||
+            (e.chill > 0 && (m *= 1 - X.froslass.chillSlow * e.chill),
+            e.tombT > 0 && (m *= 0.75)),
+          m
+        );
+      }
+      // Damage multiplier from the attacker's ability and buffs.
+      exOut(t, s, k) {
+        if (!t || t.kind !== "player") return 1;
+        let d = t.kit,
+          X = EXK,
+          m = 1;
+        return (
+          d.technician && s <= X.scizor.techMax && (m *= X.scizor.tech),
+          d.strongJaw &&
+            /:(basic1|basic2|crunch)(-|$)/.test(String(k)) &&
+            (m *= X.tyrantrum.strongJaw),
+          d.ironFist &&
+            /:(basic\d|smash|shadowpunch)(-|$)/.test(String(k)) &&
+            (m *= X.golurk.ironFist),
+          t.slot.rage > 0 && (m *= X.garchomp.rageDmg),
+          m
+        );
+      }
+      // The defender's side: Solid Rock, Rough Skin, Cursed Body, thawing.
+      exTaken(w, t, re, l, k, M) {
+        let X = EXK;
+        w.kit.solidRock && l && (re = Math.round(re * X.rhyperior.solidRock)),
+          w.frozenT > 0 &&
+            ((w.frozenT = 0), this.emit({ type: "thaw", who: w }));
+        if (
+          t &&
+          t.kind === "player" &&
+          t.team !== w.team &&
+          t.slot.hp > 1 &&
+          re > 0
+        ) {
+          if (w.kit.roughSkin && M) {
+            let d = Math.max(1, Math.round(re * X.garchomp.roughSkin));
+            (t.slot.hp = Math.max(1, t.slot.hp - d)),
+              (t.flash = 2),
+              this.emit({ type: "roughSkin", who: t, by: w, dmg: d });
+          }
+          w.kit.cursedBody &&
+            !/:basic\d/.test(String(k)) &&
+            this.rand() < X.froslass.curse &&
+            ((t.slot.curseT = X.froslass.curseT),
+            this.emit({ type: "cursed", who: t, by: w }));
+        }
+        return re;
+      }
+      // Chill: stacks slow you; at three you freeze for a moment, then
+      // frost immunity stops a second freeze straight away.
+      exChill(v, n, by) {
+        if (v.kind !== "player" || v.state === "faint") return;
+        if (v.frostImmT > 0 || v.frozenT > 0) return;
+        let c = EXK.froslass;
+        (v.chill = Math.min(c.chillMax, (v.chill ?? 0) + n)),
+          (v.chillT = c.chillDecay),
+          this.emit({ type: "chill", who: v, n: v.chill });
+        v.chill >= c.chillMax &&
+          ((v.chill = 0),
+          (v.frozenT = c.freeze),
+          (v.frostImmT = c.frostImm),
+          v.heldBy ||
+            ((v.state = "stunned"),
+            (v.t = 0),
+            (v.hitstun = c.freeze),
+            (v.mvx = v.mvy = 0),
+            (v.kvx *= 0.2),
+            (v.kvy *= 0.2),
+            (v.combo = 0),
+            (v.flameEnd = 0)),
+          this.emit({ type: "frozen", who: v })),
+          this.exSync(v, "chill", by);
+      }
+      // Synchronize: a status landed on Gardevoir lands on whoever caused it.
+      exSync(v, kind, by) {
+        if (
+          !v ||
+          v.kind !== "player" ||
+          !v.kit.synchronize ||
+          this.syncing ||
+          !by ||
+          by.kind !== "player" ||
+          by.team === v.team ||
+          by.state === "faint"
+        )
+          return;
+        (this.syncing = !0),
+          kind === "burn"
+            ? this.burn(by)
+            : kind === "poison"
+              ? this.poison(by)
+              : kind === "para"
+                ? ((by.paraT = Math.max(by.paraT ?? 0, 60)),
+                  this.emit({ type: "paralyzed", who: by }))
+                : kind === "chill" && this.exChill(by, 1, null),
+          (this.syncing = !1),
+          this.emit({ type: "synchronize", who: v, to: by });
+      }
+      // Extra effects riding on a hitbox or projectile that connected.
+      exOnHit(h, v, ok) {
+        h.exTag && (h.exTag.exHit = !0);
+        if (!ok || v.kind !== "player") return;
+        h.chill && this.exChill(v, h.chill, h.owner),
+          h.daze &&
+            ((v.dazeT = Math.max(v.dazeT ?? 0, h.daze)),
+            this.emit({ type: "dazed", who: v })),
+          h.flinch &&
+            v.state === "hurt" &&
+            this.rand() < h.flinch &&
+            ((v.hitstun += 18), this.emit({ type: "flinch", who: v }));
+      }
+      exBp(s) {
+        return s.bp ?? EXK.scizor.bpMax;
+      }
+      exUseBp(s) {
+        (s.bp = this.exBp(s) - 1),
+          (s.bpT ?? 0) <= 0 && (s.bpT = EXK.scizor.bpRecharge);
+      }
+      // Smashes with an effect of their own, fired as the swing comes out.
+      exSmashFire(e, i) {
+        let s = e.kit.smash,
+          o = Math.cos(e.atkDir),
+          l = Math.sin(e.atkDir);
+        s.hammer &&
+          ((e.slot.hammerT = EXK.metagross.hammerT),
+          this.emit({ type: "hammerArm", who: e }));
+        if (s.custom === "stoneEdge") {
+          let c = EXK.garchomp,
+            hl = [];
+          for (let k = 0; k < c.edgeN; k++) {
+            let d = 26 + k * (c.edgeGap + 6 * i),
+              x = e.x + o * d,
+              y = e.y + l * d;
+            if (x < B.x0 || x > B.x1 || y < B.y0 || y > B.y1 + 4) break;
+            this.exQueue({
+              kind: "edge",
+              at: this.tick + 2 + k * c.edgeEvery,
+              x,
+              y,
+              r: 13 + 3 * i,
+              dmg: Math.round(s.dmg * (1 + 0.6 * i)),
+              kb: s.kb * (1 + 0.3 * i),
+              heavy: !0,
+              src: "stoneedge",
+              mtype: "ROCK",
+              ground: !0,
+              hitstun: A.hitstunHeavy,
+              list: hl,
+              owner: e,
+              team: e.team,
+              color: "#b8a27a",
+            });
+          }
+        } else if (s.custom === "futureSight") {
+          let d = 60 + 110 * i;
+          this.exQueue({
+            kind: "future",
+            at: this.tick + EXK.gardevoir.fsDelay,
+            x: me(e.x + o * d, B.x0 + 10, B.x1 - 10),
+            y: me(e.y + l * d, B.y0 + 8, B.y1 - 6),
+            r: 30,
+            dmg: Math.round(s.dmg * (1 + 0.4 * i)),
+            kb: s.kb,
+            heavy: !0,
+            src: "futuresight",
+            mtype: "PSYCHIC",
+            hitstun: A.hitstunHeavy,
+            owner: e,
+            team: e.team,
+            color: "#ff8fd8",
+          }),
+            this.emit({ type: "futureSight", who: e });
+        }
+      }
+      // A projectile from an ex move.
+      exProj(e, team, dir, q) {
+        let o = Math.cos(dir),
+          l = Math.sin(dir),
+          sp = q.speed;
+        this.projectiles.push({
+          id: this.nextId++,
+          team,
+          owner: e,
+          x: e.x + o * 14,
+          y: e.y + l * 14,
+          px: e.x,
+          py: e.y,
+          z: q.z ?? 14,
+          pz: q.z ?? 14,
+          vx: o * sp,
+          vy: l * sp,
+          r: q.r,
+          life: q.life,
+          age: 0,
+          dmg: q.dmg,
+          kb: q.kb,
+          hitstun: q.hitstun ?? A.hitstunLight,
+          hitstop: q.hitstop ?? 6,
+          kind: q.kind,
+          color: q.color,
+          heavy: !!q.heavy,
+          ex: !0,
+          mtype: q.mtype,
+          target: q.target ?? null,
+          homing: q.homing,
+          exHome: !!q.homing,
+          ghost: !!q.ghost,
+          accel: q.accel,
+          vmax: q.vmax,
+          chill: q.chill,
+        });
+      }
+      exProjTick(p) {
+        if (p.accel) {
+          let s = Math.hypot(p.vx, p.vy) || 1,
+            n = Math.min(p.vmax, s + p.accel);
+          (p.vx *= n / s), (p.vy *= n / s);
+        }
+        p.kind === "fist" &&
+          p.age % 3 === 0 &&
+          this.emit({ type: "fistTrail", x: p.x, y: p.y });
+      }
+      // A projectile that met cover. Rock Wrecker shatters Rhyperior's own
+      // pillars into shrapnel.
+      exProjRock(p, r) {
+        if (p.kind !== "boulder" || !r.exPillar || r.owner !== p.owner) return;
+        let c = EXK.rhyperior;
+        (r.hp = 0), (r.state = "broken");
+        for (let k = 0; k < c.shardN; k++) {
+          let a = (k / c.shardN) * Math.PI * 2;
+          this.projectiles.push({
+            id: this.nextId++,
+            team: p.team,
+            owner: p.owner,
+            x: r.x + Math.cos(a) * (r.r + 3),
+            y: r.y + Math.sin(a) * (r.r + 3),
+            px: r.x,
+            py: r.y,
+            z: 10,
+            pz: 10,
+            vx: Math.cos(a) * 4.6,
+            vy: Math.sin(a) * 4.6,
+            r: 4,
+            life: 24,
+            age: 0,
+            dmg: c.shardDmg,
+            kb: 2.8,
+            hitstun: 16,
+            hitstop: 4,
+            kind: "shard",
+            color: "#b8a890",
+            ex: !0,
+            mtype: "ROCK",
+            pierce: !0,
+            hits: [],
+          });
+        }
+        this.emit({ type: "pillarShatter", x: r.x, y: r.y, who: p.owner });
+      }
+      tickEx(e, P, mx, my, mag, ang) {
+        switch (((e.exDanger = 0), e.exMove)) {
+          case "roar":
+            return this.exRoar(e);
+          case "dig":
+            return this.exDig(e, mx, my);
+          case "bullet":
+            return this.exBullet(e, P);
+          case "uturn":
+            return this.exUturn(e, P);
+          case "crunch":
+            return this.exCrunch(e, P, mag, ang);
+          case "rockslide":
+            return this.exRockSlide(e, P);
+          case "spunch":
+            return this.exShadowPunch(e, P);
+          case "fly":
+            return this.exFly(e, mx, my, mag);
+          case "wrecker":
+            return this.exWrecker(e, P);
+          case "tomb":
+            return this.exTomb(e, P);
+          case "icywind":
+            return this.exIcyWind(e, P);
+          case "double":
+            return this.exDouble(e, P, mag, ang);
+          case "moon":
+            return this.exMoon(e, P);
+          case "psychic":
+            return this.exPsychic(e, P, mag, ang);
+          case "zen":
+            return this.exZen(e, P);
+          case "rise":
+            return this.exRise(e);
+        }
+        this.exEnd(e);
+      }
+      // Garchomp ------------------------------------------------------------
+      exRoar(e) {
+        this.locomote(e, 0, 0), this.exFr(e, "RearUp", 1.6, !1);
+        e.t >= EXK.garchomp.roar &&
+          ((e.slot.rage = EXK.garchomp.outrage),
+          this.emit({ type: "outrage", who: e }),
+          this.exEnd(e));
+      }
+      exDig(e, mx, my) {
+        let c = EXK.garchomp;
+        if (e.t <= c.digIn) {
+          this.locomote(e, 0, 0), this.exFr(e, "Charge", 2, !0);
+          e.t === c.digIn &&
+            ((e.exInv = e.exHidden = !0),
+            (e.alpha = 0),
+            this.emit({ type: "digIn", who: e, x: e.x, y: e.y }));
+          return;
+        }
+        let u = e.t - c.digIn;
+        if (!e.exErupt) {
+          let sp = e.kit.speed * A.speedScale * c.digSpeed * this.exSpeed(e);
+          (e.mvx = e.mvy = 0),
+            this.moveBody(e, mx * sp, my * sp),
+            e.t % 4 === 0 &&
+              this.emit({ type: "digTrail", who: e, x: e.x, y: e.y }),
+            (e.exDanger = c.digR),
+            ((u >= c.digMin && !e.holdY) || u >= c.digMax) &&
+              ((e.exErupt = e.t),
+              (e.exInv = e.exHidden = !1),
+              (e.alpha = 1),
+              this.exArea(e, e.team, e.x, e.y, c.digR, c.digDmg, c.digKb, {
+                heavy: !0,
+                src: "dig",
+                mtype: "GROUND",
+                ground: !0,
+                hitstun: A.hitstunHeavy,
+              }),
+              this.emit({ type: "digOut", who: e, x: e.x, y: e.y, r: c.digR }));
+          return;
+        }
+        (e.exRec = e.t - e.exErupt > 4),
+          this.locomote(e, 0, 0),
+          this.exFr(e, "Hop", 2, !1, e.exErupt),
+          e.t >= e.exErupt + c.digRec && this.exEnd(e);
+      }
+      // Scizor --------------------------------------------------------------
+      exBullet(e, P) {
+        let c = EXK.scizor,
+          a = c.bpStart,
+          d = a + c.bpDash,
+          o = Math.cos(e.dir2),
+          l = Math.sin(e.dir2);
+        if (e.t <= a) {
+          this.locomote(e, 0, 0), this.exFr(e, "Attack", 1, !1);
+          return;
+        }
+        if (e.t <= d) {
+          e.exHit || this.moveBody(e, o * c.bpSpeed, l * c.bpSpeed),
+            this.exFr(e, "Attack", 1, !1),
+            (e.exDanger = 26),
+            this.hitboxes.push({
+              id: e.moveId,
+              team: e.team,
+              owner: e,
+              shape: {
+                kind: "circle",
+                x: e.x + o * 14,
+                y: e.y + l * 14,
+                r: 12,
+              },
+              dmg: c.bpDmg,
+              kb: c.bpKb,
+              kbMode: "dir",
+              dx: o,
+              dy: l,
+              heavy: !1,
+              hitstop: 4,
+              hitstun: 18,
+              color: "#e9eef8",
+              rehit: 0,
+              attackerStop: !0,
+              reflects: !0,
+              src: "bulletpunch",
+              melee: !0,
+              mtype: "STEEL",
+              exTag: e,
+            }),
+            e.t === a + 1 &&
+              this.emit({ type: "bulletDash", who: e, dx: o, dy: l });
+          return;
+        }
+        (e.exRec = !0), this.locomote(e, 0, 0);
+        if (e.exHit && e.t >= d + 3) {
+          if ((e.buf.special1 ?? 0) > 0 && this.exBp(e.slot) > 0) {
+            (e.buf.special1 = 0), this.startSpecial(e, "x", P);
+            return;
+          }
+          if ((e.buf.attack ?? 0) > 0) {
+            (e.buf.attack = 0), this.startAttack(e, 0, P);
+            return;
+          }
+        }
+        e.t >= d + c.bpRec + (e.exHit ? 0 : 7) && this.exEnd(e);
+      }
+      exUturn(e, P) {
+        let c = EXK.scizor,
+          w = c.utWind,
+          d = w + c.utDash,
+          o = Math.cos(e.dir2),
+          l = Math.sin(e.dir2);
+        if (e.t <= w) {
+          this.locomote(e, 0, 0),
+            e.t <= w - 2 && this.exAim(e, P, 200),
+            this.exFr(e, "Hop", 2, !1);
+          return;
+        }
+        if (!e.exBack) {
+          if (e.t <= d && !e.exHit) {
+            this.moveBody(e, o * c.utSpeed, l * c.utSpeed),
+              this.exFr(e, "Walk", 1, !0),
+              (e.exDanger = 24),
+              this.hitboxes.push({
+                id: e.moveId,
+                team: e.team,
+                owner: e,
+                shape: {
+                  kind: "circle",
+                  x: e.x + o * 6,
+                  y: e.y + l * 6,
+                  r: 15,
+                },
+                dmg: c.utDmg,
+                kb: c.utKb,
+                kbMode: "dir",
+                dx: o,
+                dy: l,
+                heavy: !1,
+                hitstop: 6,
+                hitstun: 22,
+                color: "#9ac83a",
+                rehit: 0,
+                attackerStop: !0,
+                src: "uturn",
+                melee: !0,
+                mtype: "BUG",
+                exTag: e,
+              }),
+              e.t % 2 === 0 &&
+                this.emit({ type: "uturnDash", who: e, dx: o, dy: l });
+            return;
+          }
+          if (e.exHit) {
+            e.slot.cdY = Math.round(e.kit.yCd * (1 - c.utRefund));
+            // In Tag Team, U-turn tags your partner in.
+            let k = e.aliveSlot(1);
+            if (k !== null && e.switchCd === 0) {
+              this.emit({ type: "uturnTag", who: e }), this.doSwitch(e, k, !1);
+              return;
+            }
+            (e.exBack = e.t),
+              (e.exInv = e.exAir = e.exZ = !0),
+              this.emit({ type: "uturnBack", who: e });
+          } else {
+            (e.exRec = !0),
+              this.locomote(e, 0, 0),
+              this.exFr(e, "Idle", 4, !0),
+              e.t >= d + c.utRec && this.exEnd(e);
+            return;
+          }
+        }
+        let q = e.t - e.exBack;
+        if (q <= c.utBack) {
+          this.moveBody(e, -o * c.utBackSpeed, -l * c.utBackSpeed),
+            (e.z = Math.sin((q / c.utBack) * Math.PI) * 14),
+            this.exFr(e, "Hop", 1.6, !1, e.exBack);
+          return;
+        }
+        this.exEnd(e);
+      }
+      // Tyrantrum -----------------------------------------------------------
+      exCrunch(e, P, mag, ang) {
+        let c = EXK.tyrantrum,
+          w = c.crWind,
+          L = w + c.crLunge;
+        if (e.grab) return this.exHold(e, mag, ang);
+        if (e.exThrow) {
+          (e.exRec = !0),
+            this.locomote(e, 0, 0),
+            this.exFr(e, "Swing", 2, !1, e.exThrow),
+            e.t >= e.exThrow + 16 && this.exEnd(e);
+          return;
+        }
+        let o = Math.cos(e.dir2),
+          l = Math.sin(e.dir2);
+        if (e.t <= w) {
+          this.locomote(e, 0, 0),
+            e.t <= w - 4 && this.exAim(e, P, 140),
+            this.exFr(e, "Attack", 4, !1),
+            (e.exDanger = e.t > w - 6 ? 34 : 0);
+          return;
+        }
+        if (e.t <= L) {
+          this.moveBody(e, o * c.crSpeed, l * c.crSpeed),
+            this.exFr(e, "Attack", 1.2, !1, w - 4),
+            (e.exDanger = 30);
+          let jx = e.x + o * 18,
+            jy = e.y + l * 18;
+          for (let v of this.victimsFor(e.team)) {
+            if (Math.hypot(v.x - jx, v.y - jy) > c.crReach * 0.55 + v.hurtR)
+              continue;
+            if (v.kind !== "player" || v.heldBy) {
+              this.exHit(v, e, c.crThrow, c.crThrowKb, o, l, {
+                heavy: !0,
+                src: "crunch",
+                mtype: "DARK",
+                pierceGuard: !0,
+                melee: !0,
+              }),
+                (e.exThrow = e.t);
+              return;
+            }
+            (e.grab = v),
+              (e.grabT = e.t),
+              (v.heldBy = e),
+              (v.state = "stunned"),
+              (v.t = 0),
+              (v.hitstun = 999),
+              (v.mvx = v.mvy = v.kvx = v.kvy = 0),
+              (v.combo = 0),
+              (v.flameEnd = 0),
+              this.emit({ type: "crunch", who: e, v });
+            return;
+          }
+          return;
+        }
+        (e.exRec = !0),
+          this.locomote(e, 0, 0),
+          this.exFr(e, "Idle", 5, !0),
+          e.t >= L + c.crWhiff && this.exEnd(e);
+      }
+      // Crunch's hold: shake them twice, then throw where the stick points.
+      exHold(e, mag, ang) {
+        let c = EXK.tyrantrum,
+          v = e.grab,
+          q = e.t - e.grabT;
+        if (v.state === "faint" || v.heldBy !== e) {
+          this.exRelease(e), (e.exThrow = e.t);
+          return;
+        }
+        this.locomote(e, 0, 0);
+        let o = Math.cos(e.facing),
+          l = Math.sin(e.facing),
+          d = e.r + v.r + 2;
+        (v.x = me(e.x + o * d, B.x0 + v.r, B.x1 - v.r)),
+          (v.y = me(e.y + l * d, B.y0 + v.r, B.y1 - v.r)),
+          (v.state = "stunned"),
+          (v.hitstun = Math.max(v.hitstun, v.t + 8)),
+          (v.mvx = v.mvy = v.kvx = v.kvy = 0),
+          this.exFr(e, "Double", 2, !0, e.grabT);
+        if (q === 8 || q === 20) {
+          this.exHit(v, e, c.crShake, 0.1, o, l, {
+            src: "crunch",
+            mtype: "DARK",
+            multi: !0,
+            hitstun: 40,
+            hitstop: 4,
+            pierceGuard: !0,
+            melee: !0,
+          }),
+            v.state !== "faint" &&
+              ((v.state = "stunned"),
+              (v.t = 0),
+              (v.hitstun = 999),
+              (v.kvx = v.kvy = 0)),
+            this.emit({ type: "crunchShake", who: e, v });
+          return;
+        }
+        if (q >= c.crHold) {
+          let a = mag > 0.3 ? ang : e.facing;
+          (v.heldBy = null),
+            (e.grab = null),
+            v.state === "stunned" && (v.state = "move"),
+            this.exHit(v, e, c.crThrow, c.crThrowKb, Math.cos(a), Math.sin(a), {
+              heavy: !0,
+              src: "crunch",
+              mtype: "DARK",
+              pierceGuard: !0,
+              melee: !0,
+            }),
+            (e.exThrow = e.t),
+            this.emit({
+              type: "crunchThrow",
+              who: e,
+              dx: Math.cos(a),
+              dy: Math.sin(a),
+            });
+        }
+      }
+      exRockSlide(e, P) {
+        let c = EXK.tyrantrum;
+        this.locomote(e, 0, 0), this.exFr(e, "Shoot", 2.5, !1);
+        if (e.t === 10) {
+          let tg = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+            ok = tg && Math.hypot(tg.x - e.x, tg.y - e.y) < 320,
+            x = ok ? tg.x + (tg.mvx ?? 0) * 12 : e.x + Math.cos(P) * 120,
+            y = ok ? tg.y + (tg.mvy ?? 0) * 12 : e.y + Math.sin(P) * 120;
+          (x = me(x, B.x0 + 12, B.x1 - 12)), (y = me(y, B.y0 + 10, B.y1 - 8));
+          let a = Math.atan2(y - e.y, x - e.x) + Math.PI / 2,
+            hl = [];
+          for (let k of [0, -1, 1])
+            this.exQueue({
+              kind: "rock",
+              at: this.tick + c.rsDelay + Math.abs(k) * 6 + (k > 0 ? 3 : 0),
+              x: me(x + Math.cos(a) * k * c.rsSpread, B.x0 + 8, B.x1 - 8),
+              y: me(y + Math.sin(a) * k * c.rsSpread, B.y0 + 6, B.y1 - 4),
+              r: c.rsR,
+              dmg: c.rsDmg,
+              kb: c.rsKb,
+              heavy: !1,
+              src: "rockslide",
+              mtype: "ROCK",
+              ground: !0,
+              hitstun: 24,
+              list: hl,
+              owner: e,
+              team: e.team,
+              color: "#a8916a",
+            });
+          this.emit({ type: "rockSlide", who: e, x, y });
+        }
+        (e.exRec = e.t > 12), e.t >= c.rsCast + 8 && this.exEnd(e);
+      }
+      // Golurk --------------------------------------------------------------
+      exShadowPunch(e, P) {
+        let c = EXK.golurk;
+        this.locomote(e, 0, 0);
+        if (e.t <= c.spWind) {
+          e.t <= c.spWind - 3 && this.exAim(e, P, 280),
+            this.exFr(e, "Charge", 2.4, !0);
+          return;
+        }
+        e.t === c.spWind + 1 &&
+          (this.exProj(e, e.team, e.dir2, {
+            kind: "fist",
+            speed: c.spSpeed0,
+            accel: c.spAccel,
+            vmax: c.spSpeed,
+            r: 9,
+            life: 120,
+            dmg: c.spDmg,
+            kb: c.spKb,
+            heavy: !0,
+            hitstun: 24,
+            hitstop: 8,
+            color: "#8a6be0",
+            mtype: "GHOST",
+            ghost: !0,
+            homing: c.spHome,
+            target: e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+          }),
+          this.emit({
+            type: "shadowPunch",
+            who: e,
+            dx: Math.cos(e.dir2),
+            dy: Math.sin(e.dir2),
+          })),
+          this.exFr(e, "Strike", 1.5, !1, c.spWind),
+          (e.exRec = e.t > c.spWind + 4),
+          e.t >= c.spWind + c.spRec && this.exEnd(e);
+      }
+      exFly(e, mx, my, mag) {
+        let c = EXK.golurk,
+          w = c.flyWind,
+          air = w + c.flyAir;
+        if (e.t <= w) {
+          this.locomote(e, 0, 0), this.exFr(e, "Charge", 2, !0);
+          e.t === w &&
+            ((e.exAir = e.exZ = !0),
+            (e.exArmor = 0),
+            this.emit({ type: "rocketUp", who: e }));
+          return;
+        }
+        if (e.t <= air) {
+          // Steer the landing spot, but never further than the range allows.
+          mag > 0.2 && ((e.markX += mx * 3.4), (e.markY += my * 3.4));
+          let dx = e.markX - e.flyX,
+            dy = e.markY - e.flyY,
+            dd = Math.hypot(dx, dy);
+          dd > c.flyRange &&
+            ((e.markX = e.flyX + (dx / dd) * c.flyRange),
+            (e.markY = e.flyY + (dy / dd) * c.flyRange)),
+            (e.markX = me(e.markX, B.x0 + 16, B.x1 - 16)),
+            (e.markY = me(e.markY, B.y0 + 14, B.y1 - 10));
+          let q = (e.t - w) / c.flyAir,
+            gx = e.markX - e.x,
+            gy = e.markY - e.y,
+            gd = Math.hypot(gx, gy),
+            st = Math.min(gd, c.flyStep);
+          gd > 0.5 && ((e.x += (gx / gd) * st), (e.y += (gy / gd) * st)),
+            (e.mvx = e.mvy = 0),
+            (e.z = Math.sin(q * Math.PI) * 64),
+            this.exFr(e, "Hop", 3, !0),
+            (e.exDanger = e.t > air - 10 ? c.flyR : 0),
+            gd > 0.5 && (e.facing = Math.atan2(gy, gx));
+          if (e.t === air) {
+            (e.x = e.markX),
+              (e.y = e.markY),
+              (e.z = 0),
+              (e.exAir = !1),
+              this.clampToArena(e, !1),
+              this.exArea(e, e.team, e.x, e.y, c.flyR, c.flyDmg, c.flyKb, {
+                heavy: !0,
+                src: "fly",
+                mtype: "GROUND",
+                ground: !0,
+                hitstun: A.hitstunHeavy,
+              }),
+              this.emit({
+                type: "rocketLand",
+                who: e,
+                x: e.x,
+                y: e.y,
+                r: c.flyR,
+              });
+          }
+          return;
+        }
+        (e.exRec = !0),
+          this.locomote(e, 0, 0),
+          this.exFr(e, "Hop", 2, !1, air),
+          e.t >= air + c.flyRec && this.exEnd(e);
+      }
+      // Rhyperior -----------------------------------------------------------
+      exWrecker(e, P) {
+        let c = EXK.rhyperior;
+        this.locomote(e, 0, 0);
+        if (e.t <= c.rwWind) {
+          e.t <= c.rwWind - 4 && this.exAim(e, P, 300),
+            this.exFr(e, "Charge", 2.5, !0);
+          return;
+        }
+        e.t === c.rwWind + 1 &&
+          ((e.exArmor = 0),
+          this.exProj(e, e.team, e.dir2, {
+            kind: "boulder",
+            speed: c.rwSpeed,
+            r: 10,
+            life: 100,
+            dmg: c.rwDmg,
+            kb: c.rwKb,
+            heavy: !0,
+            hitstun: 26,
+            hitstop: 10,
+            color: "#a08f7a",
+            mtype: "ROCK",
+          }),
+          (e.kvx -= Math.cos(e.dir2) * 1.6),
+          (e.kvy -= Math.sin(e.dir2) * 1.6),
+          this.emit({
+            type: "rockWrecker",
+            who: e,
+            dx: Math.cos(e.dir2),
+            dy: Math.sin(e.dir2),
+          })),
+          this.exFr(e, "Shoot", 2, !1, c.rwWind),
+          (e.exRec = e.t > c.rwWind + 2),
+          e.t >= c.rwWind + c.rwRec && this.exEnd(e);
+      }
+      exTomb(e, P) {
+        let c = EXK.rhyperior;
+        this.locomote(e, 0, 0), this.exFr(e, "Attack", 2.2, !1);
+        if (e.t === c.rtWind) {
+          let tg = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+            ok = tg && Math.hypot(tg.x - e.x, tg.y - e.y) < c.rtRange,
+            x = me(ok ? tg.x : e.x + Math.cos(P) * 90, B.x0 + 18, B.x1 - 18),
+            y = me(ok ? tg.y : e.y + Math.sin(P) * 90, B.y0 + 16, B.y1 - 10);
+          // Anyone on the spot is battered and slowed (Rock Tomb lowers Speed).
+          this.exArea(e, e.team, x, y, c.rtR + 4, c.rtDmg, 4.2, {
+            src: "rocktomb",
+            mtype: "ROCK",
+            ground: !0,
+            hitstun: 20,
+            slow: c.rtSlow,
+          });
+          let mine = this.rocks.filter(
+            (r) => r.exPillar && r.owner === e && r.state === "solid",
+          );
+          mine.length >= c.rtMax &&
+            ((mine[0].state = "broken"),
+            this.emit({ type: "pillarCrumble", x: mine[0].x, y: mine[0].y })),
+            this.rocks.push({
+              id: this.nextId++,
+              x,
+              y,
+              r: c.rtR,
+              hp: c.rtHp,
+              max: c.rtHp,
+              state: "solid",
+              t: 1e9,
+              hitT: 0,
+              exPillar: !0,
+              owner: e,
+              team: e.team,
+              life: c.rtLife,
+            }),
+            this.emit({ type: "rockTomb", who: e, x, y });
+        }
+        (e.exRec = e.t > c.rtWind), e.t >= c.rtWind + c.rtRec && this.exEnd(e);
+      }
+      // Froslass ------------------------------------------------------------
+      exIcyWind(e, P) {
+        let c = EXK.froslass,
+          w = c.iwWind,
+          a = w + c.iwActive;
+        this.locomote(e, 0, 0);
+        if (e.t <= w) {
+          this.exAim(e, P, 150), this.exFr(e, "Charge", 2, !0);
+          return;
+        }
+        if (e.t <= a) {
+          this.exFr(e, "Shoot", 2, !1, w),
+            (e.exDanger = c.iwRange * 0.7),
+            e.t % 2 === 0 &&
+              this.emit({
+                type: "icyGust",
+                who: e,
+                dx: Math.cos(e.dir2),
+                dy: Math.sin(e.dir2),
+              });
+          for (let v of this.victimsFor(e.team)) {
+            if (e.exList.includes(v)) continue;
+            let dx = v.x - e.x,
+              dy = v.y - e.y,
+              d = Math.hypot(dx, dy);
+            if (d > c.iwRange * Math.min(1, (e.t - w) / 5) + v.hurtR) continue;
+            if (Math.abs($e(Math.atan2(dy, dx), e.dir2)) > c.iwCone) continue;
+            e.exList.push(v),
+              this.exHit(
+                v,
+                e,
+                c.iwDmg,
+                c.iwKb,
+                Math.cos(e.dir2),
+                Math.sin(e.dir2),
+                {
+                  src: "icywind",
+                  mtype: "ICE",
+                  chill: 1,
+                  hitstun: 18,
+                  color: "#cfefff",
+                },
+              );
+          }
+          return;
+        }
+        (e.exRec = !0), e.t >= a + c.iwRec && this.exEnd(e);
+      }
+      exDouble(e, P, mag, ang) {
+        let c = EXK.froslass;
+        this.locomote(e, 0, 0), this.exFr(e, "Twirl", 1.6, !0);
+        if (e.t === 5) {
+          let tg = e.lock,
+            a = mag > 0.3 ? ang : P,
+            x,
+            y;
+          if (tg && mag <= 0.3) {
+            // Reappear behind the foe you are locked on to.
+            let d = Math.atan2(tg.y - e.y, tg.x - e.x);
+            (x = tg.x + Math.cos(d) * 30), (y = tg.y + Math.sin(d) * 30);
+          } else
+            (x = e.x + Math.cos(a) * c.dtDist),
+              (y = e.y + Math.sin(a) * c.dtDist);
+          (e.x = me(x, B.x0 + e.r, B.x1 - e.r)),
+            (e.y = me(y, B.y0 + e.r, B.y1 - e.r)),
+            this.clampToArena(e, !1),
+            tg && (e.facing = Math.atan2(tg.y - e.y, tg.x - e.x)),
+            this.emit({ type: "doubleTeamOut", who: e, x: e.x, y: e.y });
+        }
+        e.t === c.dtVanish && (e.exHidden = e.exInv = !1),
+          e.t >= c.dtVanish + c.dtRec && this.exEnd(e);
+      }
+      // Gardevoir -----------------------------------------------------------
+      exMoon(e, P) {
+        let c = EXK.gardevoir;
+        this.locomote(e, 0, 0);
+        if (e.t <= c.mbWind) {
+          e.t <= c.mbWind - 3 && this.exAim(e, P, 280),
+            this.exFr(e, "Charge", 2, !0);
+          return;
+        }
+        e.t === c.mbWind + 1 &&
+          (this.exProj(e, e.team, e.dir2, {
+            kind: "moon",
+            speed: c.mbSpeed,
+            r: 9,
+            life: 130,
+            dmg: c.mbDmg,
+            kb: c.mbKb,
+            heavy: !0,
+            hitstun: 24,
+            hitstop: 8,
+            color: "#ffb8ec",
+            mtype: "FAIRY",
+          }),
+          this.emit({
+            type: "moonblast",
+            who: e,
+            dx: Math.cos(e.dir2),
+            dy: Math.sin(e.dir2),
+          })),
+          this.exFr(e, "Shoot", 2, !1, c.mbWind),
+          (e.exRec = e.t > c.mbWind + 3),
+          e.t >= c.mbWind + c.mbRec && this.exEnd(e);
+      }
+      exPsychic(e, P, mag, ang) {
+        let c = EXK.gardevoir;
+        this.locomote(e, 0, 0);
+        if (e.grab) return this.exLift(e, mag, ang);
+        if (e.exThrow) {
+          (e.exRec = !0),
+            this.exFr(e, "Idle", 4, !0),
+            e.t >= e.exThrow + c.psRec && this.exEnd(e);
+          return;
+        }
+        if (e.t <= c.psWind) {
+          this.exAim(e, P, c.psRange), this.exFr(e, "SpAttack", 2, !1);
+          return;
+        }
+        if (e.t === c.psWind + 1) {
+          // Turn nearby shots around.
+          for (let p of this.projectiles)
+            p.dead ||
+              p.team === e.team ||
+              p.kind === "seed" ||
+              p.kind === "hurricane" ||
+              p.kind === "fireblast" ||
+              Math.hypot(p.x - e.x, p.y - e.y) > c.psReflectR ||
+              this.reflect(p, e, 4);
+          let best = null,
+            bs = 1 / 0;
+          for (let v of this.victimsFor(e.team)) {
+            if (v.kind !== "player" || v.heldBy) continue;
+            let d = Math.hypot(v.x - e.x, v.y - e.y);
+            if (d > c.psRange + v.hurtR) continue;
+            let ad = Math.abs($e(Math.atan2(v.y - e.y, v.x - e.x), e.dir2));
+            if (v !== e.lock && ad > c.psCone && d > 70) continue;
+            let sc = d + ad * 60;
+            sc < bs && ((bs = sc), (best = v));
+          }
+          if (best)
+            (e.grab = best),
+              (e.grabT = e.t),
+              (e.flingDir = Math.atan2(best.y - e.y, best.x - e.x)),
+              (best.heldBy = e),
+              (best.state = "stunned"),
+              (best.t = 0),
+              (best.hitstun = 999),
+              (best.mvx = best.mvy = best.kvx = best.kvy = 0),
+              (best.combo = 0),
+              (best.flameEnd = 0),
+              this.emit({ type: "psychicLift", who: e, v: best });
+          else
+            this.exArea(e, e.team, e.x, e.y, 46, 14, 4, {
+              src: "psychic",
+              mtype: "PSYCHIC",
+              hitstun: 16,
+              color: "#ff8fd8",
+            }),
+              this.emit({ type: "psychicPulse", who: e, x: e.x, y: e.y }),
+              (e.exThrow = e.t);
+          return;
+        }
+        this.exEnd(e);
+      }
+      // Psychic's hold: the foe floats while you choose where to throw them.
+      exLift(e, mag, ang) {
+        let c = EXK.gardevoir,
+          v = e.grab,
+          q = e.t - e.grabT;
+        if (v.state === "faint" || v.heldBy !== e) {
+          this.exRelease(e), (e.exThrow = e.t);
+          return;
+        }
+        this.exFr(e, "SpAttack", 3, !0),
+          mag > 0.3 && (e.flingDir = ang),
+          (v.state = "stunned"),
+          (v.hitstun = Math.max(v.hitstun, v.t + 8)),
+          (v.z = Math.min(14, q * 1.2)),
+          (v.mvx = v.mvy = v.kvx = v.kvy = 0);
+        if (q >= c.psHold) {
+          let a = e.flingDir;
+          (v.z = 0),
+            (v.heldBy = null),
+            (e.grab = null),
+            (v.state = "move"),
+            this.exHit(v, e, c.psDmg, c.psKb, Math.cos(a), Math.sin(a), {
+              heavy: !0,
+              src: "psychic",
+              mtype: "PSYCHIC",
+              pierceGuard: !0,
+              hitstun: A.hitstunHeavy,
+              color: "#ff8fd8",
+            }),
+            (e.exThrow = e.t),
+            this.emit({
+              type: "psychicThrow",
+              who: e,
+              v,
+              dx: Math.cos(a),
+              dy: Math.sin(a),
+            });
+        }
+      }
+      // Metagross -----------------------------------------------------------
+      exZen(e, P) {
+        let c = EXK.metagross,
+          w = c.zhWind,
+          d = w + c.zhDash,
+          o = Math.cos(e.dir2),
+          l = Math.sin(e.dir2);
+        if (e.t <= w) {
+          this.locomote(e, 0, 0),
+            e.t <= w - 2 && this.exAim(e, P, 200),
+            this.exFr(e, "Charge", 2, !0);
+          return;
+        }
+        if (e.t <= d && !e.exHit) {
+          this.moveBody(e, o * c.zhSpeed, l * c.zhSpeed),
+            this.exFr(e, "Walk", 1, !0),
+            (e.exDanger = 28),
+            this.hitboxes.push({
+              id: e.moveId,
+              team: e.team,
+              owner: e,
+              shape: {
+                kind: "circle",
+                x: e.x + o * 12,
+                y: e.y + l * 12,
+                r: 15,
+              },
+              dmg: c.zhDmg,
+              kb: c.zhKb,
+              kbMode: "dir",
+              dx: o,
+              dy: l,
+              heavy: !0,
+              hitstop: 10,
+              hitstun: 26,
+              color: "#ff8fd8",
+              rehit: 0,
+              attackerStop: !0,
+              src: "zenheadbutt",
+              melee: !0,
+              mtype: "PSYCHIC",
+              exTag: e,
+              flinch: c.zhFlinch,
+            }),
+            e.t % 2 === 0 &&
+              this.emit({ type: "zenDash", who: e, dx: o, dy: l });
+          return;
+        }
+        (e.exRec = !0),
+          this.locomote(e, 0, 0),
+          this.exFr(e, "Idle", 4, !0),
+          e.t >= d + c.zhRec && this.exEnd(e);
+      }
+      exRise(e) {
+        this.locomote(e, 0, 0), this.exFr(e, "Charge", 2, !0);
+        e.t >= EXK.metagross.mrLift &&
+          ((e.slot.riseT = EXK.metagross.mrTime),
+          this.emit({ type: "magnetRise", who: e }),
+          this.exEnd(e));
+      }
+      // Tag Team assists for the second-generation kits.
+      exAssist(e, t, s) {
+        let id = e.kit.id,
+          X = EXK,
+          tx = s ? s.x : e.x + Math.cos(e.dir) * 80,
+          ty = s ? s.y : e.y + Math.sin(e.dir) * 80,
+          o = Math.cos(e.dir),
+          l = Math.sin(e.dir);
+        if (id === "garchomp") {
+          if (e.t >= 8 && e.t < 30) {
+            e.alpha = 0;
+            let dx = tx - e.x,
+              dy = ty - e.y,
+              d = Math.hypot(dx, dy);
+            d > 2 &&
+              ((e.x += (dx / d) * Math.min(d, 3.4)),
+              (e.y += (dy / d) * Math.min(d, 3.4))),
+              e.t % 4 === 0 &&
+                this.emit({ type: "digTrail", who: e, x: e.x, y: e.y });
+          } else e.t === 30 && (e.alpha = 1);
+          e.t === 8 && this.emit({ type: "digIn", who: e, x: e.x, y: e.y }),
+            e.t === 30 &&
+              (this.exArea(e, t, e.x, e.y, 28, 28, 6, {
+                heavy: !0,
+                src: "dig",
+                mtype: "GROUND",
+                ground: !0,
+              }),
+              this.emit({ type: "digOut", who: e, x: e.x, y: e.y, r: 28 })),
+            (e.animName = e.t < 30 ? "Charge" : "Hop"),
+            (e.animFrame = Math.floor(e.t / 2) % 6);
+        } else if (id === "scizor") {
+          let k = e.t - 10;
+          k >= 0 &&
+            k < 24 &&
+            (k % 8 === 0 &&
+              ((e.dir = Math.atan2(ty - e.y, tx - e.x)),
+              (e.moveId = this.nextId++),
+              this.emit({ type: "bulletDash", who: e, dx: o, dy: l })),
+            k % 8 < 4 &&
+              ((e.x = me(e.x + o * 5, B.x0 + 8, B.x1 - 8)),
+              (e.y = me(e.y + l * 5, B.y0 + 6, B.y1 - 4)),
+              this.hitboxes.push({
+                id: e.moveId,
+                team: t,
+                owner: e,
+                shape: {
+                  kind: "circle",
+                  x: e.x + o * 12,
+                  y: e.y + l * 12,
+                  r: 12,
+                },
+                dmg: 11,
+                kb: 2,
+                kbMode: "dir",
+                dx: o,
+                dy: l,
+                heavy: !1,
+                hitstop: 4,
+                hitstun: 16,
+                color: "#e9eef8",
+                rehit: 0,
+                attackerStop: !1,
+                src: "bulletpunch",
+                melee: !0,
+                mtype: "STEEL",
+              }))),
+            (e.animName = "Attack"),
+            (e.animFrame = Math.floor(Math.max(0, e.t - 10) / 1.5) % 6);
+        } else if (id === "tyrantrum") {
+          if (
+            ((e.animName = "Shoot"),
+            (e.animFrame = Math.min(6, Math.floor(e.t / 3))),
+            e.t === 12)
+          ) {
+            let hl = [],
+              a = Math.atan2(ty - e.y, tx - e.x) + Math.PI / 2;
+            for (let k of [0, -1, 1])
+              this.exQueue({
+                kind: "rock",
+                at: this.tick + 34 + Math.abs(k) * 6,
+                x: me(tx + Math.cos(a) * k * 28, B.x0 + 8, B.x1 - 8),
+                y: me(ty + Math.sin(a) * k * 28, B.y0 + 6, B.y1 - 4),
+                r: 15,
+                dmg: 20,
+                kb: 3.6,
+                src: "rockslide",
+                mtype: "ROCK",
+                ground: !0,
+                hitstun: 22,
+                list: hl,
+                owner: e,
+                team: t,
+                color: "#a8916a",
+              });
+            this.emit({ type: "rockSlide", who: e, x: tx, y: ty });
+          }
+        } else if (id === "golurk")
+          (e.animName = e.t < 14 ? "Charge" : "Strike"),
+            (e.animFrame = Math.floor(e.t / 2.4) % 6),
+            e.t === 14 &&
+              (this.exProj(e, t, e.dir, {
+                kind: "fist",
+                speed: X.golurk.spSpeed0,
+                accel: X.golurk.spAccel,
+                vmax: X.golurk.spSpeed,
+                r: 9,
+                life: 110,
+                dmg: 24,
+                kb: 4.4,
+                heavy: !0,
+                hitstun: 22,
+                hitstop: 8,
+                color: "#8a6be0",
+                mtype: "GHOST",
+                ghost: !0,
+                homing: X.golurk.spHome,
+                target: s,
+              }),
+              this.emit({ type: "shadowPunch", who: e, dx: o, dy: l }));
+        else if (id === "rhyperior")
+          (e.animName = e.t < 16 ? "Charge" : "Shoot"),
+            (e.animFrame = Math.floor(e.t / 2.5) % 6),
+            e.t === 16 &&
+              (this.exProj(e, t, e.dir, {
+                kind: "boulder",
+                speed: X.rhyperior.rwSpeed,
+                r: 10,
+                life: 100,
+                dmg: 32,
+                kb: 5.8,
+                heavy: !0,
+                hitstun: 24,
+                hitstop: 10,
+                color: "#a08f7a",
+                mtype: "ROCK",
+              }),
+              this.emit({ type: "rockWrecker", who: e, dx: o, dy: l }));
+        else if (id === "froslass") {
+          if (
+            ((e.animName = e.t < 12 ? "Charge" : "Shoot"),
+            (e.animFrame = Math.floor(e.t / 2) % 6),
+            e.t >= 12 && e.t < 22)
+          ) {
+            e.hitList ??= [];
+            e.t % 2 === 0 &&
+              this.emit({ type: "icyGust", who: e, dx: o, dy: l });
+            for (let v of this.victimsFor(t)) {
+              if (e.hitList.includes(v)) continue;
+              let dx = v.x - e.x,
+                dy = v.y - e.y,
+                d = Math.hypot(dx, dy);
+              d < 96 + v.hurtR &&
+                Math.abs($e(Math.atan2(dy, dx), e.dir)) < 0.6 &&
+                (e.hitList.push(v),
+                this.exHit(v, e, 12, 3.4, o, l, {
+                  src: "icywind",
+                  mtype: "ICE",
+                  chill: 1,
+                  hitstun: 16,
+                  color: "#cfefff",
+                }));
+            }
+          }
+        } else if (id === "gardevoir")
+          (e.animName = e.t < 12 ? "Charge" : "Shoot"),
+            (e.animFrame = Math.floor(e.t / 2) % 6),
+            e.t === 12 &&
+              (this.exProj(e, t, e.dir, {
+                kind: "moon",
+                speed: X.gardevoir.mbSpeed,
+                r: 9,
+                life: 120,
+                dmg: 24,
+                kb: 4.4,
+                heavy: !0,
+                hitstun: 22,
+                hitstop: 8,
+                color: "#ffb8ec",
+                mtype: "FAIRY",
+              }),
+              this.emit({ type: "moonblast", who: e, dx: o, dy: l }));
+        else if (id === "metagross") {
+          let k = e.t - 12;
+          (e.animName = k < 0 ? "Charge" : "Walk"),
+            (e.animFrame = Math.floor(e.t / 2) % 6),
+            k === 0 && (e.moveId = this.nextId++),
+            k >= 0 &&
+              k < 12 &&
+              ((e.x = me(e.x + o * 6.5, B.x0 + 8, B.x1 - 8)),
+              (e.y = me(e.y + l * 6.5, B.y0 + 6, B.y1 - 4)),
+              this.hitboxes.push({
+                id: e.moveId,
+                team: t,
+                owner: e,
+                shape: {
+                  kind: "circle",
+                  x: e.x + o * 12,
+                  y: e.y + l * 12,
+                  r: 14,
+                },
+                dmg: 26,
+                kb: 5.4,
+                kbMode: "dir",
+                dx: o,
+                dy: l,
+                heavy: !0,
+                hitstop: 8,
+                hitstun: 24,
+                color: "#ff8fd8",
+                rehit: 0,
+                attackerStop: !1,
+                src: "zenheadbutt",
+                melee: !0,
+                mtype: "PSYCHIC",
+              }),
+              k % 2 === 0 &&
+                this.emit({ type: "zenDash", who: e, dx: o, dy: l }));
+        }
+      }
+      // ---- Groudon, Rayquaza and Ho-Oh ------------------------------------
+      // Three legendaries that play differently from the first three:
+      // Groudon owns ground (rings of blades, then scorched earth), Rayquaza
+      // hunts (it dives on up to three foes in turn, made for Free-for-All),
+      // and Ho-Oh supports (heals and cleanses your side, revives a fainted
+      // Tag Team partner and rings you in sacred fire).
+      exFireLegend(e) {
+        let t = e.owner;
+        if (e.kind === "groudon")
+          Object.assign(e, {
+            phase: "warn",
+            t: 0,
+            x: e.ax,
+            y: e.ay,
+            px: e.ax,
+            py: e.ay,
+          }),
+            this.emit({ type: "groudonWarn", who: t, x: e.ax, y: e.ay });
+        else if (e.kind === "rayquaza") {
+          let R = RAYQUAZA,
+            l = this.victimsFor(e.team)
+              .filter(
+                (v) =>
+                  v.kind === "player" &&
+                  Math.hypot(v.x - e.ax, v.y - e.ay) < R.range,
+              )
+              .sort(
+                (a, b) =>
+                  Math.hypot(a.x - e.ax, a.y - e.ay) -
+                  Math.hypot(b.x - e.ax, b.y - e.ay),
+              )
+              .slice(0, R.targets);
+          Object.assign(e, {
+            phase: "mark",
+            t: 0,
+            n: 0,
+            list: l,
+            tx: l[0]?.x ?? e.ax,
+            ty: l[0]?.y ?? e.ay,
+            px: t.x,
+            py: t.y - 70,
+          }),
+            this.emit({ type: "rayMark", who: t, x: e.tx, y: e.ty });
+        } else
+          Object.assign(e, {
+            phase: "bless",
+            t: 0,
+            x: t.x,
+            y: t.y,
+            px: t.x,
+            py: t.y,
+            hl: [],
+          }),
+            this.emit({ type: "hoohBless", who: t, x: t.x, y: t.y });
+      }
+      exLegend(e) {
+        let w = e.owner;
+        if (e.kind === "groudon") {
+          let G = GROUDON;
+          if (e.phase === "warn")
+            (e.alpha = Math.min(1, e.t / 8)),
+              e.t >= G.warn && ((e.phase = "blades"), (e.t = 0));
+          else if (e.phase === "blades") {
+            let k = Math.floor((e.t - 1) / G.gap);
+            if ((e.t - 1) % G.gap === 0 && k < 3) {
+              let r0 = [0, G.r1, G.r2][k],
+                r1 = [G.r1, G.r2, G.r3][k];
+              for (let v of this.victimsFor(e.team)) {
+                if (this.floating(v)) continue;
+                let dx = v.x - e.x,
+                  dy = v.y - e.y,
+                  d = Math.hypot(dx, dy);
+                if (d < r0 - v.hurtR * 0.5 || d > r1 + v.hurtR) continue;
+                let u = d > 1 ? dx / d : 1,
+                  q = d > 1 ? dy / d : 0;
+                this.hitboxes.push(
+                  this.lgBox(
+                    { ...e, id: e.id * 8 + k, dx: u, dy: q, _s: e },
+                    { kind: "circle", x: v.x, y: v.y, r: v.hurtR + 4 },
+                    {
+                      dmg: G.dmg,
+                      kb: G.kb,
+                      kbMode: "dir",
+                      hitstun: 26,
+                      hitstop: 8,
+                      color: "#ff6a3d",
+                    },
+                  ),
+                );
+              }
+              this.emit({
+                type: "groudonWave",
+                who: w,
+                x: e.x,
+                y: e.y,
+                r0,
+                r1,
+                k,
+              });
+            }
+            e.t >= G.gap * 2 + 12 && ((e.phase = "scorch"), (e.t = 0));
+          } else if (e.phase === "scorch") {
+            // Drought: the centre stays scorched; foes standing in it burn.
+            if (e.t % G.every === 0)
+              for (let v of this.victimsFor(e.team))
+                !this.floating(v) &&
+                  Math.hypot(v.x - e.x, v.y - e.y) < G.scorchR + v.hurtR &&
+                  this.hitboxes.push(
+                    this.lgBox(
+                      { ...e, id: this.nextId++, dx: 0, dy: 0 },
+                      { kind: "circle", x: v.x, y: v.y, r: v.hurtR + 2 },
+                      {
+                        dmg: G.scorchDmg,
+                        kb: 0.4,
+                        kbMode: "away",
+                        heavy: !1,
+                        hitstun: 6,
+                        hitstop: 2,
+                        catch: null,
+                        burns: !0,
+                        color: "#ff8a3d",
+                      },
+                    ),
+                  );
+            (e.alpha = e.t > G.scorchT - 30 ? (G.scorchT - e.t) / 30 : 1),
+              e.t >= G.scorchT && (e.done = !0);
+          } else
+            (e.alpha = Math.max(0, 1 - e.t / 30)), e.t >= 30 && (e.done = !0);
+          return;
+        }
+        if (e.kind === "rayquaza") {
+          let R = RAYQUAZA,
+            v = e.list[e.n];
+          if (e.phase === "mark") {
+            // The reticle tracks its prey, then locks just before the dive.
+            v &&
+              v.state !== "faint" &&
+              e.t <= R.mark - R.lock &&
+              ((e.tx = v.x), (e.ty = v.y)),
+              (e.alpha = 1),
+              (e.px += (e.tx - e.px) * 0.08),
+              (e.py += (e.ty - 80 - e.py) * 0.08),
+              e.t >= R.mark &&
+                ((e.phase = "dive"),
+                (e.t = 0),
+                (e.fx = e.px),
+                (e.fy = e.py),
+                this.emit({ type: "rayDive", who: w, x: e.tx, y: e.ty }));
+          } else if (e.phase === "dive") {
+            let q = Math.min(1, e.t / R.dive);
+            (e.px = e.fx + (e.tx - e.fx) * q * q),
+              (e.py = e.fy + (e.ty - e.fy) * q * q);
+            if (e.t === R.dive) {
+              let dx = e.tx - e.fx,
+                dy = e.ty - e.fy,
+                d = Math.hypot(dx, dy) || 1;
+              this.hitboxes.push(
+                this.lgBox(
+                  { ...e, id: e.id * 8 + e.n, dx: dx / d, dy: dy / d, _s: e },
+                  { kind: "circle", x: e.tx, y: e.ty, r: R.r },
+                  {
+                    dmg: R.dmg,
+                    kb: R.kb,
+                    kbMode: "away",
+                    hitstun: 26,
+                    hitstop: 9,
+                    color: "#4fd18b",
+                  },
+                ),
+              ),
+                this.emit({
+                  type: "rayImpact",
+                  who: w,
+                  x: e.tx,
+                  y: e.ty,
+                  r: R.r,
+                });
+            }
+            e.t >= R.dive + 6 &&
+              (++e.n < e.list.length
+                ? ((e.phase = "mark"),
+                  (e.t = 0),
+                  this.emit({
+                    type: "rayMark",
+                    who: w,
+                    x: e.list[e.n].x,
+                    y: e.list[e.n].y,
+                  }))
+                : ((e.phase = "leave"), (e.t = 0)));
+          } else
+            (e.py -= 7),
+              (e.alpha = Math.max(0, 1 - e.t / 24)),
+              e.t >= 24 && (e.done = !0);
+          return;
+        }
+        // Ho-Oh
+        let O = HOOH;
+        if (e.phase === "bless") {
+          (e.x = e.px = w.x),
+            (e.y = e.py = w.y),
+            (e.alpha = Math.min(1, e.t / 8));
+          e.t === 10 && this.hoohBless(e);
+          if (e.t >= 18 && e.t <= 18 + O.ringT) {
+            let rr = (O.ringR * (e.t - 18)) / O.ringT;
+            for (let v of this.victimsFor(e.team)) {
+              if (e.hl.includes(v)) continue;
+              let dx = v.x - e.x,
+                dy = v.y - e.y,
+                d = Math.hypot(dx, dy);
+              if (d > rr + v.hurtR) continue;
+              e.hl.push(v),
+                this.hitboxes.push(
+                  this.lgBox(
+                    {
+                      ...e,
+                      id: e.id * 8 + 1,
+                      dx: d > 1 ? dx / d : 1,
+                      dy: d > 1 ? dy / d : 0,
+                    },
+                    { kind: "circle", x: v.x, y: v.y, r: v.hurtR + 4 },
+                    {
+                      dmg: O.dmg,
+                      kb: O.kb,
+                      kbMode: "dir",
+                      hitstun: 22,
+                      hitstop: 6,
+                      catch: null,
+                      burns: !0,
+                      color: "#ffb347",
+                    },
+                  ),
+                );
+            }
+          }
+          e.t >= 18 + O.ringT &&
+            ((e.phase = "wall"),
+            (e.t = 0),
+            this.emit({ type: "hoohWall", who: w, x: w.x, y: w.y }));
+        } else if (e.phase === "wall") {
+          // A ring of sacred fire travels with its caller; foes inside burn.
+          (e.x = e.px = w.x), (e.y = e.py = w.y);
+          if (w.state === "faint") (e.phase = "leave"), (e.t = 0);
+          else if (e.t % O.every === 0)
+            for (let v of this.victimsFor(e.team))
+              Math.hypot(v.x - w.x, v.y - w.y) < O.wallR + v.hurtR * 0.5 &&
+                this.hitboxes.push(
+                  this.lgBox(
+                    { ...e, id: this.nextId++, dx: 0, dy: 0 },
+                    { kind: "circle", x: v.x, y: v.y, r: v.hurtR + 2 },
+                    {
+                      dmg: O.wallDmg,
+                      kb: 1.6,
+                      kbMode: "away",
+                      heavy: !1,
+                      hitstun: 8,
+                      hitstop: 2,
+                      catch: null,
+                      burns: !0,
+                      color: "#ffb347",
+                    },
+                  ),
+                );
+          e.t >= O.wallT && ((e.phase = "leave"), (e.t = 0));
+        } else
+          (e.py -= 2),
+            (e.alpha = Math.max(0, 1 - e.t / 24)),
+            e.t >= 24 && (e.done = !0);
+      }
+      // Ho-Oh's blessing: heal and cleanse the caller's side, and bring a
+      // fainted Tag Team partner back (Rebirth).
+      hoohBless(e) {
+        let O = HOOH,
+          w = e.owner;
+        for (let p of this.players) {
+          if (p.team !== w.team || p.state === "faint") continue;
+          let s = p.slot,
+            h0 = s.hp;
+          (s.hp = Math.min(s.maxHp, s.hp + Math.round(s.maxHp * O.heal))),
+            (s.burnT = 0),
+            (s.poisonT = 0),
+            (p.paraT = 0),
+            (p.chill = 0),
+            (p.drowsyT = 0),
+            (p.seededT = 0),
+            (p.dazeT = 0),
+            (p.tombT = 0),
+            p.state === "stunned" &&
+              ((p.asleepUntil ?? 0) > this.tick || p.frozenT > 0) &&
+              ((p.hitstun = Math.min(p.hitstun, p.t + 2)),
+              (p.asleepUntil = 0),
+              (p.frozenT = 0)),
+            this.emit({
+              type: "heal",
+              x: p.x,
+              y: p.y,
+              amount: Math.round(s.hp - h0),
+              who: p,
+            });
+          for (let q of p.slots)
+            q !== p.slot &&
+              q.hp <= 0 &&
+              ((q.hp = Math.round(q.maxHp * O.revive)),
+              (q.burnT = q.poisonT = 0),
+              this.emit({ type: "rebirth", who: p, kit: q.kit }));
+        }
+        this.emit({ type: "hoohHeal", who: w, x: w.x, y: w.y });
+      }
       applyHit(
         e,
         t,
@@ -9215,6 +12500,7 @@
         P = !1,
         C = 0,
       ) {
+        this.hitBy = t;
         if (
           e.kind === "player" &&
           e.state === "detect" &&
@@ -9247,7 +12533,7 @@
           K = Math.round(
             s *
               ae.dmg *
-              (lg ? 1 : this.outgoingMult(t)) *
+              (lg ? 1 : this.outgoingMult(t) * this.exOut(t, s, k)) *
               Q *
               ie *
               (an ? MAGNE.analytic : 1) *
@@ -9319,6 +12605,7 @@
                   (re = Math.round(K * FLAME.ventTaken));
           // Deoxys's barrier halves the damage.
           w.shieldT > 0 && (re = Math.round(re * DEOXYS.shieldDmg));
+          re = this.exTaken(w, t, re, l, k, M);
           let se = U.hp;
           w.helmetT > 0 &&
             M &&
@@ -10927,6 +14214,7 @@
   }
   function ht2(a, e, t) {
     if (e.pylon) return pylonArt(a, e, t);
+    if (e.exPillar) return exPillarArt(a, e, t);
     Rk || (Rk = Fk());
     let s = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
       i = Math.round(e.x - 18 + s),
@@ -10966,6 +14254,8 @@
     hurricane: ["201,166,255", 34],
     leaf: ["120,200,80", 8],
     fireblast: ["255,138,61", 30],
+    fist: ["138,107,224", 22],
+    moon: ["255,143,216", 26],
   };
   function lightPools(a, e) {
     let t = (s, i, r, o, l = 1) => {
@@ -11454,6 +14744,24 @@
   }
   // ---- Legendary summons: drawing ----
   var LG_INFO = {
+    groudon: {
+      name: "GROUDON",
+      move: "PRECIPICE BLADES",
+      color: "#ff6a3d",
+      rgb: "255,106,61",
+    },
+    rayquaza: {
+      name: "RAYQUAZA",
+      move: "DRAGON ASCENT",
+      color: "#4fd18b",
+      rgb: "79,209,139",
+    },
+    hooh: {
+      name: "HO-OH",
+      move: "SACRED FIRE",
+      color: "#ffb347",
+      rgb: "255,179,71",
+    },
     zekrom: {
       name: "ZEKROM",
       move: "BOLT STRIKE",
@@ -11554,6 +14862,7 @@
   }
   // A legendary drawn large, optionally washed white (materialising, flashes).
   function lgBig(a, e, t, s, i, r, o, l, f, u = 0) {
+    l *= LG_SCALE[e.name] ?? 1;
     let h = e.anims[t] ?? e.anims.Idle,
       c = Be(h, s, 1),
       y = nt(i);
@@ -11643,22 +14952,31 @@
         for (let l of e.bodies()) o.has(l) || CINE_DIM.add(l);
       }
       let o = a.createLinearGradient(0, 0, 0, _);
-      s.kind === "zekrom"
-        ? (o.addColorStop(0, "#02040c"),
-          o.addColorStop(0.55, "#0a1636"),
-          o.addColorStop(1, "#04081a"))
-        : s.kind === "darkrai"
-          ? (o.addColorStop(0, "#04020a"),
-            o.addColorStop(0.6, "#180a2e"),
-            o.addColorStop(1, "#08030f"))
-          : (o.addColorStop(0, "#000003"),
-            o.addColorStop(0.5, "#0e0420"),
-            o.addColorStop(1, "#02010a")),
+      s.kind === "groudon"
+        ? (o.addColorStop(0, "#1a0500"),
+          o.addColorStop(0.55, "#5a1204"),
+          o.addColorStop(1, "#200600"))
+        : s.kind === "rayquaza"
+          ? (o.addColorStop(0, "#000a12"),
+            o.addColorStop(0.55, "#06323a"),
+            o.addColorStop(1, "#021418"))
+          : s.kind === "zekrom"
+            ? (o.addColorStop(0, "#02040c"),
+              o.addColorStop(0.55, "#0a1636"),
+              o.addColorStop(1, "#04081a"))
+            : s.kind === "darkrai"
+              ? (o.addColorStop(0, "#04020a"),
+                o.addColorStop(0.6, "#180a2e"),
+                o.addColorStop(1, "#08030f"))
+              : (o.addColorStop(0, "#000003"),
+                o.addColorStop(0.5, "#0e0420"),
+                o.addColorStop(1, "#02010a")),
         (a.globalAlpha = 0.94 * i),
         (a.fillStyle = o),
         a.fillRect(-60, -60, Y + 120, _ + 120);
       let l = rt(s.id * 31 + 7);
-      if (s.kind === "zekrom") {
+      if (exLgSky(a, s, i, l, t));
+      else if (s.kind === "zekrom") {
         // Sheet lightning, distant forks and driving rain.
         let f = (s.t + s.id * 5) % 23 < 2 || (s.t + 9) % 37 < 2;
         f &&
@@ -11775,6 +15093,7 @@
   // Ground marks during intros and scenes.
   function cineGround(a, e, t, s) {
     if (t.phase === "intro") return;
+    if (exLgCineGround(a, e, t, s)) return;
     let i = CINE[cineKey(t)],
       r = t.t,
       o = cineK(t);
@@ -11882,6 +15201,7 @@
     // The most recent beat, for flashes.
     for (let y of u) y <= o && (c = y);
     let y = o - c < 3 ? 0.3 : 0;
+    if (exLgCineAir(a, e, t, s, i, r, o, sd, fc, l, f, u, h, c, y)) return;
     if (t.kind === "zekrom") {
       // Zekrom hovers beside the target and calls lightning down on every
       // beat, charges, then dives onto it and leaves.
@@ -12240,7 +15560,8 @@
         (a.fillStyle = `rgba(4,6,18,${0.4 * s.alpha})`),
           a.fillRect(-20, -20, Y + 40, _ + 40);
         let o = s.alpha;
-        if (s.kind === "zekrom" || r === "attack") {
+        if (exLgAim(a, e, s, i, t));
+        else if (s.kind === "zekrom" || r === "attack") {
           let l = zekLine(s.owner, s.ax, s.ay),
             f = s.kind === "zekrom" ? ZEKROM.r : DEOXYS.beamR;
           (a.globalAlpha = 0.16 * o),
@@ -12275,7 +15596,8 @@
             a.setLineDash([]),
             lgReticle(a, s.ax, s.ay, t);
         }
-      } else if (s.kind === "zekrom") {
+      } else if (exLgGround(a, e, s, i, t));
+      else if (s.kind === "zekrom") {
         if (s.phase === "warn") {
           lgWarnBand(a, s.sx, s.sy, s.ex, s.ey, ZEKROM.r, s.t / ZEKROM.warn, t);
           let o = rt(t >> 1);
@@ -12427,7 +15749,9 @@
         (r = s.owner.x - Math.cos(c) * 30),
           (o = s.owner.y - 26 - Math.sin(t * 0.08) * 3),
           (l = c);
-      } else if (s.kind === "zekrom")
+      } else if (LG_SCALE[s.kind])
+        ({ x: r, y: o, f, l } = exLgAir(s, i, t, f, l));
+      else if (s.kind === "zekrom")
         s.phase === "warn"
           ? ((r = s.sx),
             (o = s.sy - 20 - (s.t / ZEKROM.warn) * 8),
@@ -12480,7 +15804,7 @@
           nt(l),
           r,
           o,
-          s.kind === "zekrom" ? 1.1 : 1.3,
+          LG_SCALE[s.kind] ?? (s.kind === "zekrom" ? 1.1 : 1.3),
           i.ground,
         ),
         a.restore();
@@ -13176,6 +16500,7 @@
     arenaLive(a, e);
     surgeGround(a, e);
     summonGround(a, e);
+    exGround(a, e);
     lightPools(a, e);
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
@@ -13935,6 +17260,7 @@
     sheetsDraw(a, t, !1);
     dropsAir(a, e);
     summonAir(a, e);
+    exAir(a, e);
     for (let h of t.ambient)
       (a.globalAlpha = 0.18 + 0.14 * Math.sin(h.ph * 2)),
         (a.fillStyle = "#f4ead0"),
@@ -14909,7 +18235,1152 @@
     }
   }
   // Projectiles for Snorlax, Noivern and Lucario.
+  // ---- Groudon, Rayquaza and Ho-Oh: drawing --------------------------
+  // How large each legendary is drawn, against Zekrom's 1.1.
+  var LG_SCALE = { groudon: 1, rayquaza: 0.72, hooh: 0.88 };
+  // A blade of stone jutting from the ground with a molten edge.
+  function lgBlade(a, x, y, h, w, hot) {
+    (a.fillStyle = "#3a2418"),
+      a.beginPath(),
+      a.moveTo(x - w, y + 1),
+      a.lineTo(x - w * 0.15, y - h),
+      a.lineTo(x + w, y + 1),
+      a.closePath(),
+      a.fill(),
+      (a.fillStyle = hot ? "#ff6a3d" : "#7a4a32"),
+      a.beginPath(),
+      a.moveTo(x - w * 0.45, y),
+      a.lineTo(x - w * 0.15, y - h * 0.9),
+      a.lineTo(x + w * 0.1, y),
+      a.closePath(),
+      a.fill(),
+      hot &&
+        ((a.fillStyle = "#ffe27a"),
+        a.fillRect(
+          Math.round(x - w * 0.25),
+          Math.round(y - h * 0.7),
+          1,
+          Math.max(1, Math.round(h * 0.5)),
+        ));
+  }
+  // A ring of cracks, seeded so it holds still.
+  function lgCrackRing(a, x, y, r, k, c, w) {
+    let g = rt(k),
+      n = Math.max(10, Math.round(r / 3));
+    (a.strokeStyle = c), (a.lineWidth = w), a.beginPath();
+    for (let i = 0; i <= n; i++) {
+      let q = (i / n) * Math.PI * 2,
+        j = r + (g() - 0.5) * 6;
+      i
+        ? a.lineTo(x + Math.cos(q) * j, y + Math.sin(q) * j * 0.55)
+        : a.moveTo(x + Math.cos(q) * j, y + Math.sin(q) * j * 0.55);
+    }
+    a.stroke();
+  }
+  // Ring of flame tongues around a point (Sacred Fire).
+  function lgFireRing(a, x, y, r, t, k) {
+    let n = Math.max(12, Math.round(r / 4));
+    (a.globalAlpha = 0.18 * k),
+      (a.fillStyle = "#ff8a3d"),
+      a.beginPath(),
+      a.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalAlpha = 0.8 * k),
+      (a.strokeStyle = "#ffb347"),
+      (a.lineWidth = 1.5),
+      a.beginPath(),
+      a.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2),
+      a.stroke();
+    for (let i = 0; i < n; i++) {
+      let q = (i / n) * Math.PI * 2 + t * 0.01,
+        fx = x + Math.cos(q) * r,
+        fy = y + Math.sin(q) * r * 0.55,
+        h = 7 + 4 * Math.sin(t * 0.4 + i * 1.7);
+      (a.globalAlpha = 0.85 * k),
+        (a.fillStyle = i % 3 ? "#ff6a2a" : "#ffd27a"),
+        a.beginPath(),
+        a.moveTo(fx - 2.5, fy),
+        a.quadraticCurveTo(
+          fx + Math.sin(t * 0.3 + i) * 2,
+          fy - h * 0.6,
+          fx,
+          fy - h,
+        ),
+        a.quadraticCurveTo(fx + 1, fy - h * 0.4, fx + 2.5, fy),
+        a.fill();
+    }
+    a.globalAlpha = 1;
+  }
+  // Aim previews. Returns true when it drew one.
+  function exLgAim(a, e, s, i, t) {
+    let o = s.alpha;
+    if (s.kind === "groudon") {
+      let G = GROUDON;
+      for (let k of [G.r1, G.r2, G.r3])
+        (a.globalAlpha = 0.5 * o),
+          a.setLineDash([5, 4]),
+          (a.lineDashOffset = -t * 0.6),
+          lgRing(a, s.ax, s.ay, k, i.color, 1.2),
+          a.setLineDash([]);
+      return (
+        (a.globalAlpha = 0.12 * o),
+        (a.fillStyle = i.color),
+        a.beginPath(),
+        a.arc(s.ax, s.ay, G.r3, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = o),
+        lgReticle(a, s.ax, s.ay, t),
+        !0
+      );
+    }
+    if (s.kind === "rayquaza") {
+      // Every foe it can reach gets a chevron, nearest the aim first.
+      let R = RAYQUAZA,
+        l = e
+          .victimsFor(s.team)
+          .filter(
+            (v) =>
+              v.kind === "player" &&
+              Math.hypot(v.x - s.ax, v.y - s.ay) < R.range,
+          )
+          .sort(
+            (p, q) =>
+              Math.hypot(p.x - s.ax, p.y - s.ay) -
+              Math.hypot(q.x - s.ax, q.y - s.ay),
+          )
+          .slice(0, R.targets);
+      l.forEach((v, n) => {
+        (a.globalAlpha = 0.9 * o),
+          lgRing(a, v.x, v.y - 8, 14 + Math.sin(t * 0.3 + n) * 2, i.color, 1.4),
+          V2(a, String(n + 1), v.x, v.y - 30, i.color);
+      });
+      return (a.globalAlpha = o), lgReticle(a, s.ax, s.ay, t), !0;
+    }
+    if (s.kind === "hooh") {
+      let O = HOOH;
+      return (
+        (a.globalAlpha = 0.14 * o),
+        (a.fillStyle = i.color),
+        a.beginPath(),
+        a.ellipse(
+          s.owner.x,
+          s.owner.y,
+          O.ringR,
+          O.ringR * 0.55,
+          0,
+          0,
+          Math.PI * 2,
+        ),
+        a.fill(),
+        (a.globalAlpha = 0.85 * o),
+        a.setLineDash([5, 4]),
+        (a.lineDashOffset = -t * 0.6),
+        a.beginPath(),
+        (a.strokeStyle = i.color),
+        (a.lineWidth = 1.4),
+        a.ellipse(
+          s.owner.x,
+          s.owner.y,
+          O.ringR,
+          O.ringR * 0.55,
+          0,
+          0,
+          Math.PI * 2,
+        ),
+        a.stroke(),
+        a.setLineDash([]),
+        !0
+      );
+    }
+    return !1;
+  }
+  // A small outlined number for Rayquaza's target order.
+  function V2(a, s, x, y, c) {
+    (a.font = fontOf(9, He)),
+      (a.textAlign = "center"),
+      (a.lineWidth = 2.5),
+      (a.strokeStyle = "#05060f"),
+      a.strokeText(s, x, y),
+      (a.fillStyle = c),
+      a.fillText(s, x, y),
+      (a.textAlign = "start");
+  }
+  // The attack itself on the ground. Returns true when it drew.
+  function exLgGround(a, e, s, i, t) {
+    if (s.kind === "groudon") {
+      let G = GROUDON,
+        rs = [G.r1, G.r2, G.r3];
+      if (s.phase === "warn") {
+        let p = s.t / G.warn;
+        (a.globalAlpha = 0.25 + 0.35 * p),
+          (a.fillStyle = "#2a0a04"),
+          a.beginPath(),
+          a.ellipse(s.x, s.y, G.r3, G.r3 * 0.55, 0, 0, Math.PI * 2),
+          a.fill();
+        rs.forEach((r, k) => {
+          let f = 0.55 + 0.45 * Math.sin(t * (0.4 + p) + k);
+          (a.globalAlpha = (0.4 + 0.5 * p) * f),
+            lgCrackRing(
+              a,
+              s.x,
+              s.y,
+              r * Math.min(1, p * 1.6 + 0.2),
+              s.id * 3 + k,
+              "#ff6a3d",
+              2.2,
+            ),
+            (a.globalAlpha = 0.6 * p * f),
+            lgCrackRing(
+              a,
+              s.x,
+              s.y,
+              r * Math.min(1, p * 1.6 + 0.2),
+              s.id * 3 + k,
+              "#ffe27a",
+              0.8,
+            );
+        });
+      } else if (s.phase === "blades" || (s.phase === "scorch" && s.t < 20)) {
+        let T = s.phase === "blades" ? s.t - 1 : G.gap * 2 + 12 + s.t;
+        rs.forEach((r, k) => {
+          let age = T - k * G.gap;
+          if (age < 0) {
+            (a.globalAlpha = 0.6 + 0.3 * Math.sin(t * 0.8)),
+              lgCrackRing(a, s.x, s.y, r, s.id * 3 + k, "#ff6a3d", 2);
+            return;
+          }
+          let h =
+              (age < 3
+                ? age / 3
+                : age > 16
+                  ? Math.max(0, 1 - (age - 16) / 10)
+                  : 1) *
+              (16 + k * 3),
+            r0 = k ? rs[k - 1] : 4,
+            n = 8 + k * 6,
+            g = rt(s.id * 7 + k);
+          a.globalAlpha = 1;
+          for (let j = 0; j < n; j++) {
+            let q = (j / n) * Math.PI * 2 + g() * 0.3,
+              d = r0 + (r - r0) * (0.35 + g() * 0.6);
+            h > 0 &&
+              lgBlade(
+                a,
+                s.x + Math.cos(q) * d,
+                s.y + Math.sin(q) * d * 0.55,
+                h * (0.7 + g() * 0.5),
+                3 + k,
+                age < 10,
+              );
+          }
+          age < 6 &&
+            ((a.globalAlpha = 1 - age / 6),
+            lgCrackRing(a, s.x, s.y, r, s.id * 3 + k, "#ffe27a", 3));
+        });
+      }
+      if (s.phase === "scorch") {
+        let k = s.alpha ?? 1,
+          f = 0.7 + 0.3 * Math.sin(t * 0.2),
+          g = a.createRadialGradient(s.x, s.y, 0, s.x, s.y, G.scorchR);
+        g.addColorStop(0, `rgba(255,120,40,${0.55 * k * f})`),
+          g.addColorStop(0.7, `rgba(140,30,8,${0.45 * k})`),
+          g.addColorStop(1, "rgba(60,10,4,0)"),
+          (a.fillStyle = g),
+          a.beginPath(),
+          a.ellipse(s.x, s.y, G.scorchR, G.scorchR * 0.55, 0, 0, Math.PI * 2),
+          a.fill(),
+          (a.globalAlpha = 0.7 * k),
+          lgCrackRing(a, s.x, s.y, G.scorchR * 0.6, s.id + 9, "#ffb347", 1.2);
+        let r2 = rt(t >> 2);
+        for (let j = 0; j < 6; j++)
+          (a.globalAlpha = 0.8 * k),
+            (a.fillStyle = j % 2 ? "#ffe27a" : "#ff6a3d"),
+            a.fillRect(
+              Math.round(s.x + (r2() - 0.5) * G.scorchR * 1.6),
+              Math.round(s.y - 4 - r2() * 14),
+              1,
+              2,
+            );
+      }
+      return (a.globalAlpha = 1), !0;
+    }
+    if (s.kind === "rayquaza") {
+      let R = RAYQUAZA;
+      if (s.phase === "mark") {
+        let p = s.t / R.mark,
+          lk = s.t > R.mark - R.lock;
+        (a.globalAlpha = 0.18 + 0.25 * p),
+          (a.fillStyle = lk ? "#ff5a3c" : i.color),
+          a.beginPath(),
+          a.ellipse(s.tx, s.ty, R.r, R.r * 0.55, 0, 0, Math.PI * 2),
+          a.fill(),
+          (a.globalAlpha = 0.9),
+          lgRing(
+            a,
+            s.tx,
+            s.ty,
+            R.r * (1.6 - 0.6 * p),
+            lk && t % 4 < 2 ? "#ffffff" : i.color,
+            1.6,
+          ),
+          lgReticle(a, s.tx, s.ty - 8, t);
+        // The rest of its prey, numbered.
+        for (let n = s.n + 1; n < s.list.length; n++) {
+          let v = s.list[n];
+          v.state !== "faint" &&
+            ((a.globalAlpha = 0.7),
+            V2(a, String(n + 1), v.x, v.y - 30, i.color));
+        }
+      } else if (s.phase === "dive")
+        (a.globalCompositeOperation = "lighter"),
+          (a.globalAlpha = 0.5),
+          summonBand(a, s.fx, s.fy, s.px, s.py, 18, i.color),
+          (a.globalAlpha = 0.95),
+          summonBand(a, s.fx, s.fy, s.px, s.py, 4, "#e9fff2"),
+          (a.globalCompositeOperation = "source-over");
+      return (a.globalAlpha = 1), !0;
+    }
+    if (s.kind === "hooh") {
+      let O = HOOH;
+      if (s.phase === "bless") {
+        // A pillar of rainbow light, then the ring of fire rolling out.
+        let p = Math.min(1, s.t / 10),
+          cs = [
+            "#ff5a5a",
+            "#ffb347",
+            "#ffe27a",
+            "#7be38a",
+            "#62d0ff",
+            "#b38cff",
+          ];
+        a.globalCompositeOperation = "lighter";
+        cs.forEach((c, k) => {
+          (a.globalAlpha = 0.18 * p),
+            (a.fillStyle = c),
+            a.fillRect(s.x - 15 + k * 5, s.y - 200, 5, 200);
+        });
+        if (((a.globalCompositeOperation = "source-over"), s.t >= 18)) {
+          let rr = (O.ringR * Math.min(1, (s.t - 18) / O.ringT)) | 0;
+          lgFireRing(a, s.x, s.y, Math.max(6, rr), t, 1);
+        }
+      } else if (s.phase === "wall") {
+        let k = s.t > O.wallT - 30 ? (O.wallT - s.t) / 30 : 1;
+        lgFireRing(a, s.x, s.y, O.wallR, t, Math.max(0.2, k));
+      }
+      return (a.globalAlpha = 1), !0;
+    }
+    return !1;
+  }
+  // Where the legendary itself is drawn, and how.
+  function exLgAir(s, i, t, f, l) {
+    if (s.kind === "groudon")
+      return {
+        x: s.x,
+        y: s.y - 10,
+        f:
+          s.phase === "warn"
+            ? (i.anims.Charge ?? f)
+            : s.phase === "blades"
+              ? (i.anims.Emit ?? i.anims.Attack ?? f)
+              : f,
+        l: Math.PI / 2,
+      };
+    if (s.kind === "rayquaza")
+      return {
+        x: s.px,
+        y: s.py,
+        f:
+          s.phase === "dive"
+            ? (i.anims.QuickStrike ?? i.anims.Attack ?? f)
+            : (i.anims.Walk ?? f),
+        l: Math.atan2((s.ty ?? s.py) - s.py, (s.tx ?? s.px) - s.px),
+      };
+    return {
+      x: s.x ?? s.px,
+      y: (s.y ?? s.py) - 56 - Math.sin(t * 0.08) * 4,
+      f: i.anims.Hover ?? i.anims.Idle ?? f,
+      l: Math.PI / 2,
+    };
+  }
+  // The scene backdrop for Groudon and Rayquaza.
+  function exLgSky(a, s, i, l, t) {
+    if (s.kind === "groudon") {
+      // Drought: a blinding sun, a red sky and rising embers.
+      glowAt(a, s.cx - 120, s.cy - 170, 120, "255,200,120", 0.5 * i),
+        (a.globalAlpha = 0.9 * i),
+        (a.fillStyle = "#fff0c0"),
+        a.beginPath(),
+        a.arc(s.cx - 120, s.cy - 170, 26, 0, Math.PI * 2),
+        a.fill();
+      for (let f = 0; f < 60; f++) {
+        let u = l() * Y,
+          h = _ - ((l() * _ + t * (1 + (f % 3))) % (_ + 40)) + 20;
+        (a.globalAlpha = (0.3 + 0.5 * l()) * i),
+          (a.fillStyle = f % 3 ? "#ff8a3d" : "#ffe27a"),
+          a.fillRect(
+            Math.round(u + Math.sin(t * 0.05 + f) * 4),
+            Math.round(h),
+            1,
+            2,
+          );
+      }
+      for (let f = 0; f < 5; f++) {
+        let h = _ * (0.55 + f * 0.09);
+        (a.globalAlpha = 0.12 * i),
+          (a.strokeStyle = "#ff6a3d"),
+          (a.lineWidth = 1),
+          a.beginPath();
+        for (let u = -20; u <= Y + 20; u += 10) {
+          let c = h + Math.sin(u * 0.05 + t * 0.15 + f) * 2;
+          u === -20 ? a.moveTo(u, c) : a.lineTo(u, c);
+        }
+        a.stroke();
+      }
+      return !0;
+    }
+    if (s.kind === "rayquaza") {
+      // The ozone layer: an aurora and clouds racing past.
+      a.globalCompositeOperation = "lighter";
+      for (let f = 0; f < 3; f++) {
+        (a.globalAlpha = 0.12 * i),
+          (a.strokeStyle = f === 1 ? "#ffe27a" : "#4fd18b"),
+          (a.lineWidth = 22 - f * 6),
+          a.beginPath();
+        for (let u = -40; u <= Y + 40; u += 16) {
+          let h =
+            _ * 0.25 + Math.sin(u * 0.01 + t * 0.03 + f * 1.3) * 30 + f * 12;
+          u === -40 ? a.moveTo(u, h) : a.lineTo(u, h);
+        }
+        a.stroke();
+      }
+      a.globalCompositeOperation = "source-over";
+      for (let f = 0; f < 40; f++) {
+        let u =
+            ((((l() * (Y + 200) - t * (6 + (f % 4) * 3)) % (Y + 200)) +
+              Y +
+              200) %
+              (Y + 200)) -
+            100,
+          h = l() * _;
+        (a.globalAlpha = (0.12 + 0.2 * l()) * i),
+          (a.fillStyle = "#e9fff2"),
+          a.fillRect(Math.round(u), Math.round(h), 30 + (f % 5) * 12, 2);
+      }
+      return !0;
+    }
+    return !1;
+  }
+  // The scene: the legendary at work on everyone it caught.
+  function exLgCineAir(a, e, t, s, i, r, o, sd, fc, l, f, u, h, c, y) {
+    if (t.kind === "groudon") {
+      // Groudon towers beside them; stone blades erupt on each beat, then a
+      // geyser of magma on the finisher.
+      let b = t.cx + sd * 70,
+        p = t.cy - 18 + Math.sin(o * 0.05) * 2,
+        k = o >= h - 20 && o < h + 14 ? "Emit" : "Idle";
+      o < 14 && (p -= (1 - Ee(o / 14)) * 30);
+      for (let M of u)
+        if (o >= M && o < M + 14)
+          for (let P of t.caught) {
+            let q = o - M;
+            for (let n = -1; n <= 1; n++)
+              lgBlade(
+                a,
+                P.x + n * 9,
+                P.y + 2,
+                (q < 3 ? q / 3 : 1 - q / 14) * 30,
+                5,
+                q < 6,
+              );
+            glowAt(a, P.x, P.y - 8, 26, "255,106,61", 0.6 * (1 - q / 14));
+          }
+      if (o >= h && o < h + 30) {
+        let q = o - h;
+        for (let P of t.caught)
+          glowAt(a, P.x, P.y - 40, 60, "255,150,60", 0.9 * (1 - q / 30)),
+            (a.globalCompositeOperation = "lighter"),
+            (a.globalAlpha = 0.8 * (1 - q / 30)),
+            summonBand(
+              a,
+              P.x,
+              P.y,
+              P.x,
+              P.y - 160,
+              26 * (1 - q / 40),
+              "#ff6a3d",
+            ),
+            summonBand(a, P.x, P.y, P.x, P.y - 160, 9, "#ffe27a"),
+            (a.globalCompositeOperation = "source-over");
+      }
+      return (
+        glowAt(a, b, p - 30, 70, r.rgb, 0.4 * f),
+        lgBig(a, s, k, i, fc, b, p, 1.6, f, y),
+        !0
+      );
+    }
+    if (t.kind === "rayquaza") {
+      // Rayquaza coils around them, striking from the orbit on each beat,
+      // then rises out of sight and comes down as a meteor.
+      let w = o * 0.11,
+        b = t.cx + Math.cos(w) * 92,
+        p = t.cy - 34 + Math.sin(w) * 36,
+        dir = w + Math.PI / 2;
+      a.globalCompositeOperation = "lighter";
+      for (let n = 1; n <= 8; n++) {
+        let q = w - n * 0.09;
+        (a.globalAlpha = 0.5 * (1 - n / 9) * f),
+          (a.fillStyle = n % 2 ? "#4fd18b" : "#ffe27a"),
+          a.beginPath(),
+          a.arc(
+            t.cx + Math.cos(q) * 92,
+            t.cy - 34 + Math.sin(q) * 36,
+            9 - n * 0.7,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill();
+      }
+      for (let M of u)
+        if (o >= M && o < M + 6)
+          for (let P of t.caught)
+            (a.globalAlpha = 1 - (o - M) / 6),
+              summonBand(a, b, p, P.x, P.y - 10, 10, "#4fd18b"),
+              summonBand(a, b, p, P.x, P.y - 10, 3, "#ffffff");
+      a.globalCompositeOperation = "source-over";
+      if (o < h - 12) lgBig(a, s, "Walk", i, dir, b, p, 1.5, f, y);
+      else {
+        let q = me((o - (h - 12)) / 12, 0, 1),
+          z = t.cy - 10 - 220 * (1 - Ee(q));
+        (a.globalCompositeOperation = "lighter"),
+          (a.globalAlpha = o < h + 10 ? 0.7 : 0),
+          summonBand(a, t.cx, z - 120, t.cx, z, 22, "#4fd18b"),
+          summonBand(a, t.cx, z - 120, t.cx, z, 7, "#ffffff"),
+          (a.globalCompositeOperation = "source-over"),
+          lgBig(
+            a,
+            s,
+            "QuickStrike",
+            i,
+            Math.PI / 2,
+            t.cx,
+            z - 6,
+            1.6,
+            f,
+            o < h + 3 ? 0.8 : 0,
+          );
+      }
+      return !0;
+    }
+    return !1;
+  }
+  function exLgCineGround(a, e, t, s) {
+    let o = t.t,
+      k = cineK(t);
+    if (t.kind === "groudon") {
+      (a.globalAlpha = 0.8 * k),
+        (a.fillStyle = "#2a0a04"),
+        a.beginPath(),
+        a.ellipse(t.cx, t.cy, 80, 44, 0, 0, Math.PI * 2),
+        a.fill();
+      for (let n = 0; n < 3; n++)
+        (a.globalAlpha = (0.5 + 0.4 * Math.sin(e.tick * 0.3 + n)) * k),
+          lgCrackRing(
+            a,
+            t.cx,
+            t.cy,
+            24 + n * 22,
+            t.id + n,
+            n % 2 ? "#ffb347" : "#ff6a3d",
+            1.6,
+          );
+      return (a.globalAlpha = 1), !0;
+    }
+    if (t.kind === "rayquaza") {
+      for (let n = 0; n < 3; n++) {
+        let q = ((o * 2 + n * 30) % 90) / 90;
+        (a.globalAlpha = (1 - q) * 0.6 * k),
+          lgRing(
+            a,
+            t.cx,
+            t.cy,
+            20 + q * 90,
+            n % 2 ? "#e9fff2" : "#4fd18b",
+            1.4,
+          );
+      }
+      return (a.globalAlpha = 1), !0;
+    }
+    return !1;
+  }
+  // ---- Second-generation kits: drawing --------------------------------
+  // Ground layer: warnings for queued hits (Rock Slide shadows, Stone Edge
+  // cracks, Future Sight circles), ice dolls, Dig's moving mound, Golurk's
+  // landing reticle and Magnet Rise's field.
+  function exGround(a, e) {
+    let t = e.tick;
+    for (let q of e.exq) {
+      let p = me((t - q.t0) / Math.max(1, q.at - q.t0), 0, 1),
+        x = q.x,
+        y = q.y;
+      if (q.kind === "rock") {
+        (a.globalAlpha = 0.25 + 0.45 * p),
+          (a.fillStyle = "#1a1410"),
+          a.beginPath(),
+          a.ellipse(
+            x,
+            y,
+            q.r * (0.4 + 0.6 * p),
+            q.r * 0.45 * (0.4 + 0.6 * p),
+            0,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill(),
+          (a.globalAlpha = 0.5 + 0.4 * p),
+          (a.strokeStyle = p > 0.75 && t % 4 < 2 ? "#ffffff" : "#ef5a4f"),
+          (a.lineWidth = 1),
+          a.beginPath(),
+          a.ellipse(x, y, q.r, q.r * 0.45, 0, 0, Math.PI * 2),
+          a.stroke();
+        // The boulder itself, falling.
+        let z = (1 - p) * (1 - p) * 120,
+          rr = q.r * 0.7;
+        (a.globalAlpha = Math.min(1, p * 3)),
+          (a.fillStyle = "#6e5f4d"),
+          a.beginPath(),
+          a.arc(x, y - 6 - z, rr, 0, Math.PI * 2),
+          a.fill(),
+          (a.fillStyle = "#a8916a"),
+          a.beginPath(),
+          a.arc(
+            x - rr * 0.25,
+            y - 6 - z - rr * 0.25,
+            rr * 0.62,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill(),
+          (a.fillStyle = "#d6c4a0"),
+          a.fillRect(
+            Math.round(x - rr * 0.45),
+            Math.round(y - 6 - z - rr * 0.55),
+            2,
+            2,
+          );
+      } else if (q.kind === "edge") {
+        (a.globalAlpha = 0.6 + 0.4 * p),
+          (a.strokeStyle = "#3a2c1c"),
+          (a.lineWidth = 1.4),
+          a.beginPath();
+        for (let k = 0; k < 4; k++) {
+          let g = (k / 4) * Math.PI * 2 + q.id;
+          a.moveTo(x, y),
+            a.lineTo(
+              x + Math.cos(g) * q.r * p,
+              y + Math.sin(g) * q.r * 0.5 * p,
+            );
+        }
+        a.stroke(),
+          (a.fillStyle = "rgba(255,226,170,0.5)"),
+          a.beginPath(),
+          a.ellipse(x, y, 4 + 4 * p, 2 + 2 * p, 0, 0, Math.PI * 2),
+          a.fill();
+      } else if (q.kind === "future") {
+        let k = 0.5 + 0.5 * Math.sin(t * (0.25 + 0.6 * p));
+        (a.globalAlpha = 0.18 + 0.22 * p),
+          (a.fillStyle = "#ff8fd8"),
+          a.beginPath(),
+          a.ellipse(x, y, q.r, q.r * 0.5, 0, 0, Math.PI * 2),
+          a.fill(),
+          (a.globalAlpha = 0.55 + 0.4 * k),
+          (a.strokeStyle = "#ffd6f4"),
+          (a.lineWidth = 1),
+          a.beginPath(),
+          a.ellipse(x, y, q.r, q.r * 0.5, 0, 0, Math.PI * 2),
+          a.stroke(),
+          a.beginPath(),
+          a.ellipse(
+            x,
+            y,
+            q.r * (1 - p) + 2,
+            (q.r * (1 - p) + 2) * 0.5,
+            0,
+            0,
+            Math.PI * 2,
+          ),
+          a.stroke();
+        // Rotating runes.
+        for (let n = 0; n < 6; n++) {
+          let g = (n / 6) * Math.PI * 2 + t * 0.05;
+          (a.fillStyle = n % 2 ? "#ffffff" : "#ff8fd8"),
+            a.fillRect(
+              Math.round(x + Math.cos(g) * q.r * 0.75) - 1,
+              Math.round(y + Math.sin(g) * q.r * 0.375) - 1,
+              2,
+              2,
+            );
+        }
+      }
+      a.globalAlpha = 1;
+    }
+    for (let q of e.exDone) {
+      let k = t - q.at;
+      if (q.kind === "edge") {
+        // A stone spire shoots up, holds, then sinks back.
+        let h =
+            (k < 4 ? k / 4 : k > 18 ? Math.max(0, 1 - (k - 18) / 9) : 1) * 26,
+          w = q.r * 0.55;
+        (a.fillStyle = "#5e5244"),
+          a.beginPath(),
+          a.moveTo(q.x - w, q.y + 1),
+          a.lineTo(q.x - w * 0.2, q.y - h),
+          a.lineTo(q.x + w * 0.35, q.y - h * 0.7),
+          a.lineTo(q.x + w, q.y + 1),
+          a.closePath(),
+          a.fill(),
+          (a.fillStyle = "#b8a27a"),
+          a.beginPath(),
+          a.moveTo(q.x - w * 0.55, q.y),
+          a.lineTo(q.x - w * 0.2, q.y - h * 0.92),
+          a.lineTo(q.x + w * 0.1, q.y - h * 0.6),
+          a.lineTo(q.x + w * 0.3, q.y),
+          a.closePath(),
+          a.fill(),
+          (a.fillStyle = "#e8d8b4"),
+          a.fillRect(
+            Math.round(q.x - w * 0.3),
+            Math.round(q.y - h * 0.8),
+            1,
+            Math.max(1, Math.round(h * 0.4)),
+          );
+        for (let n = -1; n <= 1; n += 2) {
+          let hh = h * 0.55,
+            xx = q.x + n * w * 1.1;
+          (a.fillStyle = "#7a6a55"),
+            a.beginPath(),
+            a.moveTo(xx - w * 0.45, q.y + 2),
+            a.lineTo(xx + n * w * 0.2, q.y + 2 - hh),
+            a.lineTo(xx + w * 0.45, q.y + 2),
+            a.closePath(),
+            a.fill();
+        }
+      } else if (q.kind === "rock") {
+        (a.globalAlpha = Math.max(0, 1 - k / 28)), (a.fillStyle = "#7a6a55");
+        for (let n = 0; n < 5; n++) {
+          let g = (n / 5) * Math.PI * 2 + q.id;
+          a.fillRect(
+            Math.round(q.x + Math.cos(g) * q.r * 0.6) - 2,
+            Math.round(q.y + Math.sin(g) * q.r * 0.3) - 1,
+            4,
+            3,
+          );
+        }
+        a.globalAlpha = 1;
+      }
+    }
+    // Ice dolls: a frosted copy of Froslass that bursts when touched.
+    let fm = e.mons.froslass;
+    for (let d of e.dolls) {
+      let n = fm?.anims.Idle;
+      if (!n) continue;
+      let row = Math.min(nt(d.facing), n.rows - 1),
+        f = Math.floor(t / 8) % n.frames,
+        k = xe.froslass.size,
+        img = n.tints.get("#bfe8ff") ?? n.white;
+      (a.globalAlpha = 0.35),
+        (a.fillStyle = L.shadow),
+        a.beginPath(),
+        a.ellipse(d.x, d.y, 7, 2.6, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = d.life < 24 && t % 4 < 2 ? 0.45 : 0.78),
+        a.save(),
+        a.translate(Math.round(d.x), Math.round(d.y)),
+        a.scale(k, k),
+        a.drawImage(
+          img,
+          f * n.fw,
+          row * n.fh,
+          n.fw,
+          n.fh,
+          -n.fw / 2,
+          -n.fh / 2 - fm.ground,
+          n.fw,
+          n.fh,
+        ),
+        a.restore(),
+        (a.globalAlpha = 0.6),
+        (a.fillStyle = "#ffffff");
+      for (let s = 0; s < 3; s++) {
+        let g = t * 0.07 + s * 2.1 + d.id;
+        a.fillRect(
+          Math.round(d.x + Math.cos(g) * 9),
+          Math.round(d.y - 14 + Math.sin(g * 1.3) * 8),
+          1,
+          1,
+        );
+      }
+      a.globalAlpha = 1;
+    }
+    for (let p of e.players) {
+      if (p.state === "faint") continue;
+      // Dig: a churning mound with Garchomp's fin cutting through it.
+      if (p.state === "ex" && p.exMove === "dig" && p.exHidden) {
+        let w = Math.sin(t * 0.6) * 1.2;
+        (a.fillStyle = "#6b5236"),
+          a.beginPath(),
+          a.ellipse(p.x, p.y, 11 + w, 4.5, 0, 0, Math.PI * 2),
+          a.fill(),
+          (a.fillStyle = "#8a6c48"),
+          a.beginPath(),
+          a.ellipse(p.x, p.y - 1, 8, 3, 0, 0, Math.PI * 2),
+          a.fill();
+        let fx = Math.cos(p.facing) * 2;
+        (a.fillStyle = "#3a4fa8"),
+          a.beginPath(),
+          a.moveTo(p.x - 4 - fx, p.y - 2),
+          a.lineTo(p.x + 3 + fx, p.y - 12),
+          a.lineTo(p.x + 5 + fx, p.y - 2),
+          a.closePath(),
+          a.fill(),
+          (a.fillStyle = "#e0393e"),
+          a.fillRect(Math.round(p.x + 1 + fx), Math.round(p.y - 7), 2, 1);
+      }
+      // Golurk's landing spot.
+      if (p.state === "ex" && p.exMove === "fly") {
+        let r = EXK.golurk.flyR,
+          k = 0.5 + 0.5 * Math.sin(t * 0.5);
+        (a.globalAlpha = 0.25),
+          (a.fillStyle = "#ef5a4f"),
+          a.beginPath(),
+          a.ellipse(p.markX, p.markY, r, r * 0.45, 0, 0, Math.PI * 2),
+          a.fill(),
+          (a.globalAlpha = 0.6 + 0.4 * k),
+          (a.strokeStyle = "#ffe27a"),
+          (a.lineWidth = 1),
+          a.setLineDash([4, 3]),
+          (a.lineDashOffset = -t),
+          a.beginPath(),
+          a.ellipse(p.markX, p.markY, r, r * 0.45, 0, 0, Math.PI * 2),
+          a.stroke(),
+          a.setLineDash([]),
+          a.beginPath(),
+          a.moveTo(p.markX - 6, p.markY),
+          a.lineTo(p.markX + 6, p.markY),
+          a.moveTo(p.markX, p.markY - 3),
+          a.lineTo(p.markX, p.markY + 3),
+          a.stroke(),
+          (a.globalAlpha = 1);
+      }
+      // Magnet Rise: a humming field under the hovering Metagross.
+      if ((p.slot.riseT ?? 0) > 0) {
+        let k = p.slot.riseT < 60 && t % 6 < 3 ? 0.4 : 1;
+        a.globalAlpha = 0.5 * k;
+        for (let n = 0; n < 2; n++) {
+          let rr = 10 + ((t * 0.6 + n * 7) % 14);
+          (a.strokeStyle = n ? "#f8d030" : "#9fc4ff"),
+            (a.lineWidth = 1),
+            a.beginPath(),
+            a.ellipse(p.x, p.y, rr, rr * 0.4, 0, 0, Math.PI * 2),
+            a.stroke();
+        }
+        a.globalAlpha = 1;
+      }
+    }
+  }
+  // Over the fighters: frozen blocks, chill frost, Outrage's fury, confusion
+  // stars, the psychic grip on a lifted foe.
+  function exAir(a, e) {
+    let t = e.tick;
+    for (let p of e.players) {
+      if (p.state === "faint" || (p.vanished && p.isRival)) continue;
+      let x = p.x,
+        y = p.y - p.z,
+        hgt = p.kit.tall * Bz(p);
+      if (p.frozenT > 0) {
+        let w = 13 * Bz(p) + 3,
+          h = hgt + 4;
+        (a.globalAlpha = 0.45),
+          (a.fillStyle = "#bfe8ff"),
+          a.fillRect(
+            Math.round(x - w),
+            Math.round(y - h),
+            Math.round(w * 2),
+            Math.round(h),
+          ),
+          (a.globalAlpha = 0.9),
+          (a.strokeStyle = "#ffffff"),
+          (a.lineWidth = 1),
+          a.strokeRect(
+            Math.round(x - w) + 0.5,
+            Math.round(y - h) + 0.5,
+            Math.round(w * 2),
+            Math.round(h),
+          ),
+          (a.globalAlpha = 0.7),
+          a.beginPath(),
+          a.moveTo(x - w + 3, y - h + 4),
+          a.lineTo(x - w + 7, y - h + 10),
+          a.moveTo(x + w - 6, y - h + 3),
+          a.lineTo(x + w - 3, y - h + 7),
+          a.stroke(),
+          (a.globalAlpha = 1);
+      } else if (p.chill > 0) {
+        for (let n = 0; n < p.chill; n++) {
+          let g = t * 0.08 + (n * Math.PI * 2) / 3;
+          (a.globalAlpha = 0.85),
+            (a.fillStyle = "#d6f4ff"),
+            a.fillRect(
+              Math.round(x + Math.cos(g) * 11) - 1,
+              Math.round(y - 6 + Math.sin(g) * 3),
+              3,
+              1,
+            ),
+            a.fillRect(
+              Math.round(x + Math.cos(g) * 11),
+              Math.round(y - 7 + Math.sin(g) * 3),
+              1,
+              3,
+            );
+        }
+        a.globalAlpha = 1;
+      }
+      if (p.slot.rage > 0 && t % 2 === 0) {
+        (a.globalAlpha = 0.22 + 0.12 * Math.sin(t * 0.4)),
+          (a.fillStyle = "#ff4a3d"),
+          a.beginPath(),
+          a.ellipse(x, y - hgt * 0.5, 16, hgt * 0.65, 0, 0, Math.PI * 2),
+          a.fill(),
+          (a.globalAlpha = 1);
+      }
+      if (p.slot.confT > 0 && p.slot.kit.id === "garchomp") {
+        for (let n = 0; n < 3; n++) {
+          let g = t * 0.15 + (n * Math.PI * 2) / 3;
+          (a.fillStyle = n % 2 ? "#ffe27a" : "#ffffff"),
+            a.fillRect(
+              Math.round(x + Math.cos(g) * 8) - 1,
+              Math.round(y - hgt - 4 + Math.sin(g) * 2.5),
+              2,
+              2,
+            );
+        }
+      }
+      if (p.heldBy && p.heldBy.kit?.id === "gardevoir") {
+        (a.globalAlpha = 0.35 + 0.2 * Math.sin(t * 0.5)),
+          (a.strokeStyle = "#ff8fd8"),
+          (a.lineWidth = 2),
+          a.beginPath(),
+          a.ellipse(x, y - hgt * 0.5, 15, hgt * 0.6, 0, 0, Math.PI * 2),
+          a.stroke(),
+          (a.globalAlpha = 1);
+      }
+    }
+  }
+  // Projectiles of the second-generation kits. Returns true when drawn.
+  function exDrawProj(a, e, h, c, y) {
+    let t = e.tick,
+      ang = Math.atan2(h.vy, h.vx);
+    if (h.kind === "fist") {
+      // Golurk's rocket fist: a purple trail and a stone hand.
+      for (let k = 4; k >= 1; k--)
+        (a.globalAlpha = 0.12 * (5 - k)),
+          (a.fillStyle = "#7a5cd0"),
+          a.beginPath(),
+          a.arc(
+            c - Math.cos(ang) * k * 5,
+            y - Math.sin(ang) * k * 5,
+            6 - k * 0.8,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill();
+      return (
+        (a.globalAlpha = 1),
+        a.save(),
+        a.translate(c, y),
+        a.rotate(ang),
+        (a.fillStyle = "#3f6e70"),
+        a.beginPath(),
+        a.ellipse(0, 0, 8, 6.5, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#6fa7a8"),
+        a.fillRect(2, -5, 5, 3),
+        a.fillRect(2, -1, 6, 3),
+        a.fillRect(2, 3, 5, 2),
+        (a.fillStyle = "#c9a6ff"),
+        a.fillRect(-7, -1, 3, 2),
+        a.restore(),
+        !0
+      );
+    }
+    if (h.kind === "boulder") {
+      let s = h.age * 0.25;
+      return (
+        a.save(),
+        a.translate(c, y),
+        a.rotate(s),
+        (a.fillStyle = "#5e5244"),
+        a.beginPath(),
+        a.arc(0, 0, 10, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#8d7f73"),
+        a.beginPath(),
+        a.arc(-2, -2, 7.5, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#b9ab9a"),
+        a.fillRect(-5, -6, 3, 2),
+        a.fillRect(2, 1, 2, 2),
+        a.restore(),
+        !0
+      );
+    }
+    if (h.kind === "shard") {
+      return (
+        a.save(),
+        a.translate(c, y),
+        a.rotate(ang),
+        (a.fillStyle = "#b8a890"),
+        a.beginPath(),
+        a.moveTo(5, 0),
+        a.lineTo(-3, -3),
+        a.lineTo(-2, 3),
+        a.closePath(),
+        a.fill(),
+        a.restore(),
+        !0
+      );
+    }
+    if (h.kind === "moon") {
+      // Moonblast: a pale pink moon with a soft halo and sparkles.
+      let s = 9 + Math.sin(t * 0.5) * 1;
+      (a.fillStyle = d2grad(a, c, y, s * 2.2, [
+        [0, "rgba(255,240,250,0.9)"],
+        [0.45, "rgba(255,143,216,0.45)"],
+        [1, "rgba(255,143,216,0)"],
+      ])),
+        a.beginPath(),
+        a.arc(c, y, s * 2.2, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#ffe6f7"),
+        a.beginPath(),
+        a.arc(c, y, s * 0.7, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#ffc1ea"),
+        a.beginPath(),
+        a.arc(c + 2, y - 1, s * 0.45, 0, Math.PI * 2),
+        a.fill();
+      for (let k = 0; k < 4; k++) {
+        let g = t * 0.12 + (k * Math.PI) / 2;
+        (a.fillStyle = "#ffffff"),
+          a.fillRect(
+            Math.round(c + Math.cos(g) * s * 1.4),
+            Math.round(y + Math.sin(g) * s * 1.4),
+            1,
+            1,
+          );
+      }
+      return !0;
+    }
+    return !1;
+  }
+  // HUD status tag under the name for the second-generation kits.
+  function exHudTag(a, t, l, f, v, E, h) {
+    let id = f.id,
+      hint = (s) => G(s, v, E + 5.6, 5.8, g.dim);
+    if (t.frozenT > 0) return ue("FROZEN", "#7cc8ec", v, E);
+    if (id === "garchomp")
+      return l.rage > 0
+        ? ue(
+            `OUTRAGE ${Math.ceil(l.rage / 60)}`,
+            h % 10 < 5 ? "#ff4a3d" : "#e0393e",
+            v,
+            E,
+          )
+        : l.confT > 0
+          ? ue("CONFUSED", "#b8901e", v, E)
+          : t.state === "ex" && t.exMove === "dig" && t.exHidden
+            ? ue("UNDERGROUND", "#8a6c48", v, E)
+            : hint("Dig in, erupt under them");
+    if (id === "scizor") {
+      let n = a.exBp(l);
+      return ue(`BULLET x${n}`, n ? "#8f9bb8" : "#5a6070", v, E);
+    }
+    if (id === "tyrantrum")
+      return t.grab
+        ? ue("CRUNCH!", "#c4553a", v, E)
+        : hint("Crunch grabs through guard");
+    if (id === "golurk")
+      return t.state === "ex" && t.exMove === "fly"
+        ? ue("FLYING", "#ffb36b", v, E)
+        : hint("Shadow Punch, then Fly");
+    if (id === "rhyperior") {
+      let n = a.rocks.filter((r) => r.exPillar && r.owner === t).length;
+      return n
+        ? ue(`PILLARS ${n}`, "#8d7f73", v, E)
+        : hint("Rock Tomb, then Rock Wrecker");
+    }
+    if (id === "froslass") return hint("Three chill freezes");
+    if (id === "gardevoir")
+      return t.grab
+        ? ue("PSYCHIC", "#e070c0", v, E)
+        : hint("Synchronize returns status");
+    if (id === "metagross")
+      return l.riseT > 0
+        ? ue(`MAGNET RISE ${Math.ceil(l.riseT / 60)}`, "#6f9ce0", v, E)
+        : hint("Clear Body: no slows");
+    return 0;
+  }
+  // Rhyperior's Rock Tomb pillar: a jagged stone spire.
+  function exPillarArt(a, e, t) {
+    let s = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
+      x = Math.round(e.x + s),
+      y = Math.round(e.y),
+      k = e.life < 90 && t % 8 < 4 ? 0.7 : 1;
+    (a.globalAlpha = k),
+      (a.fillStyle = "#4e463d"),
+      a.beginPath(),
+      a.moveTo(x - 13, y + 2),
+      a.lineTo(x - 10, y - 16),
+      a.lineTo(x - 5, y - 30),
+      a.lineTo(x + 1, y - 22),
+      a.lineTo(x + 5, y - 34),
+      a.lineTo(x + 11, y - 14),
+      a.lineTo(x + 13, y + 2),
+      a.closePath(),
+      a.fill(),
+      (a.fillStyle = "#8d7f73"),
+      a.beginPath(),
+      a.moveTo(x - 9, y),
+      a.lineTo(x - 7, y - 15),
+      a.lineTo(x - 4, y - 26),
+      a.lineTo(x, y - 18),
+      a.lineTo(x + 4, y - 29),
+      a.lineTo(x + 8, y - 12),
+      a.lineTo(x + 9, y),
+      a.closePath(),
+      a.fill(),
+      (a.fillStyle = "#b9ab9a"),
+      a.fillRect(x - 5, y - 22, 2, 6),
+      a.fillRect(x + 3, y - 25, 2, 8);
+    let o = 1 - e.hp / e.max;
+    o > 0.25 &&
+      ((a.strokeStyle = "#231f1b"),
+      (a.lineWidth = 1),
+      a.beginPath(),
+      a.moveTo(x - 3, y - 20),
+      a.lineTo(x + 1, y - 12),
+      a.lineTo(x - 2, y - 4),
+      o > 0.6 && (a.moveTo(x + 5, y - 22), a.lineTo(x + 2, y - 14)),
+      a.stroke()),
+      e.hitT > 3 &&
+        ((a.globalAlpha = 0.35),
+        (a.fillStyle = "#ffffff"),
+        a.beginPath(),
+        a.ellipse(x, y - 14, 12, 15, 0, 0, Math.PI * 2),
+        a.fill()),
+      (a.globalAlpha = 1);
+  }
   function drawProj2(a, e, h, c, y) {
+    if (h.ex) return exDrawProj(a, e, h, c, y);
     let t = e.tick;
     if (h.kind === "fireblast") {
       let s = 5 + 3 * Math.sin(t * 0.8);
@@ -15145,6 +19616,7 @@
   // Styled beam columns: steel (Flash Cannon), aura, and anything else that
   // wants a layered glowing capsule with its own palette and texture.
   var BEAMS = {
+    ice: ["rgba(154,216,240,0.30)", "#7cc8ec", "#d6f4ff", "#ffffff", "#4aa3d6"],
     steel: [
       "rgba(184,196,224,0.30)",
       "#b8c4e0",
@@ -16861,17 +21333,26 @@
                           v,
                           E,
                         )
-                    : f.id === "dragapult" &&
-                      (l.horns.forEach((w, U) =>
-                        Oe(o.dreepy, "Normal", v + U * 9.5, E - 0.5, 8, {
-                          bg: "#7fd1a8",
-                          grey: w !== "loaded",
-                        }),
-                      ),
-                      (v += 21),
-                      l.pfCd === 0
-                        ? ue("PHANTOM", "#7b62d8", v, E)
-                        : Tt(v, E + 1.6, 26, 3.2, 1 - l.pfCd / ut, "#7b62d8"));
+                    : EXK[f.id]
+                      ? exHudTag(a, t, l, f, v, E, h)
+                      : f.id === "dragapult" &&
+                        (l.horns.forEach((w, U) =>
+                          Oe(o.dreepy, "Normal", v + U * 9.5, E - 0.5, 8, {
+                            bg: "#7fd1a8",
+                            grey: w !== "loaded",
+                          }),
+                        ),
+                        (v += 21),
+                        l.pfCd === 0
+                          ? ue("PHANTOM", "#7b62d8", v, E)
+                          : Tt(
+                              v,
+                              E + 1.6,
+                              26,
+                              3.2,
+                              1 - l.pfCd / ut,
+                              "#7b62d8",
+                            ));
   }
   function Za(a, e, t) {
     (d.fillStyle = g.night),
@@ -16984,9 +21465,20 @@
             ? i.horns.includes("loaded") || i.horns.includes("out")
               ? [1, ""]
               : [0, "Darts out"]
-            : l(i.cdX, s.xCd)),
+            : s.id === "scizor"
+              ? (i.bp ?? EXK.scizor.bpMax) > 0 && !(i.curseT > 0)
+                ? [1, `x${i.bp ?? EXK.scizor.bpMax}`]
+                : l(i.cdX, EXK.scizor.bpRecharge)
+              : s.id === "garchomp" && i.rage > 0
+                ? [i.rage / EXK.garchomp.outrage, "RAGE"]
+                : l(i.cdX, s.xCd)),
       ],
-      sp2: [tc(s.yName), ...l(i.cdY, s.yCd)],
+      sp2: [
+        tc(s.yName),
+        ...(i.riseT > 0
+          ? [i.riseT / EXK.metagross.mrTime, "Floating"]
+          : l(i.cdY, s.yCd)),
+      ],
       dodge: ["Dodge", ...l(i.cdDodge, s.dodge.cooldown)],
       smash: [tc(s.smash.name ?? "Smash"), 1, ""],
       attack: ["Attack", 1, ""],
@@ -17227,51 +21719,65 @@
         g.haze,
         { align: "right", italic: !0, weight: 600 },
       ),
-      [
-        [H / 2 - 189, "snorlax"],
-        [H / 2 - 135, "venusaur"],
-        [H / 2 - 81, "charizard"],
-        [H / 2 - 27, "lucario"],
-        [H / 2 + 27, "magnezone"],
-        [H / 2 + 81, "blastoise"],
-        [H / 2 + 135, "noivern"],
-        [H / 2 + 189, "dragapult"],
-      ].forEach(([o, l], f) => {
-        let u = xe[l],
-          h = u.color,
-          c = 196 + (f % 2 ? -6 : 0),
-          y = d.createRadialGradient(m(o), m(c), 0, m(o), m(c), m(40));
-        y.addColorStop(0, h + "99"),
-          y.addColorStop(1, h + "00"),
-          (d.fillStyle = y),
-          d.beginPath(),
-          d.ellipse(m(o), m(c), m(40), m(12), 0, 0, Math.PI * 2),
-          d.fill(),
-          (d.fillStyle = "rgba(8,6,18,0.55)"),
-          d.beginPath(),
-          d.ellipse(m(o), m(c), m(15), m(4.5), 0, 0, Math.PI * 2),
-          d.fill();
-        let b = e[l],
-          p = b.anims.Idle ?? b.anims.Walk;
-        et(
-          d,
-          p,
-          Be(p, t + f * 11, 1),
-          0,
-          m(o),
-          m(c),
-          1.7 * Fe * u.size,
-          b.ground,
-        ),
-          V(u.name, o, c + 17, 9, h, {
-            align: "center",
-            outline: 2.2,
-            skew: !0,
-          }),
-          G(u.role.replace(" \xB7 ", ", "), o, c + 24, 5.2, g.haze, {
-            align: "center",
-          });
-      });
+      (Math.floor(t / 480) % 2
+        ? [
+            "rhyperior",
+            "gardevoir",
+            "garchomp",
+            "scizor",
+            "metagross",
+            "froslass",
+            "golurk",
+            "tyrantrum",
+          ]
+        : [
+            "snorlax",
+            "venusaur",
+            "charizard",
+            "lucario",
+            "magnezone",
+            "blastoise",
+            "noivern",
+            "dragapult",
+          ]
+      )
+        .map((l, f) => [H / 2 - 189 + f * 54, l])
+        .forEach(([o, l], f) => {
+          let u = xe[l],
+            h = u.color,
+            c = 196 + (f % 2 ? -6 : 0),
+            y = d.createRadialGradient(m(o), m(c), 0, m(o), m(c), m(40));
+          y.addColorStop(0, h + "99"),
+            y.addColorStop(1, h + "00"),
+            (d.fillStyle = y),
+            d.beginPath(),
+            d.ellipse(m(o), m(c), m(40), m(12), 0, 0, Math.PI * 2),
+            d.fill(),
+            (d.fillStyle = "rgba(8,6,18,0.55)"),
+            d.beginPath(),
+            d.ellipse(m(o), m(c), m(15), m(4.5), 0, 0, Math.PI * 2),
+            d.fill();
+          let b = e[l],
+            p = b.anims.Idle ?? b.anims.Walk;
+          et(
+            d,
+            p,
+            Be(p, t + f * 11, 1),
+            0,
+            m(o),
+            m(c),
+            1.7 * Fe * u.size,
+            b.ground,
+          ),
+            V(u.name, o, c + 17, 9, h, {
+              align: "center",
+              outline: 2.2,
+              skew: !0,
+            }),
+            G(u.role.replace(" \xB7 ", ", "), o, c + 24, 5.2, g.haze, {
+              align: "center",
+            });
+        });
     let r = 0.7 + 0.3 * Math.sin(t * 0.09);
     d.save(),
       (d.globalAlpha = r),
@@ -17372,31 +21878,46 @@
   // ---- Team select ----
   // A versus layout: your side's card on the left, the opponent's on the right,
   // the roster in three columns in the middle, and a VS emblem below it.
-  var RG = { x: H / 2 - 63, y: 36, tile: 38, gap: 6, pitch: 49 };
+  var RG = { x: H / 2 - 90, y: 34, tile: 28, gap: 2.5, pitch: 43, cols: 6 };
   function rs(a) {
-    let e = Math.floor(a / 3),
-      t = a % 3,
-      s = 0;
+    let e = Math.floor(a / RG.cols),
+      t = a % RG.cols,
+      // A short last row sits centred under the others.
+      s =
+        ((RG.cols - Math.min(RG.cols, ge.length + 1 - e * RG.cols)) *
+          (RG.tile + RG.gap)) /
+        2;
     return {
       x: RG.x + s + t * (RG.tile + RG.gap) - e * 2,
       y: RG.y + e * RG.pitch,
       s: RG.tile,
     };
   }
-  // Cursor moves for the 3-3-2 roster.
-  // Index 8, the last cell, is the legendary tile.
-  var RN3 = {
-    left: [2, 0, 1, 5, 3, 4, 8, 6, 7],
-    right: [1, 2, 0, 4, 5, 3, 7, 8, 6],
-    up: [6, 7, 8, 0, 1, 2, 3, 4, 5],
-    down: [3, 4, 5, 6, 7, 8, 0, 1, 2],
-  };
+  // Cursor moves on the roster grid; the cell after the last Pokémon is
+  // the random tile.
+  function rosterNav(c, w) {
+    let N = ge.length + 1,
+      C = RG.cols,
+      R = Math.ceil(N / C),
+      r = Math.floor(c / C),
+      k = c % C,
+      n = (q) => Math.min(C, N - q * C);
+    return (
+      w === "left"
+        ? (k = (k + n(r) - 1) % n(r))
+        : w === "right"
+          ? (k = (k + 1) % n(r))
+          : ((r = (r + (w === "down" ? 1 : R - 1)) % R),
+            (k = Math.min(k, n(r) - 1))),
+      r * C + k
+    );
+  }
   // The last tile picks a random Pokémon you haven't picked yet.
   function rndTile(a) {
-    let { x: t, y: s, s: i } = rs(8),
-      r = a.cursor === 8;
+    let { x: t, y: s, s: i } = rs(ge.length),
+      r = a.cursor === ge.length;
     tapRect(t - 2, s - 2, i + 4, i + 12, () => {
-      (a.cursor = 8), Ue.add("confirm");
+      (a.cursor = ge.length), Ue.add("confirm");
     }),
       r &&
         (d.save(),
@@ -17407,22 +21928,25 @@
         d.restore()),
       te(t - 1.4, s - 1.4, i + 2.8, i + 2.8, r ? g.p1 : "rgba(10,8,22,0.95)"),
       te(t, s, i, i, "#191530"),
-      V("?", t + i / 2, s + i * 0.72, 24, r ? g.gold : g.chalk, {
+      V("?", t + i / 2, s + i * 0.72, 18, r ? g.gold : g.chalk, {
         align: "center",
         outline: 2,
       }),
-      V("RANDOM", t + i / 2 - 1, s + i + 8, 6.4, r ? g.p1 : g.chalk, {
+      V("RANDOM", t + i / 2 - 1, s + i + 6.5, 4.6, r ? g.p1 : g.chalk, {
         align: "center",
-        outline: 1.6,
+        outline: 1.2,
       });
   }
   // The legendary roster: opens once every fighter is chosen.
   var LG_CARDS = [
-    ["zekrom", "Fusion Bolt", "Dives along a line, then", "calls down a storm"],
-    ["darkrai", "Dark Void", "A sleep pool, then", "Nightmare drains them"],
-    ["deoxys", "Psycho Boost", "A random Forme each", "time it is called"],
-    ["random", "Any of the three", "Rolled fresh for", "every battle"],
-    ["off", "No legendaries", "Battle without", "summons this time"],
+    ["zekrom", "Fusion Bolt", "Dives along a line,", "then a storm"],
+    ["darkrai", "Dark Void", "A sleep pool, then", "Nightmare drains"],
+    ["deoxys", "Psycho Boost", "A random Forme", "every time"],
+    ["groudon", "Precipice Blades", "Rings of blades,", "then scorched earth"],
+    ["rayquaza", "Dragon Ascent", "Dives on up to", "three foes in turn"],
+    ["hooh", "Sacred Fire", "Heals your side,", "rings you in fire"],
+    ["random", "Any of the six", "Rolled fresh for", "every battle"],
+    ["off", "No legendaries", "Battle without", "summons"],
   ];
   function lgRoster(a, e) {
     let t = a.lgT ?? 0,
@@ -17443,16 +21967,20 @@
         g.haze,
         { align: "center" },
       );
-    let i = 82,
-      r = 120,
+    let i = 96,
+      r = 66,
       o = 8,
-      l = (H - (i * 5 + o * 4)) / 2;
+      l = (H - (i * 4 + o * 3)) / 2;
     LG_CARDS.forEach(([f, u, h, c], y) => {
       let b = a.lgCursor === y,
         p = LG_INFO[f],
         k = p?.color ?? (f === "random" ? g.gold : g.dim),
-        M = l + y * (i + o),
-        P = 58 + (1 - s) * 20 + (b ? -4 + Math.sin(t * 0.12) * 1.5 : 0);
+        M = l + (y % 4) * (i + o),
+        P =
+          54 +
+          Math.floor(y / 4) * (r + 8) +
+          (1 - s) * 20 +
+          (b ? -3 + Math.sin(t * 0.12) * 1.2 : 0);
       tapRect(M, P, i, r, () => {
         a.lgCursor === y ? Ue.add("confirm") : ((a.lgCursor = y), S.ui(!0));
       }),
@@ -17466,17 +21994,17 @@
         Ae(M, P, i, r, k, { bright: b });
       let C = e[f];
       C
-        ? Oe(C, b ? "Determined" : "Normal", M + 9, P + 7, i - 18, {
+        ? Oe(C, b ? "Determined" : "Normal", M + 6, P + 6, 40, {
             bg: k,
             frame: !1,
             slash: !0,
           })
-        : (te(M + 9, P + 7, i - 18, i - 18, "#191530", 6),
+        : (te(M + 6, P + 6, 40, 40, "#191530", 6),
           V(
             f === "random" ? "?" : "OFF",
-            M + i / 2,
-            P + (f === "random" ? 54 : 46),
-            f === "random" ? 34 : 14,
+            M + 26,
+            P + (f === "random" ? 38 : 31),
+            f === "random" ? 26 : 11,
             k,
             {
               align: "center",
@@ -17485,20 +22013,17 @@
           )),
         V(
           f === "random" ? "RANDOM" : f === "off" ? "OFF" : p.name,
-          M + i / 2,
-          P + 82,
-          10.5,
+          M + 49,
+          P + 16,
+          8,
           b ? g.chalk : k,
-          {
-            align: "center",
-            outline: 2,
-          },
+          { outline: 1.6 },
         ),
-        G(u, M + i / 2, P + 92, 6.4, k, { align: "center", weight: 700 }),
-        G(h, M + i / 2, P + 102, 5.4, g.haze, { align: "center" }),
-        G(c, M + i / 2, P + 109, 5.4, g.haze, { align: "center" });
+        G(u, M + 49, P + 25, 5.2, k, { weight: 700 }),
+        G(h, M + 49, P + 34, 4.8, g.haze),
+        G(c, M + 49, P + 41, 4.8, g.haze);
     });
-    let f = 196;
+    let f = 214;
     G(
       cpuSide()
         ? "The CPU brings a random legendary."
@@ -17514,7 +22039,7 @@
     (d.fillStyle = "rgba(5,4,14,0.96)"), d.fillRect(0, m(oe - 18), m(H), m(18));
     let u = 12;
     for (let [h, c] of [
-      ["←→", "Choose"],
+      ["←→↑↓", "Choose"],
       ["A", A.gameMode === 5 ? "Confirm and go online" : "Confirm and battle"],
       ["B", "Back"],
     ]) {
@@ -17889,10 +22414,10 @@
         V(
           E.name,
           C + v / 2 - 1,
-          x + v + 8,
-          6.4,
+          x + v + 6.5,
+          4.6,
           K ? g.p1 : Q >= 0 ? "#9fe6f2" : g.chalk,
-          { align: "center", outline: 1.6 },
+          { align: "center", outline: 1.2 },
         ),
         Q >= 0 &&
           ue(`P${Q + 1}`, g.p1, C + v * ke + 1, x + 2, {
@@ -19019,6 +23544,241 @@
       ["B", "Extreme Speed", "Fast long dash.", "DODGE"],
       ["*", "Aura", "Up to +50% damage the lower your health.", "PASSIVE"],
     ],
+    garchomp: [
+      [
+        "A",
+        "Dragon Claw combo",
+        "Two fast slashes into a heavy finisher.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Stone Edge",
+        "Stone spikes burst from the ground in a line. Charge to reach further.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Outrage",
+        "Roar, then rampage: faster and 25% stronger. Afterwards you are confused.",
+        "BUFF",
+      ],
+      [
+        "Y",
+        "Dig",
+        "Burrow, steer unseen, release to erupt beneath them. Hold to travel further.",
+        "HOLD",
+      ],
+      ["B", "Sand Dash", "Fast long dash.", "DODGE"],
+      [
+        "*",
+        "Rough Skin",
+        "Anyone who hits you up close takes damage back.",
+        "PASSIVE",
+      ],
+    ],
+    scizor: [
+      [
+        "A",
+        "Metal Claw combo",
+        "Quick pincer jabs into a heavy slash.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "X-Scissor",
+        "A crossing slash that cuts through the target.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Bullet Punch",
+        "Strikes first, every time. Three charges that refill one by one; chain them on hit.",
+        "3 CHARGES",
+      ],
+      [
+        "Y",
+        "U-turn",
+        "Dash through and hop back out. In Tag Team a hit tags your partner in.",
+        "HIT AND RUN",
+      ],
+      ["B", "Agility", "Fast dash.", "DODGE"],
+      [
+        "*",
+        "Technician",
+        "Weak moves (Bullet Punch, jabs) hit 30% harder.",
+        "PASSIVE",
+      ],
+    ],
+    tyrantrum: [
+      [
+        "A",
+        "Jaw combo",
+        "Two bites into a tail swipe that shrugs off a hit.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Head Smash",
+        "A charging headbutt with super armor. Rock Head: no recoil.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Crunch",
+        "Lunging grab that goes through guard: shake them, then throw.",
+        "GRAB",
+      ],
+      [
+        "Y",
+        "Rock Slide",
+        "Three boulders crash around your target after a shadow warning.",
+        "RANGED",
+      ],
+      ["B", "Roll", "Heavy roll.", "DODGE"],
+      ["*", "Strong Jaw", "Bites hit 25% harder.", "PASSIVE"],
+    ],
+    golurk: [
+      [
+        "A",
+        "Hammer Fist combo",
+        "Heavy punches; the last one shrugs off a hit.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Dynamic Punch",
+        "A huge punch that leaves them dazed.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Shadow Punch",
+        "Launches a rocket fist that homes in and flies through cover.",
+        "HOMING",
+      ],
+      [
+        "Y",
+        "Fly",
+        "Blast off, steer the landing spot, crash down. Untouchable by ground attacks in flight.",
+        "MOBILITY",
+      ],
+      ["B", "Hover", "Short hover.", "DODGE"],
+      ["*", "Iron Fist", "Punches hit 20% harder.", "PASSIVE"],
+    ],
+    rhyperior: [
+      [
+        "A",
+        "Horn combo",
+        "Heavy horn jabs; the last one shrugs off a hit.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Horn Drill",
+        "A spinning drill charge with super armor.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Rock Wrecker",
+        "A huge boulder shot. Fire it into your own pillar to shatter it into shrapnel.",
+        "RANGED",
+      ],
+      [
+        "Y",
+        "Rock Tomb",
+        "Raise a pillar of cover where you aim (two at most). Anyone on the spot is hurt and slowed.",
+        "TERRAIN",
+      ],
+      ["B", "Roll", "Heavy roll.", "DODGE"],
+      ["*", "Solid Rock", "Heavy blows deal 20% less.", "PASSIVE"],
+    ],
+    froslass: [
+      ["A", "Frost combo", "Light touches into a chilling twirl.", "COMBO"],
+      ["RS", "Ice Beam", "A freezing beam that chills.", "OPTIONAL CHARGE"],
+      [
+        "X",
+        "Icy Wind",
+        "A cone of freezing wind that chills everyone in it.",
+        "CHILL",
+      ],
+      [
+        "Y",
+        "Double Team",
+        "Vanish, leave an ice doll that bursts when touched, reappear (behind a locked foe).",
+        "DECOY",
+      ],
+      ["B", "Glide", "Floating dash.", "DODGE"],
+      [
+        "*",
+        "Chill",
+        "Each chill slows; three freeze them for a moment.",
+        "STATUS",
+      ],
+      [
+        "*",
+        "Cursed Body",
+        "Specials that hit you can disable the attacker's specials.",
+        "PASSIVE",
+      ],
+    ],
+    gardevoir: [
+      [
+        "A",
+        "Psy palm combo",
+        "Long-reaching palms into a psychic burst.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Future Sight",
+        "Marks a spot that explodes a second later. Charge to place it further.",
+        "OPTIONAL CHARGE",
+      ],
+      ["X", "Moonblast", "A slow, heavy fairy orb.", "RANGED"],
+      [
+        "Y",
+        "Psychic",
+        "Turns nearby shots around and lifts a foe; steer, then throw them.",
+        "GRAB",
+      ],
+      ["B", "Teleport", "Blink a short distance.", "DODGE"],
+      [
+        "*",
+        "Synchronize",
+        "Burn, poison, paralysis or chill on you hits whoever caused it too.",
+        "PASSIVE",
+      ],
+    ],
+    metagross: [
+      ["A", "Meteor fist combo", "Heavy steel punches.", "COMBO"],
+      [
+        "RS",
+        "Hammer Arm",
+        "A crushing slam with super armor. Slows you for a while.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Zen Headbutt",
+        "Lunging headbutt that can make them flinch.",
+        "DASH",
+      ],
+      [
+        "Y",
+        "Magnet Rise",
+        "Float for four seconds: faster, above ground attacks and hazards, but no guard.",
+        "BUFF",
+      ],
+      ["B", "Agility", "Fast dash.", "DODGE"],
+      [
+        "*",
+        "Clear Body",
+        "Never slowed by chill, seeds, daze or Rock Tomb.",
+        "PASSIVE",
+      ],
+    ],
   };
   function ds(a, e, t, s, i) {
     let r = ge[a.moveKit],
@@ -19726,13 +24486,206 @@
                           ? (I("saw", 170, 80, 0.75, 0.22, e, { vib: 30 }),
                             I("p50", 340, 150, 0.6, 0.12, e + 0.05),
                             X(0.5, "bandpass", 2600, 1.5, 0.16, 900, e, !0))
-                          : a === "lucario"
-                            ? (I("p25", 520, 640, 0.14, 0.11, e),
-                              I("p25", 780, 420, 0.22, 0.1, e + 0.12, {
-                                vib: 30,
-                              }))
-                            : (I("p25", 600, 900, 0.12, 0.1, e),
-                              I("p25", 900, 500, 0.18, 0.1, e + 0.12)));
+                          : a === "garchomp"
+                            ? (I("saw", 260, 140, 0.45, 0.14, e, { vib: 40 }),
+                              I("p25", 520, 300, 0.3, 0.08, e + 0.04),
+                              X(0.35, "bandpass", 900, 1, 0.16, 400, e, !0))
+                            : a === "scizor"
+                              ? (I("sq", 1200, 1600, 0.08, 0.08, e),
+                                I("sq", 1600, 900, 0.14, 0.07, e + 0.1, {
+                                  vib: 40,
+                                }),
+                                X(
+                                  0.12,
+                                  "highpass",
+                                  4e3,
+                                  1,
+                                  0.08,
+                                  2e3,
+                                  e + 0.02,
+                                ))
+                              : a === "tyrantrum"
+                                ? (I("saw", 150, 70, 0.7, 0.2, e, { vib: 25 }),
+                                  I("p50", 300, 140, 0.5, 0.12, e + 0.05),
+                                  X(0.6, "lowpass", 800, 1, 0.2, 300, e, !0))
+                                : a === "golurk"
+                                  ? (I("sq", 110, 110, 0.5, 0.12, e, {
+                                      vib: 6,
+                                    }),
+                                    I("tri", 220, 180, 0.45, 0.1, e + 0.1),
+                                    I("p25", 440, 330, 0.2, 0.05, e + 0.25))
+                                  : a === "rhyperior"
+                                    ? (I("saw", 120, 90, 0.6, 0.18, e, {
+                                        vib: 20,
+                                      }),
+                                      I("p50", 240, 200, 0.4, 0.1, e + 0.08),
+                                      X(
+                                        0.4,
+                                        "lowpass",
+                                        600,
+                                        1,
+                                        0.18,
+                                        300,
+                                        e + 0.05,
+                                      ))
+                                    : a === "froslass"
+                                      ? (I("tri", 880, 1320, 0.4, 0.09, e, {
+                                          vib: 12,
+                                        }),
+                                        I(
+                                          "tri",
+                                          1320,
+                                          990,
+                                          0.45,
+                                          0.07,
+                                          e + 0.2,
+                                          { vib: 10 },
+                                        ))
+                                      : a === "gardevoir"
+                                        ? (I("tri", 660, 990, 0.25, 0.1, e),
+                                          I(
+                                            "p25",
+                                            990,
+                                            1180,
+                                            0.3,
+                                            0.07,
+                                            e + 0.12,
+                                            { vib: 20 },
+                                          ))
+                                        : a === "metagross"
+                                          ? (I("sq", 220, 330, 0.18, 0.1, e),
+                                            I(
+                                              "sq",
+                                              330,
+                                              220,
+                                              0.25,
+                                              0.1,
+                                              e + 0.15,
+                                            ),
+                                            I(
+                                              "saw",
+                                              110,
+                                              90,
+                                              0.4,
+                                              0.1,
+                                              e + 0.05,
+                                              { vib: 30 },
+                                            ))
+                                          : a === "groudon"
+                                            ? (I("saw", 120, 60, 0.9, 0.22, e, {
+                                                vib: 20,
+                                              }),
+                                              I(
+                                                "p50",
+                                                240,
+                                                120,
+                                                0.7,
+                                                0.12,
+                                                e + 0.05,
+                                              ),
+                                              X(
+                                                0.7,
+                                                "lowpass",
+                                                600,
+                                                1,
+                                                0.22,
+                                                200,
+                                                e,
+                                                !0,
+                                              ))
+                                            : a === "rayquaza"
+                                              ? (I(
+                                                  "saw",
+                                                  600,
+                                                  300,
+                                                  0.6,
+                                                  0.14,
+                                                  e,
+                                                  { vib: 50 },
+                                                ),
+                                                I(
+                                                  "p25",
+                                                  900,
+                                                  450,
+                                                  0.5,
+                                                  0.08,
+                                                  e + 0.05,
+                                                  { vib: 40 },
+                                                ),
+                                                X(
+                                                  0.5,
+                                                  "bandpass",
+                                                  2400,
+                                                  1.5,
+                                                  0.14,
+                                                  800,
+                                                  e,
+                                                  !0,
+                                                ))
+                                              : a === "hooh"
+                                                ? (I(
+                                                    "tri",
+                                                    900,
+                                                    1400,
+                                                    0.4,
+                                                    0.12,
+                                                    e,
+                                                    { vib: 30 },
+                                                  ),
+                                                  I(
+                                                    "p25",
+                                                    1400,
+                                                    1e3,
+                                                    0.5,
+                                                    0.08,
+                                                    e + 0.15,
+                                                    { vib: 20 },
+                                                  ),
+                                                  X(
+                                                    0.3,
+                                                    "bandpass",
+                                                    3e3,
+                                                    1.5,
+                                                    0.1,
+                                                    1500,
+                                                    e + 0.05,
+                                                  ))
+                                                : a === "lucario"
+                                                  ? (I(
+                                                      "p25",
+                                                      520,
+                                                      640,
+                                                      0.14,
+                                                      0.11,
+                                                      e,
+                                                    ),
+                                                    I(
+                                                      "p25",
+                                                      780,
+                                                      420,
+                                                      0.22,
+                                                      0.1,
+                                                      e + 0.12,
+                                                      {
+                                                        vib: 30,
+                                                      },
+                                                    ))
+                                                  : (I(
+                                                      "p25",
+                                                      600,
+                                                      900,
+                                                      0.12,
+                                                      0.1,
+                                                      e,
+                                                    ),
+                                                    I(
+                                                      "p25",
+                                                      900,
+                                                      500,
+                                                      0.18,
+                                                      0.1,
+                                                      e + 0.12,
+                                                    )));
       },
       ready() {
         O() &&
@@ -20446,7 +25399,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 7,
+  var NETV = 8,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -23434,7 +28387,7 @@
       if (s.lgPhase) return lgInput(n);
       let D = cpuSide();
       w(n, (W) => {
-        (s.cursor = RN3[W][s.cursor] ?? s.cursor), S.ui(!0);
+        (s.cursor = rosterNav(s.cursor, W)), S.ui(!0);
       }),
         n.pressed.has("special1") &&
           (A.gameMode === 5 && !A.onlineTag
@@ -23466,7 +28419,8 @@
       if (R && s.roulette <= 0) return lgOpen();
       if (n.pressed.has("confirm")) {
         // The last tile picks a random Pokémon you haven't picked yet.
-        let W = s.cursor === 8 ? freshPicks(1, s.picks)[0] : ge[s.cursor];
+        let W =
+          s.cursor === ge.length ? freshPicks(1, s.picks)[0] : ge[s.cursor];
         s.picks.length < teamSize() && !s.picks.includes(W)
           ? (s.picks.push(W),
             (s.pickBump = 1),
@@ -23494,21 +28448,35 @@
     function lgOpen() {
       (s.lgPhase = !0),
         (s.lgT = 0),
-        (s.lgCursor = A.legends ? Math.min(A.legendPick, 3) : 4),
+        (s.lgCursor = A.legends
+          ? Math.max(
+              0,
+              LG_CARDS.findIndex(
+                (c) => c[0] === (LG_PICKS[A.legendPick] ?? "zekrom"),
+              ),
+            )
+          : LG_CARDS.length - 1),
         S.ui(!0);
     }
     function lgInput(n) {
       s.lgT++,
         w(n, (D) => {
-          (D === "left" || D === "right") &&
-            ((s.lgCursor = (s.lgCursor + (D === "left" ? 4 : 1)) % 5),
-            S.ui(D === "right"),
-            s.lgCursor < 3 && S.cry(LG_PICKS[s.lgCursor], 0.02));
+          let N = LG_CARDS.length;
+          (s.lgCursor =
+            D === "left"
+              ? (s.lgCursor + N - 1) % N
+              : D === "right"
+                ? (s.lgCursor + 1) % N
+                : (s.lgCursor + 4) % N),
+            S.ui(D !== "left"),
+            LG_INFO[LG_CARDS[s.lgCursor][0]] &&
+              S.cry(LG_CARDS[s.lgCursor][0], 0.02);
         });
       if (s.lgT > 8 && (n.pressed.has("confirm") || n.pressed.has("start"))) {
-        s.lgCursor === 4
+        LG_CARDS[s.lgCursor][0] === "off"
           ? (A.legends = 0)
-          : ((A.legends = 1), (A.legendPick = s.lgCursor)),
+          : ((A.legends = 1),
+            (A.legendPick = LG_PICKS.indexOf(LG_CARDS[s.lgCursor][0]))),
           Ze(),
           (s.lgPhase = !1),
           E();
@@ -24574,6 +29542,303 @@
               )),
             t.popup(n.who.x, n.who.y - 38, "MAGNET PULL", "#c8d4e6", !1);
           break;
+        // ---- Second-generation kits ----
+        case "roar":
+          S.cry(n.who.kit.id, 0), t.shake(0, 1, 3);
+          break;
+        case "outrage":
+          S.ultStart(),
+            t.shake(0, 1, 6),
+            t.ring(n.who.x, n.who.y - 12, 6, 3.4, 16, "#ff4a3d"),
+            t.wisps(n.who.x, n.who.y, 8, 12, "#ff4a3d", 10),
+            t.popup(n.who.x, n.who.y - 40, "OUTRAGE!", "#ff4a3d", !0);
+          break;
+        case "confused":
+          S.fizzle(), t.popup(n.who.x, n.who.y - 38, "CONFUSED", "#ffe27a", !1);
+          break;
+        case "digStart":
+          S.charge(), t.dust(n.who.x, n.who.y, 8, 0, 0, 1.4);
+          break;
+        case "digIn":
+          S.land(),
+            t.dust(n.x, n.y, 16, 0, 0, 2),
+            t.cracks(n.x, n.y, 5, 14, "#3a2c1c");
+          break;
+        case "digTrail":
+          t.dust(
+            n.x,
+            n.y,
+            2,
+            Math.cos(n.who.facing),
+            Math.sin(n.who.facing),
+            1,
+          );
+          break;
+        case "digOut":
+          S.slam(),
+            S.launch(7),
+            t.shake(0, 1, 7),
+            (t.impact = 1),
+            t.sheet("eruption", n.x, n.y - 6, 0.9),
+            t.shockRing(n.x, n.y, n.r, "#c9a25a", 10),
+            t.debris(n.x, n.y, 18, 0, -1),
+            t.dust(n.x, n.y, 22, 0, 0, 2.6),
+            t.cracks(n.x, n.y, 7, n.r, "#3a2c1c");
+          break;
+        case "bulletPunch":
+          S.swing(!1);
+          break;
+        case "bulletDash":
+          t.streaks(n.who.x, n.who.y - 12, n.dx, n.dy, 4, "#e9eef8"),
+            t.flare(
+              n.who.x + n.dx * 14,
+              n.who.y - 12 + n.dy * 14,
+              10,
+              12,
+              "#ffffff",
+              6,
+            );
+          break;
+        case "bpReady":
+          n.who === D && S.cdReady();
+          break;
+        case "uturnDash":
+          t.streaks(n.who.x, n.who.y - 10, n.dx, n.dy, 3, "#9ac83a");
+          break;
+        case "uturnBack":
+          S.dodge(), t.ring(n.who.x, n.who.y, 4, 2, 10, "#9ac83a", !0);
+          break;
+        case "uturnTag":
+          S.switchOut(),
+            t.popup(n.who.x, n.who.y - 38, "U-TURN!", "#9ac83a", !1);
+          break;
+        case "crunchWind":
+          S.charge();
+          break;
+        case "crunch":
+          S.hit(!0, "none", 1),
+            t.shake(0, 1, 5),
+            t.flare(n.v.x, n.v.y - 12, 12, 22, "#ffffff", 8),
+            t.popup(n.v.x, n.v.y - 40, "CRUNCH!", "#c4553a", !0);
+          break;
+        case "crunchShake":
+          t.shake(1, 0, 3), t.burst(n.v.x, n.v.y - 10, "#8a3a2a", 10);
+          break;
+        case "crunchThrow":
+          S.launch(7),
+            t.streaks(n.who.x, n.who.y - 12, n.dx, n.dy, 6, "#c4553a");
+          break;
+        case "rockSlide":
+          S.boom(), t.dust(n.who.x, n.who.y, 6, 0, 0, 1);
+          break;
+        case "shadowPunch":
+          S.auraShot(0.6),
+            t.flare(
+              n.who.x + n.dx * 14,
+              n.who.y - 14 + n.dy * 14,
+              14,
+              18,
+              "#c9a6ff",
+              10,
+            ),
+            t.wisps(n.who.x, n.who.y, 8, 6, "#7a5cd0", 8);
+          break;
+        case "fistTrail":
+          t.wisps(n.x, n.y, 12, 1, "#7a5cd0", 3);
+          break;
+        case "rocketUp":
+          S.flyUp(),
+            t.flame(n.who.x, n.who.y, Math.PI / 2, 10, 40, !0),
+            t.dust(n.who.x, n.who.y, 14, 0, 0, 2.2),
+            t.ring(n.who.x, n.who.y, 6, 3, 14, "#ffb36b", !0);
+          break;
+        case "rocketLand":
+          S.slam(),
+            t.shake(0, 1, 9),
+            (t.impact = 2),
+            t.shockRing(n.x, n.y, n.r, "#c9a25a", 12),
+            t.dust(n.x, n.y, 24, 0, 0, 2.6),
+            t.cracks(n.x, n.y, 8, n.r, "#2a2018");
+          break;
+        case "rockWrecker":
+          S.boom(),
+            t.shake(-n.dx, -n.dy, 4),
+            t.dust(
+              n.who.x + n.dx * 16,
+              n.who.y + n.dy * 16,
+              10,
+              -n.dx,
+              -n.dy,
+              1.6,
+            );
+          break;
+        case "rockTomb":
+          S.slam(),
+            t.shake(0, 1, 4),
+            t.dust(n.x, n.y, 16, 0, 0, 2),
+            t.debris(n.x, n.y, 10, 0, -1),
+            t.cracks(n.x, n.y, 5, 18, "#3a2c1c");
+          break;
+        case "pillarCrumble":
+          t.debris(n.x, n.y, 10, 0, -1), t.dust(n.x, n.y, 10, 0, 0, 1.4);
+          break;
+        case "pillarShatter":
+          S.boom(),
+            t.shake(0, 1, 6),
+            (t.impact = 1),
+            t.debris(n.x, n.y, 22, 0, -1),
+            t.ring(n.x, n.y, 6, 3.6, 14, "#d6c4a0", !0),
+            t.popup(n.x, n.y - 30, "SHATTER!", "#d6c4a0", !1);
+          break;
+        case "icyGust":
+          n.who.t % 4 === 0 &&
+            t.arcWave(
+              n.who.x + n.dx * 8,
+              n.who.y + n.dy * 8,
+              10,
+              Math.atan2(n.dy, n.dx),
+              1.2,
+              8,
+              5.5,
+              "#d6f4ff",
+              14,
+              2,
+            );
+          for (let R = 0; R < 5; R++) {
+            let W = Math.atan2(n.dy, n.dx) + (Math.random() - 0.5) * 1.1,
+              T = 1.6 + Math.random() * 2.4;
+            t.add({
+              kind: "mote",
+              x: n.who.x + n.dx * 10,
+              y: n.who.y + n.dy * 10,
+              z: 10,
+              vx: Math.cos(W) * T,
+              vy: Math.sin(W) * T,
+              vz: 0,
+              life: 26,
+              size: R ? 1 : 2,
+              color: R % 2 ? "#ffffff" : "#bfe8ff",
+            });
+          }
+          break;
+        case "icyWind":
+          S.wind();
+          break;
+        case "chill":
+          t.motes(n.who.x, n.who.y, 12, 4, "#d6f4ff", 0.6);
+          break;
+        case "frozen":
+          S.reflect(),
+            t.shake(0, 1, 4),
+            t.sheet("icicle", n.who.x, n.who.y - 10, 0.7),
+            t.ring(n.who.x, n.who.y - 10, 6, 2.6, 14, "#bfe8ff"),
+            t.popup(n.who.x, n.who.y - 40, "FROZEN!", "#bfe8ff", !0);
+          break;
+        case "thaw":
+          t.motes(n.who.x, n.who.y, 14, 10, "#ffffff", 1.4);
+          break;
+        case "doubleTeam":
+          S.phantom(), t.motes(n.x, n.y, 14, 10, "#d6f4ff", 1);
+          break;
+        case "doubleTeamOut":
+          S.reappear(), t.ring(n.x, n.y, 4, 2.4, 12, "#bfe8ff", !0);
+          break;
+        case "dollBurst":
+          S.reflect(),
+            t.ring(n.x, n.y - 10, 6, 3, 14, "#bfe8ff"),
+            t.motes(n.x, n.y, 12, 16, "#ffffff", 1.8),
+            t.sheet("icicle", n.x, n.y - 8, 0.6);
+          break;
+        case "cursed":
+          S.wisp(),
+            t.wisps(n.who.x, n.who.y, 10, 6, "#705898", 8),
+            t.popup(n.who.x, n.who.y - 40, "DISABLED", "#c9a6ff", !1);
+          break;
+        case "moonblast":
+          S.orb(),
+            t.flare(
+              n.who.x + n.dx * 14,
+              n.who.y - 14 + n.dy * 14,
+              14,
+              18,
+              "#ffc1ea",
+              10,
+            );
+          break;
+        case "psychicWind":
+          S.charge();
+          break;
+        case "psychicLift":
+          S.lock(1),
+            t.ring(n.v.x, n.v.y - 10, 6, 2.4, 16, "#ff8fd8"),
+            t.popup(n.v.x, n.v.y - 40, "PSYCHIC!", "#ff8fd8", !1);
+          break;
+        case "psychicThrow":
+          S.launch(7),
+            t.streaks(n.v.x, n.v.y - 12, n.dx, n.dy, 6, "#ff8fd8"),
+            t.shake(n.dx, n.dy, 4);
+          break;
+        case "psychicPulse":
+          S.boom(), t.ring(n.x, n.y - 10, 6, 4, 14, "#ff8fd8");
+          break;
+        case "futureSight":
+          S.auraShot(0.4), t.ring(n.who.x, n.who.y - 14, 4, 2, 12, "#ff8fd8");
+          break;
+        case "synchronize":
+          t.popup(n.to.x, n.to.y - 40, "SYNCHRONIZE", "#5fc98a", !1);
+          break;
+        case "zenDash":
+          t.streaks(n.who.x, n.who.y - 10, n.dx, n.dy, 3, "#ff8fd8");
+          break;
+        case "flinch":
+          t.popup(n.who.x, n.who.y - 36, "FLINCH", "#ffe27a", !1);
+          break;
+        case "dazed":
+          t.popup(n.who.x, n.who.y - 36, "DAZED", "#ffe27a", !1);
+          break;
+        case "magnetRise":
+          S.boltHum(),
+            t.ring(n.who.x, n.who.y, 6, 2.4, 14, "#9fc4ff", !0),
+            t.popup(n.who.x, n.who.y - 40, "MAGNET RISE", "#9fc4ff", !1);
+          break;
+        case "riseEnd":
+          t.dust(n.who.x, n.who.y, 6, 0, 0, 1);
+          break;
+        case "hammerArm":
+          t.shake(0, 1, 5), t.cracks(n.who.x, n.who.y, 6, 20, "#2a2018");
+          break;
+        case "roughSkin":
+          t.popup(n.who.x, n.who.y - 36, `-${n.dmg}`, "#c9a25a", !1);
+          break;
+        case "exBoom":
+          n.kind === "rock"
+            ? (S.slam(),
+              t.shake(0, 1, 4),
+              t.debris(n.x, n.y, 10, 0, -1),
+              t.dust(n.x, n.y, 10, 0, 0, 1.6),
+              t.sheet("collapse", n.x, n.y - 6, 0.55))
+            : n.kind === "edge"
+              ? (S.slam(),
+                t.shake(0, 1, 3),
+                t.debris(n.x, n.y, 8, 0, -1),
+                t.add({
+                  kind: "flash",
+                  x: n.x,
+                  y: n.y,
+                  z: 10,
+                  life: 4,
+                  size: n.r,
+                  color: "#d6c4a0",
+                }),
+                t.cracks(n.x, n.y, 4, n.r, "#3a2c1c"))
+              : n.kind === "future" &&
+                (S.boom(),
+                t.shake(0, 1, 6),
+                (t.impact = 1),
+                t.flare(n.x, n.y - 10, 12, 30, "#ff8fd8", 14),
+                t.ring(n.x, n.y - 6, 6, 3.6, 16, "#ff8fd8"),
+                t.ring(n.x, n.y, 4, n.r / 8, 12, "#ffd6f4", !0));
+          break;
         case "slamWind":
           S.charge(), t.dust(n.who.x, n.who.y, 6, 0, 0, 1.2);
           break;
@@ -24996,19 +30261,25 @@
           let R = LG_INFO[n.kind]?.color ?? "#ffffff";
           S.ultFin(), n.kind === "zekrom" && S.thunder();
           for (let [D, W] of n.vs ?? [])
-            n.kind === "zekrom"
-              ? t.sheet("ultBolt", D, W + 4, 1.15)
-              : n.kind === "darkrai"
-                ? t.sheet("ultPulse", D, W - 8, 1.45)
-                : n.form === "speed"
-                  ? (t.sheet("ultBoom", D, W - 8, 0.9),
-                    t.sheet("ultHit", D, W - 12, 2.4))
-                  : t.sheet(
-                      "ultBoom",
-                      D,
-                      W - 8,
-                      n.form === "attack" ? 1.15 : 1.35,
-                    ),
+            n.kind === "groudon"
+              ? (t.sheet("eruption", D, W - 6, 1.4),
+                t.sheet("ultBoom", D, W - 8, 1))
+              : n.kind === "rayquaza"
+                ? (t.sheet("ultBoom", D, W - 8, 1.2),
+                  t.sheet("ultHit", D, W - 12, 2))
+                : n.kind === "zekrom"
+                  ? t.sheet("ultBolt", D, W + 4, 1.15)
+                  : n.kind === "darkrai"
+                    ? t.sheet("ultPulse", D, W - 8, 1.45)
+                    : n.form === "speed"
+                      ? (t.sheet("ultBoom", D, W - 8, 0.9),
+                        t.sheet("ultHit", D, W - 12, 2.4))
+                      : t.sheet(
+                          "ultBoom",
+                          D,
+                          W - 8,
+                          n.form === "attack" ? 1.15 : 1.35,
+                        ),
               t.ring(D, W, 10, 5, 30, R, !0),
               t.ring(D, W, 6, 3.4, 26, "#ffffff", !0);
           t.shake(0, 1, 16),
@@ -25018,6 +30289,52 @@
             (t.screenFlashColor = "#ffffff");
           break;
         }
+        case "groudonWarn":
+          S.slam(), t.shake(0, 1, 5), t.cracks(n.x, n.y, 8, 40, "#3a1004");
+          break;
+        case "groudonWave":
+          S.slam(),
+            S.boom(),
+            t.shake(0, 1, 6 + n.k * 2),
+            (t.impact = 1),
+            t.ring(n.x, n.y, n.r0 + 2, (n.r1 - n.r0) / 10, 12, "#ff6a3d", !0),
+            t.debris(n.x, n.y, 12, 0, -1);
+          break;
+        case "rayMark":
+          S.lock(1);
+          break;
+        case "rayDive":
+          S.flyUp(), S.cry("rayquaza", 0);
+          break;
+        case "rayImpact":
+          S.boom(),
+            S.slam(),
+            t.shake(0, 1, 9),
+            (t.impact = 2),
+            t.sheet("ultHit", n.x, n.y - 10, 1.6),
+            t.ring(n.x, n.y, 6, n.r / 6, 14, "#4fd18b", !0),
+            t.dust(n.x, n.y, 18, 0, 0, 2.4);
+          break;
+        case "hoohBless":
+          S.heal(), t.flare(n.x, n.y - 30, 30, 40, "#ffe27a", 20);
+          break;
+        case "hoohHeal":
+          t.ring(n.x, n.y, 6, 3, 20, "#ffe27a", !0),
+            t.popup(n.x, n.y - 46, "SACRED FIRE", "#ffb347", !0);
+          break;
+        case "rebirth":
+          S.respawn?.(),
+            t.popup(
+              n.who.x,
+              n.who.y - 56,
+              `${n.kit.name} REVIVED`,
+              "#ffe27a",
+              !0,
+            );
+          break;
+        case "hoohWall":
+          S.burn?.(), t.ring(n.x, n.y, 6, 4, 16, "#ff8a3d", !0);
+          break;
         case "boltWarn":
           S.boltHum();
           break;
