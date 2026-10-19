@@ -403,7 +403,7 @@
         color: "#ff8a3d",
         typeInk: "#2a1206",
         hp: 805,
-        power: 0.80,
+        power: 0.82,
         speed: 2.9,
         weight: 1.05,
         r: 9,
@@ -496,8 +496,8 @@
         type2: "POISON",
         color: "#6cc04a",
         typeInk: "#0f2a08",
-        hp: 980,
-        power: 0.82,
+        hp: 975,
+        power: 0.81,
         speed: 2.35,
         weight: 0.85,
         r: 11,
@@ -571,7 +571,7 @@
         color: "#5aa9e6",
         typeInk: "#06203a",
         hp: 1120,
-        power: 0.80,
+        power: 0.8,
         speed: 2.15,
         weight: 0.6,
         r: 10,
@@ -657,8 +657,8 @@
         type2: "GHOST",
         color: "#a184f5",
         typeInk: "#170c33",
-        hp: 715,
-        power: 0.87,
+        hp: 720,
+        power: 0.88,
         speed: 3.25,
         weight: 1.2,
         r: 8,
@@ -748,7 +748,7 @@
         color: "#f2d64b",
         typeInk: "#2a2205",
         hp: 995,
-        power: 0.80,
+        power: 0.81,
         speed: 2.25,
         weight: 0.7,
         r: 9,
@@ -840,8 +840,8 @@
         type: "NORMAL",
         color: "#3f8f9e",
         typeInk: "#1f1f12",
-        hp: 1080,
-        power: 0.80,
+        hp: 1070,
+        power: 0.8,
         speed: 1.85,
         weight: 0.45,
         r: 13,
@@ -935,8 +935,8 @@
         type2: "DRAGON",
         color: "#8a5ccf",
         typeInk: "#1c1033",
-        hp: 875,
-        power: 0.85,
+        hp: 870,
+        power: 0.84,
         speed: 3.1,
         weight: 1.15,
         r: 9,
@@ -1026,7 +1026,7 @@
         color: "#4a7fd6",
         typeInk: "#0e1a33",
         hp: 980,
-        power: 0.80,
+        power: 0.81,
         speed: 3.05,
         weight: 1,
         r: 8,
@@ -1117,8 +1117,8 @@
         type2: "GROUND",
         color: "#4f6fd8",
         typeInk: "#0f1838",
-        hp: 975,
-        power: 1.24,
+        hp: 970,
+        power: 1.22,
         speed: 3.3,
         weight: 1.1,
         r: 9,
@@ -1211,8 +1211,8 @@
         type2: "STEEL",
         color: "#e0393e",
         typeInk: "#330a0c",
-        hp: 965,
-        power: 1.13,
+        hp: 980,
+        power: 1.18,
         speed: 2.95,
         weight: 0.95,
         r: 9,
@@ -1304,8 +1304,8 @@
         type2: "DRAGON",
         color: "#c4553a",
         typeInk: "#2e100a",
-        hp: 1110,
-        power: 0.90,
+        hp: 1120,
+        power: 0.92,
         speed: 2.25,
         weight: 0.55,
         r: 11,
@@ -1398,8 +1398,8 @@
         type2: "GHOST",
         color: "#4f8a8b",
         typeInk: "#0c2122",
-        hp: 1090,
-        power: 0.91,
+        hp: 1085,
+        power: 0.89,
         speed: 2.05,
         weight: 0.5,
         r: 11,
@@ -1490,7 +1490,7 @@
         color: "#8d7f73",
         typeInk: "#241f1a",
         hp: 1080,
-        power: 0.83,
+        power: 0.84,
         speed: 1.95,
         weight: 0.45,
         r: 12,
@@ -1581,8 +1581,8 @@
         type2: "GHOST",
         color: "#9ad8f0",
         typeInk: "#0c2a36",
-        hp: 1000,
-        power: 1.60,
+        hp: 995,
+        power: 1.59,
         speed: 3.1,
         weight: 1.25,
         r: 8,
@@ -1652,7 +1652,7 @@
           active: 8,
           recovery: 24,
           lunge: 0,
-          dmg: 20,
+          dmg: 17,
           kb: 4.2,
           shape: "circle",
           reach: 20,
@@ -1675,8 +1675,8 @@
         type2: "FAIRY",
         color: "#5fc98a",
         typeInk: "#0d2a18",
-        hp: 1000,
-        power: 1.49,
+        hp: 995,
+        power: 1.46,
         speed: 2.55,
         weight: 1.15,
         r: 8,
@@ -1766,7 +1766,7 @@
         color: "#5a8fd0",
         typeInk: "#0d1d33",
         hp: 1135,
-        power: 0.89,
+        power: 0.9,
         speed: 2.3,
         weight: 0.5,
         r: 11,
@@ -1983,7 +1983,7 @@
       },
       rhyperior: {
         pref: 70,
-        solidRock: 0.75,
+        solidRock: 0.7,
         // Rock Wrecker: a heavy boulder shot; fired into its own pillar it
         // shatters into shrapnel.
         rwWind: 16,
@@ -10429,10 +10429,13 @@
               if (e.pierce && e.hits.includes(t)) continue;
               if (t.kind === "player") {
                 let i = t;
+                // Snorlax's belly bounces shots back during its bounce dodge
+                // and while it is charging in with Body Slam.
                 if (
-                  i.state === "dodge" &&
-                  i.kit.dodge.kind === "bounce" &&
-                  i.invincible &&
+                  ((i.state === "dodge" &&
+                    i.kit.dodge.kind === "bounce" &&
+                    i.invincible) ||
+                    (i.state === "bodySlam" && i.t > SNOR.slamWind)) &&
                   !e.reflected &&
                   e.kind !== "yawn"
                 ) {
@@ -11655,8 +11658,7 @@
               this.exArea(e, e.team, e.x, e.y, c.flyR, c.flyDmg, c.flyKb, {
                 heavy: !0,
                 src: "fly",
-                mtype: "GROUND",
-                ground: !0,
+                mtype: "FLYING",
                 hitstun: A.hitstunHeavy,
               }),
               this.emit({
@@ -23529,7 +23531,7 @@
       [
         "X",
         "Body Slam",
-        "Armored charge that crushes everyone in its path. May paralyse.",
+        "Armored charge that crushes everyone in its path and bounces shots back. May paralyse.",
         "CHARGE",
       ],
       [
