@@ -17037,6 +17037,41 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   // Your moves, always on screen: button, name and cooldown. Touch players
   // see the same on their on-screen buttons.
   var tc = (a) => a.split(/[ -]/).map(_a).join(" ");
+  // Each move's name, how ready it is (0..1) and a short note (seconds left,
+  // heat), keyed by the touch button it belongs to.
+  function moveInfo(t) {
+    let s = t.kit,
+      i = t.slot,
+      l = (h, c) =>
+        h > 0
+          ? [1 - h / Math.max(1, c), `${Math.max(0.1, h / 60).toFixed(1)}s`]
+          : [1, ""];
+    return {
+      sp1: [
+        tc(s.xName),
+        ...(s.id === "charizard"
+          ? t.state === "overheat"
+            ? [t.t / FLAME.overheat, "OVERHEAT"]
+            : [1, `Heat ${Math.round(i.heat ?? 0)}%`]
+          : s.id === "dragapult"
+            ? i.horns.includes("loaded") || i.horns.includes("out")
+              ? [1, ""]
+              : [0, "Darts out"]
+            : l(i.cdX, s.xCd)),
+      ],
+      sp2: [tc(s.yName), ...l(i.cdY, s.yCd)],
+      dodge: ["Dodge", ...l(i.cdDodge, s.dodge.cooldown)],
+      smash: [tc(s.smash.name ?? "Smash"), 1, ""],
+      attack: ["Attack", 1, ""],
+      legend: t.legend
+        ? [
+            LG_INFO[t.legend]?.name ? tc(LG_INFO[t.legend].name) : "Legend",
+            Math.min(1, t.lgMeter / 100),
+            t.lgMeter >= 100 ? "" : `${Math.floor(t.lgMeter)}%`,
+          ]
+        : null,
+    };
+  }
   function moveTray(a, e) {
     if (e.source === "touch") return;
     let t = a.player;
@@ -17046,7 +17081,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       r = e.source === "pad",
       o = t.slots.length === 1,
       l = (h, c) =>
-        h > 0 ? [1 - h / Math.max(1, c), `${(h / 60).toFixed(1)}s`] : [1, ""],
+        h > 0
+          ? [1 - h / Math.max(1, c), `${Math.max(0.1, h / 60).toFixed(1)}s`]
+          : [1, ""],
       f = [
         [
           r ? "X" : "L",
@@ -22682,7 +22719,22 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         d.fill(),
         t || G("MOVE", i, r + 38, 6, g.chalk, { align: "center", weight: 700 });
     }
-    let s = new Set([...TOUCH.btns.values()].map((i) => i[0]));
+    let s = new Set([...TOUCH.btns.values()].map((i) => i[0])),
+      mi =
+        a.screen === "play" &&
+        !a.paused &&
+        e.match.phase === "fight" &&
+        e.player?.kit &&
+        moveInfo(e.player),
+      // Where each move's name goes, so labels clear the other buttons.
+      lp = {
+        sp1: "left",
+        sp2: "up",
+        dodge: "up",
+        smash: "left",
+        attack: "down",
+        legend: "down",
+      };
     for (let [i, r, , o, l, f] of TOUCH.btnList) {
       d.globalAlpha = s.has(i) ? 0.95 : r === "II" ? 0.85 : 0.55;
       if (r === "II")
@@ -22708,6 +22760,44 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             align: "center",
             weight: 700,
           });
+      }
+      let M = mi && mi[i];
+      if (M) {
+        let [P, C, x] = M,
+          v = lp[i],
+          ch = r.length > 1;
+        // Text chips (Smash, Legend) carry their note beside the name.
+        ch && x && ((P = `${P} ${x}`), (x = ""));
+        C < 1 &&
+          !ch &&
+          ((d.globalAlpha = 0.8),
+          (d.fillStyle = "rgba(11,9,24,0.78)"),
+          d.beginPath(),
+          d.moveTo(m(o), m(l)),
+          d.arc(
+            m(o),
+            m(l),
+            m(f + 0.5),
+            -Math.PI / 2 + Math.PI * 2 * C,
+            Math.PI * 1.5,
+          ),
+          d.closePath(),
+          d.fill(),
+          x &&
+            ((d.globalAlpha = 1),
+            G(x, o, l + 2.2, Math.min(6.4, f * 0.6), g.chalk, {
+              align: "center",
+              weight: 700,
+            }))),
+          (d.globalAlpha = 0.9),
+          G(
+            P,
+            v === "left" ? o - f - 3 : o,
+            v === "up" ? l - f - 3 : v === "down" ? l + f + 7 : l + 2,
+            5.4,
+            C >= 1 && !x ? g.chalk : g.haze,
+            { align: v === "left" ? "right" : "center", weight: 700 },
+          );
       }
     }
     d.restore();
