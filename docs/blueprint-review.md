@@ -1291,3 +1291,26 @@ Fault test, results after the fix:
   final build: Stadium 52%, Ruins 59%, Crater 57%, Frostfall 50%, Power Plant
   46%, an average of 53%. Every Pokémon's average falls between 44%
   (Magnezone) and 58% (Venusaur).
+- **Fly, every move against a held flight.** All 8 Pokémon × 6 input plans
+  (combo, X held, X tapped, Y, X then Y, smash) × 2 distances, each run
+  against a grounded and a flying Charizard.
+  - Every melee, smash and straight-line attack that hits the grounded
+    Charizard misses the flying one: combos, Water Pulse, Hydro Pump, Body
+    Slam, Earthquake, Boomburst, Dragon Pulse, Air Slash, Flamethrower, Flare
+    Blitz and Zap fired without a lock.
+  - Only seeking attacks connect: Dreepy, Will-O-Wisp, Lock-On, locked Zap,
+    Aura Sphere, homing leaves and Hurricane.
+  - Non-seeking hits on a flying Charizard: none.
+- **Tag Team offline.** Chosen through the menus: X to Tag Team, two picks,
+  legendary, battle. Q switched and E called an assist. 24 CPU Tag Team matches
+  all finished, both Pokémon fought on every side, with 67 switches and 186
+  assists.
+- **Tag Team online over the friend link, with faults.** Bots switched about 45
+  times and assisted about 18 times each. Meanwhile the relay was dropped, the
+  direct link closed, one page hung for 14 seconds and one switched away for
+  30 seconds. All 3,977 compared ticks were identical.
+- **Final-build balance.** All five arenas re-run on the published build
+  reproduced the numbers above exactly, since the simulation is deterministic
+  and the last edits only changed drawing. Five-arena averages: Charizard 50%,
+  Venusaur 58%, Blastoise 49%, Dragapult 48%, Magnezone 44%, Snorlax 53%,
+  Noivern 47%, Lucario 51%.
