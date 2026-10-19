@@ -2385,10 +2385,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         let rv = t.lastHitBy;
         rv &&
           e.players.length > 2 &&
-          e.tick - t.lastHitT < 150 &&
+          e.tick - t.lastHitT < REVENGE.t &&
           rv !== o &&
           rv.state !== "faint" &&
-          Math.hypot(rv.x - t.x, rv.y - t.y) < 320 &&
+          Math.hypot(rv.x - t.x, rv.y - t.y) < REVENGE.r &&
           e.targetsFor(t.team).includes(rv) &&
           ((o = rv), (t.lock = rv));
         if (t.state === "faint" || e.match.phase !== "fight" || e.intro > 20)
@@ -3320,8 +3320,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     Oa = 1,
     Na = 2,
     yt = { strong: 1.05, weak: 0.95 },
-    // Free-for-All: share of health every survivor gets back on a knockout.
-    FFA_WIND = 0.15,
+    // In crowds a CPU turns on whoever hit it within t ticks and r pixels.
+    REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
     // Tag Team (6) runs the "vs" match with two Pokemon a side.
     MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag"],
@@ -5284,26 +5284,6 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             e.out = !0;
             // Placing = how many were still standing when this one fell.
             e.place = this.players.filter((o) => !o.out).length + 1;
-            // Free-for-All second wind: each knockout gives every survivor
-            // back some health, so whoever won the brawl isn't left easy
-            // pickings for someone who hung back.
-            if (this.match.mode === "ffa")
-              for (let o of this.players) {
-                if (o.out || o.state === "faint") continue;
-                let sl = o.slot,
-                  h0 = sl.hp;
-                (sl.hp = Math.min(
-                  sl.maxHp,
-                  sl.hp + Math.round(sl.maxHp * FFA_WIND),
-                )),
-                  this.emit({
-                    type: "heal",
-                    x: o.x,
-                    y: o.y,
-                    amount: sl.hp - h0,
-                    who: o,
-                  });
-              }
             let s = this.players[0].team,
               i = this.players.some((o) => !o.out && o.team === s),
               r = this.players.some((o) => !o.out && o.team !== s),
