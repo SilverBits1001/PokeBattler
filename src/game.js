@@ -3046,8 +3046,9 @@
           (t.place =
             e === "win"
               ? 1
-              : this.players.filter((s) => !s.out).length +
-                (this.players[0].out ? 1 : 0)),
+              : (this.players[0].place ??
+                this.players.filter((s) => !s.out).length +
+                  (this.players[0].out ? 1 : 0))),
           e === "win" ? t.wins++ : t.losses++,
           this.emit({ type: "roundEnd", result: e }));
       }
@@ -3490,10 +3491,16 @@
           let t = e.aliveSlot(1);
           if (this.match.mode !== "practice" && t === null) {
             e.out = !0;
+            // Placing = how many were still standing when this one fell.
+            e.place = this.players.filter((o) => !o.out).length + 1;
             let s = this.players[0].team,
               i = this.players.some((o) => !o.out && o.team === s),
-              r = this.players.some((o) => !o.out && o.team !== s);
-            i
+              r = this.players.some((o) => !o.out && o.team !== s),
+              // Free-for-all plays on after you are out, until one is left.
+              f =
+                this.match.mode === "ffa" &&
+                this.players.filter((o) => !o.out).length > 1;
+            i || f
               ? r
                 ? this.emit({
                     type: "eliminated",
@@ -13928,8 +13935,146 @@
       V("\u2013", t, 40, 8, g.haze, { align: "center", outline: 2 }),
       V(`${a.losses}`, t + 4, 41, 10, g.cpu, { align: "left", outline: 2.4 });
   }
+  // ---- Party HUD (three or four fighters) ----
+  // Four equal cards across the top, two each side of the timer: portrait
+  // and tag, name, Poke Balls, a glowing HP bar and guard strip. Your card
+  // carries the cooldown buttons underneath; a fighter who is out dims and
+  // shows where they placed.
+  function partyCard(a, e, t, s, i, r, o) {
+    let l = t.slot,
+      f = l.kit,
+      u = tagOf(t, a),
+      h = e.frame,
+      c = t.out,
+      y = 100,
+      b = 33;
+    d.save(),
+      c && (d.globalAlpha = 0.42),
+      te(s, i, y, b, "rgba(6,4,10,0.84)", 5),
+      (d.fillStyle = u.color),
+      d.fillRect(m(s + 2), m(i + b - 1.6), m(y - 6), m(1.6)),
+      r &&
+        (ze(s, i, y, b, 5),
+        (d.strokeStyle = u.color),
+        (d.lineWidth = m(0.9)),
+        d.stroke()),
+      Oe(o[f.id], Gt(a, t, t.active), s + 3, i + 3, 26, {
+        bg: f.color,
+        grey: c || t.state === "faint",
+        slash: !0,
+      }),
+      ue(u.label, u.color, s + 3, i + 23.5, { text: g.night, size: 4.4 }),
+      V(f.name, s + 33, i + 10.5, 7, g.chalk),
+      t.slots.forEach((p, k) =>
+        hudBall(s + y - 8 - k * 7, i + 7, 2.5, p.hp <= 0),
+      );
+    let p = Qa(e, `${t.team}-${t.cpuIndex ?? 0}-${f.id}`, l.hp);
+    energyBar(s + 33, i + 13.5, 62, 6.4, l.hp / l.maxHp, p / l.maxHp, !1, h);
+    let k = Math.max(0, l.guard) / 100;
+    glowStrip(
+      s + 35,
+      i + 22.4,
+      56,
+      1.6,
+      k,
+      t.state === "stunned"
+        ? h % 10 < 5
+          ? g.cpu
+          : g.gold
+        : k < 0.3
+          ? g.cpu
+          : "#5fb4ff",
+      !1,
+    ),
+      G(`${Math.ceil(l.hp)}`, s + 33, i + 29.6, 5.6, Sa(l.hp / l.maxHp)[1], {
+        weight: 700,
+      });
+    // One status at a time, right-aligned on the bottom line.
+    let M =
+      t.state === "stunned"
+        ? ["DIZZY", g.gold]
+        : l.burnT > 0
+          ? ["BRN", "#e0602e"]
+          : (t.seededT ?? 0) > 0
+            ? ["SEED", "#4c9a32"]
+            : f.id === "charizard" && l.heat > 60
+              ? ["HOT", l.heat > 85 && h % 10 < 5 ? "#fff4c2" : "#ff5a2a"]
+              : null;
+    M && ue(M[0], M[1], s + y - 4, i + 25.4, { right: !0, size: 4.4 }),
+      d.restore(),
+      c &&
+        (V("OUT", s + y / 2 + 8, i + 21, 12, g.cpu, {
+          align: "center",
+          outline: 2.4,
+          skew: !0,
+        }),
+        t.place &&
+          G(`#${t.place}`, s + y / 2 + 30, i + 21, 7, g.chalk, {
+            weight: 700,
+            outline: 2,
+          }));
+    if (!r || c) return;
+    // Your cooldowns under your card.
+    let P = (x, v) => 1 - x / Math.max(1, v),
+      C = e.chipFlash;
+    hudBtn(s + 8, i + b + 7, "B", P(l.cdDodge, f.dodge.cooldown), 0),
+      hudBtn(
+        s + 19,
+        i + b + 7,
+        "X",
+        f.id === "dragapult"
+          ? l.horns.includes("loaded") || l.horns.includes("out")
+            ? 1
+            : 0
+          : P(l.cdX, f.xCd),
+        C.x ?? 0,
+      ),
+      hudBtn(s + 30, i + b + 7, "Y", P(l.cdY, f.yCd), C.y ?? 0);
+    let x = t.slots.findIndex((v, E) => E !== t.active && v.hp > 0) >= 0;
+    Pe("L1", s + 42, i + b + 7, 2.6, !(t.switchCd === 0 && x)),
+      Pe("L2", s + 51, i + b + 7, 2.6, !(t.assistCd === 0 && x)),
+      f.id === "charizard" &&
+        Tt(
+          s + 58,
+          i + b + 5.4,
+          38,
+          3.2,
+          l.heat / 100,
+          l.heat > 85 && h % 10 < 5
+            ? "#fff4c2"
+            : l.heat > 60
+              ? "#ff5a2a"
+              : "#ff8a3d",
+        );
+  }
+  function partyHud(a, e, t) {
+    let s = a.players[0],
+      i = a.players
+        .slice(1)
+        .sort(
+          (l, f) => (l.team === s.team ? -1 : 0) - (f.team === s.team ? -1 : 0),
+        ),
+      r = [s, ...i].slice(0, 4),
+      o = [5, 109, H - 105 - 104, H - 105];
+    r.forEach((l, f) => partyCard(a, e, l, o[f], 4, l === a.player, t)),
+      a.zone && zoneHud(a),
+      hudTimer(a.match, e.frame);
+  }
   function Ja(a, e, t) {
     let s = a.player;
+    if (a.players.length > 2 && a.match.mode !== "practice") {
+      partyHud(a, e, t);
+      for (let r of Object.keys(e.chipFlash))
+        e.chipFlash[r] > 0 && e.chipFlash[r]--;
+      s.lock &&
+        (Pe("R1", 14, 64, 3.4),
+        G("Locked on", 22, 66.5, 7, s.kit.color, {
+          weight: 700,
+          italic: !0,
+          outline: 2,
+        }));
+      return;
+    }
     d.save(),
       e.hudShake > 0 &&
         (d.translate(
@@ -14958,16 +15103,49 @@
           0,
           m(t + v),
           m(y + 116),
-          E * Fe * (xe[x]?.size ?? 1),
+          // Species size shows, but kept within a narrow range so a pair
+          // reads as even.
+          E * Fe * Math.max(0.9, Math.min(1.1, xe[x]?.size ?? 1)),
           K.ground,
         ),
         d.restore());
     };
-    r[1] && k(r[1], s ? 30 : h - 30, 1.6, 1, 0.7),
-      r[0]
-        ? k(r[0], s ? h - 56 : 56, 2.7, 0, 1)
+    // Both picks stand side by side at the same size on one ground line;
+    // a single pick (or the one being hovered) stands in the middle.
+    let w = (x, v) => {
+        (d.fillStyle = "rgba(4,3,10,0.5)"),
+          d.beginPath(),
+          d.ellipse(m(t + x), m(y + 117), m(v), m(v * 0.26), 0, 0, Math.PI * 2),
+          d.fill();
+      },
+      U = (x, v, E) =>
+        G(x, t + v, y + 129, 5.6, E, {
+          align: "center",
+          weight: 700,
+          outline: 2,
+        });
+    r[0] && r[1]
+      ? ((x0) => (
+          x0.forEach(([E, Q]) => w(Q, 22)),
+          x0.forEach(([E, Q], ie) => k(E, Q, 1.9, ie, 1)),
+          U("LEAD", x0[0][1], g.chalk),
+          U("PARTNER", x0[1][1], g.haze)
+        ))(
+          s
+            ? [
+                [r[0], h * 0.68],
+                [r[1], h * 0.32],
+              ]
+            : [
+                [r[0], h * 0.32],
+                [r[1], h * 0.68],
+              ],
+        )
+      : r[0]
+        ? (w(h / 2, 30), k(r[0], h / 2, 2.5, 0, 1), U("LEAD", h / 2, g.chalk))
         : o
-          ? (k(o, s ? h - 56 : 56, 2.7, 0, 0.5),
+          ? (w(h / 2, 30),
+            k(o, h / 2, 2.5, 0, 0.5),
             G("Lead?", t + h / 2, y + 129, 7, "rgba(255,255,255,0.6)", {
               align: "center",
               italic: !0,
@@ -15132,19 +15310,19 @@
         });
       if (A.gameMode === 5) {
         V("Online", u + 20, 54, 15, g.chalk),
-          G("Battle another trainer who has", u + 20, 66, 6.4, g.haze),
-          G("this game open. Pick your team,", u + 20, 74, 6.4, g.haze),
-          G("then press Start to find one.", u + 20, 82, 6.4, g.haze);
+          G("Battle a friend with a code, or", u + 20, 66, 6.4, g.haze),
+          G("anyone with this game open. Pick", u + 20, 74, 6.4, g.haze),
+          G("your team, then press Start.", u + 20, 82, 6.4, g.haze);
         let M = u + 75,
           P = 140;
         (d.lineCap = "round"), (d.lineWidth = m(2.2));
         for (let C = 0; C < 3; C++) {
           let x = 10 + C * 10,
-            v = (t * 0.05 - C * 0.33) % 1;
+            // A slow wave outward: one pass every two and a half seconds.
+            v = (t * 0.0067 - C * 0.22) % 1;
           (d.strokeStyle = g.p1),
             (d.globalAlpha =
-              0.35 +
-              0.65 * Math.max(0, Math.sin((v < 0 ? v + 1 : v) * Math.PI))),
+              0.3 + 0.7 * Math.pow(Math.sin((v < 0 ? v + 1 : v) * Math.PI), 2)),
             d.beginPath(),
             d.arc(m(M), m(P), m(x), Math.PI * 1.22, Math.PI * 1.78),
             d.stroke();
@@ -19244,7 +19422,7 @@
     {
       id: "online",
       label: "Online",
-      desc: "Play another trainer who has the game open right now.",
+      desc: "Battle a friend with a code, or anyone online right now.",
       mon: "lucario",
       color: "#33d6ff",
     },
@@ -21227,7 +21405,7 @@
           break;
         case "zoneMove":
           t.ring(n.x, n.y, 10, 2.4, 22, L.gold, !0),
-            (t.shake = Math.max(t.shake, 3)),
+            t.shake(0, 1, 3),
             S.callout(1);
           break;
         case "zoneOwner":
@@ -21248,7 +21426,9 @@
             n.who === e.player ? "OUT!" : "ELIMINATED",
             n.who.team === e.player.team ? "#ef5a4f" : L.gold,
             70,
-            `${tagOf(n.who, e).label} is out \xB7 ${n.left} left`,
+            n.who === e.player && e.match.mode === "ffa"
+              ? `you placed #${n.who.place} \xB7 watching the last ${n.left}`
+              : `${tagOf(n.who, e).label} is out \xB7 ${n.left} left`,
           ),
             (t.impact = 4);
           break;
