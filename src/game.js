@@ -7902,7 +7902,9 @@
         );
       }
       // Hazard damage from the arena itself (no attacker, never counts as a combo).
+      // Hazards never seek, so a Charizard in flight is out of their reach.
       envHit(e, t, s, i, r, o, l, f, u = !0) {
+        if (e.kind === "player" && e.state === "flyUp") return;
         this.applyHit(
           e,
           null,

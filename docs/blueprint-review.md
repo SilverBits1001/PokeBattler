@@ -1314,3 +1314,27 @@ Fault test, results after the fix:
   and the last edits only changed drawing. Five-arena averages: Charizard 50%,
   Venusaur 58%, Blastoise 49%, Dragapult 48%, Magnezone 44%, Snorlax 53%,
   Noivern 47%, Lucario 51%.
+- **Fly against everything else.**
+  - Tag Team assists: only the seeking ones reach a flying Charizard (homing
+    leaves, Dreepy, Lock-On, Aura Sphere). Flamethrower and Boomburst assists
+    miss.
+  - Every legendary and each Deoxys Forme misses a flying Charizard while
+    still hitting him on the ground.
+  - Arena hazards used to hit him in flight: Ruins boulders and Crater
+    eruptions. Hazards never seek, so `envHit` now skips a Charizard in
+    flight. Re-tested on all five arenas: hazards still hit on the ground and
+    never in the air.
+- **Move list, systematic.** For every Pokémon each special and the dodge
+  were used for real. The displayed ring and seconds were compared with the
+  game's cooldown every tick through to READY: 30,841 checks, no mismatch.
+  Names, Flamethrower heat and the legendary meter matched too.
+- **New team and the arena roulette over the real friend link,** run in
+  Standard and in Tag Team.
+  - The players picked different arenas. Both pages showed the roulette and
+    landed on the same arena, which differed between draws (Ruins one match,
+    Frostfall the next).
+  - New team on the joiner sent the host to the lobby with "… is picking a
+    new team". The joiner re-picked and the two re-paired with the new team,
+    Tag Team pairs included.
+- **After the hazard change:** all five arenas re-run, with the same averages
+  as above. The online duel with legendaries had 2,279 identical ticks.
