@@ -3389,6 +3389,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       magnezone: 1.04,
     },
     MODE_POW = { ffa: FFA_POW, team: TEAM_POW, zone: ZONE_POW },
+    LG_FFA = { groudon: 0.82, deoxys: 0.82 },
     // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
     MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.05 } },
     // In crowds a CPU turns on whoever hit it within t ticks and r pixels.
@@ -12894,6 +12895,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             s *
               ae.dmg *
               (lg ? 1 : this.outgoingMult(t) * this.exOut(t, s, k)) *
+              // Wide legendaries catch more fighters at once in a four-way
+              // brawl, so Free-for-All scales them on their own.
+              (lg && this.match.mode === "ffa"
+                ? (LG_FFA[(String(k).match(/legend-(\w+)/) || [])[1]] ?? 1)
+                : 1) *
               (!lg && t?.kind === "player"
                 ? (MODE_POW[this.match.mode]?.[t.kit.id] ?? 1)
                 : 1) *
