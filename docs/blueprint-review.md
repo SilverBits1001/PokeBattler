@@ -1429,10 +1429,10 @@ Abilities are real effects, not labels:
 - **Technician:** moves of 24 base damage or less hit 30% harder.
 - **Strong Jaw:** bites hit 25% harder.
 - **Iron Fist:** punches hit 20% harder.
-- **Solid Rock:** super-effective hits deal 25% less.
+- **Solid Rock:** super-effective hits lose their bonus (×0.9, which on this game's mild ×1.05 chart lands just under neutral).
 - **Cursed Body:** a 30% chance that a special which hits Froslass disables
   the attacker's specials for 1.5 seconds.
-- **Synchronize:** burn, poison, paralysis or chill on Gardevoir is returned to
+- **Synchronize:** burn, poison, paralysis, chill or daze on Gardevoir is returned to
   whoever caused it.
 - **Clear Body:** never slowed by seeds, daze, Magnet Pull, chill or Rock Tomb.
 

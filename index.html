@@ -481,7 +481,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         color: "#ff8a3d",
         typeInk: "#2a1206",
         hp: 795,
-        power: 0.80,
+        power: 0.8,
         speed: 2.9,
         weight: 1.05,
         r: 9,
@@ -717,7 +717,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           active: 6,
           recovery: 30,
           lunge: 44,
-          dmg: 76,
+          dmg: 64,
           kb: 8.2,
           shape: "circle",
           reach: 15,
@@ -737,7 +737,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         color: "#a184f5",
         typeInk: "#170c33",
         hp: 725,
-        power: 0.90,
+        power: 0.9,
         speed: 3.25,
         weight: 1.2,
         r: 8,
@@ -1759,7 +1759,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         hp: 990,
         power: 1.46,
         speed: 2.55,
-        weight: 1.15,
+        weight: 1.05,
         r: 8,
         hurtR: 10,
         size: 1.05,
@@ -2064,7 +2064,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       },
       rhyperior: {
         pref: 70,
-        solidRock: 0.75,
+        solidRock: 0.9,
         // Rock Wrecker: a heavy boulder shot; fired into its own pillar it
         // shatters into shrapnel.
         rwWind: 16,
@@ -2496,6 +2496,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           ["down", "stunned", "getup", "guardEnd"].includes(t.state))
         )
           return (this.guardHold = 0), (this.smashHold = 0), i;
+        // The fragile beam casters let a charge go early when a foe closes in.
+        (f === "gardevoir" || f === "froslass") &&
+          t.state === "smashCharge" &&
+          y < 70 &&
+          (this.smashHold = 0);
         if (this.smashHold > 0 || t.state === "smashCharge")
           return (
             this.smashHold > 0 &&
@@ -3148,32 +3153,35 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               !p.dead &&
               Math.hypot(p.x - t.x, p.y - t.y) < 60,
           );
-          // Teleport away from a charged smash or a rush.
+          // A charged smash or a rush: lift them out of it with Psychic, or
+          // teleport away.
           let rush =
             op &&
             y < 110 &&
             (["smashCharge", "smash", "bodySlam"].includes(op.state) ||
               (op.state === "ex" && op.exDanger));
-          rush && u.cdDodge === 0 && r() < 0.6
-            ? dash(b + Math.PI + (r() < 0.5 ? 0.6 : -0.6))
-            : (shots || y < 120) &&
-                u.cdY === 0 &&
-                r() < (shots ? 0.5 : y < 60 ? 0.6 : 0.25)
-              ? i.pressed.add("special2")
-              : y < 34 && u.cdDodge === 0 && r() < 0.5
-                ? dash(b + Math.PI + (r() < 0.5 ? 0.7 : -0.7))
-                : y < 28 || (N && y < 44)
-                  ? i.pressed.add("attack")
-                  : u.cdX === 0 && los && y > 50 && y < 300 && r() < 0.5
-                    ? i.pressed.add("special1")
-                    : y > 70 &&
-                      y < 170 &&
-                      r() < 0.14 &&
-                      smash(
-                        10 +
-                          Math.round(me((y - 60) / 110, 0, 1) * 44) +
-                          Math.floor(r() * 4),
-                      );
+          rush && u.cdY === 0 && y < 140 && r() < 0.6
+            ? i.pressed.add("special2")
+            : rush && u.cdDodge === 0 && r() < 0.6
+              ? dash(b + Math.PI + (r() < 0.5 ? 0.6 : -0.6))
+              : (shots || y < 120) &&
+                  u.cdY === 0 &&
+                  r() < (shots ? 0.5 : y < 60 ? 0.6 : 0.25)
+                ? i.pressed.add("special2")
+                : y < 34 && u.cdDodge === 0 && r() < 0.5
+                  ? dash(b + Math.PI + (r() < 0.5 ? 0.7 : -0.7))
+                  : y < 28 || (N && y < 44)
+                    ? i.pressed.add("attack")
+                    : u.cdX === 0 && los && y > 50 && y < 300 && r() < 0.5
+                      ? i.pressed.add("special1")
+                      : y > 70 &&
+                        y < 170 &&
+                        r() < 0.14 &&
+                        smash(
+                          10 +
+                            Math.round(me((y - 60) / 110, 0, 1) * 44) +
+                            Math.floor(r() * 4),
+                        );
         } else if (f === "metagross") {
           // Magnet Rise to get moving, Zen Headbutt in, brawl, Hammer Arm.
           u.cdY === 0 && !(u.riseT > 0) && (y > 120 || r() < 0.06)
@@ -5028,7 +5036,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               u("guard"), this.startGuard(e);
               break;
             }
-            if (f("smash")) {
+            if (f("smash") && !(i.curseSm > 0)) {
               u("smash"), this.startSmash(e, e.smashAim);
               break;
             }
@@ -6081,7 +6089,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         }
         if (e.t > r.startup + r.active && e.swingHit) {
           let u = e.slot;
-          if ((e.buf.smash ?? 0) > 0) {
+          if ((e.buf.smash ?? 0) > 0 && !(u.curseSm > 0)) {
             (e.buf.smash = 0), this.startSmash(e, e.smashAim);
             return;
           }
@@ -8397,10 +8405,12 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           this.emit({ type: "pulse", who: e, dx: i, dy: r, mega: !!e.mega });
       }
       // Dazed: slower, wobbly movement for a moment. Leaves a splash puddle.
-      soak(e, t) {
+      soak(e, t, by) {
         e.kind === "player" &&
           e.state !== "faint" &&
-          ((e.dazeT = BLAST.daze), this.emit({ type: "dazed", who: e })),
+          ((e.dazeT = BLAST.daze),
+          this.emit({ type: "dazed", who: e }),
+          this.exSync(e, "daze", by)),
           this.addPuddle(e.x, e.y + 2, 11, t);
       }
       tickWithdraw(e, t, s, i) {
@@ -10636,7 +10646,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
                 (this.moveType = null),
                 e.chill && this.exChill(t, e.chill, e.owner),
                 e.kind === "wisp" && this.burn(t),
-                e.kind === "pulse" && this.soak(t, e.team),
+                e.kind === "pulse" && this.soak(t, e.team, e.owner),
                 e.kind === "zap" && this.paralyze(t),
                 e.pierce
                   ? this.emit({ type: "projHit", p: e, x: t.x, y: t.y })
@@ -11003,6 +11013,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               s === e.slot && this.emit({ type: "bpReady", who: e, n: s.bp })),
               (s.cdX = this.exBp(s) > 0 ? 0 : Math.max(1, s.bpT));
           }
+          s.curseSm > 0 && s.curseSm--;
           s.curseT > 0 &&
             (s.curseT--,
             (s.cdX = Math.max(s.cdX, s.curseT)),
@@ -11117,6 +11128,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             !/:basic\d/.test(String(k)) &&
             this.rand() < X.froslass.curse &&
             ((t.slot.curseT = X.froslass.curseT),
+            // A smash that lands is the move disabled, as in the games.
+            /:smash/.test(String(k)) && (t.slot.curseSm = X.froslass.curseT),
             this.emit({ type: "cursed", who: t, by: w }));
         }
         return re;
@@ -11167,7 +11180,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               : kind === "para"
                 ? ((by.paraT = Math.max(by.paraT ?? 0, 60)),
                   this.emit({ type: "paralyzed", who: by }))
-                : kind === "chill" && this.exChill(by, 1, null),
+                : kind === "chill"
+                  ? this.exChill(by, 1, null)
+                  : kind === "daze" &&
+                    ((by.dazeT = Math.max(by.dazeT ?? 0, BLAST.daze)),
+                    this.emit({ type: "dazed", who: by })),
           (this.syncing = !1),
           this.emit({ type: "synchronize", who: v, to: by });
       }
@@ -11178,7 +11195,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         h.chill && this.exChill(v, h.chill, h.owner),
           h.daze &&
             ((v.dazeT = Math.max(v.dazeT ?? 0, h.daze)),
-            this.emit({ type: "dazed", who: v })),
+            this.emit({ type: "dazed", who: v }),
+            this.exSync(v, "daze", h.owner)),
           h.flinch &&
             v.state === "hurt" &&
             this.rand() < h.flinch &&
@@ -23917,7 +23935,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         "TERRAIN",
       ],
       ["B", "Roll", "Heavy roll.", "DODGE"],
-      ["*", "Solid Rock", "Super-effective hits deal 25% less.", "PASSIVE"],
+      ["*", "Solid Rock", "Super-effective hits lose their bonus.", "PASSIVE"],
     ],
     froslass: [
       ["A", "Frost combo", "Light touches into a chilling twirl.", "COMBO"],
@@ -23944,7 +23962,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       [
         "*",
         "Cursed Body",
-        "Specials that hit you can disable the attacker's specials.",
+        "Specials or smashes that hit you can disable the attacker's specials, and the smash itself.",
         "PASSIVE",
       ],
     ],
@@ -23972,7 +23990,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       [
         "*",
         "Synchronize",
-        "Burn, poison, paralysis or chill on you hits whoever caused it too.",
+        "Burn, poison, paralysis, chill or daze on you hits whoever caused it too.",
         "PASSIVE",
       ],
     ],
