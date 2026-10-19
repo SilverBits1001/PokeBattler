@@ -403,7 +403,7 @@
         color: "#ff8a3d",
         typeInk: "#2a1206",
         hp: 845,
-        power: 0.80,
+        power: 0.8,
         speed: 2.9,
         weight: 1.05,
         r: 9,
@@ -1652,7 +1652,7 @@
           active: 8,
           recovery: 24,
           lunge: 0,
-          dmg: 30,
+          dmg: 20,
           kb: 4.2,
           shape: "circle",
           reach: 20,
@@ -1744,7 +1744,7 @@
           active: 2,
           recovery: 18,
           lunge: 0,
-          dmg: 44,
+          dmg: 36,
           kb: 6,
           shape: "circle",
           reach: 60,
@@ -3405,9 +3405,11 @@
     },
     // Legendaries: a meter filled by damage dealt and taken. When it is full
     // the player calls their legendary for one big move they aim themselves.
+    // Taking damage fills it faster than dealing it, so the side that is
+    // behind gets its legendary first.
     LEGEND = {
-      dealt: 0.105,
-      taken: 0.075,
+      dealt: 0.08,
+      taken: 0.11,
       // With more than two fighters there is more damage to go round.
       crowd: 0.6,
       aimT: 54,
@@ -10931,6 +10933,10 @@
       // The defender's side: Solid Rock, Rough Skin, Cursed Body, thawing.
       exTaken(w, t, re, l, k, M) {
         let X = EXK;
+        // Ground types shrug off most of an electric hit.
+        (w.kit.type === "GROUND" || w.kit.type2 === "GROUND") &&
+          this.attackerType(t) === "ELECTRIC" &&
+          (re = Math.round(re * 0.8));
         // Solid Rock: super-effective hits deal less.
         w.kit.solidRock &&
           Ua(this.attackerType(t), w.kit.type) *
