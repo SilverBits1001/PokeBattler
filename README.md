@@ -40,8 +40,9 @@ the HUD, so only Ready?, Go!, K.O. and the result take the middle of the screen.
 **Screens.** The start screen is a face-off: two Pokémon glare at each other
 across a blue and red split (a new pair every few seconds) under the logo, with
 the whole roster running along the bottom. Team select shows each side's
-Pokémon as a large portrait (its Determined face), the CPU's turned to face
-yours. In battle there is one move list, bottom left: a key per move with its
+Pokémon as its official artwork (from the PokeAPI sprites repository,
+github.com/PokeAPI/sprites; Pokémon artwork © Nintendo / Creatures / GAME FREAK),
+the CPU's turned to face yours. In battle there is one move list, bottom left: a key per move with its
 cooldown as a clock-wipe and the seconds left, a coloured rim and glow when it's
 ready, and live values (Heat, charges, the legendary meter) as small badges. The
 camera holds still when a fight ends, and the arena does no more damage once it's

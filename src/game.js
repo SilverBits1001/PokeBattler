@@ -26953,6 +26953,17 @@
         { weight: 700 },
       );
   }
+  // Official artwork (assets/art.js), decoded once on first use.
+  var ART_IMG = {};
+  // Decode them all up front so a pick never shows a blank frame.
+  setTimeout(() => Object.keys(window.__ART__ ?? {}).forEach(artOf), 0);
+  function artOf(k) {
+    let src = window.__ART__?.[k];
+    if (!src) return null;
+    let im = ART_IMG[k];
+    im || ((im = ART_IMG[k] = new Image()), (im.src = src));
+    return im.complete && im.naturalWidth ? im : null;
+  }
   // One side's card: the lead large, the partner behind, on a team-coloured stage.
   function selCard(a, e, t, s, i, r, o) {
     let l = a.frame,
@@ -27034,11 +27045,25 @@
       if (!K) return;
       let sz = E >= 2.4 ? 116 : Q ? 66 : 96,
         px = t + v - sz / 2,
-        py = y + 122 - sz;
+        py = y + 122 - sz,
+        art = artOf(x);
       d.save(), (d.globalAlpha = ie);
       s &&
         (d.translate(m(t + v), 0), d.scale(-1, 1), d.translate(-m(t + v), 0));
-      Oe(K, "Determined", px, py, sz, { bg: xe[x]?.color, frame: !1 });
+      if (art) {
+        // Official artwork, smooth and full size, standing on the card's floor.
+        let bw = E >= 2.4 ? 128 : Q ? 70 : 100,
+          bh = E >= 2.4 ? 112 : Q ? 64 : 92,
+          k2 = Math.min(bw / art.width, bh / art.height),
+          w = art.width * k2,
+          h2 = art.height * k2;
+        (d.imageSmoothingEnabled = !0),
+          (d.imageSmoothingQuality = "high"),
+          (d.shadowColor = "rgba(0,0,0,0.55)"),
+          (d.shadowBlur = m(6)),
+          (d.shadowOffsetY = m(2)),
+          d.drawImage(art, m(t + v - w / 2), m(y + 122 - h2), m(w), m(h2));
+      } else Oe(K, "Determined", px, py, sz, { bg: xe[x]?.color, frame: !1 });
       d.restore();
     };
     r[0] && r[1]
