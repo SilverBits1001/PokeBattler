@@ -44,10 +44,13 @@ real weakness, an answer to ranged attacks and a way to escape:
   Sight traps.
 - **Metagross** floats on Magnet Rise and is never slowed (Clear Body).
 
-The whole roster was rebalanced together. Every Pokémon averages 47–52% across
+The whole roster was rebalanced together. Every Pokémon averages 46–53% across
 all five arenas in CPU duels, and no pairing reaches 80% over 300 games. Crowd
 control is kept short: getting up is fully invincible and followed by a moment
-of safety, and no move chain locks a fighter for more than about 2.7 seconds.
+of safety, and no move chain locks a fighter for more than about 2.6 seconds.
+Free-for-All has its own per-Pokémon damage scale, so last one standing doesn't
+just reward whoever hangs back: every Pokémon wins 16–35% of four-way games.
+Each legendary wins 50–58% of Standard and 44–64% of Tag Team mirror matches.
 Details and numbers are in the design review.
 
 ## Modes and legendaries
