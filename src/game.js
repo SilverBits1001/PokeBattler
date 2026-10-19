@@ -3288,7 +3288,7 @@
       noivern: 0.75,
       magnezone: 1.08,
       charizard: 0.87,
-      froslass: 1.19,
+      froslass: 1.1,
       gardevoir: 0.93,
       golurk: 1.13,
       venusaur: 1.03,
@@ -3320,7 +3320,7 @@
     },
     MODE_POW = { ffa: FFA_POW, team: TEAM_POW, zone: ZONE_POW },
     // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
-    MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.12 } },
+    MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.05 } },
     // In crowds a CPU turns on whoever hit it within t ticks and r pixels.
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
