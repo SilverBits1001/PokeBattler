@@ -44,6 +44,12 @@ real weakness, an answer to ranged attacks and a way to escape:
   Sight traps.
 - **Metagross** floats on Magnet Rise and is never slowed (Clear Body).
 
+The whole roster was rebalanced together. Every Pokémon averages 46–53% across
+all five arenas in CPU duels, and no pairing reaches 80% over 300 games. Crowd
+control is kept short: getting up is fully invincible and followed by a moment
+of safety, and no move chain locks a fighter for more than about 2.3 seconds.
+Details and numbers are in the design review.
+
 ## Modes and legendaries
 
 **Standard** (the default) is one Pokémon a side. Press X on team select for

@@ -1583,6 +1583,44 @@ Final health and damage scale:
 Froslass's scale is high because her own move numbers are small: most of
 what she does is chill and freeze, not damage.
 
+### Feel: crowd control and responsiveness
+
+Win rates don't show whether a Pokémon is fun to play, so two more checks were
+run on the final build.
+
+**Lock time.** Over a full CPU round robin, the tool recorded how long each
+fighter was continuously unable to act (hitstun, launched, knocked down,
+getting up, or held). The first run found three chains with no way out:
+
+- **Hurricane** re-hit every 11 ticks with 14 ticks of hitstun. A dodge can
+  only cancel hitstun from tick 14, so a fighter caught in the vortex was
+  stuck for its whole 2.7 s life, then launched by the burst. Its ticks now
+  cause a 6-tick flinch, so the fighter can dodge or walk out against the
+  pull.
+- **Get-up** was invincible for only 10 of its 14 ticks, so a hit timed for
+  the end restarted the combo. The whole get-up is invincible now.
+- **The first tick of control** could still be hit before the fighter's input
+  was read. Getting up now gives 8 safe ticks, which end as soon as the
+  fighter acts.
+
+Result, per Pokémon as the one locked:
+
+| | Before | After |
+|---|---|---|
+| Longest lock | 1.9–4.5 s | 1.6–2.3 s |
+| 95th percentile lock | 1.17–1.97 s | 1.13–1.77 s |
+| Time unable to act | 21–33% | 20–34% |
+
+Every special starts within 0–27 ticks of the button. The exceptions are
+deliberate: charge moves the player holds (Aura Sphere, Leech Seed aim,
+Hydro Pump) and Golurk's Fly, which spends 48 ticks in the air before landing.
+
+**Keyboard playtest.** Through the real menus, every new Pokémon was picked
+with the arrow keys and Enter, and each move key was pressed in battle. Every
+pick was correct, and every move reacted within 1–9 frames of the key, in a
+headless browser. A 30-frame Gardevoir attack in the first run did not
+repeat: three retries took 3–6 frames.
+
 ### Four-fighter matches
 
 Free-for-All, Team 2v2 and Zone Control were run with random line-ups from all
