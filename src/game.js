@@ -403,7 +403,7 @@
         color: "#ff8a3d",
         typeInk: "#2a1206",
         hp: 820,
-        power: 0.80,
+        power: 0.8,
         speed: 2.9,
         weight: 1.05,
         r: 9,
@@ -571,7 +571,7 @@
         color: "#5aa9e6",
         typeInk: "#06203a",
         hp: 1140,
-        power: 0.80,
+        power: 0.8,
         speed: 2.15,
         weight: 0.6,
         r: 10,
@@ -1212,7 +1212,7 @@
         color: "#e0393e",
         typeInk: "#330a0c",
         hp: 985,
-        power: 1.20,
+        power: 1.2,
         speed: 2.95,
         weight: 0.95,
         r: 9,
@@ -1581,8 +1581,8 @@
         type2: "GHOST",
         color: "#9ad8f0",
         typeInk: "#0c2a36",
-        hp: 1090,
-        power: 1.45,
+        hp: 960,
+        power: 1.4,
         speed: 3.1,
         weight: 1.25,
         r: 8,
@@ -1663,7 +1663,7 @@
         xName: "ICY WIND",
         yName: "DOUBLE TEAM",
         xCd: 90,
-        yCd: 280,
+        yCd: 220,
       },
       // The embrace Pokémon. Moonblast from range, Psychic to lift a foe and
       // throw them where you like, Future Sight to trap the ground ahead,
@@ -1675,8 +1675,8 @@
         type2: "FAIRY",
         color: "#5fc98a",
         typeInk: "#0d2a18",
-        hp: 1135,
-        power: 1.35,
+        hp: 960,
+        power: 1.3,
         speed: 2.55,
         weight: 1.15,
         r: 8,
@@ -1733,7 +1733,7 @@
           dist: 104,
           ticks: 9,
           iframes: 9,
-          cooldown: 34,
+          cooldown: 28,
           anim: "Idle",
         },
         smash: {
@@ -1754,7 +1754,7 @@
         xName: "MOONBLAST",
         yName: "PSYCHIC",
         xCd: 90,
-        yCd: 300,
+        yCd: 210,
       },
       // A steel supercomputer. Zen Headbutt to close in, Magnet Rise to float
       // over the ground at speed, and Clear Body shrugs off every slow.
@@ -2307,6 +2307,17 @@
           },
           r = this.rand,
           o = e.nearestTarget(t.team, t.x, t.y);
+        // In a crowd, go after whoever just hit you, so nobody can pick
+        // everyone off from the back unanswered.
+        let rv = t.lastHitBy;
+        rv &&
+          e.players.length > 2 &&
+          e.tick - t.lastHitT < 150 &&
+          rv !== o &&
+          rv.state !== "faint" &&
+          Math.hypot(rv.x - t.x, rv.y - t.y) < 320 &&
+          e.targetsFor(t.team).includes(rv) &&
+          ((o = rv), (t.lock = rv));
         if (t.state === "faint" || e.match.phase !== "fight" || e.intro > 20)
           return (this.holdX = this.holdY = this.holdB = 0), i;
         if (!o) {
@@ -10933,7 +10944,13 @@
       }
       // The defender's side: Solid Rock, Rough Skin, Cursed Body, thawing.
       exTaken(w, t, re, l, k, M) {
-        let X = EXK;
+        let X = EXK,
+          by = t && t.kind === "assist" ? t.summoner : t;
+        by &&
+          by.kind === "player" &&
+          by.team !== w.team &&
+          re > 0 &&
+          ((w.lastHitBy = by), (w.lastHitT = this.tick));
         // Ground types shrug off most of an electric hit.
         (w.kit.type === "GROUND" || w.kit.type2 === "GROUND") &&
           this.attackerType(t) === "ELECTRIC" &&
