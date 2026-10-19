@@ -1581,8 +1581,8 @@
         type2: "GHOST",
         color: "#9ad8f0",
         typeInk: "#0c2a36",
-        hp: 1000,
-        power: 1.47,
+        hp: 1050,
+        power: 1.25,
         speed: 3.1,
         weight: 1.25,
         r: 8,
@@ -1675,8 +1675,8 @@
         type2: "FAIRY",
         color: "#5fc98a",
         typeInk: "#0d2a18",
-        hp: 1000,
-        power: 1.44,
+        hp: 1050,
+        power: 1.25,
         speed: 2.55,
         weight: 1.15,
         r: 8,
@@ -1694,7 +1694,7 @@
             active: 3,
             recovery: 9,
             lunge: 6,
-            dmg: 24,
+            dmg: 28,
             kb: 1.8,
             heavy: !1,
             shape: "circle",
@@ -1707,7 +1707,7 @@
             active: 3,
             recovery: 10,
             lunge: 6,
-            dmg: 26,
+            dmg: 30,
             kb: 2,
             heavy: !1,
             shape: "circle",
@@ -1720,7 +1720,7 @@
             active: 4,
             recovery: 15,
             lunge: 4,
-            dmg: 40,
+            dmg: 46,
             kb: 6,
             heavy: !0,
             shape: "circle",
@@ -1983,7 +1983,7 @@
       },
       rhyperior: {
         pref: 70,
-        solidRock: 0.8,
+        solidRock: 0.75,
         // Rock Wrecker: a heavy boulder shot; fired into its own pillar it
         // shatters into shrapnel.
         rwWind: 16,
@@ -2036,7 +2036,7 @@
         // Moonblast: a slow fairy orb.
         mbWind: 12,
         mbSpeed: 3.2,
-        mbDmg: 40,
+        mbDmg: 34,
         mbKb: 5,
         mbRec: 12,
         // Psychic: lift a foe and throw them; turns shots around.
@@ -2044,7 +2044,7 @@
         psRange: 150,
         psCone: 0.75,
         psHold: 26,
-        psDmg: 36,
+        psDmg: 42,
         psKb: 7.8,
         psReflectR: 50,
         psRec: 10,
@@ -10931,7 +10931,12 @@
       // The defender's side: Solid Rock, Rough Skin, Cursed Body, thawing.
       exTaken(w, t, re, l, k, M) {
         let X = EXK;
-        w.kit.solidRock && l && (re = Math.round(re * X.rhyperior.solidRock)),
+        // Solid Rock: super-effective hits deal less.
+        w.kit.solidRock &&
+          Ua(this.attackerType(t), w.kit.type) *
+            (w.kit.type2 ? Ua(this.attackerType(t), w.kit.type2) : 1) >
+            1 &&
+          (re = Math.round(re * X.rhyperior.solidRock)),
           w.frozenT > 0 &&
             ((w.frozenT = 0), this.emit({ type: "thaw", who: w }));
         if (
@@ -23715,7 +23720,7 @@
         "TERRAIN",
       ],
       ["B", "Roll", "Heavy roll.", "DODGE"],
-      ["*", "Solid Rock", "Heavy blows deal 20% less.", "PASSIVE"],
+      ["*", "Solid Rock", "Super-effective hits deal 25% less.", "PASSIVE"],
     ],
     froslass: [
       ["A", "Frost combo", "Light touches into a chilling twirl.", "COMBO"],
