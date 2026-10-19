@@ -3358,7 +3358,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     CUE_WORDS = [
       [/^STORED/, null],
       [/^HEX/, "eye"],
-      [/^(ARMOR|BLOCKED|DETECT|SPIKES UP)/, "shield"],
+      [/^(ARMOR|BLOCKED|DETECT|SPIKES UP|ENDURE|FOCUS)/, "shield"],
+      [/^COOLDOWNS/, "up2"],
+      [/^SMOKESCREEN/, "swirl"],
+      [/^REGEN/, "plus"],
       [/^(ANCIENT POWER|OVERCHARGE|ATTACK UP)/, "up"],
       [/^(ABSORBED|RECOVER|REST$)|REVIVED$/, "plus"],
       [/^(ITEM INCOMING|GO!$)/, "ball"],
@@ -3390,8 +3393,92 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       pokeball: "ball",
       helmet: "shield",
       scarf: "dash",
+      focusband: "shield",
+      quickclaw: "up2",
+      smokeball: "swirl",
+      leftovers: "plus",
     },
     SURGE_CUE = ["sun", "burst", "flame", "snow", "bolt"],
+    // Stadium field shifts (Pokémon Stadium style): every so often the pitch
+    // becomes a Grass, Water, Fire or Rock field for a while, built from the
+    // game's own pieces. Spots are point-symmetric.
+    FIELD = {
+      first: 1500,
+      every: 2400,
+      warn: 150,
+      live: 1200,
+      kinds: ["grass", "water", "fire", "rock"],
+      colors: ["#7fd35d", "#5ab0ff", "#ff8a3d", "#c9a26b"],
+      icons: ["leaf", "drop", "flame", "shield"],
+      spots: [
+        [Se - 150, Te - 62],
+        [Se + 150, Te + 62],
+        [Se - 150, Te + 62],
+        [Se + 150, Te - 62],
+      ],
+      extra: [
+        [Se, Te - 100],
+        [Se, Te + 100],
+      ],
+      grassR: 26,
+      heal: 0.06,
+      puddleR: 24,
+    },
+    // Ruins dart traps: a plate on each side; stepping on one fires darts
+    // down its lane after a short warning. Anyone in the lane is hit.
+    TRAP = {
+      plates: [
+        [Se - 110, B.y0 + 26, 1],
+        [Se + 110, B.y1 - 26, -1],
+      ],
+      r: 10,
+      warn: 40,
+      speed: 7,
+      band: 11,
+      dmg: 14,
+      cd: 420,
+    },
+    // Frostfall: the centre rink cracks under heavy blows and breaks into
+    // icy water that slows, then refreezes. Spheal roll down the lanes.
+    THIN = { cracks: 6, open: 600, slow: 0.55 },
+    SPHEAL = {
+      first: 600,
+      every: 720,
+      warn: 70,
+      lanes: [Te - 100, Te + 100],
+      speed: 4.5,
+      r: 12,
+      dmg: 16,
+    },
+    // Power Plant: two conveyors running opposite ways (they flip on a
+    // cycle) and Voltorb that roll in and blow up when someone gets close.
+    BELT = {
+      belts: [
+        { x0: Se - 230, x1: Se - 40, y: Te - 96, h: 20, dir: 1 },
+        { x0: Se + 40, x1: Se + 230, y: Te + 96, h: 20, dir: -1 },
+      ],
+      speed: 0.9,
+      flip: 900,
+      warn: 60,
+    },
+    VOLT = {
+      first: 900,
+      every: 1100,
+      r: 9,
+      trigger: 20,
+      fuse: 45,
+      boomR: 42,
+      dmg: 22,
+      life: 900,
+      speed: 0.35,
+      spots: [
+        [B.x0 + 24, Te - 30],
+        [B.x1 - 24, Te + 30],
+      ],
+    },
+    // Cinder Crater lava tide: pools swell and recede; the centre pair and
+    // the corner pair breathe out of step so the floor area stays even.
+    TIDE = { period: 1800, amp: 0.28 },
     // Arcade: six duels in a row, each rival tougher, the last a boss with
     // more HP and its legendary half charged. Continues retry the stage.
     ARC = {
@@ -3694,7 +3781,22 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       { kind: "pokeball", name: "POK\xC9 BALL", color: "#ef5a4f", w: 2 },
       { kind: "helmet", name: "ROCKY HELMET", color: "#c9a26b", w: 2 },
       { kind: "scarf", name: "CHOICE SCARF", color: "#5ab0ff", w: 2 },
+      { kind: "focusband", name: "FOCUS BAND", color: "#ef5a4f", w: 2 },
+      { kind: "quickclaw", name: "QUICK CLAW", color: "#bfe6ff", w: 2 },
+      { kind: "smokeball", name: "SMOKE BALL", color: "#b8bcc8", w: 2 },
+      { kind: "leftovers", name: "LEFTOVERS", color: "#c9e36b", w: 2 },
     ],
+    // Focus Band: survive one K.O. hit at 1 HP while it lasts. Quick Claw:
+    // cooldowns reset, then run faster. Smoke Ball: a cloud that hides who
+    // is inside (the CPU loses track of them). Leftovers: slow healing.
+    ITEMX = {
+      focus: 1200,
+      quick: 360,
+      smoke: 300,
+      smokeR: 44,
+      left: 900,
+      leftHeal: 0.06,
+    },
     XATK = { ticks: 480, mult: 1.25 },
     // Rocky Helmet: melee attackers take a share of their damage back.
     HELMET = { ticks: 600, recoil: 0.25 },
@@ -4651,6 +4753,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
                   y: l,
                   rx: f,
                   ry: u,
+                  rx0: f,
+                  ry0: u,
                   cool: 0,
                 }))
               : []),
@@ -4673,6 +4777,28 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           (this.arc = null),
           (this.arcT = PLANT.cycle / 2),
           (this.drops = []),
+          (this.field = null),
+          (this.fieldT = FIELD.first),
+          (this.plates =
+            A.arena === 1
+              ? TRAP.plates.map(([x, y, dir]) => ({
+                  x,
+                  y,
+                  dir,
+                  cd: 0,
+                  warn: 0,
+                }))
+              : []),
+          (this.darts = []),
+          (this.thin = A.arena === 3 ? { cr: 0, open: 0 } : null),
+          (this.spheal = null),
+          (this.sphealT = SPHEAL.first),
+          (this.sphealN = 0),
+          (this.belts = A.arena === 4 ? BELT.belts.map((b) => ({ ...b })) : []),
+          (this.beltT = BELT.flip),
+          (this.voltorbs = []),
+          (this.voltT = VOLT.first),
+          (this.smokes = []),
           (this.summons = []),
           (this.exq = []),
           (this.exDone = []),
@@ -4875,11 +5001,18 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           s.team !== e && this.canBeHit(s) && t.push(s);
         return t;
       }
+      inSmoke(e) {
+        return this.smokes?.some(
+          (m) => Math.hypot(e.x - m.x, (e.y - m.y) * 1.3) < ITEMX.smokeR,
+        );
+      }
       nearestTarget(e, t, s) {
         let i = null,
           r = 1 / 0;
         for (let o of this.targetsFor(e)) {
           let l = Math.hypot(o.x - t, o.y - s);
+          // Hidden in smoke: out of sight unless right next to you.
+          if (l > 36 && this.inSmoke(o)) continue;
           l < r && ((r = l), (i = o));
         }
         return i;
@@ -4922,7 +5055,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           this.updateSeeds(),
           this.resolveHits(),
           this.pushApart(),
-          this.updateMatch();
+          this.updateMatch(),
+          this.arenaPost();
         for (let i of this.bodies())
           i.flash > 0 && i.flash--,
             i.tint > 0 && i.tint--,
@@ -5066,6 +5200,12 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           e.xatkT > 0 && e.xatkT--,
           e.helmetT > 0 && e.helmetT--,
           e.scarfT > 0 && e.scarfT--,
+          e.focusT > 0 && e.focusT--,
+          e.quickT > 0 && e.quickT--,
+          e.leftT > 0 &&
+            (e.leftT--,
+            e.state !== "faint" &&
+              (e.slot.hp = Math.min(e.slot.maxHp, e.slot.hp + ITEMX.leftHeal))),
           e.apT > 0 && e.apT--,
           e.lockT > 0 && e.lockT--,
           e.shieldT > 0 && e.shieldT--,
@@ -8833,6 +8973,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           this.inPuddle(e.x, e.y, e.team, !0) &&
           (r *= 1.35),
           !i.flier && this.inPuddle(e.x, e.y, e.team, !1) && (r *= 0.6),
+          this.inOpenWater(e) && (r *= THIN.slow),
           i.id === "dragapult" &&
             e.slot.horns.includes("out") &&
             (r *= he.light);
@@ -9552,7 +9693,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             (s) => Math.hypot(s.x - e, (s.y - t) * 1.3) < SURGE.meteorR + 6,
           ) ||
           (this.surgeLive(4) && this.nearPylonLine(e, t, 16)) ||
-          this.nearArc(e, t, 16)
+          this.nearArc(e, t, 16) ||
+          this.arenaXHazard(e, t)
         );
       }
       // Stadium spotlight centres; the second mirrors the first through the centre.
@@ -9575,6 +9717,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       }
       // How much faster this fighter's specials recharge from the arena.
       cdBoost(e) {
+        let b = this.cdBoost0(e);
+        return e.quickT > 0 && e.state !== "faint" ? Math.max(b, 1.5) : b;
+      }
+      cdBoost0(e) {
         if (e.state === "faint") return 1;
         if (
           this.spotlights().some(
@@ -9616,6 +9762,363 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           !1,
           u,
           "arena",
+        );
+      }
+      // ---- Arena mechanics: field shifts, dart traps, lava tide, thin ice,
+      // Spheal, conveyors and Voltorb. All seeded and symmetric. ----
+      arenaX(e) {
+        for (let m of this.smokes) m.life--;
+        this.smokes = this.smokes.filter((m) => m.life > 0);
+        let live = this.match.phase === "fight" && this.intro <= 0,
+          bodies = [...this.players, ...this.dummies],
+          grounded = (b) =>
+            !(b.kind === "player" && (b.state === "faint" || b.out)) &&
+            !b.hidden &&
+            !this.floating(b) &&
+            !(b.kind === "player" && b.airborne);
+        // Stadium field shifts.
+        if (this.arena === 0 && live) {
+          let f = this.field;
+          if (!f && --this.fieldT <= 0) {
+            let k = Math.floor(this.rand() * FIELD.kinds.length);
+            this.field = f = { k, t: 0, state: "warn" };
+            this.emit({ type: "fieldWarn", k });
+          }
+          if (f) {
+            f.t++;
+            f.state === "warn" &&
+              f.t >= FIELD.warn &&
+              ((f.state = "live"), (f.t = 0), this.fieldStart(f.k));
+            if (f.state === "live") {
+              // Tall grass heals whoever stands in it.
+              f.k === 0 &&
+                this.players.forEach(
+                  (p) =>
+                    p.state !== "faint" &&
+                    !p.out &&
+                    this.grass.some(
+                      (g) =>
+                        g.field &&
+                        Math.hypot(g.x - p.x, (g.y - p.y) * 1.6) < g.r,
+                    ) &&
+                    (p.slot.hp = Math.min(
+                      p.slot.maxHp,
+                      p.slot.hp + FIELD.heal,
+                    )),
+                );
+              f.t >= FIELD.live && this.fieldEnd();
+            }
+          }
+        }
+        // Ruins dart traps.
+        for (let pl of this.plates) {
+          pl.cd > 0 && pl.cd--;
+          if (pl.warn > 0) {
+            --pl.warn === 0 &&
+              (this.darts.push({
+                x: pl.dir > 0 ? B.x0 : B.x1,
+                y: pl.y,
+                dir: pl.dir,
+                hit: [],
+              }),
+              this.emit({
+                type: "dartFire",
+                x: pl.dir > 0 ? B.x0 : B.x1,
+                y: pl.y,
+                dir: pl.dir,
+              }));
+            continue;
+          }
+          live &&
+            pl.cd <= 0 &&
+            this.players.some(
+              (p) =>
+                grounded(p) &&
+                Math.hypot(p.x - pl.x, (p.y - pl.y) * 1.4) < TRAP.r + p.r,
+            ) &&
+            ((pl.warn = TRAP.warn),
+            (pl.cd = TRAP.cd),
+            this.emit({ type: "plateStep", x: pl.x, y: pl.y, dir: pl.dir }));
+        }
+        for (let d of this.darts) {
+          d.x += d.dir * TRAP.speed;
+          for (let b of e())
+            !d.hit.includes(b) &&
+              Math.abs(b.y - d.y) < TRAP.band &&
+              Math.abs(b.x - d.x) < 10 + b.r &&
+              (d.hit.push(b),
+              this.envHit(b, TRAP.dmg, 3, d.dir, 0, !1, 4, 14, !1),
+              this.emit({ type: "dartHit", x: b.x, y: b.y }));
+          d.dead =
+            d.x < B.x0 - 10 ||
+            d.x > B.x1 + 10 ||
+            this.rocks.some(
+              (r) =>
+                r.state === "solid" &&
+                Math.hypot(r.x - d.x, r.y - d.y) < r.r + 3,
+            );
+        }
+        this.darts = this.darts.filter((d) => !d.dead);
+        // Cinder Crater lava tide.
+        if (this.lava.length) {
+          let q = Math.sin((this.tick * Math.PI * 2) / TIDE.period);
+          this.lava.forEach((l, n) => {
+            let k = 1 + TIDE.amp * q * (n < 2 ? 1 : -1);
+            (l.rx = l.rx0 * k), (l.ry = l.ry0 * k);
+          });
+        }
+        // Frostfall: open water refreezes; Spheal roll down a lane.
+        if (this.thin) {
+          let th = this.thin;
+          th.open > 0 &&
+            --th.open === 0 &&
+            ((th.cr = 0),
+            this.ice[0] && (this.ice[0].melt = 0),
+            this.emit({ type: "refreeze", x: Se, y: Te }));
+          let sp = this.spheal;
+          if (!sp && live && --this.sphealT <= 0) {
+            let n = this.sphealN++,
+              dir = n % 2 ? -1 : 1;
+            this.spheal = sp = {
+              x: dir > 0 ? B.x0 + 8 : B.x1 - 8,
+              y: SPHEAL.lanes[n % 2],
+              dir,
+              t: 0,
+              hit: [],
+            };
+            this.emit({ type: "sphealWarn", x: sp.x, y: sp.y, dir });
+          }
+          if (sp) {
+            sp.t++;
+            if (sp.t > SPHEAL.warn) {
+              sp.t === SPHEAL.warn + 1 &&
+                this.emit({ type: "sphealRoll", x: sp.x, y: sp.y });
+              sp.x += sp.dir * SPHEAL.speed;
+              for (let b of e())
+                !sp.hit.includes(b) &&
+                  Math.hypot(b.x - sp.x, (b.y - sp.y) * 1.3) < SPHEAL.r + b.r &&
+                  (sp.hit.push(b),
+                  this.envHit(b, SPHEAL.dmg, 5, sp.dir, 0, !0, 8, 24, !1),
+                  this.emit({ type: "sphealHit", x: b.x, y: b.y }));
+              (sp.x < B.x0 - 20 || sp.x > B.x1 + 20) &&
+                ((this.spheal = null), (this.sphealT = SPHEAL.every));
+            }
+          }
+        }
+        // Power Plant conveyors and Voltorb.
+        if (this.belts.length) {
+          if (live && --this.beltT <= 0) {
+            this.beltT = BELT.flip;
+            for (let b of this.belts) b.dir *= -1;
+            this.emit({ type: "beltFlip" });
+          }
+          for (let b of this.belts)
+            for (let o of bodies)
+              grounded(o) &&
+                o.x > b.x0 &&
+                o.x < b.x1 &&
+                Math.abs(o.y - b.y) < b.h / 2 &&
+                this.moveBody(o, b.dir * BELT.speed, 0);
+          if (live && --this.voltT <= 0) {
+            this.voltT = VOLT.every;
+            for (let [x, y] of VOLT.spots)
+              this.voltorbs.push({
+                id: this.nextId++,
+                x,
+                y,
+                tx: 2 * Se - x,
+                ty: 2 * Te - y,
+                t: 0,
+                fuse: 0,
+              }),
+                this.emit({ type: "voltSpawn", x, y });
+          }
+          for (let v of this.voltorbs) {
+            v.t++;
+            if (v.fuse > 0) {
+              if (--v.fuse === 0) {
+                for (let b of e()) {
+                  let dx = b.x - v.x,
+                    dy = b.y - v.y,
+                    d = Math.hypot(dx, dy * 1.3);
+                  d < VOLT.boomR &&
+                    this.envHit(
+                      b,
+                      VOLT.dmg,
+                      6.5,
+                      dx / (d || 1),
+                      dy / (d || 1),
+                      !0,
+                      10,
+                      26,
+                      !1,
+                    );
+                }
+                (v.dead = !0), this.emit({ type: "voltBoom", x: v.x, y: v.y });
+              }
+              continue;
+            }
+            // Roll slowly across, weaving a little.
+            let a =
+              Math.atan2(v.ty - v.y, v.tx - v.x) + Math.sin(v.t * 0.03) * 0.6;
+            (v.x += Math.cos(a) * VOLT.speed),
+              (v.y += Math.sin(a) * VOLT.speed);
+            let near = this.players.some(
+                (p) =>
+                  grounded(p) &&
+                  Math.hypot(p.x - v.x, p.y - v.y) < VOLT.trigger + p.r,
+              ),
+              shot = this.projectiles.some(
+                (p) => !p.dead && Math.hypot(p.x - v.x, p.y - v.y) < VOLT.r + 4,
+              );
+            (near || shot) &&
+              ((v.fuse = shot ? 12 : VOLT.fuse),
+              this.emit({ type: "voltFuse", x: v.x, y: v.y }));
+            v.t > VOLT.life &&
+              ((v.dead = !0), this.emit({ type: "voltGone", x: v.x, y: v.y }));
+          }
+          this.voltorbs = this.voltorbs.filter((v) => !v.dead);
+        }
+      }
+      // A new field: grass to hide and heal in, puddles that slow and
+      // conduct, hot spots that power you up, or rock cover.
+      fieldStart(k) {
+        let S2 = FIELD.spots,
+          all = [...S2, ...FIELD.extra];
+        k === 0 &&
+          all.forEach(([x, y]) =>
+            this.grass.push({
+              id: this.nextId++,
+              x,
+              y,
+              r: FIELD.grassR,
+              life: FIELD.live + 30,
+              max: FIELD.live + 30,
+              owner: null,
+              field: !0,
+            }),
+          );
+        k === 1 &&
+          all.forEach(([x, y]) =>
+            this.puddles.push({
+              id: this.nextId++,
+              x,
+              y,
+              r: FIELD.puddleR,
+              life: FIELD.live,
+              max: FIELD.live,
+              team: -1,
+              field: !0,
+            }),
+          );
+        k === 2 &&
+          S2.forEach(([x, y]) =>
+            this.heatVents.push({ x, y, t: FIELD.live, field: !0 }),
+          );
+        k === 3 &&
+          S2.forEach(([x, y]) => {
+            // A rock never rises on top of someone; that spot waits.
+            this.bodies().some(
+              (b) => Math.hypot(b.x - x, b.y - y) < RUINS.r + b.r + 2,
+            ) ||
+              this.rocks.push({
+                id: this.nextId++,
+                x,
+                y,
+                r: RUINS.r,
+                hp: RUINS.hp,
+                max: RUINS.hp,
+                state: "solid",
+                t: 0,
+                hitT: 0,
+                field: !0,
+              });
+          });
+        this.emit({ type: "fieldStart", k });
+      }
+      fieldEnd() {
+        let k = this.field?.k;
+        (this.grass = this.grass.filter((g) => !g.field)),
+          (this.puddles = this.puddles.filter((g) => !g.field)),
+          (this.heatVents = this.heatVents.filter((g) => !g.field));
+        for (let r of this.rocks)
+          r.field &&
+            r.state === "solid" &&
+            this.emit({ type: "rockBreak", x: r.x, y: r.y });
+        (this.rocks = this.rocks.filter((r) => !r.field)),
+          (this.field = null),
+          (this.fieldT = FIELD.every - FIELD.live - FIELD.warn),
+          this.emit({ type: "fieldEnd", k });
+      }
+      inOpenWater(e) {
+        return (
+          !!this.thin?.open &&
+          !this.floating(e) &&
+          Math.hypot(
+            (e.x - Se) / FROST.rinks[0][2],
+            (e.y - Te) / FROST.rinks[0][3],
+          ) < 1
+        );
+      }
+      // After the step: heavy blows on the centre rink crack it.
+      arenaPost() {
+        let th = this.thin;
+        if (!th || th.open || !this.ice[0] || this.ice[0].melt > 0) return;
+        let [rx, ry] = [FROST.rinks[0][2], FROST.rinks[0][3]],
+          on = (x, y) =>
+            x != null && Math.hypot((x - Se) / rx, (y - Te) / ry) < 1;
+        for (let n of this.events) {
+          let heavy =
+            (n.type === "hit" &&
+              (n.heavy || n.ko) &&
+              on(n.victim?.x, n.victim?.y)) ||
+            ([
+              "quake",
+              "slamLand",
+              "heavySlam",
+              "rocketLand",
+              "splat",
+              "koLand",
+              "icicle",
+              "smashRelease",
+              "drop",
+            ].includes(n.type) &&
+              on(n.x ?? n.who?.x, n.y ?? n.who?.y));
+          if (!heavy) continue;
+          th.cr++;
+          this.emit({
+            type: "iceCrack",
+            x: n.x ?? n.victim?.x ?? n.who?.x,
+            y: n.y ?? n.victim?.y ?? n.who?.y,
+            n: th.cr,
+          });
+          if (th.cr >= THIN.cracks) {
+            (th.open = THIN.open),
+              (this.ice[0].melt = THIN.open + 2),
+              this.emit({ type: "iceBreak", x: Se, y: Te });
+            break;
+          }
+        }
+      }
+      // Telegraphed danger from the new mechanics, for the CPU to steer round.
+      arenaXHazard(x, y) {
+        return (
+          this.plates.some(
+            (p) => p.warn > 0 && Math.abs(y - p.y) < TRAP.band + 8,
+          ) ||
+          (this.darts.length > 0 &&
+            this.darts.some(
+              (d) =>
+                Math.abs(y - d.y) < TRAP.band + 8 && (x - d.x) * d.dir > -20,
+            )) ||
+          (!!this.spheal &&
+            Math.abs(y - this.spheal.y) < SPHEAL.r + 14 &&
+            (x - this.spheal.x) * this.spheal.dir > -20) ||
+          this.voltorbs.some(
+            (v) =>
+              Math.hypot(x - v.x, y - v.y) <
+              (v.fuse > 0 ? VOLT.boomR + 8 : VOLT.trigger + 10),
+          )
         );
       }
       // The arena surge: warn, run the set-piece, then wait for the next one.
@@ -9782,6 +10285,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               !this.floating(s),
           );
         this.updateSurge(e);
+        this.arenaX(e);
         // Cinder Crater
         if (this.lava.length) {
           // Water shots and jets crust over any pool they pass across.
@@ -10037,15 +10541,31 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
                 ? (t.helmetT = HELMET.ticks)
                 : e.kind === "scarf"
                   ? (t.scarfT = SCARF.ticks)
-                  : (s.hp = Math.min(
-                      s.maxHp,
-                      s.hp +
-                        Math.round(
-                          s.maxHp *
-                            SITRUS.heal *
-                            (t.kit.gluttony ? SNOR.gluttony : 1),
-                        ),
-                    )),
+                  : e.kind === "focusband"
+                    ? (t.focusT = ITEMX.focus)
+                    : e.kind === "quickclaw"
+                      ? ((s.cdX = 0),
+                        (s.cdY = 0),
+                        (s.cdDodge = 0),
+                        (t.quickT = ITEMX.quick))
+                      : e.kind === "smokeball"
+                        ? this.smokes.push({
+                            x: e.x,
+                            y: e.y,
+                            life: ITEMX.smoke,
+                            max: ITEMX.smoke,
+                          })
+                        : e.kind === "leftovers"
+                          ? (t.leftT = ITEMX.left)
+                          : (s.hp = Math.min(
+                              s.maxHp,
+                              s.hp +
+                                Math.round(
+                                  s.maxHp *
+                                    SITRUS.heal *
+                                    (t.kit.gluttony ? SNOR.gluttony : 1),
+                                ),
+                            )),
             this.emit({
               type: "itemGet",
               who: t,
@@ -10083,12 +10603,13 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           e.hp <= 0
             ? ((e.hp = 0),
               (e.state = "broken"),
-              (e.t = RUINS.respawn),
-              this.collapses.push({ x: e.x, y: e.y, t: 0 }),
+              (e.t = e.field ? 1e9 : RUINS.respawn),
+              e.field || this.collapses.push({ x: e.x, y: e.y, t: 0 }),
               (() => {
                 let o =
                   r && (r.kind === "player" ? r : (r.summoner ?? r.owner));
                 !e.exPillar &&
+                  !e.field &&
                   o &&
                   o.kind === "player" &&
                   ((o.apT = RUINS.apTicks),
@@ -13136,6 +13657,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           if (
             ((U.hp = Math.max(0, U.hp - re)),
             U.hp === 0 &&
+              w.focusT > 0 &&
+              ((U.hp = 1),
+              (w.focusT = 0),
+              this.emit({ type: "focusBand", who: w, x: w.x, y: w.y })),
+            U.hp === 0 &&
               w.kit.sturdy &&
               !U.sturdy &&
               se > U.maxHp * 0.25 &&
@@ -14865,6 +15391,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     smashRelease: ["crack", 10],
     dragonPulse: ["scorch", 14],
     discharge: ["scorch", 18],
+    voltBoom: ["scorch", 24],
+    iceBreak: ["frost", 34],
+    sphealHit: ["skid", 1],
   };
   function scarEvent(e, n) {
     let x = n.x ?? n.who?.x ?? n.victim?.x,
@@ -15041,7 +15570,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             f > 0.5 ? "#4df08a" : f > 0.25 ? "#ffc93c" : "#ef5a4f",
           );
       });
-      R(316, 14, 6, 6, "#ef5a4f"), R(318, 16, 2, 2, "#ffffff");
+      e.field
+        ? (R(304, 8, 32, 26, FIELD.colors[e.field.k]),
+          (e.field.state === "live" || t % 10 < 5) &&
+            cueGlyph(a, FIELD.icons[e.field.k], 320, 21, 9, "#ffffff"))
+        : (R(316, 14, 6, 6, "#ef5a4f"), R(318, 16, 2, 2, "#ffffff"));
       // Camera flashes.
       let s = rt((t / 6) | 0);
       for (let n = 0; n < 4 + LIVE.hype * 10; n++) {
@@ -15323,6 +15856,24 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           R(c.x | 0, c.y | 0, Math.abs(Math.cos(c.r)) * 2 + 1, 2, c.c);
       LIVE.confetti = LIVE.confetti.filter((c) => c.life > 0 && c.y < _ + 10);
     }
+    // Smoke Ball clouds: thick enough to hide whoever is inside.
+    for (let m of e.smokes ?? []) {
+      let k = Math.min(1, (m.max - m.life) / 12, m.life / 40),
+        q = rt(m.x | 0);
+      for (let n = 0; n < 16; n++) {
+        let ang = q() * 6.28,
+          d = Math.sqrt(q()) * ITEMX.smokeR * 0.8,
+          x = m.x + Math.cos(ang) * d + Math.sin(e.tick * 0.03 + n) * 3,
+          y = m.y + Math.sin(ang) * d * 0.7 - 6,
+          r = 12 + q() * 10;
+        (a.globalAlpha = 0.7 * k),
+          (a.fillStyle = n % 3 ? "#9aa0ad" : "#c8ccd6"),
+          a.beginPath(),
+          a.arc(x, y, r, 0, Math.PI * 2),
+          a.fill();
+      }
+      a.globalAlpha = 1;
+    }
     arenaLight(a, e), ambTick(e);
   }
   // Light: a dim ambient with holes cut where real light falls, then glows.
@@ -15396,8 +15947,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       // Sun shafts through the broken colonnade.
       for (let x of [240, 400]) hole(x, Te, 140, 0.55);
     } else if (k === 2) {
-      for (let [x, y, w] of CRATER.pools)
-        hole(x, y, w * 3.2, 1), glow.push([x, y, w * 1.4, "255,110,40", 0.35]);
+      for (let l of e.lava)
+        hole(l.x, l.y, l.rx * 3.2, 1),
+          glow.push([l.x, l.y, l.rx * 1.4, "255,110,40", 0.35]);
       for (let v of e.heatVents ?? []) hole(v.x, v.y, 90, 1);
       for (let x of [130, Y - 130])
         hole(x, B.y0, 110, 1), glow.push([x, B.y0 - 6, 40, "255,120,50", 0.5]);
@@ -15415,6 +15967,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           p.off <= 0 &&
           (hole(p.x, p.y, 120, 1),
           glow.push([p.x, p.y - 20, 36, "127,227,255", 0.35]));
+      for (let v of e.voltorbs ?? []) v.fuse > 0 && hole(v.x, v.y, 70, 1);
     }
     a.save(),
       (a.imageSmoothingEnabled = !0),
@@ -18367,6 +18920,54 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       "...cC.....",
       "....c.....",
     ],
+    focusband: [
+      "..........",
+      "..........",
+      ".rrrrrrrr.",
+      "rrwwrrrrRr",
+      "RRRRRRRRRR",
+      ".......rr.",
+      "......rRr.",
+      ".....rR.r.",
+      "......R...",
+      "..........",
+    ],
+    quickclaw: [
+      "......kk..",
+      ".....kSSk.",
+      "....kSSk..",
+      "...kSSk...",
+      "..kSSk....",
+      ".kSSSk....",
+      ".kSSSSk...",
+      "..kCCCk...",
+      "..kCcCk...",
+      "...kkk....",
+    ],
+    smokeball: [
+      "...bbbb...",
+      "..bsSSsb..",
+      ".bsSSssSb.",
+      ".bssssssb.",
+      ".bbbbbbbb.",
+      ".bsscsssb.",
+      ".bssssssb.",
+      "..bssssb..",
+      "...bbbb...",
+      "..........",
+    ],
+    leftovers: [
+      "....kg....",
+      "....kgg...",
+      "..kkkkkk..",
+      ".kwwyyyyk.",
+      "..kyyyyk..",
+      "...kyyk...",
+      "..kwyyyk..",
+      ".kyyyyyok.",
+      "..kkkkkk..",
+      "..........",
+    ],
   };
   // Tag and colour for a fighter: you, an ally, or one of up to three CPUs.
   var TAGC = [
@@ -18420,6 +19021,250 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     return a.kind === "dummy" && a.state === "charge"
       ? Math.min(e.frames - 1, Math.floor((a.t / 24) * e.frames))
       : Be(e, t.tick, 1);
+  }
+  // Arena mechanics on the ground: field telegraphs, plates and darts,
+  // conveyors, thin ice, Spheal and Voltorb.
+  function mechGround(a, e) {
+    let t = e.tick,
+      R = (x, y, w, h, c) => (
+        (a.fillStyle = c), a.fillRect(Math.round(x), Math.round(y), w, h)
+      ),
+      dash = (x0, y0, x1, y1, c, w = 1.5) => {
+        (a.strokeStyle = c),
+          (a.lineWidth = w),
+          a.setLineDash([5, 4]),
+          (a.lineDashOffset = -t * 0.8);
+        a.beginPath(),
+          a.moveTo(x0, y0),
+          a.lineTo(x1, y1),
+          a.stroke(),
+          a.setLineDash([]);
+      };
+    // Stadium field: rings where the field will rise, then a tint while live.
+    let f = e.field;
+    if (f) {
+      let c = FIELD.colors[f.k],
+        pts = f.k < 2 ? [...FIELD.spots, ...FIELD.extra] : FIELD.spots;
+      if (f.state === "warn") {
+        let k = f.t / FIELD.warn;
+        for (let [x, y] of pts)
+          (a.globalAlpha = 0.4 + 0.5 * (t % 10 < 5)),
+            (a.strokeStyle = c),
+            (a.lineWidth = 1.5),
+            a.beginPath(),
+            a.ellipse(
+              x,
+              y,
+              26 * (0.3 + 0.7 * k),
+              13 * (0.3 + 0.7 * k),
+              0,
+              0,
+              Math.PI * 2,
+            ),
+            a.stroke();
+        a.globalAlpha = 1;
+      } else {
+        let k = Math.min(1, f.t / 30, (FIELD.live - f.t) / 30);
+        a.save(),
+          (a.globalAlpha = 0.1 * k),
+          (a.fillStyle = c),
+          a.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0),
+          a.restore();
+      }
+    }
+    // Ruins plates and their lanes.
+    for (let pl of e.plates ?? []) {
+      let hot = pl.warn > 0,
+        ready = pl.cd <= 0;
+      R(pl.x - 9, pl.y - 6, 18, 12, "#3a332d"),
+        R(
+          pl.x - 8,
+          pl.y - 5,
+          16,
+          10,
+          hot ? "#c44a3a" : ready ? "#8a7d6a" : "#6a6052",
+        ),
+        R(pl.x - 8, pl.y - 5, 16, 1, "rgba(255,255,255,0.25)");
+      // An arrow carved into the plate, pointing the way the darts fly.
+      a.fillStyle = hot ? "#ffd2a0" : "#3a332d";
+      for (let k = 0; k < 4; k++)
+        a.fillRect(
+          pl.x - 4 * pl.dir + k * pl.dir * 2,
+          pl.y - k + 1,
+          1,
+          k * 2 - 1 + 1,
+        );
+      // Dart slits on the wall the darts come from.
+      let wx = pl.dir > 0 ? B.x0 + 1 : B.x1 - 4;
+      for (let k = -1; k <= 1; k++)
+        R(wx, pl.y + k * 5 - 1, 3, 2, hot && t % 6 < 3 ? "#ff5a3a" : "#1a1612");
+      hot && dash(B.x0, pl.y, B.x1, pl.y, "rgba(255,90,60,0.85)");
+    }
+    for (let d of e.darts ?? [])
+      for (let k = -1; k <= 1; k++) {
+        let x = d.x - d.dir * Math.abs(k) * 6,
+          y = d.y + k * 5;
+        R(x - 6 * d.dir * (d.dir > 0), y, 7, 1, "#d8c8a0"),
+          R(x + (d.dir > 0 ? 0 : -2), y - 1, 2, 3, "#5a4a3a");
+      }
+    // Conveyors: chevrons that run the way the belt goes, flashing before it flips.
+    for (let b of e.belts ?? []) {
+      let warn = e.beltT < BELT.warn && t % 8 < 4;
+      R(b.x0, b.y - b.h / 2, b.x1 - b.x0, b.h, "#1b2028"),
+        R(b.x0, b.y - b.h / 2, b.x1 - b.x0, 2, "#e0b81e"),
+        R(b.x0, b.y + b.h / 2 - 2, b.x1 - b.x0, 2, "#e0b81e");
+      a.save(),
+        a.beginPath(),
+        a.rect(b.x0, b.y - b.h / 2 + 2, b.x1 - b.x0, b.h - 4),
+        a.clip();
+      a.strokeStyle = warn ? "#ff5a3a" : "#4a5563";
+      a.lineWidth = 2;
+      let off = (((t * BELT.speed * b.dir) % 14) + 14) % 14;
+      for (let x = b.x0 - 14 + off; x < b.x1 + 14; x += 14) {
+        a.beginPath(),
+          a.moveTo(x - 3 * b.dir, b.y - 6),
+          a.lineTo(x + 3 * b.dir, b.y),
+          a.lineTo(x - 3 * b.dir, b.y + 6),
+          a.stroke();
+      }
+      a.restore();
+      for (let x of [b.x0, b.x1 - 6])
+        R(x, b.y - b.h / 2 - 1, 6, b.h + 2, "#3a4250");
+    }
+    // Thin ice: cracks spread across the centre rink as it takes blows.
+    let th = e.thin;
+    if (th && e.ice[0]) {
+      let [, , rx, ry] = FROST.rinks[0];
+      if (th.open > 0) {
+        let k = Math.min(1, (THIN.open - th.open) / 20);
+        a.save(),
+          a.beginPath(),
+          a.ellipse(Se, Te, rx - 2, ry - 2, 0, 0, Math.PI * 2),
+          a.clip();
+        R(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0, `rgba(20,60,110,${0.85 * k})`);
+        let q = rt(7);
+        for (let n = 0; n < 9; n++) {
+          let x = Se + (q() - 0.5) * rx * 1.6 + Math.sin(t * 0.02 + n) * 2,
+            y = Te + (q() - 0.5) * ry * 1.4;
+          R(x - 6, y - 2, 12, 4, "#d8f0ff"), R(x - 6, y + 2, 12, 1, "#7fb0d0");
+        }
+        for (let n = 0; n < 3; n++) {
+          let r = ((t * 0.3 + n * 20) % 60) / 60;
+          (a.globalAlpha = 1 - r),
+            (a.strokeStyle = "#9fd8f5"),
+            a.beginPath(),
+            a.ellipse(Se, Te, rx * r, ry * r, 0, 0, Math.PI * 2),
+            a.stroke();
+        }
+        a.restore(), (a.globalAlpha = 1);
+        th.open < 90 &&
+          t % 10 < 5 &&
+          ((a.strokeStyle = "#ffffff"),
+          a.beginPath(),
+          a.ellipse(Se, Te, rx, ry, 0, 0, Math.PI * 2),
+          a.stroke());
+      } else if (th.cr > 0) {
+        let q = rt(11);
+        (a.strokeStyle = "rgba(255,255,255,0.85)"), (a.lineWidth = 1);
+        for (let n = 0; n < th.cr; n++) {
+          let ang = q() * Math.PI * 2,
+            x = Se + Math.cos(ang) * rx * 0.2,
+            y = Te + Math.sin(ang) * ry * 0.2;
+          a.beginPath(), a.moveTo(x, y);
+          for (let k = 0; k < 6; k++)
+            (ang += (q() - 0.5) * 0.8),
+              (x += Math.cos(ang) * rx * 0.13),
+              (y += Math.sin(ang) * ry * 0.13),
+              a.lineTo(Math.round(x) + 0.5, Math.round(y) + 0.5);
+          a.stroke();
+        }
+        (a.strokeStyle = "rgba(60,120,170,0.6)"),
+          a.beginPath(),
+          a.ellipse(
+            Se,
+            Te + 1,
+            rx * 0.1 * th.cr,
+            ry * 0.1 * th.cr,
+            0,
+            0,
+            Math.PI * 2,
+          ),
+          a.stroke();
+      }
+    }
+    // Spheal: peeks out at the wall with the lane marked, then rolls.
+    let sp = e.spheal;
+    if (sp) {
+      if (sp.t <= SPHEAL.warn) {
+        dash(
+          sp.dir > 0 ? B.x0 : B.x1,
+          sp.y,
+          sp.dir > 0 ? B.x1 : B.x0,
+          sp.y,
+          `rgba(160,220,255,${0.4 + 0.5 * (t % 10 < 5)})`,
+          2,
+        );
+        critterDraw(
+          a,
+          e,
+          "spheal",
+          sp.x,
+          sp.y + 6,
+          sp.dir > 0 ? 2 : 6,
+          t,
+          "Idle",
+        );
+      } else {
+        (a.fillStyle = "rgba(0,0,0,0.2)"),
+          a.beginPath(),
+          a.ellipse(sp.x, sp.y + 4, 11, 4, 0, 0, Math.PI * 2),
+          a.fill();
+        a.save(),
+          a.translate(Math.round(sp.x), Math.round(sp.y)),
+          a.rotate(((sp.t * 0.35) % 6.28) * sp.dir),
+          a.translate(-Math.round(sp.x), -Math.round(sp.y));
+        critterDraw(a, e, "spheal", sp.x, sp.y + 8, 0, 0, "Idle");
+        a.restore();
+        t % 2 === 0 &&
+          R(sp.x - sp.dir * 12, sp.y + 3 + (t % 3), 2, 1, "#ffffff");
+      }
+    }
+    // Voltorb, with a blinking fuse and its blast radius.
+    for (let v of e.voltorbs ?? []) {
+      (a.fillStyle = "rgba(0,0,0,0.22)"),
+        a.beginPath(),
+        a.ellipse(v.x, v.y + 3, 8, 3, 0, 0, Math.PI * 2),
+        a.fill();
+      let blink =
+          v.fuse > 0 && t % (v.fuse < 15 ? 4 : 8) < (v.fuse < 15 ? 2 : 4),
+        m = e.mons?.voltorb?.anims?.Walk,
+        row = Math.cos(Math.atan2(v.ty - v.y, v.tx - v.x)) > 0 ? 2 : 6;
+      critterDraw(a, e, "voltorb", v.x, v.y + 6, row, v.t);
+      if (blink && m) {
+        let w = m.white;
+        (a.globalAlpha = 0.8),
+          a.drawImage(
+            w,
+            0,
+            (row % m.rows) * m.fh,
+            m.fw,
+            m.fh,
+            Math.round(v.x - m.fw / 2),
+            Math.round(v.y + 6 - m.fh * 0.75),
+            m.fw,
+            m.fh,
+          ),
+          (a.globalAlpha = 1);
+      }
+      v.fuse > 0 &&
+        ((a.strokeStyle = t % 6 < 3 ? "#ff5a3a" : "#ffd25e"),
+        (a.lineWidth = 1.5),
+        a.setLineDash([4, 3]),
+        a.beginPath(),
+        a.ellipse(v.x, v.y, VOLT.boomR, VOLT.boomR / 1.3, 0, 0, Math.PI * 2),
+        a.stroke(),
+        a.setLineDash([]));
+    }
   }
   function fa(a, e, t, s, i = !1) {
     (Bt && Bt.kind === e.arena) || ((Bt = Va(e.arena)), (Bt.kind = e.arena)),
@@ -18522,6 +19367,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           (a.globalAlpha = 1));
     }
     hazardGround(a, e);
+    mechGround(a, e);
     zoneGround(a, e);
     arenaLive(a, e);
     surgeGround(a, e);
@@ -18898,6 +19744,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           h.xatkT > 0 && ["up", "#ff6a5a", h.xatkT],
           h.helmetT > 0 && ["shield", "#c9a26b", h.helmetT],
           h.scarfT > 0 && ["dash", "#5ab0ff", h.scarfT],
+          h.focusT > 0 && ["shield", "#ef5a4f", h.focusT],
+          h.quickT > 0 && ["up2", "#bfe6ff", h.quickT],
+          h.leftT > 0 && ["plus", "#c9e36b", h.leftT],
         ].filter(Boolean);
       if (!b.length) continue;
       let c = o(h.px, h.x),
@@ -32421,6 +33270,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               pokeball: "GO!",
               helmet: "SPIKES UP",
               scarf: "SPEED UP",
+              focusband: "ENDURE",
+              quickclaw: "COOLDOWNS RESET",
+              smokeball: "SMOKESCREEN",
+              leftovers: "REGEN",
             }[n.kind];
           n.kind === "sitrus" ? (S.heal(), t.heal(n.x, n.y, 10)) : S.cdReady(),
             n.kind === "helmet" && t.ring(n.x, n.y - 10, 4, 2, 12, "#c9a26b"),
@@ -34405,6 +35258,83 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             n.charge > 0.5 && t.speedLines(R.x, R.y - 10, 8, R.kit.color);
           break;
         }
+        case "focusBand":
+          S.guardBreak(),
+            S.callout(2),
+            t.popup(n.x, n.y - 46, "FOCUS", "#ef5a4f", !0),
+            t.ring(n.x, n.y, 6, 3.2, 16, "#ef5a4f", !0),
+            n.who === e.player && buzz(0.9, 0.9, 200);
+          break;
+        case "fieldWarn":
+          S.siren(),
+            t.banner(
+              FIELD.kinds[n.k].toUpperCase() + " FIELD",
+              FIELD.colors[n.k],
+              90,
+              void 0,
+              void 0,
+              { icon: FIELD.icons[n.k] },
+            );
+          break;
+        case "fieldStart":
+          S.callout(1), liveHype(e, 0.4);
+          for (let [x, y] of FIELD.spots)
+            t.ring(x, y, 6, 2.6, 18, FIELD.colors[n.k], !0),
+              n.k === 3 && t.dust(x, y, 10, 0, 0, 1.6),
+              n.k === 1 && t.splash(x, y, 8, 6),
+              n.k === 2 && t.embers(x, y, 10, 8);
+          break;
+        case "fieldEnd":
+          S.ui(!1);
+          break;
+        case "plateStep":
+          S.ui(!0), S.charge(), t.ring(n.x, n.y, 4, 2, 12, "#ff5a3a");
+          break;
+        case "dartFire":
+          S.swing(!0), S.swing(!1);
+          break;
+        case "iceCrack":
+          X(0.08, "highpass", 4e3, 1, 0.12),
+            I("tri", F(96 - n.n * 2), F(84), 0.08, 0.05),
+            t.dust(n.x, n.y, 4, 0, 0, 1);
+          break;
+        case "iceBreak":
+          S.splash(!0),
+            S.slam(),
+            t.splash(n.x, n.y, 30, 10),
+            t.shake(0, 1, 6),
+            liveHype(e, 0.6),
+            buzz(0.6, 0.6, 160);
+          break;
+        case "refreeze":
+          cueSound("ice"), t.motes(n.x, n.y, 10, 16, "#ffffff", 1.4);
+          break;
+        case "sphealWarn":
+          cueSound("dash"), I("p25", F(72), F(84), 0.12, 0.05);
+          break;
+        case "sphealRoll":
+          S.launch(4);
+          break;
+        case "beltFlip":
+          X(0.15, "bandpass", 900, 3, 0.1), I("p50", F(40), F(40), 0.1, 0.05);
+          break;
+        case "voltSpawn":
+          I("sine", F(76), F(88), 0.1, 0.04);
+          break;
+        case "voltFuse":
+          cueSound("bolt");
+          break;
+        case "voltBoom":
+          S.boom(),
+            S.slam(),
+            t.sheet("crackle", n.x, n.y, 1.2),
+            t.burst(n.x, n.y, "#ffd25e", 22),
+            t.shake(0, 1, 8),
+            (t.screenFlash = 2),
+            (t.screenFlashColor = "#fff4c8"),
+            liveHype(e, 0.6),
+            buzz(0.8, 0.8, 200);
+          break;
         case "readyGo":
           e.cpu?.boss &&
             ((t.vignette = 1),
