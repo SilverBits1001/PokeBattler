@@ -403,7 +403,7 @@
         color: "#ff8a3d",
         typeInk: "#2a1206",
         hp: 795,
-        power: 0.80,
+        power: 0.8,
         speed: 2.9,
         weight: 1.05,
         r: 9,
@@ -1027,7 +1027,7 @@
         color: "#4a7fd6",
         typeInk: "#0e1a33",
         hp: 965,
-        power: 0.80,
+        power: 0.8,
         speed: 3.05,
         weight: 1,
         r: 8,
@@ -1554,6 +1554,8 @@
         },
         smash: {
           name: "HORN DRILL",
+          // A Normal-type move, as in the games: Ghosts and Steels resist it.
+          mtype: "NORMAL",
           anim: "Rumble",
           windup: 12,
           maxCharge: 46,
@@ -1677,7 +1679,7 @@
         color: "#5fc98a",
         typeInk: "#0d2a18",
         hp: 1000,
-        power: 1.50,
+        power: 1.5,
         speed: 2.55,
         weight: 1.15,
         r: 8,
@@ -6490,6 +6492,7 @@
             smash: Math.max(0.01, i),
             chill: s.chill,
             daze: s.daze ? EXK.golurk.daze : 0,
+            mtype: s.mtype,
           });
         }
         e.t >= r + s.active + s.recovery + (e.swingHit ? 0 : ae.whiffLag) &&
@@ -11953,14 +11956,28 @@
             (v.heldBy = null),
             (e.grab = null),
             (v.state = "move"),
-            this.exHit(v, e, c.psDmg, c.psKb, Math.cos(a), Math.sin(a), {
-              heavy: !0,
-              src: "psychic",
-              mtype: "PSYCHIC",
-              pierceGuard: !0,
-              hitstun: A.hitstunHeavy,
-              color: "#ff8fd8",
-            }),
+            // Heavy Pokémon are harder to hurl: the throw hurts them less.
+            this.exHit(
+              v,
+              e,
+              Math.round(
+                c.psDmg *
+                  (v.kind === "player"
+                    ? 0.5 + 0.5 * Math.min(1, v.kit.weight / 0.8)
+                    : 1),
+              ),
+              c.psKb,
+              Math.cos(a),
+              Math.sin(a),
+              {
+                heavy: !0,
+                src: "psychic",
+                mtype: "PSYCHIC",
+                pierceGuard: !0,
+                hitstun: A.hitstunHeavy,
+                color: "#ff8fd8",
+              },
+            ),
             (e.exThrow = e.t),
             this.emit({
               type: "psychicThrow",
@@ -23764,7 +23781,7 @@
       [
         "RS",
         "Horn Drill",
-        "A spinning drill charge with super armor.",
+        "A spinning drill charge with super armor. Normal-type: Ghosts and Steels resist it.",
         "OPTIONAL CHARGE",
       ],
       [
@@ -23828,7 +23845,7 @@
       [
         "Y",
         "Psychic",
-        "Turns nearby shots around and lifts a foe; steer, then throw them.",
+        "Turns nearby shots around and lifts a foe; steer, then throw them. Heavy foes take less.",
         "GRAB",
       ],
       ["B", "Teleport", "Blink a short distance.", "DODGE"],
