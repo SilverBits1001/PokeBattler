@@ -25907,6 +25907,48 @@
       d.restore(),
       d.drawImage(Ke, p, k);
   }
+  // The logo, in the colours of the Pokémon wordmark: yellow letters in a
+  // blue rim with a navy drop, stacked so it sits between the portraits.
+  function pocketLogo(cx, bob, t) {
+    let line = (txt, y, sz, fill) => {
+      d.save(),
+        (d.font = fontOf(sz * Fe, He)),
+        (d.textAlign = "center"),
+        (d.textBaseline = "alphabetic"),
+        (d.lineJoin = "round"),
+        d.translate(m(cx), m(y + bob)),
+        d.transform(1, 0, -ke, 1, 0, 0),
+        (d.strokeStyle = "#141f4a"),
+        (d.lineWidth = m(sz * 0.36)),
+        d.strokeText(txt, m(sz * 0.03), m(sz * 0.08)),
+        (d.strokeStyle = "#2a75bb"),
+        (d.lineWidth = m(sz * 0.22)),
+        d.strokeText(txt, 0, 0);
+      let gr = d.createLinearGradient(0, -m(sz * 0.75), 0, 0);
+      fill
+        ? (gr.addColorStop(0, "#ffffff"), gr.addColorStop(1, "#dbe8ff"))
+        : (gr.addColorStop(0, "#fff38a"),
+          gr.addColorStop(0.5, "#ffcb05"),
+          gr.addColorStop(1, "#f5a300")),
+        (d.fillStyle = gr),
+        d.fillText(txt, 0, 0);
+      // A glint running through the letters now and then.
+      let w = ye(txt, sz, He),
+        gx = ((t * 3 + y * 7) % (w + 260)) - w / 2 - 40;
+      fill ||
+        (d.beginPath(),
+        d.rect(m(gx), -m(sz), m(sz * 0.18), m(sz * 1.2)),
+        d.save(),
+        d.clip(),
+        (d.fillStyle = "rgba(255,255,255,0.75)"),
+        d.fillText(txt, 0, 0),
+        d.restore());
+      d.restore();
+    };
+    line("Pok\xE9mon", 36, 15, !0),
+      line("POCKET", 76, 36),
+      line("BRAWL", 116, 42);
+  }
   // Face-off pieces shared by the start screen and the ready screen.
   var FACE_SEAM = (y) => H / 2 + 26 - y * 0.2;
   // Two halves, blue and red, with light streaks racing outward.
@@ -26078,12 +26120,7 @@
     d.restore();
     // The logo.
     let bob = Math.sin(t * 0.04) * 1.2;
-    V("Pok\xE9mon", H / 2, 46 + bob, 18, g.gold, {
-      align: "center",
-      skew: !0,
-      outline: 3,
-    }),
-      ss("POCKET BRAWL", H / 2, 98 + bob, 44, t),
+    pocketLogo(H / 2, bob, t),
       V("VS", H / 2, 150, 26, "rgba(255,255,255,0.85)", {
         align: "center",
         skew: !0,
@@ -26607,6 +26644,171 @@
         italic: !0,
       });
   }
+  // 2v2: the ally and the second rival, rolled when the ready screen
+  // opens so it can show them; the match starts with the same two.
+  function teamExtras(a) {
+    let key = a.picks.join() + "|" + a.cpuPicks.join();
+    if (a.teamExtra?.key !== key) {
+      let ally = freshPicks(1, [...a.picks, ...a.cpuPicks]),
+        foe = freshPicks(1, [...a.picks, ...a.cpuPicks, ...ally]);
+      a.teamExtra = { key, list: [ally, foe] };
+    }
+    return a.teamExtra.list;
+  }
+  // Official artwork standing on a floor line, turned inward on the right;
+  // the portrait when there is no artwork.
+  function artStand(e, k, cx, fy, bw, bh, flip, al = 1) {
+    let art = artOf(k);
+    d.save(), (d.globalAlpha *= al);
+    flip && (d.translate(m(cx), 0), d.scale(-1, 1), d.translate(-m(cx), 0));
+    if (art) {
+      let k2 = Math.min(bw / art.width, bh / art.height),
+        w = art.width * k2,
+        h = art.height * k2;
+      (d.imageSmoothingEnabled = !0),
+        (d.imageSmoothingQuality = "high"),
+        (d.shadowColor = "rgba(0,0,0,0.6)"),
+        (d.shadowBlur = m(8)),
+        (d.shadowOffsetY = m(3)),
+        d.drawImage(art, m(cx - w / 2), m(fy - h), m(w), m(h));
+    } else if (e[k]) {
+      let sz = Math.min(bw, bh);
+      Oe(e[k], xe[k] ? "Determined" : "Normal", cx - sz / 2, fy - sz, sz, {
+        bg: xe[k]?.color ?? LG_INFO[k]?.color,
+        frame: !1,
+        slash: !0,
+      });
+    }
+    d.restore();
+  }
+  // One side of the ready screen: the lead's artwork large, the rest of
+  // the side beside it, a name plate, and the legendary they bring.
+  function readySide(e, ks, side, sl, t, chip, lg) {
+    let col = side ? g.cpu : g.p1,
+      rgb = side ? "255,74,99" : "51,214,255",
+      dir = side ? -1 : 1,
+      cx = side ? H - 104 + sl : 104 - sl,
+      fy = 168,
+      k = ks[0],
+      bob = Math.sin(t * 0.05 + side * 2) * 1.5;
+    // A glow on the floor and a slow ring behind the lead.
+    let fl = d.createRadialGradient(m(cx), m(fy), 0, m(cx), m(fy), m(110));
+    fl.addColorStop(0, `rgba(${rgb},0.4)`),
+      fl.addColorStop(1, `rgba(${rgb},0)`),
+      d.save(),
+      d.translate(m(cx), m(fy)),
+      d.scale(1, 0.32),
+      d.translate(-m(cx), -m(fy)),
+      (d.fillStyle = fl),
+      d.fillRect(m(cx - 110), m(fy - 110), m(220), m(220)),
+      d.restore(),
+      d.save(),
+      (d.globalAlpha = 0.18),
+      (d.strokeStyle = col),
+      (d.lineWidth = m(1.4)),
+      d.translate(m(cx), m(fy - 70)),
+      d.rotate(t * 0.006 * dir);
+    for (let n = 0; n < 3; n++)
+      d.beginPath(), d.arc(0, 0, m(62), n * 2.09, n * 2.09 + 1.4), d.stroke();
+    d.restore();
+    // The rest of the side first, so the lead stands in front.
+    let rest = ks.slice(1).filter((p) => e[p]),
+      small = rest.length > 1;
+    rest.forEach((p, n) =>
+      artStand(
+        e,
+        p,
+        cx + dir * (small ? 58 + n * 42 : 74),
+        fy - 2,
+        small ? 62 : 96,
+        small ? 62 : 92,
+        side,
+        0.95,
+      ),
+    );
+    k && e[k]
+      ? artStand(e, k, cx, fy + bob, 176, 150, side)
+      : V("?", cx, fy - 40, 70, `rgba(${rgb},0.35)`, { align: "center" });
+    // Name plate: name, types and role; the rest of the side under it.
+    let pw = 162,
+      px = side ? H - 10 - pw + sl : 10 - sl,
+      py = 176,
+      ax = side ? px + pw - 8 : px + 8,
+      al = side ? "right" : "left",
+      c = k ? xe[k] : null,
+      nm = c ? c.name : "???";
+    te(px, py, pw, 30, "rgba(8,6,18,0.86)", 5),
+      (d.fillStyle = col),
+      d.fillRect(m(px + 6), m(py), m(pw - 12), m(1.4)),
+      chip &&
+        ue(chip, col, side ? px + pw - 6 : px + 6, py - 7, {
+          right: !!side,
+          size: 5.4,
+          text: g.night,
+        }),
+      V(nm, ax, py + 14, 12, g.chalk, { skew: !0, align: al });
+    if (c) {
+      let x = side ? ax - ye(nm, 12, He) - 6 : ax + ye(nm, 12, He) + 6;
+      for (let ty of c.type2 ? [c.type, c.type2] : [c.type])
+        x +=
+          (side ? -1 : 1) *
+          (ue(ty, Rt[ty] ?? "#888", x, py + 6, { size: 4.6, right: !!side }) +
+            1.2);
+    }
+    G(
+      c
+        ? c.role.replace(" \xB7 ", ", ")
+        : chip === "ONLINE"
+          ? "Your rival is found next"
+          : "Waiting for an opponent",
+      ax,
+      py + 24,
+      5.4,
+      g.haze,
+      { align: al, italic: !0 },
+    );
+    rest.length &&
+      G(
+        "+ " + rest.map((p) => xe[p].name).join(", "),
+        side ? px + 8 : px + pw - 8,
+        py + 24,
+        5.4,
+        col,
+        { align: side ? "left" : "right", weight: 700 },
+      );
+    // The legendary on call.
+    if (lg) {
+      let li = LG_INFO[lg],
+        ly = 210,
+        lw = 116,
+        lx = side ? px + pw - lw : px,
+        lc = li?.color ?? g.gold,
+        ix = side ? lx + lw - 16 : lx + 16;
+      te(lx, ly, lw, 24, "rgba(8,6,18,0.86)", 5),
+        (d.fillStyle = lc),
+        d.fillRect(m(lx + 5), m(ly + 23), m(lw - 10), m(1.2));
+      li
+        ? artStand(e, lg, ix, ly + 22, 30, 28, side)
+        : V("?", ix, ly + 19, 16, lc, { align: "center" });
+      let tx = side ? lx + lw - 34 : lx + 34,
+        ta = side ? "right" : "left";
+      G("LEGENDARY", tx, ly + 7.5, 4.4, g.haze, { align: ta, weight: 700 }),
+        V(
+          li ? li.name : lg === "random" ? "RANDOM" : "???",
+          tx,
+          ly + 16,
+          8,
+          lc,
+          {
+            align: ta,
+          },
+        ),
+        G(li ? li.move : "Revealed in battle", tx, ly + 21.5, 4.4, g.chalk, {
+          align: ta,
+          italic: !0,
+        });
+    }
+  }
   function readyScreen(a, e) {
     let t = a.readyT ?? 0,
       s = Ee(Math.min(1, t / 10)),
@@ -26685,37 +26887,55 @@
       );
     } else if (a.arcade) arcLadder(a, e, t);
     else {
-      // The face-off from the start screen: you on the left, your rival on
-      // the right (partners and other rivals smaller at their feet).
+      // The face-off from the start screen, with the official artwork: you
+      // on the left, your rival on the right, partners (Tag Team, 2v2) and
+      // other rivals (Free-for-All) beside the leads, each side's
+      // legendary and the stage between them.
       let sl = (1 - Ee(Math.min(1, t / 16))) * 170,
+        tm = A.gameMode === 3 ? teamExtras(a) : null,
         rv = cpuSide()
           ? A.gameMode === 2
             ? a.cpuPicks
             : a.cpuPicks.slice(0, 2)
-          : [null];
+          : [null],
+        you = a.picks.slice(0, 2);
+      tm && ((you = [a.picks[0], tm[0][0]]), (rv = [a.cpuPicks[0], tm[1][0]]));
       faceBg(t + 400),
-        faceSide(e, a.picks.slice(0, 2), 0, sl, 1, 26, 140, "YOU"),
-        faceSide(
+        readySide(
+          e,
+          you,
+          0,
+          sl,
+          t,
+          tm ? "YOU + ALLY" : "YOU",
+          A.legends ? LG_PICKS[A.legendPick] : null,
+        ),
+        readySide(
           e,
           rv,
           1,
           sl,
-          1,
-          26,
-          140,
+          t,
           cpuSide()
             ? A.gameMode === 2
               ? `${rv.length} CPU RIVALS`
-              : "CPU"
+              : tm
+                ? "CPU TEAM"
+                : "CPU"
             : A.gameMode === 5
               ? "ONLINE"
               : null,
+          !A.legends
+            ? null
+            : cpuSide()
+              ? (a.cpuLegends?.[0] ?? "random")
+              : "unknown",
         ),
         faceSeam(),
         V(
           A.gameMode === 5 ? "READY TO GO ONLINE" : "READY?",
           H / 2,
-          30,
+          26,
           18,
           g.gold,
           {
@@ -26724,23 +26944,36 @@
             outline: 2.6,
           },
         ),
-        G(
-          `${MODE_NAMES[A.gameMode] ?? "VS CPU"} \xB7 ${ARENAS[A.arena]?.name ?? "Stadium"}`,
-          H / 2,
-          41,
-          6.4,
-          g.chalk,
-          {
-            align: "center",
-            weight: 700,
-          },
-        ),
-        V("VS", H / 2, 112, 30, "rgba(255,255,255,0.9)", {
+        G(MODE_NAMES[A.gameMode] ?? "VS CPU", H / 2, 37, 6.4, g.chalk, {
+          align: "center",
+          weight: 700,
+          outline: 1.6,
+        }),
+        V("VS", H / 2, 104, 30, "rgba(255,255,255,0.9)", {
           align: "center",
           skew: !0,
           outline: 3,
+        });
+      // The stage, between the two name plates.
+      let ac =
+        ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030"][A.arena] ??
+        "#cfcaea";
+      te(H / 2 - 54, 176, 108, 22, "rgba(8,6,18,0.86)", 5),
+        (d.fillStyle = ac),
+        d.fillRect(m(H / 2 - 48), m(176), m(96), m(1.2)),
+        G("BATTLE STAGE", H / 2, 183.5, 4.6, g.haze, {
+          align: "center",
+          weight: 700,
         }),
-        G(ARENA_TIPS[A.arena] ?? "", H / 2, 240, 6, g.gold, {
+        V(
+          (ARENAS[A.arena]?.name ?? "Stadium").toUpperCase(),
+          H / 2,
+          194,
+          8.6,
+          ac,
+          { align: "center" },
+        ),
+        G(ARENA_TIPS[A.arena] ?? "", H / 2, 252, 6, g.gold, {
           align: "center",
           weight: 700,
           italic: !0,
@@ -26748,8 +26981,9 @@
         });
     }
     // Start button.
+    // Start, with its button inside it; Back as a smaller key beside it.
     let r = H / 2,
-      o = i ? 252 : 214,
+      o = i ? 252 : 217,
       l = 1 + Math.sin(t * 0.15) * 0.03;
     tapRect(r - 50, o - 11, 100, 20, () => Ue.add("confirm")),
       d.save(),
@@ -26757,9 +26991,10 @@
       d.scale(l, l),
       d.translate(-m(r), -m(o)),
       te(r - 50, o - 10, 100, 19, g.gold, 6),
+      Pe("A", r - 34, o - 0.5, 3.6),
       V(
         A.gameMode === 5 ? "GO ONLINE" : a.arcade ? "FIGHT" : "START",
-        r,
+        r + 6,
         o + 5,
         11,
         g.night,
@@ -26767,11 +27002,13 @@
           align: "center",
         },
       ),
-      d.restore(),
-      Pe("A", r + 58, o, 3.6),
-      tapRect(r - 120, o - 9, 50, 18, () => Ue.add("back")),
-      Pe("B", r - 104, o, 3.6),
-      G(a.arcade?.stage ? "Quit" : "Back", r - 98, o + 2.2, 6, g.chalk, {
+      d.restore();
+    let bx = i ? r - 112 : r - 26,
+      by = i ? o - 8 : o + 13;
+    tapRect(bx, by - 1, 52, 15, () => Ue.add("back")),
+      te(bx, by, 52, 13, "rgba(8,6,18,0.86)", 4),
+      Pe("B", bx + 11, by + 6.5, 3),
+      G(a.arcade?.stage ? "Quit" : "Back", bx + 19, by + 8.8, 6, g.chalk, {
         weight: 600,
       }),
       (d.globalAlpha = 1);
@@ -27044,7 +27281,12 @@
         });
     // Portraits, Pokkén style: the Determined face when there is one, the
     // CPU's turned to face yours. A partner stands smaller behind the lead.
-    k = (x, v, E, Q, ie) => {
+    // They are drawn after the card, free to spill past its edges; the
+    // roster, drawn later still, stays on top of them.
+    let later = [],
+      U0 = U;
+    U = (...x) => later.push(() => U0(...x));
+    let k0 = (x, v, E, Q, ie) => {
       let K = e[x];
       if (!K) return;
       let sz = E >= 2.4 ? 116 : Q ? 66 : 96,
@@ -27056,8 +27298,8 @@
         (d.translate(m(t + v), 0), d.scale(-1, 1), d.translate(-m(t + v), 0));
       if (art) {
         // Official artwork, smooth and full size, standing on the card's floor.
-        let bw = E >= 2.4 ? 128 : Q ? 70 : 100,
-          bh = E >= 2.4 ? 112 : Q ? 64 : 92,
+        let bw = E >= 2.4 ? 160 : Q ? 92 : 124,
+          bh = E >= 2.4 ? 140 : Q ? 88 : 118,
           k2 = Math.min(bw / art.width, bh / art.height),
           w = art.width * k2,
           h2 = art.height * k2;
@@ -27066,10 +27308,11 @@
           (d.shadowColor = "rgba(0,0,0,0.55)"),
           (d.shadowBlur = m(6)),
           (d.shadowOffsetY = m(2)),
-          d.drawImage(art, m(t + v - w / 2), m(y + 122 - h2), m(w), m(h2));
+          d.drawImage(art, m(t + v - w / 2), m(y + 128 - h2), m(w), m(h2));
       } else Oe(K, "Determined", px, py, sz, { bg: xe[x]?.color, frame: !1 });
       d.restore();
     };
+    k = (...x) => later.push(() => k0(...x));
     r[0] && r[1]
       ? ((x0) => (
           [...x0].reverse().forEach(([E, Q], ie) => k(E, Q, 1.9, 1 - ie, 1)),
@@ -27110,7 +27353,8 @@
       (d.strokeStyle = `rgba(${u},0.5)`),
       (d.lineWidth = m(0.8)),
       d.stroke(),
-      d.restore();
+      d.restore(),
+      later.forEach((x) => x());
   }
   // The plate under a card: who is playing and the team.
   function selPlate(a, e, t, s, i, r, o) {
@@ -27206,23 +27450,6 @@
         d.fillRect(m(x), m(P - 0.4), m(30), m(1.6));
     }
     d.restore();
-    V("Choose your team", 12, 22, 16, g.chalk, { skew: !0, outline: 2 }),
-      G(
-        a.arcade
-          ? "Arcade: pick the Pok\u00e9mon you'll climb with."
-          : teamSize() === 2
-            ? "Tag Team: pick two. Your first pick leads."
-            : A.gameMode === 2
-              ? `Free-for-All: you and ${cpuNeed()} CPU rivals. RT or tap Players to change.`
-              : "Pick your Pok\u00e9mon. X for Tag Team.",
-        13,
-        29.5,
-        5.8,
-        g.haze,
-        {
-          italic: !0,
-        },
-      );
     let i = ["Easy", "Normal", "Hard"][A.cpuLevel],
       r = ["#4df08a", g.gold, g.cpu][A.cpuLevel],
       o = ue(
@@ -27314,6 +27541,23 @@
         et(d, P, Be(P, t, 1), 0, m(u + 75), m(160), 2 * Fe, M.ground);
       }
     }
+    V("Choose your team", 12, 22, 16, g.chalk, { skew: !0, outline: 2 }),
+      G(
+        a.arcade
+          ? "Arcade: pick the Pok\u00e9mon you'll climb with."
+          : teamSize() === 2
+            ? "Tag Team: pick two. Your first pick leads."
+            : A.gameMode === 2
+              ? `Free-for-All: you and ${cpuNeed()} CPU rivals. RT or tap Players to change.`
+              : "Pick your Pok\u00e9mon. X for Tag Team.",
+        13,
+        29.5,
+        5.8,
+        g.haze,
+        {
+          italic: !0,
+        },
+      );
     // The roster, three across.
     ge.forEach((M, P) => {
       let { x: C, y: x, s: v } = rs(P),
@@ -33568,6 +33812,7 @@
       // CPU, the rest come in as the extra fighters.
       A.gameMode === 2 &&
         (e.match.extraPreset = s.cpuPicks.slice(1).map((R) => [R]));
+      A.gameMode === 3 && (e.match.extraPreset = teamExtras(s));
       let Ar = A.arena;
       s.arcade &&
         (A.arena = (s.arcade.arena0 + s.arcade.stage) % ARENAS.length);
