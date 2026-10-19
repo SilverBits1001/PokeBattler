@@ -2928,21 +2928,31 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
                           (i.ay = Math.sin(b)));
           } else if (f === "noivern") {
             // Hit and run: Boomburst point-blank, Hurricane to zone, Air Slash poke.
-            let fe = !e.losBlocked(t.x, t.y, o.x, o.y);
-            y < 30
-              ? u.cdX === 0 && r() < 0.35
-                ? (i.pressed.add("special1"), (this.holdX = 0))
-                : i.pressed.add("attack")
-              : u.cdX === 0 && y < 80 && r() < 0.45
-                ? (i.pressed.add("special1"),
-                  (this.holdX = r() < 0.5 ? 0 : Math.floor(r() * 36)))
-                : u.cdY === 0 && y > 60 && y < 220 && r() < 0.3
-                  ? i.pressed.add("special2")
-                  : y > 70 && y < 210 && r() < 0.18
-                    ? ((this.smashHold = 4 + Math.floor(r() * 28)),
-                      (i.ax = Math.cos(b)),
-                      (i.ay = Math.sin(b)))
-                    : y < 52 && r() < 0.5 && i.pressed.add("attack");
+            let fe = !e.losBlocked(t.x, t.y, o.x, o.y),
+              // Fly clear of a charged smash or a rush rather than trade.
+              rush =
+                o.kind === "player" &&
+                y < 100 &&
+                (["smashCharge", "smash", "bodySlam"].includes(o.state) ||
+                  (o.state === "ex" && o.exDanger));
+            rush && u.cdDodge === 0 && r() < 0.6
+              ? ((i.mx = -Math.cos(b)),
+                (i.my = -Math.sin(b)),
+                i.pressed.add("dodge"))
+              : y < 30
+                ? u.cdX === 0 && r() < 0.35
+                  ? (i.pressed.add("special1"), (this.holdX = 0))
+                  : i.pressed.add("attack")
+                : u.cdX === 0 && y < 80 && r() < 0.45
+                  ? (i.pressed.add("special1"),
+                    (this.holdX = r() < 0.5 ? 0 : Math.floor(r() * 36)))
+                  : u.cdY === 0 && y > 60 && y < 220 && r() < 0.3
+                    ? i.pressed.add("special2")
+                    : y > 70 && y < 210 && r() < 0.18
+                      ? ((this.smashHold = 4 + Math.floor(r() * 28)),
+                        (i.ax = Math.cos(b)),
+                        (i.ay = Math.sin(b)))
+                      : y < 52 && r() < 0.5 && i.pressed.add("attack");
           } else if (f === "lucario") {
             // Charge and store Aura Sphere at range, fire it when it lands,
             // fight up close, Meteor Mash from mid range.
