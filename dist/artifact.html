@@ -566,8 +566,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "POISON",
         color: "#6cc04a",
         typeInk: "#0f2a08",
-        hp: 1000,
-        power: 0.85,
+        hp: 995,
+        power: 0.84,
         speed: 2.35,
         weight: 0.85,
         r: 11,
@@ -727,8 +727,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "GHOST",
         color: "#a184f5",
         typeInk: "#170c33",
-        hp: 725,
-        power: 0.90,
+        hp: 715,
+        power: 0.87,
         speed: 3.25,
         weight: 1.2,
         r: 8,
@@ -817,8 +817,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "STEEL",
         color: "#f2d64b",
         typeInk: "#2a2205",
-        hp: 1010,
-        power: 0.84,
+        hp: 1005,
+        power: 0.82,
         speed: 2.25,
         weight: 0.7,
         r: 9,
@@ -910,7 +910,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type: "NORMAL",
         color: "#3f8f9e",
         typeInk: "#1f1f12",
-        hp: 1100,
+        hp: 1105,
         power: 0.81,
         speed: 1.85,
         weight: 0.45,
@@ -1095,8 +1095,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "STEEL",
         color: "#4a7fd6",
         typeInk: "#0e1a33",
-        hp: 1000,
-        power: 0.82,
+        hp: 995,
+        power: 0.81,
         speed: 3.05,
         weight: 1,
         r: 8,
@@ -1281,8 +1281,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "STEEL",
         color: "#e0393e",
         typeInk: "#330a0c",
-        hp: 990,
-        power: 1.21,
+        hp: 985,
+        power: 1.20,
         speed: 2.95,
         weight: 0.95,
         r: 9,
@@ -1559,8 +1559,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "ROCK",
         color: "#8d7f73",
         typeInk: "#241f1a",
-        hp: 1090,
-        power: 0.86,
+        hp: 1100,
+        power: 0.88,
         speed: 1.95,
         weight: 0.45,
         r: 12,
@@ -1651,8 +1651,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "GHOST",
         color: "#9ad8f0",
         typeInk: "#0c2a36",
-        hp: 1100,
-        power: 1.50,
+        hp: 1090,
+        power: 1.45,
         speed: 3.1,
         weight: 1.25,
         r: 8,
@@ -1745,8 +1745,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "FAIRY",
         color: "#5fc98a",
         typeInk: "#0d2a18",
-        hp: 1105,
-        power: 1.33,
+        hp: 1135,
+        power: 1.35,
         speed: 2.55,
         weight: 1.15,
         r: 8,
@@ -1835,8 +1835,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "PSYCHIC",
         color: "#5a8fd0",
         typeInk: "#0d1d33",
-        hp: 1145,
-        power: 0.92,
+        hp: 1155,
+        power: 0.94,
         speed: 2.3,
         weight: 0.5,
         r: 11,
@@ -11202,6 +11202,16 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         });
       }
       exProjTick(p) {
+        // A Rock Wrecker boulder smashes through the shots in its way.
+        if (p.kind === "boulder")
+          for (let q of this.projectiles)
+            q.dead ||
+              q.team === p.team ||
+              q.kind === "seed" ||
+              q.kind === "hurricane" ||
+              q.kind === "fireblast" ||
+              Math.hypot(q.x - p.x, q.y - p.y) > p.r + q.r ||
+              ((q.dead = !0), this.emit({ type: "projDie", p: q, wall: !1 }));
         if (p.accel) {
           let s = Math.hypot(p.vx, p.vy) || 1,
             n = Math.min(p.vmax, s + p.accel);
