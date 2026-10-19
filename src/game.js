@@ -32478,8 +32478,31 @@
       d.ellipse(m(f), m(u + 52), m(70), m(16), 0, 0, Math.PI * 2),
       d.fill();
     let c = e[s.mon],
-      y = c?.anims.Idle ?? c?.anims.Walk;
-    if (y) {
+      y = c?.anims.Idle ?? c?.anims.Walk,
+      art = artOf(s.mon);
+    if (art) {
+      // The official artwork, sliding in when the choice changes.
+      let p = Ee((a.menuSwap ?? 99) / 12),
+        k2 = Math.min(170 / art.width, 158 / art.height),
+        w = art.width * k2,
+        h2 = art.height * k2,
+        bob = Math.sin(t * 0.05) * 2;
+      d.save(),
+        (d.globalAlpha = p),
+        (d.imageSmoothingEnabled = !0),
+        (d.imageSmoothingQuality = "high"),
+        (d.shadowColor = "rgba(0,0,0,0.6)"),
+        (d.shadowBlur = m(8)),
+        (d.shadowOffsetY = m(3)),
+        d.drawImage(
+          art,
+          m(f - w / 2 + (1 - p) * 30),
+          m(u + 56 - h2 + bob),
+          m(w),
+          m(h2),
+        ),
+        d.restore();
+    } else if (y) {
       let p = Ee((a.menuSwap ?? 99) / 12);
       d.save(),
         (d.globalAlpha = p),
