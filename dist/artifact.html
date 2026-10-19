@@ -567,8 +567,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         iceFat: 0.8,
         color: "#6cc04a",
         typeInk: "#0f2a08",
-        hp: 970,
-        power: 0.81,
+        hp: 965,
+        power: 0.8,
         speed: 2.35,
         weight: 0.85,
         r: 11,
@@ -641,8 +641,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type: "WATER",
         color: "#5aa9e6",
         typeInk: "#06203a",
-        hp: 1105,
-        power: 0.81,
+        hp: 1110,
+        power: 0.82,
         speed: 2.15,
         weight: 0.6,
         r: 10,
@@ -728,8 +728,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "GHOST",
         color: "#a184f5",
         typeInk: "#170c33",
-        hp: 720,
-        power: 0.89,
+        hp: 730,
+        power: 0.91,
         speed: 3.25,
         weight: 1.2,
         r: 8,
@@ -818,8 +818,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "STEEL",
         color: "#f2d64b",
         typeInk: "#2a2205",
-        hp: 990,
-        power: 0.82,
+        hp: 985,
+        power: 0.81,
         speed: 2.25,
         weight: 0.7,
         r: 9,
@@ -1006,8 +1006,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "DRAGON",
         color: "#8a5ccf",
         typeInk: "#1c1033",
-        hp: 885,
-        power: 0.88,
+        hp: 880,
+        power: 0.86,
         speed: 3.1,
         weight: 1.15,
         r: 9,
@@ -1097,7 +1097,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         color: "#4a7fd6",
         typeInk: "#0e1a33",
         hp: 965,
-        power: 0.8,
+        power: 0.81,
         speed: 3.05,
         weight: 1,
         r: 8,
@@ -1189,7 +1189,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         color: "#4f6fd8",
         typeInk: "#0f1838",
         hp: 965,
-        power: 1.19,
+        power: 1.2,
         speed: 3.3,
         weight: 1.1,
         r: 9,
@@ -1283,7 +1283,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         color: "#e0393e",
         typeInk: "#330a0c",
         hp: 970,
-        power: 1.15,
+        power: 1.14,
         speed: 2.95,
         weight: 0.95,
         r: 9,
@@ -1375,8 +1375,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "DRAGON",
         color: "#c4553a",
         typeInk: "#2e100a",
-        hp: 1125,
-        power: 0.94,
+        hp: 1120,
+        power: 0.93,
         speed: 2.25,
         weight: 0.55,
         r: 11,
@@ -1470,7 +1470,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         color: "#4f8a8b",
         typeInk: "#0c2122",
         hp: 1095,
-        power: 0.91,
+        power: 0.92,
         speed: 2.05,
         weight: 0.5,
         r: 11,
@@ -1560,7 +1560,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         type2: "ROCK",
         color: "#8d7f73",
         typeInk: "#241f1a",
-        hp: 1075,
+        hp: 1080,
         power: 0.86,
         speed: 1.95,
         weight: 0.45,
@@ -1839,7 +1839,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         color: "#5a8fd0",
         typeInk: "#0d1d33",
         hp: 1150,
-        power: 0.92,
+        power: 0.93,
         speed: 2.3,
         weight: 0.5,
         r: 11,
@@ -3076,28 +3076,45 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           // Stack chill with Icy Wind, finish the freeze up close, and
           // Double Team out when it goes wrong.
           let chilled = op && (op.chill ?? 0) >= 2,
-            frozen = op && (op.frozenT ?? 0) > 0;
+            frozen = op && (op.frozenT ?? 0) > 0,
+            // A charged smash, a rush or a shot about to land.
+            danger =
+              (op &&
+                y < 100 &&
+                (["smashCharge", "smash", "bodySlam"].includes(op.state) ||
+                  (op.state === "ex" && op.exDanger))) ||
+              e.projectiles.some(
+                (p) =>
+                  p.team !== t.team &&
+                  !p.dead &&
+                  Math.hypot(p.x - t.x, p.y - t.y) < 60,
+              );
           frozen && y < 60
             ? y < 30
               ? i.pressed.add("attack")
               : smash(2 + Math.floor(r() * 8))
-            : u.cdY === 0 &&
-                y < 40 &&
-                (hp < 0.5 || op?.state === "attack") &&
-                r() < 0.3
+            : danger && u.cdY === 0 && r() < 0.5
               ? (i.held.delete("lock"),
                 (i.mx = -Math.cos(b)),
                 (i.my = -Math.sin(b)),
                 i.pressed.add("special2"))
-              : u.cdX === 0 && y < 100 && r() < 0.45
-                ? i.pressed.add("special1")
-                : chilled && y < 40
-                  ? i.pressed.add("attack")
-                  : y < 26 || (N && y < 42)
+              : u.cdY === 0 &&
+                  y < 40 &&
+                  (hp < 0.5 || op?.state === "attack") &&
+                  r() < 0.3
+                ? (i.held.delete("lock"),
+                  (i.mx = -Math.cos(b)),
+                  (i.my = -Math.sin(b)),
+                  i.pressed.add("special2"))
+                : u.cdX === 0 && y < 100 && r() < 0.45
+                  ? i.pressed.add("special1")
+                  : chilled && y < 40
                     ? i.pressed.add("attack")
-                    : y > 60 && y < 190 && los && r() < 0.14
-                      ? smash(4 + Math.floor(r() * 30))
-                      : y > 60 && y < 130 && r() < 0.18 && dash(b);
+                    : y < 26 || (N && y < 42)
+                      ? i.pressed.add("attack")
+                      : y > 60 && y < 190 && los && r() < 0.14
+                        ? smash(4 + Math.floor(r() * 30))
+                        : y > 60 && y < 130 && r() < 0.18 && dash(b);
         } else if (f === "gardevoir") {
           // Keep away: Moonblast, Future Sight ahead of them, Psychic throws.
           let shots = e.projectiles.some(
