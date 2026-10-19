@@ -1338,3 +1338,41 @@ Fault test, results after the fix:
     Tag Team pairs included.
 - **After the hazard change:** all five arenas re-run, with the same averages
   as above. The online duel with legendaries had 2,279 identical ticks.
+- **Fly in real-time play on the published build.** A keyboard-driven
+  Charizard took off again and again against each of the seven Hard CPUs,
+  25 seconds each: 36 flights and 23 seconds airborne in total. The CPUs
+  landed 92 hits on him on the ground. In the air the only hits were Dreepy
+  (4) and Lock-On (2), both seeking. No non-seeking hit landed in flight.
+- **Thick Fat now only softens fire attacks.** The per-matchup table showed
+  Snorlax winning 34 of 40 against Charizard. Thick Fat (×0.7) applied to
+  every hit from a Fire-type attacker, including Dragon Claw and the Fly slam.
+  It now applies only to fire attacks (Fire Fang, Flamethrower, Flare Blitz,
+  Fire Blast).
+  - 100-game Charizard vs Snorlax test: Snorlax won 78% before, 71% with
+    ×0.8 on everything, and 65% with the fire-only rule (×0.7 kept).
+- **Final balance** (all five arenas, all matchups four times on each). Win
+  rates by arena (Stadium, Ruins, Crater, Frostfall, Power Plant):
+
+| Pokémon | Stadium | Ruins | Crater | Frostfall | Power Plant | Average |
+|---|---|---|---|---|---|---|
+| Charizard | 45% | 54% | 54% | 55% | 59% | 53% |
+| Venusaur | 59% | 54% | 66% | 71% | 55% | 61% |
+| Blastoise | 59% | 61% | 48% | 50% | 41% | 52% |
+| Dragapult | 48% | 48% | 36% | 38% | 54% | 45% |
+| Magnezone | 39% | 41% | 39% | 46% | 46% | 42% |
+| Snorlax | 64% | 55% | 61% | 41% | 48% | 54% |
+| Noivern | 45% | 48% | 54% | 52% | 55% | 51% |
+| Lucario | 41% | 39% | 43% | 46% | 41% | 42% |
+
+  Snorlax by matchup, 40 games each:
+
+| Opponent | Snorlax wins |
+|---|---|
+| Blastoise | 78% |
+| Charizard | 78% (65% in the 100-game test) |
+| Lucario | 70% |
+| Dragapult | 48% |
+| Magnezone | 42% |
+| Venusaur | 35% |
+| Noivern | 28% (it flies over Earthquake) |
+| Overall | 54% (151 of 280) |

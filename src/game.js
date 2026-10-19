@@ -9254,7 +9254,10 @@
               (e.kind === "player" &&
               e.kit.thickFat &&
               !lg &&
-              this.attackerType(t) === "FIRE"
+              this.attackerType(t) === "FIRE" &&
+              // Thick Fat softens fire attacks only: Dragon Claw and the Fly
+              // slam are not fire.
+              !/:(basic1|basic2|fly)(-|$)/.test(String(k))
                 ? SNOR.thickFat
                 : 1),
           );
