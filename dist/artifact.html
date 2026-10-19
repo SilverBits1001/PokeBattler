@@ -20566,6 +20566,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       } else
         e.pingAt[e.pingK] || ((e.pingAt[e.pingK] = s), netSet({ pi: e.pingK }));
     }
+    // The other player switched apps or tabs: wait longer for them.
+    e.oppAway = !!i.aw;
     !e.host &&
       typeof i.pi === "number" &&
       i.pi !== e.pong &&
@@ -20809,7 +20811,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   }
   function p2pStop(a) {
     for (let t of P2P.timers) clearTimeout(t), clearInterval(t);
-    P2P.timers = [];
+    (P2P.timers = []), (P2P.redial = 0);
     let e = P2P.state === "linked";
     try {
       P2P.conn?.close();
@@ -20847,6 +20849,18 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       p2pInput(!1),
       a && p2pMsg(a);
   }
+  // Switching apps or tabs: tell the other page (it then waits longer for
+  // us), and on return don't count the time away as silence.
+  typeof document !== "undefined" &&
+    document.addEventListener("visibilitychange", () => {
+      let a = NET.m;
+      a?.room &&
+        a.phase === "play" &&
+        netSet({ aw: document.hidden ? 1 : null }, a);
+      document.hidden ||
+        (P2P.shim && (P2P.shim.last = Date.now()),
+        a && (a.stallAt = performance.now()));
+    });
   function p2pLater(a, e, t) {
     let s = t ? setInterval(a, e) : setTimeout(a, e);
     return P2P.timers.push(s), s;
@@ -20870,13 +20884,19 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     "wss://mqtt.eclipseprojects.io:443/mqtt",
   ];
   // A minimal MQTT 3.1.1 client: connect, subscribe, QoS 0 publish, ping.
+  // One MQTT-over-WebSocket link to a broker, subscribed to topic e. Public
+  // brokers drop connections now and then, so it reconnects by itself (with
+  // a growing pause) until close() is called.
   function mqttOpen(a, e, t, s) {
     let i = new TextEncoder(),
       r = new TextDecoder(),
       o = !1,
       l = new Uint8Array(0),
       f = 0,
-      u,
+      u = null,
+      dead = !1,
+      tries = 0,
+      again = 0,
       h = (b) => {
         let p = i.encode(b);
         return [p.length >> 8, p.length & 255, ...p];
@@ -20893,71 +20913,89 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       },
       y = (b) => {
         try {
-          u.readyState === 1 && u.send(b);
+          u && u.readyState === 1 && u.send(b);
         } catch {}
-      };
-    try {
-      u = new WebSocket(a, "mqtt");
-    } catch {
-      return null;
-    }
-    return (
-      (u.binaryType = "arraybuffer"),
-      (u.onopen = () =>
-        y(
-          c(16, [
-            ...h("MQTT"),
-            4,
-            2,
-            0,
-            60,
-            ...h("sb" + Math.random().toString(36).slice(2, 14)),
-          ]),
-        )),
-      (u.onmessage = (b) => {
-        let p = new Uint8Array(b.data),
-          k = new Uint8Array(l.length + p.length);
-        k.set(l), k.set(p, l.length), (l = k);
-        for (;;) {
-          let M = 0,
-            C = 1,
-            x = 1;
-          for (; C < 5; C++) {
-            if (C >= l.length) return;
-            if (((M += (l[C] & 127) * x), (x *= 128), !(l[C] & 128))) break;
-          }
-          if (C === 5) return u.close();
-          let v = C + 1;
-          if (l.length < v + M) return;
-          let E = l[0],
-            Q = l.subarray(v, v + M);
-          if (((l = l.slice(v + M)), E >> 4 === 2))
-            Q[1] === 0
-              ? (y(c(130, [0, 1, ...h(e), 0])),
-                (f = setInterval(() => y(new Uint8Array([192, 0])), 25e3)))
-              : u.close();
-          else if (E >> 4 === 9) (o = !0), s();
-          else if (E >> 4 === 3) {
-            let ie = (Q[0] << 8) | Q[1],
-              K = 2 + ie + ((E >> 1) & 3 ? 2 : 0);
-            try {
-              t(r.decode(Q.subarray(K)));
-            } catch {}
-          }
+      },
+      open = () => {
+        if (dead) return;
+        let w;
+        try {
+          w = new WebSocket(a, "mqtt");
+        } catch {
+          return void retry();
         }
-      }),
-      (u.onclose = () => {
-        (o = !1), clearInterval(f);
-      }),
+        (u = w), (l = new Uint8Array(0)), (w.binaryType = "arraybuffer");
+        w.onopen = () =>
+          w === u &&
+          y(
+            c(16, [
+              ...h("MQTT"),
+              4,
+              2,
+              0,
+              60,
+              ...h("sb" + Math.random().toString(36).slice(2, 14)),
+            ]),
+          );
+        w.onmessage = (b) => {
+          if (w !== u) return;
+          let p = new Uint8Array(b.data),
+            k = new Uint8Array(l.length + p.length);
+          k.set(l), k.set(p, l.length), (l = k);
+          for (;;) {
+            let M = 0,
+              C = 1,
+              x = 1;
+            for (; C < 5; C++) {
+              if (C >= l.length) return;
+              if (((M += (l[C] & 127) * x), (x *= 128), !(l[C] & 128))) break;
+            }
+            if (C === 5) return w.close();
+            let v = C + 1;
+            if (l.length < v + M) return;
+            let E = l[0],
+              Q = l.subarray(v, v + M);
+            if (((l = l.slice(v + M)), E >> 4 === 2))
+              Q[1] === 0
+                ? (y(c(130, [0, 1, ...h(e), 0])),
+                  clearInterval(f),
+                  (f = setInterval(() => y(new Uint8Array([192, 0])), 25e3)))
+                : w.close();
+            else if (E >> 4 === 9) (o = !0), (tries = 0), s();
+            else if (E >> 4 === 3) {
+              let ie = (Q[0] << 8) | Q[1],
+                K = 2 + ie + ((E >> 1) & 3 ? 2 : 0);
+              try {
+                t(r.decode(Q.subarray(K)));
+              } catch {}
+            }
+          }
+        };
+        w.onclose = () => {
+          w === u && ((o = !1), clearInterval(f), retry());
+        };
+      },
+      retry = () => {
+        dead ||
+          again ||
+          (again = setTimeout(
+            () => {
+              (again = 0), open();
+            },
+            Math.min(8e3, 500 * 2 ** tries++),
+          ));
+      };
+    return (
+      open(),
       {
         get up() {
-          return o && u.readyState === 1;
+          return o && !!u && u.readyState === 1;
         },
         send: (b) => o && y(c(48, [...h(e), ...i.encode(b)])),
         close() {
-          clearInterval(f);
+          (dead = !0), (o = !1), clearInterval(f), clearTimeout(again);
           try {
-            u.close();
+            u?.close();
           } catch {}
         },
       }
@@ -21071,11 +21109,15 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               p2pSayHi());
       }),
       e.on("disconnected", () => {
-        // Losing the broker is fine once linked; before that, try again.
+        // Stay registered with the matchmaking server, even once linked, so
+        // a dropped direct link can be dialled again.
         P2P.peer === e &&
-          P2P.state !== "linked" &&
           !e.destroyed &&
-          e.reconnect();
+          setTimeout(
+            () =>
+              P2P.peer === e && !e.destroyed && e.disconnected && e.reconnect(),
+            1e3,
+          );
       }),
       (P2P.peer = e),
       e
@@ -21154,13 +21196,13 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   }
   function p2pRtc(a) {
     P2P.conn = a;
+    // A dropped direct link is not the end: the relay carries the match
+    // (it reconnects itself) while the joiner dials the direct link again.
+    // Only silence from the friend ends the session (see p2pUp).
     let e = () => {
       if (P2P.conn !== a) return;
-      let t = P2P.rtcUp;
       (P2P.rtcUp = !1), (P2P.conn = null);
-      P2P.state === "linked" &&
-        (p2pVia(),
-        t && !P2P.relay?.up() && p2pStop("Lost the link to your friend"));
+      P2P.state === "linked" && (p2pVia(), p2pRedial());
     };
     a.on("open", () => {
       if (P2P.conn !== a) return void a.close();
@@ -21173,8 +21215,34 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       a.on("close", e),
       a.on("error", e);
   }
+  function p2pRedial() {
+    P2P.host ||
+      P2P.redial ||
+      (P2P.redial = p2pLater(
+        () => {
+          let t = P2P.peer;
+          if (P2P.state !== "linked" || P2P.rtcUp || !t || t.destroyed) return;
+          if (t.disconnected) return void t.reconnect();
+          P2P.conn ||
+            p2pRtc(
+              t.connect(P2P_PREFIX + P2P.code, {
+                reliable: !1,
+                serialization: "raw",
+              }),
+            );
+          // An attempt that has not opened in a few seconds is dropped.
+          let s = P2P.conn;
+          setTimeout(() => {
+            P2P.conn === s && !P2P.rtcUp && ((P2P.conn = null), s?.close());
+          }, 6e3);
+        },
+        3e3,
+        !0,
+      ));
+  }
   function p2pUp(a) {
     for (let s of P2P.timers) clearTimeout(s), clearInterval(s);
+    P2P.redial = 0;
     (P2P.timers = []), (P2P.hi = 0), p2pVia();
     // Linked directly: still say hi on the relay so it is ready as a backup.
     P2P.host || P2P.other || p2pSayHi();
@@ -21202,7 +21270,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       p2pLater(
         () => {
           t.ping(),
-            Date.now() - t.last > 15e3 && p2pStop("Your friend disconnected");
+            Date.now() - t.last > (NET.m?.oppAway ? 6e4 : 2e4) &&
+              p2pStop("Your friend disconnected");
         },
         2e3,
         !0,
@@ -21644,11 +21713,16 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         }),
         NET.diag && netDiag(t);
     }
-    t.stall > 20 &&
-      (Ae(H / 2 - 70, 64, 140, 15, g.gold),
-      G(`Waiting for ${netOppName(14)}…`, H / 2, 74, 7.2, g.chalk, {
-        align: "center",
-      }));
+    if (t.stall > 20) {
+      let r = (performance.now() - (t.stallAt ?? performance.now())) / 1e3,
+        o = t.oppAway
+          ? `${netOppName(14)} switched away. Waiting…`
+          : r > 3
+            ? `Reconnecting to ${netOppName(14)}…`
+            : `Waiting for ${netOppName(14)}…`;
+      Ae(H / 2 - 80, 64, 160, 15, g.gold),
+        G(o, H / 2, 74, 7.2, g.chalk, { align: "center" });
+    }
     if (!e.netMenu) return;
     (d.fillStyle = "rgba(6,5,14,0.62)"), d.fillRect(0, 0, m(H), m(oe));
     let s = 240,
@@ -25645,7 +25719,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               : ee.pressed.forEach((Je) => Mn.pend.add(Je));
           Mn.stall === 1 &&
             ((Mn.stallAt = performance.now()), netLog(Mn, "stallLog", 1));
-          performance.now() - (Mn.stallAt ?? performance.now()) > 1e4 &&
+          performance.now() - (Mn.stallAt ?? performance.now()) >
+            (Mn.oppAway ? 6e4 : 2e4) &&
             NET.m === Mn &&
             (netEnd("The connection timed out"), netToLobby());
           break;
@@ -25736,18 +25811,22 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             ),
         t.computeView();
       // Online: the visual offset left by a rollback correction fades out.
-      let Vo = NET.m?.phase === "play" && ne ? NET.m.vo : null;
+      // The true positions are put back exactly afterwards: subtracting the
+      // offset again is not exact in floating point, and the smallest drift
+      // makes the two games fall out of sync.
+      let Vo = NET.m?.phase === "play" && ne ? NET.m.vo : null,
+        Vs = Vo ? e.players.map((q) => [q.x, q.px, q.y, q.py]) : null;
       Vo?.forEach((ee, Je) => {
         let q = e.players[Je];
         q && ((q.x += ee[0]), (q.px += ee[0]), (q.y += ee[1]), (q.py += ee[1]));
       }),
         fa(f, e, t, Z, !ne),
         Vo?.forEach((ee, Je) => {
-          let q = e.players[Je];
-          q &&
-            ((q.x -= ee[0]), (q.px -= ee[0]), (q.y -= ee[1]), (q.py -= ee[1])),
-            (ee[0] *= 0.86),
-            (ee[1] *= 0.86);
+          (ee[0] *= 0.86), (ee[1] *= 0.86);
+        }),
+        Vs?.forEach(([ee, Je, q, nn], cc) => {
+          let pp = e.players[cc];
+          pp && ((pp.x = ee), (pp.px = Je), (pp.y = q), (pp.py = nn));
         }),
         Ca(u, e, t, s, h, Z, a),
         requestAnimationFrame(it);

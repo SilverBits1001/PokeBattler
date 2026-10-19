@@ -1149,3 +1149,45 @@ moment that stops the match, not just a big hitbox.
   gain raised on both sides so summons happen often: 3,472 compared ticks,
   including about 1,000 scene ticks and 500 intro ticks. No divergence.
 
+
+## Online: matches ending with "can't connect" after a while
+
+A friend match sometimes ended for both players after a few minutes. A test
+that links two pages through a local PeerJS server and local MQTT brokers, then
+injects faults mid-match, reproduced two causes:
+
+- **A real desync.** After a rollback correction, the renderer eases the
+  visible jump by adding an offset to each fighter's position, drawing, then
+  subtracting the offset again. Floating-point add-then-subtract isn't always
+  exact, so the page that corrected drifted by a fraction of a pixel. The
+  once-a-second sync check then saw different positions on the two pages and
+  ended the match on both ("The two games fell out of sync"). The renderer now
+  saves the exact positions and puts them back.
+- **Links that never came back.**
+  - The MQTT relay sockets had no reconnect, so a public broker dropping a
+    connection removed that path for good.
+  - When the direct WebRTC link then closed, for example on a network blip,
+    the game stopped at once ("Lost the link to your friend").
+
+  Now:
+  - Relay sockets reconnect with backoff, from 0.5 to 8 seconds.
+  - A closed direct link falls back to the relay while the joiner redials it
+    every 3 seconds.
+  - The host stays registered with the PeerJS server after linking, so the
+    redial can reach it.
+  - Only silence from the friend ends the session, after 20 seconds.
+- **Longer waits.** A stall now waits 20 seconds instead of 10. Switching apps
+  or tabs tells the other page (`aw` in the match presence), and that page
+  then waits up to a minute and shows "… switched away. Waiting…". Coming back
+  doesn't count the time away as silence. After 3 seconds a stall reads
+  "Reconnecting to …".
+
+Fault test, results after the fix:
+
+| Step | Before | After |
+|---|---|---|
+| Normal play with bots | fell out of sync | identical over 3,732 ticks |
+| Every relay connection dropped | relay gone for good | reconnected |
+| Direct link closed | both kicked | carried by the relay, then the direct link redialled |
+| One page hung for 14 s | timed out at 10 s | match resumed |
+| One page switched away for 30 s | timed out | match resumed |
