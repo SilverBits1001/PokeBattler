@@ -3282,22 +3282,22 @@
     // Team 2v2 gets its own scale for the same reason: partners change what
     // each kit is worth (a shooter behind a brawler, say).
     TEAM_POW = {
-      garchomp: 0.83,
-      snorlax: 0.82,
+      garchomp: 0.78,
+      snorlax: 0.77,
       dragapult: 0.75,
       noivern: 0.79,
       magnezone: 1.04,
       charizard: 0.87,
-      froslass: 1.09,
+      froslass: 1.19,
       gardevoir: 0.93,
       golurk: 1.09,
       venusaur: 1.06,
       metagross: 1.2,
-      blastoise: 1.27,
+      blastoise: 1.31,
       tyrantrum: 1.19,
       scizor: 1.04,
       rhyperior: 1.3,
-      lucario: 1.21,
+      lucario: 1.28,
     },
     // Zone Control: holding a point rewards staying put (Venusaur roots).
     ZONE_POW = {
