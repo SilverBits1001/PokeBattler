@@ -2310,6 +2310,21 @@
           },
           r = this.rand,
           o = e.nearestTarget(t.team, t.x, t.y);
+        // Free-for-All: pick your own fight. A foe already trading blows with
+        // someone else counts as further away, so CPUs don't all pile onto
+        // whoever is brawling while the ones hanging back go untouched.
+        if (e.match.mode === "ffa" && e.players.length > 2) {
+          let bs = 1 / 0;
+          for (let q of e.targetsFor(t.team)) {
+            let busy =
+                q.kind === "player" &&
+                q.lastHitBy &&
+                q.lastHitBy !== t &&
+                e.tick - q.lastHitT < 90,
+              d = Math.hypot(q.x - t.x, q.y - t.y) * (busy ? 1.8 : 1);
+            d < bs && ((bs = d), (o = q));
+          }
+        }
         // In a crowd, go after whoever just hit you, so nobody can pick
         // everyone off from the back unanswered.
         let rv = t.lastHitBy;
@@ -3576,8 +3591,8 @@
     // revives a fainted Tag Team partner), rolls out a ring of fire, then
     // keeps a ring of fire around its caller that burns foes inside.
     HOOH = {
-      heal: 0.2,
-      revive: 0.3,
+      heal: 0.1,
+      revive: 0.15,
       ringT: 16,
       ringR: 96,
       dmg: 30,

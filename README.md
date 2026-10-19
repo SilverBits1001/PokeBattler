@@ -83,9 +83,9 @@ launches them:
   point first, and dives on each in turn. Each mark locks just before the dive, so
   a late dodge escapes. Everyone it hit shares one scene in the sky. Made for
   Free-for-All.
-- **Ho-Oh, Sacred Fire** (support). It heals your side 20% and cleanses burn,
+- **Ho-Oh, Sacred Fire** (support). It heals your side 10% and cleanses burn,
   poison, paralysis, chill, sleep and freeze. Rebirth revives a fainted Tag Team
-  partner at 30%, once per match. Then a ring of fire rolls out and stays around you, burning foes
+  partner at 15%, once per match. Then a ring of fire rolls out and stays around you, burning foes
   inside. Made for Tag Team and 2v2.
 
 **Team select** asks for as many Pokémon as the mode needs: one in Standard and the
