@@ -14364,6 +14364,1488 @@
     }
     return a.createPattern(tilePats[e], "repeat");
   }
+  // ---- Living arenas ---------------------------------------------------
+  // Surroundings, battle scars, light, wildlife, crowd and ambience. All of
+  // it is drawing (and sound) only: the fight never reads any of it, so it
+  // cannot change a result or put online play out of step.
+  var LIVE = {
+    m: null,
+    hype: 0,
+    dust: 0,
+    critters: [],
+    confetti: [],
+    steam: [],
+    snow: [],
+    flock: null,
+    flockT: 600,
+    feet: {},
+  };
+  // Painted once into the arena canvas: everything outside the walls.
+  function arenaSurround(e, kind, t) {
+    let i = B,
+      s = (x, y, c) => ((e.fillStyle = c), e.fillRect(x, y, 1, 1)),
+      R = (x, y, w, h, c) => ((e.fillStyle = c), e.fillRect(x, y, w, h)),
+      top = i.y0,
+      sides = (c1, c2, n = 600) => {
+        R(0, top - 16, i.x0, _ - top + 16, c1),
+          R(i.x1, top - 16, Y - i.x1, _ - top + 16, c1),
+          R(0, i.y1, Y, _ - i.y1, c1);
+        for (let k = 0; k < n; k++) {
+          let x =
+              t() < 0.5 ? (t() * i.x0) | 0 : i.x1 + ((t() * (Y - i.x1)) | 0),
+            y = top - 16 + ((t() * (_ - top + 16)) | 0);
+          s(x, y, c2);
+          let bx = (t() * Y) | 0,
+            by = i.y1 + ((t() * (_ - i.y1)) | 0);
+          s(bx, by, c2);
+        }
+      };
+    if (kind === 0) {
+      // Stadium: tiered stands, a big screen, floodlight towers, ad boards.
+      let g = e.createLinearGradient(0, 0, 0, top);
+      g.addColorStop(0, "#1a2033"),
+        g.addColorStop(1, "#2b3450"),
+        R(0, 0, Y, top, g);
+      for (let y = 6; y < top - 16; y += 7)
+        R(0, y, Y, 5, (y / 7) % 2 ? "#36405f" : "#2f3854"),
+          R(0, y + 5, Y, 1, "#1b2033"),
+          R(0, y + 6, Y, 1, "#465073");
+      for (let x = 40; x < Y; x += 96)
+        R(x, 4, 6, top - 20, "#4a5476"), R(x + 1, 4, 1, top - 20, "#5d688d");
+      // The big screen.
+      R(272, 2, 96, 40, "#11141c"),
+        R(271, 1, 98, 1, "#6b7391"),
+        R(271, 42, 98, 1, "#6b7391"),
+        R(271, 1, 1, 42, "#6b7391"),
+        R(368, 1, 1, 42, "#6b7391"),
+        R(300, 43, 4, 10, "#3a4058"),
+        R(336, 43, 4, 10, "#3a4058");
+      // Floodlight towers.
+      for (let x of [14, Y - 22]) {
+        R(x + 3, 10, 2, top - 26, "#596079");
+        R(x - 2, 4, 12, 7, "#2a2f3e");
+        for (let k = 0; k < 3; k++)
+          R(x - 1 + k * 4, 5, 3, 2, "#fff4c8"),
+            R(x - 1 + k * 4, 8, 3, 2, "#fff4c8");
+      }
+      // Ad boards along the wall.
+      let ads = [
+        "#ef5a4f",
+        "#f4f1e6",
+        "#3f7fd6",
+        "#ffc93c",
+        "#4caf50",
+        "#a184f5",
+      ];
+      for (let x = 0, k = 0; x < Y; x += 52, k++) {
+        let c = ads[k % ads.length];
+        R(x, top - 16, 50, 15, c),
+          R(x, top - 16, 50, 1, "rgba(255,255,255,0.35)"),
+          R(x, top - 2, 50, 1, "#1b2033");
+        let dark = c === "#f4f1e6" || c === "#ffc93c";
+        // A simple logo: a Poké Ball or a bolt or a leaf.
+        let lx = x + 25,
+          ly = top - 9,
+          ink = dark ? "#2a2f3e" : "#ffffff";
+        if (k % 3 === 0) {
+          for (let a = 0; a < 6.28; a += 0.3)
+            s(
+              Math.round(lx + Math.cos(a) * 4),
+              Math.round(ly + Math.sin(a) * 4),
+              ink,
+            );
+          R(lx - 4, ly, 9, 1, ink), R(lx - 1, ly - 1, 3, 3, ink);
+        } else if (k % 3 === 1) {
+          for (let d = 0; d < 6; d++)
+            s(lx + 2 - d, ly - 4 + d, ink), s(lx + 3 - d, ly - 4 + d, ink);
+          for (let d = 0; d < 5; d++) s(lx + 1 - d + 2, ly + d, ink);
+        } else
+          for (let d = -4; d <= 4; d++)
+            R(
+              lx + d,
+              ly - (4 - Math.abs(d)) / 2,
+              1,
+              4 - Math.abs(d) / 1.5,
+              ink,
+            );
+      }
+      sides("#2b3450", "#3a4466", 900);
+      // Front-row railing.
+      R(0, i.y1 + 3, Y, 1, "#8a93b0"),
+        R(i.x0 - 6, top, 1, i.y1 - top, "#8a93b0"),
+        R(i.x1 + 5, top, 1, i.y1 - top, "#8a93b0");
+    } else if (kind === 1) {
+      // Ruins: dusk sky over a broken colonnade, ivy, carved Unown.
+      let g = e.createLinearGradient(0, 0, 0, top);
+      g.addColorStop(0, "#2b2140"),
+        g.addColorStop(0.5, "#5a3b4c"),
+        g.addColorStop(1, "#8a5a4a"),
+        R(0, 0, Y, top, g);
+      for (let k = 0; k < 40; k++) s((t() * Y) | 0, (t() * 18) | 0, "#e8d8ff");
+      // The back wall: big blocks with a ragged top.
+      for (let x = 0; x < Y; x += 2) {
+        let h =
+          14 +
+          Math.round(Math.sin(x * 0.05) * 4 + Math.sin(x * 0.13) * 3 + t() * 2);
+        R(x, h, 2, top - h, "#4d443c");
+      }
+      for (let y = 18; y < top; y += 8)
+        for (let x = ((y / 8) % 2) * 14; x < Y; x += 28)
+          R(x, y, 27, 1, "#3a332d"),
+            R(x, y, 1, 8, "#3a332d"),
+            R(x + 1, y + 1, 25, 1, "#5d544b");
+      // Carved Unown on the wall.
+      for (let x of [96, 236, 404, 544]) {
+        R(x, 32, 5, 5, "#2d2722"),
+          R(x + 2, 37, 1, 4, "#2d2722"),
+          s(x + 2, 34, "#6e6457");
+      }
+      // Pillars, point-symmetric pairs; two have lost their tops.
+      for (let [x, h] of [
+        [60, 2],
+        [180, 16],
+        [460, 16],
+        [580, 2],
+      ]) {
+        R(x - 9, h, 18, top - h, "#7a6e5f"),
+          R(x - 9, h, 3, top - h, "#93876f"),
+          R(x + 6, h, 3, top - h, "#5b5145");
+        for (let fx = -5; fx <= 4; fx += 3)
+          R(x + fx, h + 4, 1, top - h - 6, "#6a5f52");
+        h < 8
+          ? (R(x - 12, h, 24, 4, "#8a7d6a"), R(x - 12, h + 4, 24, 1, "#4a4138"))
+          : (R(x - 9, h - 3, 6, 3, "#7a6e5f"),
+            R(x + 2, h - 5, 7, 5, "#7a6e5f"));
+        R(x - 7, top - 22, 14, 3, "#3a332d"); // brazier bowl
+        R(x - 5, top - 19, 10, 2, "#2a241f"),
+          R(x - 1, top - 17, 2, 6, "#2a241f");
+      }
+      // Ivy falling from the top.
+      for (let k = 0; k < 34; k++) {
+        let x = (t() * Y) | 0,
+          len = 6 + ((t() * 26) | 0),
+          y0 = 10 + ((t() * 8) | 0);
+        for (let y = 0; y < len; y++)
+          s(
+            x + Math.round(Math.sin(y * 0.5 + k) * 1.2),
+            y0 + y,
+            y % 3 ? "#3f7a3a" : "#5fa04f",
+          );
+      }
+      // The ledge at the foot of the wall, mossy.
+      R(0, top - 6, Y, 6, "#5b5248");
+      for (let x = 0; x < Y; x++)
+        t() < 0.5 && s(x, top - 6, t() < 0.5 ? "#4f8a42" : "#3c6b35");
+      sides("#3e3730", "#4f8a42", 700);
+    } else if (kind === 2) {
+      // Cinder Crater: a basalt rim with glowing seams and two lavafalls.
+      let g = e.createLinearGradient(0, 0, 0, top);
+      g.addColorStop(0, "#120a0b"),
+        g.addColorStop(1, "#2a1513"),
+        R(0, 0, Y, top, g);
+      for (let x = 0; x < Y; x += 3) {
+        let h = 4 + Math.round(Math.abs(Math.sin(x * 0.031)) * 10 + t() * 3);
+        R(x, h, 3, top - h, t() < 0.5 ? "#2c1d1b" : "#33221f");
+      }
+      for (let k = 0; k < 18; k++) {
+        let x = (t() * Y) | 0,
+          y = 14 + ((t() * 30) | 0);
+        for (let d = 0; d < 14; d++)
+          (x += t() < 0.5 ? 1 : -1), s(x, y + d, d % 2 ? "#7a2a12" : "#a8401a");
+      }
+      for (let x of [130, Y - 130]) R(x - 6, 0, 12, top - 10, "#3a1a10");
+      // The lava channel at the foot of the rim.
+      R(0, top - 12, Y, 6, "#c4471a"),
+        R(0, top - 12, Y, 1, "#ffb347"),
+        R(0, top - 6, Y, 6, "#24171a");
+      for (let x = 0; x < Y; x++)
+        t() < 0.3 && s(x, top - 10 + ((t() * 3) | 0), "#ffd27a");
+      sides("#24171a", "#7a2a12", 500);
+    } else if (kind === 3) {
+      // Frostfall Lake: night sky, mountains, pines, a frozen waterfall.
+      let g = e.createLinearGradient(0, 0, 0, top);
+      g.addColorStop(0, "#081028"),
+        g.addColorStop(0.6, "#16264a"),
+        g.addColorStop(1, "#24406a"),
+        R(0, 0, Y, top, g);
+      for (let k = 0; k < 70; k++)
+        s((t() * Y) | 0, (t() * 30) | 0, t() < 0.3 ? "#ffffff" : "#9fb8e8");
+      for (let x = 0; x < Y; x++) {
+        let h =
+          18 +
+          Math.round(
+            Math.abs(Math.sin(x * 0.012 + 1)) * 12 + Math.sin(x * 0.05) * 3,
+          );
+        R(x, h, 1, top - h, "#2a3d62");
+        h < 24 && s(x, h, "#c8d8f0"), h < 22 && s(x, h + 1, "#a8bcdc");
+      }
+      // The frozen waterfall.
+      for (let x = 296; x < 344; x++) {
+        let c = x % 5 === 0 ? "#e8f6ff" : x % 3 ? "#9cd0ee" : "#bfe6ff";
+        R(x, 12 + ((x * 7) % 5), 1, top - 26, c);
+      }
+      for (let x = 296; x < 344; x += 4)
+        R(x, top - 14, 2, 3 + ((x * 3) % 4), "#e8f6ff");
+      // Pines with snow on their boughs.
+      for (let k = 0; k < 26; k++) {
+        let x = (t() * Y) | 0;
+        if (x > 286 && x < 354) continue;
+        let h = 14 + ((t() * 14) | 0),
+          base = top - 10;
+        for (let y = 0; y < h; y++) {
+          let w = Math.round((y / h) * 6) + 1;
+          R(
+            x - w,
+            base - h + y,
+            w * 2 + 1,
+            1,
+            y % 4 === 0 ? "#dff0ff" : "#1d3a3a",
+          );
+        }
+        R(x, base, 1, 3, "#3a2a20");
+      }
+      // The snowbank along the wall.
+      for (let x = 0; x < Y; x++) {
+        let h =
+          top - 14 + Math.round(Math.sin(x * 0.07) * 2 + Math.sin(x * 0.21));
+        R(x, h, 1, top - h, "#e8f2fa"),
+          s(x, h, "#ffffff"),
+          s(x, top - 2, "#b8cde6");
+      }
+      sides("#dfeaf6", "#b8cde6", 900);
+    } else {
+      // Power Plant: turbines, pipes, control panels, hazard stripes.
+      R(0, 0, Y, top, "#1e232c");
+      for (let x = 0; x < Y; x += 32)
+        R(x, 0, 1, top, "#151920"), R(x + 1, 0, 1, top, "#2a313c");
+      for (let y = 0; y < top; y += 16) R(0, y, Y, 1, "#151920");
+      for (let x = 4; x < Y; x += 16)
+        for (let y = 4; y < top - 16; y += 16) s(x, y, "#3a4250");
+      for (let x of [110, Y - 110]) {
+        for (let a = 0; a < 6.28; a += 0.04)
+          s(
+            Math.round(x + Math.cos(a) * 21),
+            Math.round(26 + Math.sin(a) * 21),
+            "#5a6474",
+          ),
+            s(
+              Math.round(x + Math.cos(a) * 22),
+              Math.round(26 + Math.sin(a) * 22),
+              "#11141a",
+            );
+        R(x - 2, 24, 4, 4, "#3a4250");
+      }
+      // Pipes with valves.
+      for (let [y, c] of [
+        [top - 26, "#4a5563"],
+        [top - 21, "#3e4855"],
+      ]) {
+        R(0, y, Y, 4, c),
+          R(0, y, Y, 1, "#6d7a8c"),
+          R(0, y + 3, Y, 1, "#262c35");
+        for (let x = 20; x < Y; x += 70) R(x, y - 1, 3, 6, "#2a3039");
+      }
+      for (let x of [200, Y - 200]) {
+        R(x - 3, top - 30, 7, 2, "#c43b2f"), R(x, top - 32, 1, 6, "#c43b2f");
+      }
+      // Control panels.
+      R(250, 8, 140, 22, "#12161d"),
+        R(249, 7, 142, 1, "#4a5563"),
+        R(249, 30, 142, 1, "#4a5563");
+      for (let x = 256; x < 384; x += 22)
+        R(x, 11, 16, 9, "#0d2a2e"), R(x + 1, 12, 14, 1, "#1d5a5e");
+      // Hazard stripes.
+      for (let x = -16; x < Y; x += 8)
+        for (let d = 0; d < 6; d++)
+          R(x + d, top - 10 + d, 4, 1, "#e0b81e"),
+            R(x + d + 4, top - 10 + d, 4, 1, "#1a1a1a");
+      R(0, top - 4, Y, 4, "#262c35");
+      sides("#1e232c", "#2f3742", 400);
+      for (let x = -16; x < Y; x += 8)
+        for (let d = 0; d < 4; d++)
+          R(x + d, i.y1 + 4 + d, 4, 1, "#e0b81e"),
+            R(x + d + 4, i.y1 + 4 + d, 4, 1, "#1a1a1a");
+    }
+  }
+  // Battle scars: a persistent decal layer painted from what happens in the
+  // fight, fading slowly. Kept inside the walls.
+  var SCAR = { c: null, g: null, m: null, fade: 0 };
+  function scarReset(e) {
+    SCAR.c || ((SCAR.c = Zt(Y, _)), (SCAR.g = SCAR.c.getContext("2d")));
+    SCAR.g.clearRect(0, 0, Y, _), (SCAR.m = e.match), (LIVE.feet = {});
+  }
+  function scarAdd(e, k, x, y, r = 10) {
+    if (A.fx || x == null || y == null) return;
+    SCAR.m !== e.match && scarReset(e);
+    let g = SCAR.g,
+      q = rt(((x * 31 + y * 17) | 0) + e.tick),
+      dot = (u, v, c) => (
+        (g.fillStyle = c), g.fillRect(Math.round(u), Math.round(v), 1, 1)
+      );
+    g.save(),
+      g.beginPath(),
+      g.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0),
+      g.clip();
+    if (k === "scorch") {
+      let f = g.createRadialGradient(x, y, 0, x, y, r);
+      f.addColorStop(0, "rgba(18,8,4,0.55)"),
+        f.addColorStop(0.7, "rgba(30,14,6,0.3)"),
+        f.addColorStop(1, "rgba(30,14,6,0)");
+      (g.fillStyle = f),
+        g.beginPath(),
+        g.ellipse(x, y, r, r * 0.6, 0, 0, Math.PI * 2),
+        g.fill();
+      for (let n = 0; n < r; n++)
+        dot(
+          x + (q() - 0.5) * r * 1.6,
+          y + (q() - 0.5) * r,
+          q() < 0.3 ? "rgba(255,138,61,0.5)" : "rgba(10,6,4,0.45)",
+        );
+    } else if (k === "crack") {
+      g.strokeStyle = "rgba(14,10,8,0.55)";
+      g.lineWidth = 1;
+      for (let n = 0; n < 5 + (r > 14 ? 3 : 0); n++) {
+        let a = q() * Math.PI * 2,
+          u = x,
+          v = y;
+        g.beginPath(), g.moveTo(u, v);
+        for (let s2 = 0; s2 < 4; s2++)
+          (a += (q() - 0.5) * 0.9),
+            (u += Math.cos(a) * r * 0.3),
+            (v += Math.sin(a) * r * 0.2),
+            g.lineTo(Math.round(u) + 0.5, Math.round(v) + 0.5);
+        g.stroke();
+      }
+      let f = g.createRadialGradient(x, y, 0, x, y, r * 0.5);
+      f.addColorStop(0, "rgba(14,10,8,0.4)"),
+        f.addColorStop(1, "rgba(14,10,8,0)");
+      (g.fillStyle = f),
+        g.beginPath(),
+        g.ellipse(x, y, r * 0.5, r * 0.32, 0, 0, Math.PI * 2),
+        g.fill();
+    } else if (k === "frost") {
+      for (let n = 0; n < 6; n++) {
+        let a = (n / 6) * Math.PI * 2 + q();
+        for (let d = 0; d < r; d++)
+          dot(
+            x + Math.cos(a) * d,
+            y + Math.sin(a) * d * 0.6,
+            "rgba(225,245,255,0.45)",
+          );
+      }
+      let f = g.createRadialGradient(x, y, 0, x, y, r);
+      f.addColorStop(0, "rgba(200,235,255,0.35)"),
+        f.addColorStop(1, "rgba(200,235,255,0)");
+      (g.fillStyle = f),
+        g.beginPath(),
+        g.ellipse(x, y, r, r * 0.6, 0, 0, Math.PI * 2),
+        g.fill();
+    } else if (k === "wet") {
+      g.fillStyle = "rgba(20,40,70,0.22)";
+      g.beginPath(), g.ellipse(x, y, r, r * 0.5, 0, 0, Math.PI * 2), g.fill();
+      for (let n = 0; n < 6; n++)
+        dot(
+          x + (q() - 0.5) * r * 2.4,
+          y + (q() - 0.5) * r * 1.2,
+          "rgba(20,40,70,0.3)",
+        );
+    } else if (k === "leaf") {
+      for (let n = 0; n < 7; n++) {
+        let u = x + (q() - 0.5) * r * 2,
+          v = y + (q() - 0.5) * r;
+        dot(u, v, "rgba(70,130,50,0.7)"), dot(u + 1, v, "rgba(110,170,80,0.7)");
+      }
+    } else if (k === "foot") {
+      (g.fillStyle = "rgba(90,120,170,0.32)"),
+        g.fillRect(Math.round(x), Math.round(y), 2, 1);
+    } else if (k === "skid") {
+      (g.fillStyle = "rgba(0,0,0,0.10)"),
+        g.fillRect(Math.round(x) - 1, Math.round(y), 3, 1);
+    }
+    g.restore();
+  }
+  function scarDraw(a, e) {
+    if (!SCAR.c || SCAR.m !== e.match) return;
+    // Fade everything a little, every half second.
+    ++SCAR.fade % 30 === 0 &&
+      ((SCAR.g.globalCompositeOperation = "destination-out"),
+      (SCAR.g.fillStyle = "rgba(0,0,0,0.035)"),
+      SCAR.g.fillRect(0, 0, Y, _),
+      (SCAR.g.globalCompositeOperation = "source-over"));
+    a.drawImage(SCAR.c, 0, 0);
+  }
+  // Which fight events leave a mark, and what kind.
+  var SCAR_EV = {
+    erupt: ["scorch", 24],
+    icicle: ["frost", 12],
+    slamLand: ["crack", 16],
+    quake: ["crack", 24],
+    heavySlam: ["crack", 22],
+    rocketLand: ["crack", 14],
+    rockWrecker: ["crack", 16],
+    collapse: ["crack", 22],
+    koLand: ["crack", 12],
+    splat: ["crack", 12],
+    boltStrike: ["scorch", 16],
+    rayImpact: ["crack", 26],
+    fireBlast: ["scorch", 20],
+    exBoom: ["crack", 12],
+    drop: ["crack", 16],
+    groudonWave: ["scorch", 22],
+    smashRelease: ["crack", 10],
+    dragonPulse: ["scorch", 14],
+    discharge: ["scorch", 18],
+  };
+  function scarEvent(e, n) {
+    let x = n.x ?? n.who?.x ?? n.victim?.x,
+      y = n.y ?? n.who?.y ?? n.victim?.y;
+    if (n.type === "hit") {
+      let c = n.color,
+        k =
+          c === L.flame || c === "#ff8a3d" || c === "#ff6a2a"
+            ? "scorch"
+            : c === L.water || c === "#5ab0ff"
+              ? "wet"
+              : c === L.leaf || c === "#9be36b"
+                ? "leaf"
+                : c === "#bfe8ff" || c === "#bfe6ff" || c === "#9fdcff"
+                  ? "frost"
+                  : n.heavy || n.ko
+                    ? "crack"
+                    : null;
+      k &&
+        (n.heavy || n.ko || k !== "crack") &&
+        scarAdd(e, k, n.victim.x, n.victim.y + 2, n.ko ? 16 : n.heavy ? 11 : 6);
+      // The crowd and the arena react to big hits.
+      n.ko ? liveHype(e, 1, n.victim) : n.heavy && liveHype(e, 0.32, n.victim);
+      return;
+    }
+    let v = SCAR_EV[n.type];
+    v && scarAdd(e, v[0], x, y, v[1]);
+    (n.type === "parry" ||
+      n.type === "guardBreak" ||
+      n.type === "perfectGuard") &&
+      liveHype(e, 0.3);
+  }
+  // Excitement: the crowd jumps, dust falls in the ruins, critters scatter.
+  function liveHype(e, k, at) {
+    (LIVE.hype = Math.min(1, LIVE.hype + k)),
+      (LIVE.dust = Math.min(1, LIVE.dust + k * 0.8));
+    at &&
+      LIVE.critters.forEach(
+        (c) => Math.hypot(c.x - at.x, c.y - at.y) < 110 && (c.flee = 90),
+      );
+    k >= 1 && e.arena === 0 && !A.fx && confettiBurst();
+    k >= 0.3 && liveCheer(e.arena, k);
+  }
+  function confettiBurst() {
+    let q = ["#ef5a4f", "#ffc93c", "#4df08a", "#33d6ff", "#a184f5", "#ffffff"];
+    for (let n = 0; n < 70; n++)
+      LIVE.confetti.push({
+        x: Math.random() * Y,
+        y: -10 - Math.random() * 60,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: 0.6 + Math.random() * 0.9,
+        r: Math.random() * 6.28,
+        c: q[n % q.length],
+        life: 220 + Math.random() * 80,
+      });
+  }
+  // Critters for each arena, placed when the match starts.
+  function critterSpawn(e) {
+    let k = e.arena,
+      C = [],
+      at = (kind, x, y, o = {}) =>
+        C.push({
+          kind,
+          x,
+          y,
+          hx: x,
+          hy: y,
+          ph: Math.random() * 6,
+          flee: 0,
+          dir: 0,
+          ...o,
+        });
+    k === 1 &&
+      (at("zubat", 90, 26, { fly: 1 }),
+      at("zubat", 540, 22, { fly: 1 }),
+      at("unown", 236, 30, { fly: 1, slow: 1 }),
+      at("unown", 404, 30, { fly: 1, slow: 1 }));
+    k === 2 && (at("slugma", 60, B.y0 - 12), at("slugma", Y - 60, B.y0 - 12));
+    k === 3 &&
+      (at("snorunt", 120, B.y0 - 12),
+      at("snorunt", Y - 150, B.y0 - 13),
+      at("spheal", 250, B.y0 - 10));
+    k === 4 &&
+      (at("magnemite", 160, 40, { fly: 1 }),
+      at("magnemite", Y - 160, 38, { fly: 1 }),
+      at("magnemite", 320, 50, { fly: 1, slow: 1 }));
+    (LIVE.critters = C),
+      (LIVE.flock = null),
+      (LIVE.flockT = 420 + Math.random() * 600);
+  }
+  // One PMD sprite frame: rows are the eight facings, starting south.
+  function critterDraw(a, e, kind, x, y, row, t, anim = "Walk", alpha = 1) {
+    let m = e.mons?.[kind]?.anims?.[anim] ?? e.mons?.[kind]?.anims?.Idle;
+    if (!m) return;
+    let tot = m.durations.reduce((u, v) => u + v, 0) || 1,
+      f = 0,
+      acc = (t | 0) % tot;
+    for (; f < m.durations.length - 1 && acc >= m.durations[f]; f++)
+      acc -= m.durations[f];
+    (a.globalAlpha = alpha),
+      a.drawImage(
+        m.img,
+        f * m.fw,
+        (row % m.rows) * m.fh,
+        m.fw,
+        m.fh,
+        Math.round(x - m.fw / 2),
+        Math.round(y - m.fh * 0.75),
+        m.fw,
+        m.fh,
+      ),
+      (a.globalAlpha = 1);
+  }
+  // Animated surroundings, drawn right after the arena canvas.
+  function arenaBack(a, e, fx) {
+    e.match !== LIVE.m &&
+      ((LIVE.m = e.match),
+      critterSpawn(e),
+      scarReset(e),
+      (LIVE.confetti = []),
+      (LIVE.hype = 0));
+    let t = e.tick,
+      k = e.arena,
+      top = B.y0,
+      R = (x, y, w, h, c) => ((a.fillStyle = c), a.fillRect(x, y, w, h));
+    LIVE.hype *= 0.985;
+    LIVE.dust *= 0.97;
+    if (k === 0) {
+      // The crowd: a wave runs through it when it's excited.
+      let q = rt(5),
+        skins = ["#f2c9a0", "#d9a27a", "#a8704a", "#7a4a2c", "#f8dcc0"],
+        shirts = [
+          "#ef5a4f",
+          "#ffc93c",
+          "#3f7fd6",
+          "#4caf50",
+          "#f4f1e6",
+          "#a184f5",
+          "#ff8a3d",
+          "#33d6ff",
+        ];
+      for (let y = 6, row = 0; y < top - 16; y += 7, row++)
+        for (let x = 2; x < Y; x += 5) {
+          let sh = shirts[(q() * shirts.length) | 0],
+            sk = skins[(q() * skins.length) | 0],
+            empty = q() < 0.1;
+          if (empty || (x > 268 && x < 372 && y < 46)) continue;
+          let wave = Math.max(0, Math.sin(x * 0.03 - t * 0.12)) * LIVE.hype,
+            j = Math.round(
+              wave * 3 +
+                (LIVE.hype > 0.5
+                  ? Math.abs(Math.sin(t * 0.4 + x)) * 2 * LIVE.hype
+                  : 0) +
+                (Math.sin(t * 0.05 + x * 1.7) > 0.97 ? 1 : 0),
+            );
+          R(x, y + 1 - j, 3, 3, sh), R(x + 0.5, y - 1 - j, 2, 2, sk);
+          wave > 0.6 && R(x, y - 3 - j, 1, 2, sk);
+        }
+      // The big screen: both leads with their health, and a flash on big hits.
+      let P = e.players.slice(0, 2),
+        flash = LIVE.hype > 0.6 && t % 8 < 4;
+      R(274, 4, 92, 36, flash ? "#2a3350" : "#0b1424");
+      P.forEach((p, n) => {
+        let img = p.kit && e.mons[p.kit.id]?.portraits?.Normal,
+          x = n ? 326 : 278;
+        img && a.drawImage(img, x, 7, 22, 22);
+        let f = p.slot ? Math.max(0, p.slot.hp / p.slot.maxHp) : 0;
+        R(x, 31, 36, 4, "#20283c"),
+          R(
+            x,
+            31,
+            Math.round(36 * f),
+            4,
+            f > 0.5 ? "#4df08a" : f > 0.25 ? "#ffc93c" : "#ef5a4f",
+          );
+      });
+      R(316, 14, 6, 6, "#ef5a4f"), R(318, 16, 2, 2, "#ffffff");
+      // Camera flashes.
+      let s = rt((t / 6) | 0);
+      for (let n = 0; n < 4 + LIVE.hype * 10; n++) {
+        let x = (s() * Y) | 0,
+          y = 4 + ((s() * (top - 24)) | 0);
+        s() < 0.5 &&
+          (R(x, y, 2, 2, "#ffffff"),
+          R(x - 1, y + 0.5, 4, 1, "rgba(255,255,255,0.6)"));
+      }
+    } else if (k === 1) {
+      // Brazier flames on the pillars.
+      for (let x of [60, 180, 460, 580]) {
+        for (let n = 0; n < 6; n++) {
+          let h = 3 + Math.abs(Math.sin(t * 0.3 + n * 1.3 + x)) * 6;
+          R(x - 5 + n * 2, top - 22 - h, 2, h, n % 2 ? "#ff8a3d" : "#ffc93c");
+        }
+        R(
+          x - 2,
+          top - 26 - Math.abs(Math.sin(t * 0.2 + x)) * 4,
+          4,
+          3,
+          "#fff2b0",
+        );
+      }
+      // Dust sifting down from the walls after heavy hits.
+      if (LIVE.dust > 0.05)
+        for (let n = 0; n < 24 * LIVE.dust; n++) {
+          let q = rt(n * 13 + ((t / 3) | 0));
+          R(
+            (q() * Y) | 0,
+            top - 6 + ((t * 2 + n * 17) % 40),
+            1,
+            1,
+            "rgba(220,200,170,0.6)",
+          );
+        }
+    } else if (k === 2) {
+      // Lavafalls and a shimmering channel; the rim's seams pulse.
+      for (let x of [130, Y - 130]) {
+        for (let y = 0; y < top - 10; y += 2) {
+          let b = (((y - t * 1.4) % 12) + 12) % 12;
+          R(x - 4, y, 8, 2, b < 3 ? "#ffd27a" : b < 7 ? "#ff8a2a" : "#d4501c");
+        }
+        R(x - 7, top - 13, 14, 3, "#ffb347");
+        t % 6 < 3 && R(x - 8 + (t % 16), top - 15, 2, 2, "#ffe7a0");
+      }
+      let p = 0.5 + 0.5 * Math.sin(t * 0.04);
+      (a.globalAlpha = 0.25 + 0.3 * p),
+        R(0, top - 12, Y, 2, "#ffd27a"),
+        (a.globalAlpha = 1);
+    } else if (k === 3) {
+      // The aurora: flowing ribbons over the mountains.
+      a.save(), (a.globalCompositeOperation = "lighter");
+      for (let n = 0; n < 3; n++)
+        for (let x = 0; x < Y; x += 2) {
+          let y =
+              6 +
+              n * 5 +
+              Math.sin(x * 0.012 + t * 0.01 + n * 2) * 5 +
+              Math.sin(x * 0.04 - t * 0.02) * 2,
+            al = 0.08 + 0.08 * Math.sin(x * 0.02 + t * 0.03 + n);
+          (a.fillStyle =
+            ["rgba(80,255,170,", "rgba(70,200,255,", "rgba(170,110,255,"][n] +
+            Math.max(0, al) +
+            ")"),
+            a.fillRect(x, y, 2, 10 - n * 2);
+        }
+      a.restore();
+      // Stars twinkle.
+      let s = rt(9);
+      for (let n = 0; n < 30; n++) {
+        let x = (s() * Y) | 0,
+          y = (s() * 26) | 0;
+        Math.sin(t * 0.05 + n * 3) > 0.8 && R(x, y, 1, 1, "#ffffff");
+      }
+    } else if (k === 4) {
+      // Turbines turn; panel lights blink; cables light when the pylons arc.
+      for (let x of [110, Y - 110]) {
+        a.strokeStyle = "#7d8899";
+        a.lineWidth = 2;
+        for (let n = 0; n < 4; n++) {
+          let q = t * 0.08 * (x < 320 ? 1 : -1) + (n * Math.PI) / 2;
+          a.beginPath(),
+            a.moveTo(x, 26),
+            a.lineTo(x + Math.cos(q) * 19, 26 + Math.sin(q) * 19),
+            a.stroke();
+        }
+      }
+      for (let n = 0; n < 24; n++) {
+        let on = Math.sin(t * 0.07 * (1 + (n % 5) * 0.3) + n * 2) > 0.2;
+        R(
+          258 + (n % 6) * 22,
+          22 + ((n / 6) | 0) * 2 - 1,
+          2,
+          1,
+          on ? ["#4df08a", "#ffc93c", "#ef5a4f", "#33d6ff"][n % 4] : "#22303a",
+        );
+      }
+      for (let x = 256; x < 384; x += 22) {
+        let h = 2 + Math.abs(Math.sin(t * 0.05 + x)) * 6;
+        R(x + 2, 19 - h, 2, h, "#33d6ff");
+      }
+      let live = e.rocks.some((p) => p.pylon && p.off <= 0) && !!e.arc;
+      // Steam from the pipes.
+      t % 50 === 0 &&
+        LIVE.steam.push({
+          x: [70, 250, 390, 570][(t / 50) % 4 | 0],
+          y: top - 26,
+          life: 50,
+        });
+      for (let p of LIVE.steam) {
+        p.life--, (p.y -= 0.4);
+        (a.globalAlpha = (p.life / 50) * 0.5),
+          R(p.x - (50 - p.life) / 8, p.y, 3 + (50 - p.life) / 4, 2, "#cfd6e0");
+      }
+      (a.globalAlpha = 1), (LIVE.steam = LIVE.steam.filter((p) => p.life > 0));
+      live && t % 4 < 2 && R(0, top - 25, Y, 1, "rgba(127,227,255,0.6)");
+    }
+    // Footprints in the snow, and skids where fighters dodge.
+    for (let [idx, p] of e.players.entries()) {
+      if (p.state === "faint" || p.airborne || p.vanished || (p.z ?? 0) > 1)
+        continue;
+      let f = LIVE.feet[idx] ?? {},
+        d = Math.hypot(p.x - (f.x ?? p.x), p.y - (f.y ?? p.y));
+      if (d > 7) {
+        let side = (f.s = -(f.s ?? 1)),
+          ang = Math.atan2(p.y - f.y, p.x - f.x) + Math.PI / 2;
+        k === 3 &&
+          scarAdd(
+            e,
+            "foot",
+            p.x + Math.cos(ang) * 2 * side,
+            p.y + 3 + Math.sin(ang) * side,
+            1,
+          );
+        p.state === "dodge" && scarAdd(e, "skid", p.x, p.y + 3, 1);
+        (f.x = p.x), (f.y = p.y);
+      } else f.x ?? ((f.x = p.x), (f.y = p.y));
+      LIVE.feet[idx] = f;
+    }
+    floorLive(a, e), scarDraw(a, e);
+    // Critters on the walls (sitting ones; fliers are drawn with the air).
+    for (let c of LIVE.critters) c.fly || critterTick(a, e, c);
+  }
+  function critterTick(a, e, c) {
+    let t = e.tick;
+    if (c.fly) {
+      // Fliers bob near home; a scare sends them off across the arena.
+      c.flee > 0
+        ? (c.flee--, (c.x += (c.hx < Y / 2 ? 1 : -1) * 2.2), (c.y -= 0.6))
+        : ((c.x +=
+            (c.hx + Math.sin(t * 0.02 + c.ph) * (c.slow ? 12 : 30) - c.x) *
+            0.03),
+          (c.y += (c.hy + Math.sin(t * 0.05 + c.ph) * 4 - c.y) * 0.05));
+      let row =
+        c.flee > 0
+          ? c.hx < Y / 2
+            ? 2
+            : 6
+          : Math.cos(t * 0.02 + c.ph) > 0
+            ? 2
+            : 6;
+      c.x < -40 || c.x > Y + 40 ? ((c.x = c.hx), (c.y = -20), (c.flee = 0)) : 0;
+      // A shadow on the floor when over the arena.
+      c.y > B.y0 - 30 &&
+        ((a.fillStyle = "rgba(0,0,0,0.18)"),
+        a.beginPath(),
+        a.ellipse(c.x, c.y + 40, 6, 2, 0, 0, Math.PI * 2),
+        a.fill());
+      critterDraw(a, e, c.kind, c.x, c.y, row, t + c.ph * 30, "Walk");
+    } else {
+      // Sitters: idle, hop when scared.
+      let hop = c.flee > 0 ? Math.abs(Math.sin((90 - c.flee) * 0.25)) * 4 : 0;
+      c.flee > 0 && c.flee--;
+      let row = Math.sin(t * 0.01 + c.ph) > 0 ? 0 : 1;
+      critterDraw(
+        a,
+        e,
+        c.kind,
+        c.x,
+        c.y - hop,
+        row,
+        t + c.ph * 30,
+        c.flee > 0 ? "Walk" : "Idle",
+      );
+    }
+  }
+  // The air layer: fliers, a passing flock, weather, confetti, then light.
+  function arenaAir(a, e, fx) {
+    let t = e.tick,
+      k = e.arena,
+      R = (x, y, w, h, c) => ((a.fillStyle = c), a.fillRect(x, y, w, h));
+    for (let c of LIVE.critters) c.fly && critterTick(a, e, c);
+    // A flock of Pidgey crosses the Stadium now and then; shadows on the pitch.
+    if (k === 0 || k === 1) {
+      if (!LIVE.flock && --LIVE.flockT <= 0) {
+        let dir = Math.random() < 0.5 ? 1 : -1,
+          y = 40 + Math.random() * 140;
+        LIVE.flock = {
+          dir,
+          x: dir > 0 ? -60 : Y + 60,
+          y,
+          birds: [0, 1, 2, 3, 4].map((n) => [
+            -Math.abs(n - 2) * 14 * dir,
+            (n - 2) * 9,
+          ]),
+        };
+      }
+      let F = LIVE.flock;
+      if (F) {
+        (F.x += F.dir * (LIVE.hype > 0.3 ? 3 : 1.8)), (F.y -= 0.12);
+        for (let [dx, dy] of F.birds) {
+          let x = F.x + dx,
+            y = F.y + dy;
+          (a.fillStyle = "rgba(0,0,0,0.16)"),
+            a.beginPath(),
+            a.ellipse(x + 10, y + 70, 5, 2, 0, 0, Math.PI * 2),
+            a.fill();
+          critterDraw(
+            a,
+            e,
+            "pidgey",
+            x,
+            y,
+            F.dir > 0 ? 2 : 6,
+            t * 2 + dx,
+            "Walk",
+          );
+        }
+        (F.x < -100 || F.x > Y + 100) &&
+          ((LIVE.flock = null), (LIVE.flockT = 900 + Math.random() * 900));
+      }
+    }
+    if (!A.fx) {
+      // Weather: snow on the lake, embers and ash in the crater, motes in the ruins.
+      let n = k === 3 ? 70 : k === 2 ? 40 : k === 1 ? 24 : 0;
+      for (let i = 0; i < n; i++) {
+        let q = rt(i * 7919 + k),
+          sp = 0.3 + q() * 0.5,
+          x =
+            (q() * Y + Math.sin(t * 0.01 + i) * 12 + (k === 3 ? t * 0.15 : 0)) %
+            Y,
+          y =
+            k === 2
+              ? _ - ((q() * _ + t * sp) % (_ + 20))
+              : ((q() * _ + t * sp) % (_ + 20)) - 10;
+        k === 3
+          ? R(
+              x | 0,
+              y | 0,
+              q() < 0.3 ? 2 : 1,
+              q() < 0.3 ? 2 : 1,
+              "rgba(255,255,255,0.75)",
+            )
+          : k === 2
+            ? R(
+                x | 0,
+                y | 0,
+                1,
+                1,
+                q() < 0.5 ? "rgba(255,170,80,0.8)" : "rgba(120,110,110,0.5)",
+              )
+            : // Fireflies in the ruins, blinking.
+              Math.sin(t * 0.06 + i * 2.3) > 0.2 &&
+              R(
+                x | 0,
+                (y * 0.5 + 60 + Math.sin(t * 0.03 + i) * 8) | 0,
+                1,
+                1,
+                "rgba(220,255,140,0.85)",
+              );
+      }
+      // Confetti after a K.O. in the Stadium.
+      for (let c of LIVE.confetti)
+        c.life--,
+          (c.x += c.vx + Math.sin(c.life * 0.05) * 0.3),
+          (c.y += c.vy),
+          (c.r += 0.15),
+          R(c.x | 0, c.y | 0, Math.abs(Math.cos(c.r)) * 2 + 1, 2, c.c);
+      LIVE.confetti = LIVE.confetti.filter((c) => c.life > 0 && c.y < _ + 10);
+    }
+    arenaLight(a, e), ambTick(e);
+  }
+  // Light: a dim ambient with holes cut where real light falls, then glows.
+  var LIGHT = { c: null, g: null };
+  function arenaLight(a, e) {
+    let k = e.arena,
+      t = e.tick,
+      night = 0,
+      amb;
+    if (k === 0) {
+      // Afternoon, sunset, then floodlit night across the match.
+      let s = (e.match.ticks ?? 0) / 60;
+      night = Math.min(1, Math.max(0, (s - 50) / 40));
+      let dusk = Math.min(1, Math.max(0, (s - 20) / 30)) * (1 - night);
+      amb =
+        night > 0
+          ? `rgba(12,18,48,${0.36 * night})`
+          : dusk > 0
+            ? `rgba(70,30,20,${0.14 * dusk})`
+            : null;
+      dusk > 0 &&
+        ((a.fillStyle = `rgba(255,140,60,${0.08 * dusk})`),
+        a.fillRect(0, 0, Y, _));
+    } else
+      amb = [
+        "",
+        "rgba(30,16,40,0.26)",
+        "rgba(36,6,6,0.30)",
+        "rgba(10,26,64,0.22)",
+        "rgba(6,10,20,0.36)",
+      ][k];
+    if (!amb) return;
+    LIGHT.c ||
+      ((LIGHT.c = Zt(Y / 2, _ / 2)), (LIGHT.g = LIGHT.c.getContext("2d")));
+    let g = LIGHT.g,
+      hole = (x, y, r, s = 1) => {
+        let f = g.createRadialGradient(x / 2, y / 2, 0, x / 2, y / 2, r / 2);
+        f.addColorStop(0, `rgba(0,0,0,${s})`),
+          f.addColorStop(1, "rgba(0,0,0,0)");
+        (g.fillStyle = f),
+          g.beginPath(),
+          g.ellipse(x / 2, y / 2, r / 2, r / 3.2, 0, 0, Math.PI * 2),
+          g.fill();
+      },
+      glow = [];
+    g.globalCompositeOperation = "source-over";
+    g.clearRect(0, 0, Y / 2, _ / 2),
+      (g.fillStyle = amb),
+      g.fillRect(0, 0, Y / 2, _ / 2);
+    g.globalCompositeOperation = "destination-out";
+    // Every fighter carries a little light, so nobody is lost in the dark.
+    for (let p of e.players)
+      p.state !== "faint" && hole(p.x, p.y - 8, 46, 0.75);
+    for (let p of e.projectiles) hole(p.x, p.y, 34, 0.8);
+    let flick = (n) =>
+      0.85 + 0.15 * Math.sin(t * 0.3 + n * 2.1) * Math.sin(t * 0.17 + n);
+    if (k === 0) {
+      for (let [x, y, r] of e.spotlights?.() ?? []) hole(x, y, r * 2.6, 1);
+      hole(Se, Te, 520, 0.6 * night),
+        hole(40, B.y0, 200, 0.7 * night),
+        hole(Y - 40, B.y0, 200, 0.7 * night);
+    } else if (k === 1) {
+      for (let [x, n] of [
+        [60, 0],
+        [180, 1],
+        [460, 2],
+        [580, 3],
+      ])
+        hole(x, B.y0 - 10, 120 * flick(n), 1),
+          glow.push([x, B.y0 - 24, 40 * flick(n), "255,150,60", 0.5]);
+      // Sun shafts through the broken colonnade.
+      for (let x of [240, 400]) hole(x, Te, 140, 0.55);
+    } else if (k === 2) {
+      for (let [x, y, w] of CRATER.pools)
+        hole(x, y, w * 3.2, 1), glow.push([x, y, w * 1.4, "255,110,40", 0.35]);
+      for (let v of e.heatVents ?? []) hole(v.x, v.y, 90, 1);
+      for (let x of [130, Y - 130])
+        hole(x, B.y0, 110, 1), glow.push([x, B.y0 - 6, 40, "255,120,50", 0.5]);
+      hole(Se, B.y0, Y * 1.4, 0.3);
+    } else if (k === 3) {
+      hole(Se, Te, Y * 1.1, 0.55);
+      for (let [x, y, w] of FROST.rinks)
+        glow.push([x, y, w, "160,220,255", 0.12]);
+    } else if (k === 4) {
+      for (let x of [100, 220, 420, 540])
+        hole(x, B.y0 + 30, 170, 0.9),
+          glow.push([x, B.y0 + 4, 26, "120,230,255", 0.3]);
+      for (let p of e.rocks)
+        p.pylon &&
+          p.off <= 0 &&
+          (hole(p.x, p.y, 120, 1),
+          glow.push([p.x, p.y - 20, 36, "127,227,255", 0.35]));
+    }
+    a.save(),
+      (a.imageSmoothingEnabled = !0),
+      a.drawImage(LIGHT.c, 0, 0, Y, _),
+      (a.globalCompositeOperation = "lighter");
+    for (let [x, y, r, c, s] of glow) {
+      let f = a.createRadialGradient(x, y, 0, x, y, r);
+      f.addColorStop(0, `rgba(${c},${s})`), f.addColorStop(1, `rgba(${c},0)`);
+      (a.fillStyle = f), a.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    a.restore();
+  }
+  // Ambience: a quiet bed per arena, and the crowd's roar on big moments.
+  var AMB = { k: -1, src: null, gain: null, f: null };
+  function ambTick(e) {
+    if (!O() || !e || e.match.phase === "results") return ambStop();
+    if (AMB.k === e.arena && AMB.src) {
+      // The bed breathes a little.
+      let tt = Da();
+      AMB.gain.gain.setTargetAtTime(
+        AMB.base * (0.8 + 0.3 * Math.sin(tt * 0.7) + LIVE.hype * 0.8),
+        tt,
+        0.3,
+      );
+      return;
+    }
+    ambStop();
+    try {
+      let k = e.arena,
+        src = j.createBufferSource(),
+        f = j.createBiquadFilter(),
+        gn = j.createGain();
+      (src.buffer = Ot), (src.loop = !0);
+      let [type, fr, q, base] = [
+        ["bandpass", 900, 0.6, 0.05],
+        ["lowpass", 500, 0.7, 0.04],
+        ["lowpass", 160, 1.2, 0.08],
+        ["bandpass", 650, 2.2, 0.035],
+        ["lowpass", 260, 1.6, 0.045],
+      ][k] ?? ["lowpass", 400, 1, 0.03];
+      (f.type = type),
+        (f.frequency.value = fr),
+        (f.Q.value = q),
+        (gn.gain.value = 0);
+      src.connect(f).connect(gn).connect(qe), src.start();
+      gn.gain.setTargetAtTime(base, Da(), 1.2);
+      Object.assign(AMB, { k, src, gain: gn, f, base });
+    } catch {}
+  }
+  function ambStop() {
+    if (!AMB.src) return;
+    try {
+      AMB.gain.gain.setTargetAtTime(0, Da(), 0.3), AMB.src.stop(Da() + 1.2);
+    } catch {}
+    (AMB.src = null), (AMB.k = -1);
+  }
+  // A cheer, a rumble, a crack or a crackle, by arena.
+  function liveCheer(k, s) {
+    if (!O()) return;
+    let v = Math.min(1, s);
+    k === 0
+      ? (X(0.9, "bandpass", 1100, 0.5, 0.12 * v, 1700),
+        X(0.6, "bandpass", 700, 0.8, 0.08 * v, 900, 0.08))
+      : k === 1
+        ? X(0.5, "lowpass", 300, 0.8, 0.12 * v, 90)
+        : k === 2
+          ? (X(0.4, "lowpass", 220, 1, 0.12 * v, 70),
+            I("sine", F(40), F(33), 0.3, 0.06 * v))
+          : k === 3
+            ? (X(0.12, "highpass", 3e3, 1, 0.08 * v),
+              I("tri", F(88), F(76), 0.15, 0.04 * v))
+            : X(0.25, "highpass", 2500, 2, 0.08 * v, 6e3, 0, !0);
+  }
+  // Floor detail baked into each arena: landmarks, decals and set dressing
+  // along the walls. Decorative only (nothing here blocks or hurts), and
+  // mirrored through the centre so the two halves match.
+  var FLOOR_FX = { kind: -1, cracks: [], cables: [], lamps: [] };
+  function floorDetail(e, kind, t) {
+    let i = B,
+      s = (x, y, c) => (
+        (e.fillStyle = c), e.fillRect(Math.round(x), Math.round(y), 1, 1)
+      ),
+      R = (x, y, w, h, c) => (
+        (e.fillStyle = c), e.fillRect(Math.round(x), Math.round(y), w, h)
+      ),
+      mir = (x, y) => [2 * Se - x, 2 * Te - y],
+      both = (x, y, f) => (f(x, y, 1), f(...mir(x, y), -1)),
+      clear = (x, y, pad = 10) => {
+        if (kind === 2)
+          return CRATER.pools.every(
+            ([px, py, w, h]) =>
+              ((x - px) / (w + pad)) ** 2 + ((y - py) / (h + pad)) ** 2 > 1,
+          );
+        if (kind === 3)
+          return FROST.rinks.every(
+            ([px, py, w, h]) =>
+              ((x - px) / (w + pad)) ** 2 + ((y - py) / (h + pad)) ** 2 > 1,
+          );
+        if (kind === 4)
+          return PLANT.pylons.every(
+            ([px, py]) => Math.hypot(x - px, (y - py) * 1.4) > 40 + pad,
+          );
+        if (kind === 1)
+          return RUINS.spots.every(
+            ([px, py]) => Math.hypot(x - px, (y - py) * 1.6) > 30 + pad,
+          );
+        return !0;
+      },
+      // A spot along the inside of the walls (top/bottom strips or the sides).
+      edgeSpot = () =>
+        t() < 0.7
+          ? [
+              i.x0 + 12 + t() * (Se - i.x0 - 30),
+              t() < 0.5 ? i.y0 + 8 + t() * 6 : i.y1 - 8 - t() * 6,
+            ]
+          : [i.x0 + 6 + t() * 8, i.y0 + 20 + t() * (i.y1 - i.y0 - 40)],
+      soft = (x, y, rx, ry, c) => {
+        let f = e.createRadialGradient(x, y, 0, x, y, rx);
+        f.addColorStop(0, c), f.addColorStop(1, "rgba(0,0,0,0)");
+        e.save(), e.translate(x, y), e.scale(1, ry / rx), e.translate(-x, -y);
+        (e.fillStyle = f),
+          e.beginPath(),
+          e.arc(x, y, rx, 0, Math.PI * 2),
+          e.fill(),
+          e.restore();
+      };
+    FLOOR_FX = { kind, cracks: [], cables: [], lamps: [] };
+    e.save(),
+      e.beginPath(),
+      e.rect(i.x0, i.y0, i.x1 - i.x0, i.y1 - i.y0),
+      e.clip();
+    // Soft darkening into the corners: the walls give the floor depth.
+    for (let [x, y] of [
+      [i.x0, i.y0],
+      [i.x1, i.y0],
+      [i.x0, i.y1],
+      [i.x1, i.y1],
+    ])
+      soft(x, y, 90, 60, "rgba(0,0,0,0.22)");
+    if (kind === 0) {
+      // Trainer boxes at each end, like a Pokémon League battlefield.
+      for (let [x, d] of [
+        [i.x0 + 34, 1],
+        [i.x1 - 34, -1],
+      ]) {
+        let y = Te;
+        for (let k = -20; k <= 20; k++)
+          t() > 0.08 &&
+            (s(x - 12, y + k, "#ece6cf"), s(x + 12, y + k, "#ece6cf"));
+        for (let k = -12; k <= 12; k++)
+          t() > 0.08 &&
+            (s(x + k, y - 20, "#ece6cf"), s(x + k, y + 20, "#ece6cf"));
+        for (let a = 0; a < 6.28; a += 0.25)
+          s(x + Math.cos(a) * 5, y + Math.sin(a) * 5, "#ece6cf");
+        R(x - 5, y, 11, 1, "#ece6cf");
+        R(x - 1 * d, y - 1, 2, 2, "#ece6cf");
+      }
+      // Cleat marks and darker dirt where the action is.
+      for (let k = 0; k < 60; k++)
+        both(Se - 30 + (t() - 0.5) * 360, Te + (t() - 0.5) * 200, (x, y) =>
+          s(x, y, "rgba(80,50,25,0.45)"),
+        );
+      soft(Se, Te, 140, 70, "rgba(90,55,25,0.12)");
+      // Cones along the touchlines.
+      for (let x of [i.x0 + 90, Se - 80, Se + 80, i.x1 - 90])
+        for (let y of [i.y0 + 9, i.y1 - 9])
+          R(x - 2, y - 1, 5, 2, "#ff7a2a"),
+            R(x - 1, y - 3, 3, 2, "#ff7a2a"),
+            s(x, y - 4, "#ffd0a0"),
+            R(x - 3, y + 1, 7, 1, "rgba(0,0,0,0.3)");
+    } else if (kind === 1) {
+      // A worn Unown mosaic at the crossing.
+      for (let a = 0; a < 6.28; a += 0.05) {
+        let r1 = 26,
+          r2 = 21;
+        s(Se + Math.cos(a) * r1, Te + Math.sin(a) * r1 * 0.6, "#5c574e");
+        t() < 0.6 &&
+          s(Se + Math.cos(a) * r2, Te + Math.sin(a) * r2 * 0.6, "#a89a7a");
+      }
+      for (let n = 0; n < 8; n++) {
+        let a = (n / 8) * 6.28,
+          x = Se + Math.cos(a) * 16,
+          y = Te + Math.sin(a) * 10;
+        R(x - 1, y - 1, 3, 3, n % 2 ? "#6a7fa8" : "#a86a5a");
+      }
+      R(Se - 3, Te - 3, 7, 7, "#3a332d"),
+        R(Se - 1, Te + 4, 2, 4, "#3a332d"),
+        s(Se, Te, "#d8c8a0");
+      // Fallen columns, urns and flowers on the grass along the walls.
+      for (let n = 0; n < 7; n++) {
+        let [x, y] = edgeSpot();
+        if (!clear(x, y) || floorUpper(1, x, y)) continue;
+        let kindN = n % 3;
+        both(x, y, (u, v, d) => {
+          if (kindN === 0) {
+            R(u - 10, v - 3, 20, 6, "#8a7d6a"),
+              R(u - 10, v - 3, 20, 1, "#a89a82"),
+              R(u - 10, v + 2, 20, 1, "#5b5145");
+            for (let f = -8; f <= 8; f += 4) R(u + f, v - 2, 1, 4, "#6e6352");
+            R(u - 11, v + 3, 22, 1, "rgba(0,0,0,0.25)");
+          } else if (kindN === 1) {
+            R(u - 3, v - 5, 6, 6, "#a8603a"),
+              R(u - 2, v - 6, 4, 1, "#c47a4a"),
+              R(u - 2, v + 1, 4, 1, "#7a4028"),
+              s(u - 1, v - 3, "#e0a070");
+            R(u - 4, v + 2, 8, 1, "rgba(0,0,0,0.25)");
+          } else
+            for (let f = 0; f < 9; f++) {
+              let fx = u + (t() - 0.5) * 16,
+                fy = v + (t() - 0.5) * 8;
+              s(fx, fy, ["#ff8fd8", "#ffe27a", "#ffffff", "#c9a6ff"][f % 4]),
+                s(fx, fy + 1, "#3f7a3a");
+            }
+        });
+      }
+      // Grass that reads as grass: blades, clover, bare earth, pebbles.
+      for (let n = 0; n < 2600; n++) {
+        let x = i.x0 + t() * (i.x1 - i.x0),
+          y = i.y0 + t() * (i.y1 - i.y0);
+        if (floorUpper(1, x, y)) continue;
+        let c = t();
+        c < 0.55
+          ? (s(x, y, "rgba(40,80,35,0.55)"),
+            s(x, y - 1, "rgba(110,165,80,0.55)"))
+          : c < 0.8
+            ? s(x, y, "rgba(130,185,95,0.4)")
+            : c < 0.9
+              ? s(x, y, "rgba(70,55,35,0.45)")
+              : s(x, y, "rgba(170,160,140,0.6)");
+      }
+      for (let n = 0; n < 10; n++) {
+        let x = i.x0 + t() * (i.x1 - i.x0),
+          y = i.y0 + t() * (i.y1 - i.y0);
+        !floorUpper(1, x, y) &&
+          clear(x, y) &&
+          both(x, y, (u, v) => soft(u, v, 14, 6, "rgba(90,70,40,0.25)"));
+      }
+      for (let n = 0; n < 14; n++) {
+        let x = i.x0 + t() * (i.x1 - i.x0),
+          y = i.y0 + t() * (i.y1 - i.y0);
+        if (floorUpper(1, x, y) || !clear(x, y)) continue;
+        both(x, y, (u, v) => {
+          for (let k = 0; k < 5; k++) {
+            let cx = u + (t() - 0.5) * 8,
+              cy = v + (t() - 0.5) * 4;
+            s(cx, cy, "#5fa04f"),
+              s(cx + 1, cy, "#4f8a42"),
+              s(cx, cy + 1, "#4f8a42");
+          }
+        });
+      }
+      // Moss creeping over the stone paths.
+      for (let n = 0; n < 500; n++) {
+        let x = i.x0 + t() * (i.x1 - i.x0),
+          y = i.y0 + t() * (i.y1 - i.y0);
+        floorUpper(1, x, y) &&
+          t() < 0.5 &&
+          s(x, y, t() < 0.5 ? "rgba(80,130,60,0.55)" : "rgba(60,100,45,0.5)");
+      }
+    } else if (kind === 2) {
+      // Fissures that glow (animated), basalt hexes, obsidian and ash.
+      for (let n = 0; n < 7; n++) {
+        let x = i.x0 + 40 + t() * (Se - i.x0 - 60),
+          y = i.y0 + 20 + t() * (i.y1 - i.y0 - 40);
+        if (!clear(x, y, 16)) continue;
+        let pts = [[x, y]],
+          a = t() * 6.28;
+        for (let k = 0; k < 7; k++)
+          (a += (t() - 0.5) * 1.2),
+            (x += Math.cos(a) * 5),
+            (y += Math.sin(a) * 3),
+            pts.push([x, y]);
+        if (!pts.every(([u, v]) => clear(u, v, 6))) continue;
+        for (let P of [pts, pts.map(([u, v]) => mir(u, v))]) {
+          FLOOR_FX.cracks.push(P);
+          for (let k = 1; k < P.length; k++) {
+            let [u0, v0] = P[k - 1],
+              [u1, v1] = P[k];
+            for (let q = 0; q <= 1; q += 0.2)
+              s(u0 + (u1 - u0) * q, v0 + (v1 - v0) * q, "#1a0f0c"),
+                s(u0 + (u1 - u0) * q, v0 + (v1 - v0) * q + 1, "#4a1a0c");
+          }
+        }
+      }
+      for (let n = 0; n < 18; n++) {
+        let x = i.x0 + 20 + t() * (i.x1 - i.x0 - 40),
+          y = i.y0 + 14 + t() * (i.y1 - i.y0 - 28);
+        if (!clear(x, y)) continue;
+        both(x, y, (u, v) => {
+          for (let a = 0; a < 6; a++) {
+            let q0 = (a / 6) * 6.28,
+              q1 = ((a + 1) / 6) * 6.28;
+            for (let f = 0; f <= 1; f += 0.25)
+              s(
+                u + Math.cos(q0 + (q1 - q0) * f) * 6,
+                v + Math.sin(q0 + (q1 - q0) * f) * 4,
+                "rgba(20,12,10,0.55)",
+              );
+          }
+          s(u - 2, v - 1, "rgba(120,100,90,0.4)");
+        });
+      }
+      for (let n = 0; n < 16; n++) {
+        let [x, y] = edgeSpot();
+        clear(x, y) &&
+          both(x, y, (u, v) => {
+            R(u - 1, v - 4, 2, 5, "#120c14"),
+              R(u + 1, v - 2, 2, 3, "#1c1420"),
+              s(u, v - 3, "#8a7aa8"),
+              R(u - 2, v + 1, 5, 1, "rgba(0,0,0,0.3)");
+          });
+      }
+      for (let n = 0; n < 10; n++) {
+        let x = i.x0 + t() * (i.x1 - i.x0),
+          y = i.y0 + t() * (i.y1 - i.y0);
+        clear(x, y, 20) &&
+          both(x, y, (u, v) => soft(u, v, 18, 7, "rgba(150,140,135,0.18)"));
+      }
+    } else if (kind === 3) {
+      // Wind-carved drifts, patches of clear ice, rocks and crystals.
+      for (let n = 0; n < 26; n++) {
+        let x = i.x0 + t() * (i.x1 - i.x0),
+          y = i.y0 + 10 + t() * (i.y1 - i.y0 - 20);
+        if (!clear(x, y, 6)) continue;
+        both(x, y, (u, v) => {
+          for (let k = 0; k < 34; k++)
+            s(u + k, v + Math.sin(k * 0.2) * 2, "rgba(150,175,210,0.45)"),
+              s(u + k, v + 1 + Math.sin(k * 0.2) * 2, "rgba(255,255,255,0.8)");
+        });
+      }
+      for (let n = 0; n < 5; n++) {
+        let x = i.x0 + 40 + t() * (Se - i.x0 - 60),
+          y = i.y0 + 30 + t() * (i.y1 - i.y0 - 60);
+        if (!clear(x, y, 30)) continue;
+        both(x, y, (u, v) => {
+          soft(u, v, 16, 8, "rgba(120,170,220,0.45)");
+          for (let k = 0; k < 4; k++) {
+            let a = t() * 6.28;
+            for (let d = 2; d < 10; d++)
+              s(
+                u + Math.cos(a) * d,
+                v + Math.sin(a) * d * 0.5,
+                "rgba(255,255,255,0.7)",
+              );
+          }
+        });
+      }
+      for (let n = 0; n < 12; n++) {
+        let [x, y] = edgeSpot();
+        if (!clear(x, y)) continue;
+        let kindN = n % 3;
+        both(x, y, (u, v) => {
+          if (kindN === 0)
+            R(u - 5, v - 3, 10, 6, "#6a7486"),
+              R(u - 4, v - 4, 8, 2, "#ffffff"),
+              R(u - 5, v - 2, 2, 2, "#ffffff"),
+              R(u + 3, v, 2, 3, "#4f586a"),
+              R(u - 6, v + 3, 12, 1, "rgba(60,80,120,0.3)");
+          else if (kindN === 1)
+            for (let k = 0; k < 4; k++)
+              R(
+                u - 4 + k * 3,
+                v - 2 - (k % 2) * 3,
+                1,
+                4 + (k % 2) * 3,
+                k % 2 ? "#e8f8ff" : "#9fd8f5",
+              ),
+                s(u - 4 + k * 3, v - 3 - (k % 2) * 3, "#ffffff");
+          else
+            for (let k = 0; k < 6; k++)
+              R(u - 4 + k * 2, v - (k % 3), 1, 2 + (k % 3), "#5a6a3a");
+        });
+      }
+    } else if (kind === 4) {
+      // Painted rings round the pylons, floor arrows, oil, crates and drums.
+      for (let [px, py] of PLANT.pylons) {
+        for (let a = 0; a < 6.28; a += 0.02)
+          Math.floor(a * 8) % 2 &&
+            s(
+              px + Math.cos(a) * PLANT.chargeR,
+              py + 4 + Math.sin(a) * PLANT.chargeR * 0.5,
+              "rgba(224,184,30,0.55)",
+            );
+      }
+      for (let n = 0; n < 12; n++) {
+        let x = i.x0 + 30 + t() * (i.x1 - i.x0 - 60),
+          y = i.y0 + 20 + t() * (i.y1 - i.y0 - 40);
+        if (!clear(x, y, 14)) continue;
+        n % 2
+          ? both(x, y, (u, v, d) => {
+              for (let k = 0; k < 5; k++)
+                s(u + k * d, v - k, "rgba(230,235,240,0.35)"),
+                  s(u + k * d, v + k, "rgba(230,235,240,0.35)");
+            })
+          : both(x, y, (u, v) => soft(u, v, 9, 4, "rgba(5,8,12,0.45)"));
+      }
+      // Diamond plate on a few panels.
+      for (let n = 0; n < 8; n++) {
+        let x = i.x0 + ((t() * ((i.x1 - i.x0) / 32)) | 0) * 32,
+          y = i.y0 + ((t() * ((i.y1 - i.y0) / 24)) | 0) * 24;
+        if (!clear(x + 16, y + 12, 6)) continue;
+        both(x + 16, y + 12, (u, v) => {
+          for (let a = -14; a < 14; a += 4)
+            for (let b = -10; b < 10; b += 4)
+              s(u + a + ((b / 4) & 1) * 2, v + b, "rgba(120,135,150,0.45)");
+        });
+      }
+      for (let n = 0; n < 10; n++) {
+        let [x, y] = edgeSpot();
+        if (!clear(x, y)) continue;
+        let kindN = n % 3;
+        both(x, y, (u, v) => {
+          if (kindN === 0)
+            R(u - 6, v - 6, 12, 10, "#7a5a32"),
+              R(u - 6, v - 6, 12, 1, "#a07a48"),
+              R(u - 6, v - 1, 12, 1, "#5a4022"),
+              R(u - 1, v - 6, 1, 10, "#5a4022"),
+              R(u - 7, v + 4, 14, 1, "rgba(0,0,0,0.35)");
+          else if (kindN === 1)
+            R(u - 4, v - 7, 8, 10, "#d8a820"),
+              R(u - 4, v - 7, 8, 1, "#f0d060"),
+              R(u - 4, v - 3, 8, 1, "#1a1a1a"),
+              R(u - 4, v, 8, 1, "#1a1a1a"),
+              R(u - 5, v + 3, 10, 1, "rgba(0,0,0,0.35)");
+          else
+            R(u - 5, v - 4, 10, 8, "#3a4250"),
+              R(u - 3, v - 2, 6, 4, "#262c35"),
+              s(u, v, "#7fe3ff"),
+              R(u - 6, v + 4, 12, 1, "rgba(0,0,0,0.35)");
+        });
+        kindN === 2 && FLOOR_FX.lamps.push([x, y], mir(x, y));
+      }
+      // Cable trenches from each pylon to the nearest wall: power flows in them.
+      for (let [px, py] of PLANT.pylons) {
+        let tx = px,
+          ty = py < Te ? i.y0 : i.y1;
+        FLOOR_FX.cables.push([px, py + 6, tx, ty]);
+        for (let y = Math.min(py + 6, ty); y < Math.max(py + 6, ty); y++)
+          R(px - 2, y, 5, 1, "#1a1f26"),
+            s(px - 2, y, "#2e363f"),
+            s(px + 2, y, "#2e363f");
+      }
+    }
+    e.restore();
+  }
+  // Animated floor detail: glowing fissures, ice glints, power in the cables.
+  function floorLive(a, e) {
+    let t = e.tick,
+      k = e.arena;
+    if (FLOOR_FX.kind !== k) return;
+    if (k === 2) {
+      a.save(), (a.globalCompositeOperation = "lighter");
+      FLOOR_FX.cracks.forEach((P, n) => {
+        let p = 0.35 + 0.35 * Math.sin(t * 0.05 + n * 1.7);
+        for (let q = 1; q < P.length; q++) {
+          let [u0, v0] = P[q - 1],
+            [u1, v1] = P[q];
+          (a.strokeStyle = `rgba(255,${100 + 60 * p},40,${0.3 + 0.4 * p})`),
+            (a.lineWidth = 1);
+          a.beginPath(),
+            a.moveTo(u0, v0 + 0.5),
+            a.lineTo(u1, v1 + 0.5),
+            a.stroke();
+        }
+        // A wisp of smoke now and then.
+        (t + n * 37) % 90 < 30 &&
+          ((a.fillStyle = "rgba(255,140,60,0.25)"),
+          a.fillRect(P[3][0], P[3][1] - ((t + n * 37) % 90) / 3, 1, 1));
+      });
+      a.restore();
+    } else if (k === 3) {
+      let q = rt(((t / 20) | 0) + 3);
+      for (let n = 0; n < 10; n++) {
+        let x = B.x0 + q() * (B.x1 - B.x0),
+          y = B.y0 + q() * (B.y1 - B.y0),
+          f = (t % 20) / 20,
+          al = Math.sin(f * Math.PI);
+        (a.fillStyle = `rgba(255,255,255,${al})`),
+          a.fillRect(x | 0, y | 0, 1, 1),
+          al > 0.6 &&
+            (a.fillRect((x | 0) - 1, y | 0, 3, 1),
+            a.fillRect(x | 0, (y | 0) - 1, 1, 3));
+      }
+    } else if (k === 4) {
+      let live = e.rocks.filter((p) => p.pylon && p.off <= 0).length;
+      for (let [x0, y0, x1, y1] of FLOOR_FX.cables)
+        for (let n = 0; n < 3; n++) {
+          let f = (((t * 0.02 + n / 3) % 1) + 1) % 1;
+          (a.fillStyle = live ? "#7fe3ff" : "#3a4a55"),
+            a.fillRect(
+              Math.round(x0 + (x1 - x0) * f) - 1,
+              Math.round(y0 + (y1 - y0) * f),
+              2,
+              2,
+            );
+        }
+      for (let [n, [x, y]] of FLOOR_FX.lamps.entries())
+        Math.sin(t * 0.08 + n) > 0.3 &&
+          ((a.fillStyle = "#7fe3ff"), a.fillRect(x - 1, y - 1, 2, 2));
+    }
+  }
   function Va(kind = 0) {
     let a = document.createElement("canvas");
     (a.width = Y), (a.height = _);
@@ -14485,6 +15967,7 @@
         (e.fillStyle = v),
         e.fillRect(x - 1, P + 6, 2, 2);
     }
+    arenaSurround(e, kind, t);
     for (let x = 0; x < 8; x++)
       (e.fillStyle = `rgba(10,14,12,${0.32 - x * 0.04})`),
         e.fillRect(i.x0, i.y0 + x, i.x1 - i.x0, 1);
@@ -14495,6 +15978,7 @@
     kind === 0 && stadiumFloor(e, t, s);
     kind === 1 && !tiled && Ka2(e, t, s);
     kind >= 2 && Kfloor(e, t, s, kind, tiled);
+    floorDetail(e, kind, rt(91 + kind));
     return a;
   }
   // Stadium: a Poké Ball emblem painted into the centre circle.
@@ -16887,6 +18371,7 @@
       i)
     )
       return;
+    arenaBack(a, e, t);
     let o = (h, c) => h + (c - h) * s,
       l = e.player;
     for (let h of e.grass) {
@@ -17820,6 +19305,7 @@
     dropsAir(a, e);
     summonAir(a, e);
     exAir(a, e);
+    arenaAir(a, e, t);
     for (let h of t.ambient)
       (a.globalAlpha = 0.18 + 0.14 * Math.sin(h.ph * 2)),
         (a.fillStyle = "#f4ead0"),
@@ -21463,6 +22949,7 @@
       a.setTransform(1, 0, 0, 1, 0, 0),
       a.clearRect(0, 0, a.canvas.width, a.canvas.height),
       (a.imageSmoothingEnabled = !1),
+      s.screen !== "play" && ambStop(),
       s.screen === "title")
     ) {
       is(s, o), Lt(s), touchDraw(s, e);
@@ -30614,6 +32101,7 @@
     }
     function Ne(n) {
       let D = e.player;
+      scarEvent(e, n);
       switch (n.type) {
         case "hit": {
           hitFlourish(n);
