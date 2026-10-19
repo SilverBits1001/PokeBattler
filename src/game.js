@@ -30,6 +30,7 @@
       bufferTicks: 5,
       deadzone: 0.2,
       gameMode: 0,
+      onlineTag: 0,
       cpuLevel: 2,
       arena: 1,
       items: 1,
@@ -51,6 +52,7 @@
       "music",
       "volume",
       "gameMode",
+      "onlineTag",
       "cpuLevel",
       "dummyCount",
       "dummyMode",
@@ -126,6 +128,7 @@
         "Team Battle",
         "Zone Control",
         "Online",
+        "Tag Team",
       ],
     },
     {
@@ -1980,7 +1983,8 @@
     Na = 2,
     yt = { strong: 1.05, weak: 0.95 },
     // Match modes, indexed by the gameMode option.
-    MODES = ["vs", "practice", "ffa", "team", "zone", "online"],
+    // Tag Team (6) runs the "vs" match with two Pokemon a side.
+    MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag"],
     MODE_NAMES = [
       "VS CPU",
       "TRAINING",
@@ -1988,7 +1992,13 @@
       "TEAM 2V2",
       "ZONE CONTROL",
       "ONLINE",
+      "TAG TEAM",
     ],
+    // The order X steps through modes on team select.
+    MODE_ORDER = [0, 6, 1, 2, 3, 4, 5],
+    // Standard is one Pokemon; Tag Team (and Tag Team online) is two.
+    teamSize = () =>
+      A.gameMode === 6 || (A.gameMode === 5 && A.onlineTag) ? 2 : 1,
     // Modes with CPU opponents picked on the team select screen.
     cpuSide = () => A.gameMode !== 1 && A.gameMode !== 5,
     QUAD = [
@@ -2864,7 +2874,7 @@
             (i && r.extra?.length === 2) ||
               (r.extra = [0, 1].map(() => {
                 let l = [...ge].sort(() => this.rand() - 0.5);
-                return l.slice(0, 2);
+                return l.slice(0, t.length);
               }));
             for (let l = 0; l < 2; l++) {
               let f = l + 2,
@@ -14803,6 +14813,10 @@
               ["Q", "Switch"],
               ["E", "Assist"],
             ],
+      // Switch and Assist only mean something with a partner.
+      x0 =
+        a.player.slots.length > 1 ||
+        (i = i.filter(([, c]) => c !== "Switch" && c !== "Assist")),
       r = 3.5,
       o = 0,
       l = i.map(([c, y]) => {
@@ -15246,7 +15260,7 @@
       });
     let b = r[1]
       ? `Partner: ${xe[r[1]].name}`
-      : r[0]
+      : r[0] && teamSize() === 2
         ? "Partner: choose one"
         : "";
     b && G(b, e + 6, u + 34, 5.8, r[1] ? "#cfcaea" : g.dim, { weight: 600 });
@@ -15305,9 +15319,18 @@
     }
     d.restore();
     V("Choose your team", 12, 22, 16, g.chalk, { skew: !0, outline: 2 }),
-      G("Pick two. Your first pick leads.", 13, 29.5, 5.8, g.haze, {
-        italic: !0,
-      });
+      G(
+        teamSize() === 2
+          ? "Tag Team: pick two. Your first pick leads."
+          : "Pick your Pok\u00e9mon. X for Tag Team.",
+        13,
+        29.5,
+        5.8,
+        g.haze,
+        {
+          italic: !0,
+        },
+      );
     let i = ["Easy", "Normal", "Hard"][A.cpuLevel],
       r = ["#4df08a", g.gold, g.cpu][A.cpuLevel],
       o = ue(
@@ -15333,7 +15356,7 @@
       !1,
       0,
       [a.picks[0], a.picks[1]],
-      a.picks.length < 2 ? f : null,
+      a.picks.length < teamSize() ? f : null,
     ),
       selPlate(!0, 10, 0, !1, "PLAYER 1", a.picks, f);
     // Right: the CPU's team, or what this mode does instead.
@@ -15493,7 +15516,10 @@
       });
     // Controls and the start prompt.
     let p = 247;
-    if (a.picks.length === 2 && (!s || a.cpuPicks.length === 2)) {
+    if (
+      a.picks.length === teamSize() &&
+      (!s || a.cpuPicks.length === teamSize())
+    ) {
       let M = 1 + 0.04 * Math.sin(t * 0.2);
       d.save(),
         d.translate(m(h), m(p)),
@@ -15519,10 +15545,20 @@
       ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
       [
         "X",
-        `Mode: ${["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online"][A.gameMode] ?? "VS CPU"}`,
+        `Mode: ${["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team"][A.gameMode] ?? "VS CPU"}`,
         "#cfcaea",
       ],
-      ...(s ? [["Y", `CPU: ${i}`, r]] : []),
+      ...(s
+        ? [["Y", `CPU: ${i}`, r]]
+        : A.gameMode === 5
+          ? [
+              [
+                "Y",
+                A.onlineTag ? "Format: Tag Team" : "Format: Standard",
+                "#cfcaea",
+              ],
+            ]
+          : []),
       ["SELECT", "Arena", y],
     ]) {
       let x = Pe(M, k + 4, oe - 7, 3.2),
@@ -17862,7 +17898,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 4,
+  var NETV = 5,
     RB_MAX = 40,
     RB_AIM = 4,
     RB_DMAX = 12,
@@ -17891,6 +17927,7 @@
       "showHitboxes",
       "slowmo",
       "gameMode",
+      "onlineTag",
       "cpuLevel",
     ],
     B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
@@ -17971,7 +18008,10 @@
   // What other pages send is untrusted: only real roster ids, sane numbers.
   var netMon = (a) => typeof a === "string" && ge.includes(a),
     netTeam = (a) =>
-      Array.isArray(a) && a.length === 2 && a.every(netMon) && a[0] !== a[1];
+      Array.isArray(a) &&
+      (a.length === 1 || a.length === 2) &&
+      a.every(netMon) &&
+      a[0] !== a[1];
   function netCfgOk(a) {
     if (
       !a ||
@@ -17983,6 +18023,8 @@
       a.delay > 15 ||
       !Array.isArray(a.teams) ||
       !a.teams.every(netTeam) ||
+      a.teams.length !== 2 ||
+      a.teams[0].length !== a.teams[1].length ||
       !a.tune ||
       typeof a.tune !== "object"
     )
@@ -18141,6 +18183,7 @@
         st: NET.st,
         want: NET.want,
         team: a.length ? a : (NET.team ?? []),
+        fmt: teamSize(),
         hb: NET.hb ?? 0,
         no: [...NET.declined].slice(-4),
       },
@@ -18150,11 +18193,14 @@
   function netLobbyPeers() {
     let a = NET.room;
     return a && !NET.dead
-      ? a
-          .peers()
-          .filter(
-            (e) => !e.sameTab && e.kind === "viewer" && e.presence?.v === NETV,
-          )
+      ? a.peers().filter(
+          // Only trainers playing the same format (one Pokemon or two).
+          (e) =>
+            !e.sameTab &&
+            e.kind === "viewer" &&
+            e.presence?.v === NETV &&
+            e.presence.fmt === teamSize(),
+        )
       : [];
   }
   function netMe() {
@@ -19155,7 +19201,7 @@
         { italic: !0 },
       );
     let s = !!NET.room && !NET.dead;
-    ue(
+    let fw = ue(
       P2P.state === "linked" ? "FRIEND LINK" : s ? "ONLINE" : "CODES ONLY",
       s ? g.hp : g.gold,
       H - 12,
@@ -19166,6 +19212,11 @@
         text: g.night,
       },
     );
+    ue(teamSize() === 2 ? "TAG TEAM" : "STANDARD", g.dim, H - 16 - fw, 14, {
+      right: !0,
+      size: 7,
+      text: g.chalk,
+    });
     for (let C = 0; C < 2; C++)
       St(
         a,
@@ -19463,7 +19514,7 @@
     {
       id: "battle",
       label: "Battle",
-      desc: "Fight the CPU with a team of two.",
+      desc: "One-on-one against the CPU. X on team select for Tag Team.",
       mon: "charizard",
       color: "#ff8a3d",
     },
@@ -19801,8 +19852,12 @@
           ["guard", "GUARD", ["guard"], 458, 160, 8],
           ["lock", "LOCK", ["lock"], 390, 160, 8],
           ["smash", "SMASH", ["smash"], 370, 245, 9],
-          ["switch", "SWITCH", ["switch"], 30, 132, 8],
-          ["assist", "ASSIST", ["assist"], 78, 132, 8],
+          ...(e.player.slots.length > 1
+            ? [
+                ["switch", "SWITCH", ["switch"], 30, 132, 8],
+                ["assist", "ASSIST", ["assist"], 78, 132, 8],
+              ]
+            : []),
           ["start", "II", ["start"], H / 2, 56, 7],
         ];
   }
@@ -20529,7 +20584,11 @@
     function E() {
       if (A.gameMode === 5) return netToLobby();
       let n = A.gameMode !== 1;
-      e.startMatch(MODES[A.gameMode] ?? "vs", s.picks, n ? s.cpuPicks : []),
+      e.startMatch(
+        A.gameMode === 6 ? "vs" : (MODES[A.gameMode] ?? "vs"),
+        s.picks,
+        n ? s.cpuPicks : [],
+      ),
         (s.screen = "play"),
         (l.hidden = !0),
         (s.flash = 10),
@@ -20544,10 +20603,10 @@
     }
     function Q() {
       for (let n = 0; n < 20; n++) {
-        let D = [...ge].sort(() => Math.random() - 0.5).slice(0, 2);
+        let D = [...ge].sort(() => Math.random() - 0.5).slice(0, teamSize());
         if (!D.every((W) => s.picks.includes(W))) return D;
       }
-      return ge.slice(0, 2);
+      return ge.slice(0, teamSize());
     }
     touchInit(() => s),
       p && ((l.hidden = !0), (s.screen = "menu")),
@@ -20592,30 +20651,41 @@
         (s.cursor = RN3[W][s.cursor] ?? s.cursor), S.ui(!0);
       }),
         n.pressed.has("special1") &&
-          ((A.gameMode = (A.gameMode + 1) % MODES.length),
+          ((A.gameMode =
+            MODE_ORDER[
+              (MODE_ORDER.indexOf(A.gameMode) + 1) % MODE_ORDER.length
+            ] ?? 0),
           Ze(),
+          (s.picks = s.picks.slice(0, teamSize())),
           (s.cpuPicks = []),
           (s.roulette = -1),
           S.ui(!0),
-          s.picks.length === 2 && cpuSide() && (s.roulette = 48)),
+          s.picks.length === teamSize() && cpuSide() && (s.roulette = 48)),
         n.pressed.has("special2") &&
-          D &&
-          ((A.cpuLevel = (A.cpuLevel + 1) % 3), Ze(), S.ui(!0)),
+          (D
+            ? ((A.cpuLevel = (A.cpuLevel + 1) % 3), Ze(), S.ui(!0))
+            : A.gameMode === 5 &&
+              ((A.onlineTag = A.onlineTag ? 0 : 1),
+              Ze(),
+              (s.picks = s.picks.slice(0, teamSize())),
+              S.ui(!0))),
         n.pressed.has("select") &&
           ((A.arena = (A.arena + 1) % ARENAS.length), Ze(), S.ui(!0));
-      let R = s.picks.length === 2 && (!cpuSide() || s.cpuPicks.length === 2);
+      let R =
+        s.picks.length === teamSize() &&
+        (!cpuSide() || s.cpuPicks.length === teamSize());
       if ((n.pressed.has("start") || n.pressed.has("confirm")) && R) {
         E();
         return;
       }
       if (n.pressed.has("confirm")) {
         let W = ge[s.cursor];
-        s.picks.length < 2 && !s.picks.includes(W)
+        s.picks.length < teamSize() && !s.picks.includes(W)
           ? (s.picks.push(W),
             (s.pickBump = 1),
             S.select(),
             S.cry(W, 0.05),
-            s.picks.length === 2 && cpuSide()
+            s.picks.length === teamSize() && cpuSide()
               ? (s.roulette = 48)
               : s.picks.length === 1 &&
                 (s.cursor = ge.findIndex((T) => !s.picks.includes(T))))
@@ -20634,7 +20704,7 @@
         s.roulette % 4 === 0 &&
           ((s.rouletteShow = [...ge]
             .sort(() => Math.random() - 0.5)
-            .slice(0, 2)),
+            .slice(0, teamSize())),
           S.ui(s.roulette % 8 === 0)),
         s.roulette === 0 &&
           ((s.cpuPicks = Q()),
