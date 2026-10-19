@@ -2877,24 +2877,41 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
                 .filter(
                   (ie) => Math.hypot(ie.x - t.x, ie.y - t.y) < 100,
                 ).length;
-            J && y < 150
-              ? ((this.smashHold = 40 + Math.floor(r() * 20)),
-                (i.ax = Math.cos(b)),
-                (i.ay = Math.sin(b)))
-              : u.cdY === 0 && y < 92 && !e.floating(o) && (Q > 1 || r() < 0.45)
-                ? i.pressed.add("special2")
-                : u.cdX === 0 && fe && y > 46 && y < 170 && r() < 0.5
-                  ? i.pressed.add("special1")
-                  : y < 34 || (N && y < 50)
-                    ? i.pressed.add("attack")
-                    : u.cdX === 0 && fe && y > 50 && y < 210 && r() < 0.4
-                      ? i.pressed.add("special1")
-                      : y > 60 &&
-                        y < 125 &&
-                        r() < 0.08 &&
-                        ((this.smashHold = 6 + Math.floor(r() * 30)),
-                        (i.ax = Math.cos(b)),
-                        (i.ay = Math.sin(b)));
+            // Belly Bounce a shot that is about to land back at its sender.
+            let shot = e.projectiles.find(
+              (p) =>
+                p.team !== t.team &&
+                !p.dead &&
+                !p.reflected &&
+                p.kind !== "seed" &&
+                p.kind !== "hurricane" &&
+                Math.hypot(p.x - t.x, p.y - t.y) < 56,
+            );
+            shot && u.cdDodge === 0 && r() < 0.6
+              ? ((i.mx = Math.cos(Math.atan2(shot.y - t.y, shot.x - t.x))),
+                (i.my = Math.sin(Math.atan2(shot.y - t.y, shot.x - t.x))),
+                i.pressed.add("dodge"))
+              : J && y < 150
+                ? ((this.smashHold = 40 + Math.floor(r() * 20)),
+                  (i.ax = Math.cos(b)),
+                  (i.ay = Math.sin(b)))
+                : u.cdY === 0 &&
+                    y < 92 &&
+                    !e.floating(o) &&
+                    (Q > 1 || r() < 0.45)
+                  ? i.pressed.add("special2")
+                  : u.cdX === 0 && fe && y > 46 && y < 170 && r() < 0.5
+                    ? i.pressed.add("special1")
+                    : y < 34 || (N && y < 50)
+                      ? i.pressed.add("attack")
+                      : u.cdX === 0 && fe && y > 50 && y < 210 && r() < 0.4
+                        ? i.pressed.add("special1")
+                        : y > 60 &&
+                          y < 125 &&
+                          r() < 0.08 &&
+                          ((this.smashHold = 6 + Math.floor(r() * 30)),
+                          (i.ax = Math.cos(b)),
+                          (i.ay = Math.sin(b)));
           } else if (f === "noivern") {
             // Hit and run: Boomburst point-blank, Hurricane to zone, Air Slash poke.
             let fe = !e.losBlocked(t.x, t.y, o.x, o.y);
@@ -3123,24 +3140,32 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               !p.dead &&
               Math.hypot(p.x - t.x, p.y - t.y) < 60,
           );
-          (shots || y < 120) &&
-          u.cdY === 0 &&
-          r() < (shots ? 0.5 : y < 60 ? 0.6 : 0.25)
-            ? i.pressed.add("special2")
-            : y < 34 && u.cdDodge === 0 && r() < 0.5
-              ? dash(b + Math.PI + (r() < 0.5 ? 0.7 : -0.7))
-              : y < 28 || (N && y < 44)
-                ? i.pressed.add("attack")
-                : u.cdX === 0 && los && y > 50 && y < 300 && r() < 0.5
-                  ? i.pressed.add("special1")
-                  : y > 70 &&
-                    y < 170 &&
-                    r() < 0.14 &&
-                    smash(
-                      10 +
-                        Math.round(me((y - 60) / 110, 0, 1) * 44) +
-                        Math.floor(r() * 4),
-                    );
+          // Teleport away from a charged smash or a rush.
+          let rush =
+            op &&
+            y < 110 &&
+            (["smashCharge", "smash", "bodySlam"].includes(op.state) ||
+              (op.state === "ex" && op.exDanger));
+          rush && u.cdDodge === 0 && r() < 0.6
+            ? dash(b + Math.PI + (r() < 0.5 ? 0.6 : -0.6))
+            : (shots || y < 120) &&
+                u.cdY === 0 &&
+                r() < (shots ? 0.5 : y < 60 ? 0.6 : 0.25)
+              ? i.pressed.add("special2")
+              : y < 34 && u.cdDodge === 0 && r() < 0.5
+                ? dash(b + Math.PI + (r() < 0.5 ? 0.7 : -0.7))
+                : y < 28 || (N && y < 44)
+                  ? i.pressed.add("attack")
+                  : u.cdX === 0 && los && y > 50 && y < 300 && r() < 0.5
+                    ? i.pressed.add("special1")
+                    : y > 70 &&
+                      y < 170 &&
+                      r() < 0.14 &&
+                      smash(
+                        10 +
+                          Math.round(me((y - 60) / 110, 0, 1) * 44) +
+                          Math.floor(r() * 4),
+                      );
         } else if (f === "metagross") {
           // Magnet Rise to get moving, Zen Headbutt in, brawl, Hammer Arm.
           u.cdY === 0 && !(u.riseT > 0) && (y > 120 || r() < 0.06)
