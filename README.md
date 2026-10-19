@@ -1,4 +1,4 @@
-# Starter Brawl
+# Pokémon Pocket Brawl
 
 A top-down Pokémon arena brawler that runs in one HTML file.
 

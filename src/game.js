@@ -26078,8 +26078,12 @@
     d.restore();
     // The logo.
     let bob = Math.sin(t * 0.04) * 1.2;
-    V("STARTER", H / 2 - 74, 42 + bob, 15, g.p1, { skew: !0, outline: 3 }),
-      ss("BRAWL", H / 2, 100 + bob, 60, t),
+    V("Pok\xE9mon", H / 2, 46 + bob, 18, g.gold, {
+      align: "center",
+      skew: !0,
+      outline: 3,
+    }),
+      ss("POCKET BRAWL", H / 2, 98 + bob, 44, t),
       V("VS", H / 2, 150, 26, "rgba(255,255,255,0.85)", {
         align: "center",
         skew: !0,
