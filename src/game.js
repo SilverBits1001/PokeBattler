@@ -1233,7 +1233,7 @@
         color: "#3f7fd6",
         typeInk: "#0a1a33",
         hp: 900,
-        power: 1.12,
+        power: 0.82,
         speed: 3.25,
         weight: 0.9,
         r: 8,
@@ -1328,7 +1328,7 @@
         color: "#c9a24a",
         typeInk: "#2a2008",
         hp: 1080,
-        power: 1.0,
+        power: 1.1,
         speed: 2.45,
         weight: 1.1,
         r: 9,
@@ -1886,7 +1886,7 @@
         color: "#5fc98a",
         typeInk: "#0d2a18",
         hp: 1000,
-        power: 1.5,
+        power: 1.45,
         speed: 2.55,
         weight: 1.05,
         r: 8,
@@ -3656,7 +3656,7 @@
     },
     // Frostfall: the centre rink cracks under heavy blows and breaks into
     // icy water that slows, then refreezes. Spheal roll down the lanes.
-    THIN = { cracks: 6, open: 600, slow: 0.55 },
+    THIN = { cracks: 8, open: 600, slow: 0.55 },
     SPHEAL = {
       first: 600,
       every: 720,
@@ -3715,6 +3715,8 @@
     // range and escapes far more than a duel does, so each kit's damage is
     // tuned for this mode on its own (duels and team modes use 1).
     FFA_POW = {
+      // Shield Forme and King's Shield shine in a crowd.
+      aegislash: 0.74,
       gardevoir: 0.6,
       garchomp: 0.88,
       froslass: 0.69,
@@ -3743,6 +3745,9 @@
     // Team 2v2 gets its own scale for the same reason: partners change what
     // each kit is worth (a shooter behind a brawler, say).
     TEAM_POW = {
+      // Focused by two foes, the new pair need a little more in 2v2.
+      aegislash: 1.15,
+      greninja: 1.12,
       garchomp: 0.78,
       snorlax: 0.77,
       dragapult: 0.8,
@@ -3762,6 +3767,8 @@
     },
     // Zone Control: holding a point rewards staying put (Venusaur roots).
     ZONE_POW = {
+      // Holding the ring is hard for the most fragile Pokémon.
+      greninja: 1.35,
       venusaur: 0.88,
       froslass: 1.05,
       charizard: 0.9,
@@ -3782,7 +3789,7 @@
     MODE_POW = { ffa: FFA_POW, team: TEAM_POW, zone: ZONE_POW },
     LG_FFA = { groudon: 0.9, deoxys: 0.82 },
     // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
-    MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.05 } },
+    MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.05, aegislash: 0.88 } },
     // In crowds a CPU turns on whoever hit it within t ticks and r pixels.
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.

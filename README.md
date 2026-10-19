@@ -22,7 +22,7 @@ select. The overlay hides again when a keyboard or controller is used.
 
 See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
 callouts, five arenas, each with its own hazard and benefit (Stadium spotlights, Ruins
-collapse and Ancient Power, Cinder Crater heat vents, Frostfall slides, Power Plant recharge), items (Sitrus Berry, X Attack, Poké Ball, Rocky Helmet, Choice Scarf), Smash-style
+collapse and Ancient Power, Cinder Crater heat vents, Frostfall slides, Power Plant recharge), items (Sitrus Berry, X Attack, Poké Ball, Rocky Helmet, Choice Scarf, Focus Band, Quick Claw, Smoke Ball, Leftovers), Smash-style
 move types, Magnezone, two battle themes plus victory/defeat music, and five modes
 (VS CPU, Training, Free-for-All, Team 2v2, Zone Control). Mode, arena and items can be
 switched in Options → Match, or with X / Select on team select. Accessibility options
@@ -36,6 +36,36 @@ Pokémon: every move with its typical damage and what it does, what each effect
 (burn, chill, daze, armour...) means, and a guide to how to play it. Mid-fight
 announcements (combos, surges, items, legendaries) now appear as a small pill under
 the HUD, so only Ready?, Go!, K.O. and the result take the middle of the screen.
+
+**Living arenas.** Every arena has its own surroundings (stands with a crowd and a
+big screen, a broken colonnade with braziers, a basalt rim with lavafalls, pines
+under an aurora, turbines and control panels), detail along its walls, light
+from real sources, wild Pokémon (Pidgey flocks, Zubat and Unown, Slugma,
+Snorunt and Spheal, Magnemite), weather, and a floor that keeps the scars of the
+fight (scorch marks, cracks, frost, footprints in the snow). The crowd reacts to
+big hits and throws confetti on a K.O.; the Stadium drifts from afternoon to a
+floodlit night. Each arena also gained a mechanic:
+
+- **Stadium:** field shifts. Every so often the pitch becomes a Grass (healing
+  tall grass), Water (puddles that slow and conduct), Fire (hot spots that power
+  you up) or Rock (cover) field for twenty seconds.
+- **Ruins:** pressure plates. Step on one and darts fly down its lane after a
+  short warning, hitting anyone in it.
+- **Cinder Crater:** the lava pools swell and recede.
+- **Frostfall Lake:** heavy blows crack the centre rink until it breaks into
+  slowing icy water, then it refreezes; Spheal roll down the lanes.
+- **Power Plant:** two conveyors running opposite ways (they flip), and Voltorb
+  that roll in and blow up when someone comes close or shoots them.
+
+**New Pokémon.** Greninja (Water/Dark ninja): Water Shuriken, Substitute (a hit
+on it becomes a counter from behind), Night Slash through guard, and Protean (it
+becomes the type of its last move). Aegislash (Steel/Ghost): Stance Change between
+a tough Shield Forme and a hard-hitting, fragile Blade Forme; Shadow Ball; King's
+Shield blocks everything from the front and weakens melee attackers; Sacred Sword.
+
+**New items.** Focus Band (survive one K.O. hit), Quick Claw (cooldowns reset and
+run faster), Smoke Ball (a cloud that hides whoever is inside) and Leftovers
+(slow healing).
 
 **Arcade** (main menu): six duels in a row against rivals drawn from the
 roster, Easy to Hard, on a different arena each stage. Stage six is a boss
@@ -57,9 +87,9 @@ the fallen Pokémon's face. Statuses each have their own short sound, and big
 moments flash the screen edge in their colour. Options → Accessibility →
 Battle callouts → "Icons + words" brings the words back.
 
-Roster (16): Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern,
-Lucario, Garchomp, Scizor, Tyrantrum, Golurk, Rhyperior, Froslass, Gardevoir and
-Metagross. Each has a class from [the design document](docs/design-doc.md) (speedster,
+Roster (18): Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern,
+Lucario, Garchomp, Scizor, Tyrantrum, Golurk, Rhyperior, Froslass, Gardevoir,
+Metagross, Greninja and Aegislash. Each has a class from [the design document](docs/design-doc.md) (speedster,
 heavyweight, trickster, controller, artillery or skirmisher), a signature gimmick, a
 real weakness, an answer to ranged attacks and a way to escape:
 
@@ -77,15 +107,14 @@ real weakness, an answer to ranged attacks and a way to escape:
   Sight traps.
 - **Metagross** floats on Magnet Rise and is never slowed (Clear Body).
 
-The whole roster was rebalanced together. Every Pokémon averages 46–52% across
-all five arenas in CPU duels, and no pairing reaches 80% over 300 games. Crowd
-control is kept short: getting up is fully invincible and followed by a moment
-of safety, and no move chain locks a fighter for more than about 2.6 seconds.
-Free-for-All, 2v2 and Zone Control each have their own per-Pokémon damage
-scale. In Free-for-All every Pokémon finishes ahead of each opponent 44–54% of
-the time (outright wins can't be 50% with four fighters; an even share is
-25%). In 2v2 every Pokémon wins 46–56% and in Zone Control 43–56%, which is
-as tight as those sample sizes can show.
+The whole roster was rebalanced together. With eighteen Pokémon every one averages
+45–55% across all five arenas in CPU duels, and no pairing reaches 80% over 300
+games. Crowd control is kept short: getting up is fully invincible and followed by a
+moment of safety, and no move chain locks a fighter for more than about 2.6 seconds.
+Free-for-All, 2v2 and Zone Control each have their own per-Pokémon damage scale. In
+2v2 every Pokémon wins 44–58% and in Zone Control 41–64%, within what those sample
+sizes can show; in Free-for-All every Pokémon finishes ahead of each opponent
+40–59% of the time (outright wins can't be 50% with four fighters).
 Each legendary wins 50–58% of Standard and 44–64% of Tag Team mirror matches.
 Details and numbers are in the design review.
 

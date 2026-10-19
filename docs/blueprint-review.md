@@ -1929,3 +1929,101 @@ saved the record and restored the player's Options; fake controller and
 phone recorded rumbles during a Hard CPU fight and none once Vibration was
 off; an online duel (Lucario vs Blastoise) stayed identical over 3,199
 ticks; the keyboard playtest for all 16 Pokémon had no errors.
+
+## Living arenas, arena mechanics, four items, Greninja and Aegislash
+
+The plan is in [plan-arenas-and-roster.md](plan-arenas-and-roster.md). What
+shipped:
+
+### Arenas come alive (drawing only)
+
+- **Surroundings** per arena replace the shared grey wall: Stadium stands with
+  an animated crowd (a wave runs through it on big hits), a big screen showing
+  both leads and their health (and the coming field shift), floodlight towers
+  and ad boards; a dusk colonnade with braziers, ivy and carved Unown; a basalt
+  rim with glowing seams, two lavafalls and a lava channel; night sky, aurora,
+  mountains, pines and a frozen waterfall; turbines, pipes, steam and blinking
+  control panels.
+- **Floor detail** baked into each arena, mirrored through the centre and
+  kept clear of hazards: trainer boxes and cones; a worn Unown mosaic, fallen
+  columns, urns, flowers, textured grass and moss; glowing fissures (animated),
+  basalt hexes, obsidian and ash; wind-carved drifts, clear-ice patches, snowy
+  rocks and crystals (with glints); painted rings round the pylons, arrows,
+  diamond plate, crates, drums, lamps and cable trenches with power flowing in
+  them.
+- **Battle scars**: scorch marks from fire, cracks from heavy hits and slams,
+  frost, wet patches, leaf litter, footprints in the snow and dodge skids. They
+  fade slowly and are reset each match.
+- **Lighting**: a dim ambient per arena with real light cut through it
+  (braziers, lava, lamps, pylons, spotlights), and a pool of light that follows
+  every fighter so nobody is lost in the dark. The Stadium goes from afternoon
+  to sunset to a floodlit night across a match.
+- **Wildlife** from PMD SpriteCollab: Pidgey flocks crossing the Stadium and
+  the Ruins with shadows on the floor, Zubat and Unown in the Ruins, Slugma at
+  the crater's lava channel, Snorunt and Spheal on the snowbank, Magnemite in
+  the plant. Big hits nearby send them off.
+- **Weather and reactions**: snow, embers and ash, fireflies; confetti on a
+  Stadium K.O.; dust falling in the Ruins; a quiet ambient bed per arena and a
+  cheer, rumble, crack or crackle on big moments.
+
+### One new mechanic per arena (simulation, symmetric)
+
+| Arena | Mechanic |
+|---|---|
+| Stadium | Field shifts every ~40 s (first at 25 s): Grass (tall grass that heals whoever stands in it), Water (neutral puddles that slow and conduct electricity), Fire (hot spots: +25% damage), Rock (four boulders of cover). Built from the game's own pieces, announced on the big screen |
+| Ruins | Two pressure plates; stepping on one fires darts down its lane after a 0.7 s warning, hitting anyone in it (14 damage), blocked by boulders |
+| Cinder Crater | The lava pools swell and recede by 28% on a 30 s cycle; the centre pair and the corner pair breathe out of step |
+| Frostfall Lake | Eight heavy blows on the centre rink break it into icy water (45% slower) for ten seconds before it refreezes; Spheal roll down a lane every twelve seconds (16 damage, a knockdown) |
+| Power Plant | Two conveyors running opposite ways (they flip every 15 s); a pair of Voltorb rolls in every ~18 s and explodes (22 damage) after a short fuse when someone comes close, at once if shot |
+
+All of it is seeded and point-symmetric, telegraphed with colour and icons,
+and registered as danger for the CPU. Mirror matches (the same Pokémon on both
+sides, 72 per arena) show no spawn advantage: the left spawn wins 46–58%. The
+arena itself deals under 7% of all damage.
+
+### Four items
+
+Focus Band (for 20 s, a K.O. hit leaves you at 1 HP, once), Quick Claw
+(cooldowns reset, then run 1.5x faster for 6 s), Smoke Ball (a cloud that
+hides whoever is inside; the CPU loses track of anyone in it beyond arm's
+reach) and Leftovers (about 3.6 HP a second for 15 s). Each has pixel art, an
+icon in the status strip and a pickup cue.
+
+### Greninja and Aegislash
+
+- **Greninja** (Water/Dark, ninja speedster, 900 HP): kunai combo; Water
+  Shuriken (a fan of three); Substitute (Detect's window: a hit on it becomes a
+  counter from behind, leaving a log); Night Slash, a dashing smash through
+  guard; Shadow Sneak, a long dash in which it nearly vanishes; Protean (it
+  defends as the type of the last move it landed, shown on the HUD).
+- **Aegislash** (Steel/Ghost, stance fighter, 1080 HP): Stance Change between
+  Shield Forme (takes 30% less, deals 15% less, slower) and Blade Forme (+30%
+  damage, takes 25% more, faster), with its own sprites for each forme; any
+  attack turns it to Blade, King's Shield back to Shield. Shadow Ball; King's
+  Shield blocks everything from the front for half a second and weakens a melee
+  attacker for four seconds; Sacred Sword, a lunging smash through guard.
+- The roster grid is now seven columns so eighteen Pokémon and Random fit in
+  three rows.
+
+### Balance
+
+- Duels (18 Pokémon, 3 games per pairing per side per arena): every Pokémon
+  45–55%. Greninja's power settled at 0.82 (it won 73% at first), Aegislash's
+  at 1.10, Gardevoir's at 1.45 (from 1.5). The closest pairings over 300
+  games: Blastoise vs Gardevoir 78%, Gardevoir vs Lucario 77%, Magnezone vs
+  Greninja 76%, Gardevoir vs Snorlax 75%, Greninja vs Golurk 75%, Dragapult vs
+  Lucario 75%.
+- 2v2: 44–58% (Aegislash x1.15 damage and x0.88 taken, Greninja x1.15 damage
+  in that mode). Zone Control: 41–64% over ~70 games each (Greninja x1.35 in
+  that mode). Free-for-All: 40–59% (Aegislash x0.74 in that mode).
+
+### Checks
+
+- Online rollback duels with the new Pokémon on the Power Plant (Greninja vs
+  Aegislash, 2,668 ticks) and Frostfall Lake (Aegislash vs Froslass, 3,847
+  ticks), 120 ms, 50 ms jitter, 8% loss: identical on both pages, rematch and
+  leave worked, no errors.
+- Keyboard playtest through the real menus (seven-column grid) for all 18:
+  every move starts within 2–5 frames.
+- Each mechanic and item forced and measured; four-fighter Free-for-All, 2v2
+  and Zone Control runs had no errors or time-outs.
