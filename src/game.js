@@ -402,8 +402,8 @@
         type: "FIRE",
         color: "#ff8a3d",
         typeInk: "#2a1206",
-        hp: 795,
-        power: 0.8,
+        hp: 800,
+        power: 0.81,
         speed: 2.9,
         weight: 1.05,
         r: 9,
@@ -498,7 +498,7 @@
         color: "#6cc04a",
         typeInk: "#0f2a08",
         hp: 970,
-        power: 0.81,
+        power: 0.82,
         speed: 2.35,
         weight: 0.85,
         r: 11,
@@ -748,7 +748,7 @@
         type2: "STEEL",
         color: "#f2d64b",
         typeInk: "#2a2205",
-        hp: 990,
+        hp: 985,
         power: 0.82,
         speed: 2.25,
         weight: 0.7,
@@ -936,7 +936,7 @@
         type2: "DRAGON",
         color: "#8a5ccf",
         typeInk: "#1c1033",
-        hp: 880,
+        hp: 875,
         power: 0.85,
         speed: 3.1,
         weight: 1.15,
@@ -1026,8 +1026,8 @@
         type2: "STEEL",
         color: "#4a7fd6",
         typeInk: "#0e1a33",
-        hp: 970,
-        power: 0.82,
+        hp: 965,
+        power: 0.81,
         speed: 3.05,
         weight: 1,
         r: 8,
@@ -1212,8 +1212,8 @@
         type2: "STEEL",
         color: "#e0393e",
         typeInk: "#330a0c",
-        hp: 970,
-        power: 1.14,
+        hp: 975,
+        power: 1.15,
         speed: 2.95,
         weight: 0.95,
         r: 9,
@@ -1305,8 +1305,8 @@
         type2: "DRAGON",
         color: "#c4553a",
         typeInk: "#2e100a",
-        hp: 1130,
-        power: 0.94,
+        hp: 1135,
+        power: 0.96,
         speed: 2.25,
         weight: 0.55,
         r: 11,
@@ -1400,7 +1400,7 @@
         color: "#4f8a8b",
         typeInk: "#0c2122",
         hp: 1095,
-        power: 0.92,
+        power: 0.91,
         speed: 2.05,
         weight: 0.5,
         r: 11,
@@ -1490,8 +1490,8 @@
         type2: "ROCK",
         color: "#8d7f73",
         typeInk: "#241f1a",
-        hp: 1090,
-        power: 0.88,
+        hp: 1105,
+        power: 0.92,
         speed: 1.95,
         weight: 0.45,
         r: 12,
@@ -1584,8 +1584,8 @@
         type2: "GHOST",
         color: "#9ad8f0",
         typeInk: "#0c2a36",
-        hp: 965,
-        power: 1.61,
+        hp: 955,
+        power: 1.56,
         speed: 3.1,
         weight: 1.25,
         r: 8,
@@ -1678,8 +1678,8 @@
         type2: "FAIRY",
         color: "#5fc98a",
         typeInk: "#0d2a18",
-        hp: 990,
-        power: 1.46,
+        hp: 985,
+        power: 1.43,
         speed: 2.55,
         weight: 1.05,
         r: 8,
@@ -3012,18 +3012,34 @@
                 Math.hypot(k.x - o.x, k.y - o.y) < 44 &&
                 Math.abs($e(Math.atan2(k.y - t.y, k.x - t.x), b)) < 0.5,
             );
+          // Roll through a shot that is about to land, sideways to it.
+          let shot = e.projectiles.find(
+            (p) =>
+              p.team !== t.team &&
+              !p.dead &&
+              p.kind !== "hurricane" &&
+              Math.hypot(p.x - t.x, p.y - t.y) < 56,
+          );
           u.cdX === 0 && shatter && r() < 0.6
             ? i.pressed.add("special1")
-            : y < 32 || (N && y < 50)
-              ? i.pressed.add("attack")
-              : u.cdY === 0 && y > 50 && y < 260 && r() < 0.3
-                ? i.pressed.add("special2")
-                : u.cdX === 0 && los && y > 50 && y < 300 && r() < 0.45
-                  ? i.pressed.add("special1")
-                  : y > 40 &&
-                    y < 110 &&
-                    r() < 0.1 &&
-                    smash(6 + Math.floor(r() * 36));
+            : shot && u.cdDodge === 0 && r() < 0.5
+              ? dash(
+                  Math.atan2(shot.vy ?? 0, shot.vx ?? 1) +
+                    (r() < 0.5 ? 1.57 : -1.57),
+                )
+              : op?.rooted && y > 40 && y < 150 && r() < 0.3
+                ? // A rooted foe can't step aside: armoured Horn Drill in.
+                  smash(24 + Math.floor(r() * 20))
+                : y < 32 || (N && y < 50)
+                  ? i.pressed.add("attack")
+                  : u.cdY === 0 && y > 50 && y < 260 && r() < 0.3
+                    ? i.pressed.add("special2")
+                    : u.cdX === 0 && los && y > 50 && y < 300 && r() < 0.45
+                      ? i.pressed.add("special1")
+                      : y > 40 &&
+                        y < 110 &&
+                        r() < 0.1 &&
+                        smash(6 + Math.floor(r() * 36));
         } else if (f === "froslass") {
           // Stack chill with Icy Wind, finish the freeze up close, and
           // Double Team out when it goes wrong.
@@ -12757,12 +12773,15 @@
             E && w.armorUsed++,
             (v = w.state === "hurt" ? w.comboTaken + 1 : 1),
             (w.comboTaken = v);
-          let re = K;
+          let re = K,
+            // Ingrain plants Venusaur in the ground, so Ground moves shake it
+            // loose: no damage cut, full hitstun and knockback.
+            rt = w.rooted && this.attackerType(t) !== "GROUND";
           E
             ? (re = Math.round(K * (w.state === "rest" ? SNOR.restTaken : 0.7)))
             : w.state === "withdraw" && !P
               ? (re = Math.round(K * 0.2))
-              : w.rooted
+              : rt
                 ? (re = Math.round(K * 0.8))
                 : // Venting after an overheat leaves Charizard exposed.
                   w.state === "overheat" &&
@@ -12859,7 +12878,7 @@
               w.state === "solar" && this.storeSolar(w),
               (w.flameEnd = 0);
             let N = p ? 1 : Math.max(0.45, 1 - ae.decay * (v - 1)),
-              J = Math.round((w.rooted ? u * 0.5 : u) * N);
+              J = Math.round((rt ? u * 0.5 : u) * N);
             p && w.state === "hurt"
               ? (w.hitstun = Math.max(w.hitstun, w.t + J))
               : ((w.state = "hurt"), (w.t = 0), (w.hitstun = J)),
@@ -12868,13 +12887,13 @@
               (w.spinRow = -1),
               (w.z = 0);
             let fe = l ? 1 : Math.max(0.55, 1 - (v - 1) * 0.1),
-              ce = w.rooted ? 0 : i * w.kit.weight * fe;
+              ce = rt ? 0 : i * w.kit.weight * fe;
             (w.kvx = r * ce),
               (w.kvy = o * ce),
               (w.mvx = w.mvy = 0),
               (l || C > 0) &&
                 !p &&
-                !w.rooted &&
+                !rt &&
                 (ce >= ae.launchAt || C > 0) &&
                 ((w.state = "launched"),
                 (w.t = 0),
@@ -23485,7 +23504,7 @@
       [
         "*",
         "Ingrain",
-        "Stand still to root: no knockback, less damage, faster Solar.",
+        "Stand still to root: no knockback, less damage, faster Solar. Ground moves still shake you.",
         "PASSIVE",
       ],
       ["*", "Overgrow", "+30% damage below 30% health.", "PASSIVE"],
