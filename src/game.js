@@ -1958,7 +1958,7 @@
         rsDelay: 34,
         rsSpread: 30,
         rsR: 16,
-        rsDmg: 26,
+        rsDmg: 22,
         rsKb: 4,
       },
       golurk: {
