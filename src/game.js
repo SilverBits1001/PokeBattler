@@ -3246,6 +3246,7 @@
       splat: 30,
       downT: 20,
       getupT: 10,
+      wakeT: 8,
       techWin: 10,
       softRange: 90,
     },
@@ -3721,6 +3722,7 @@
       hurPull: 52,
       hurEvery: 12,
       hurDmg: 6,
+      hurStun: 6,
       hurEnd: 26,
       slashSpeed: 4.6,
       pulseLen: 170,
@@ -4026,7 +4028,10 @@
               this.state === "counter" ||
               (this.state === "pfStrike" && this.t < 3) ||
               this.state === "down" ||
-              (this.state === "getup" && this.t < ae.getupT);
+              // The whole get-up, so a hit timed for its last ticks can't
+              // restart a combo before the fighter is able to act.
+              this.state === "getup" ||
+              (this.state === "move" && this.wakeT > 0);
       }
       get vanished() {
         return (
@@ -4762,6 +4767,8 @@
           return;
         }
         this.exTick(e);
+        // Wake-up grace: a few safe ticks after getting up, lost on acting.
+        e.wakeT > 0 && (e.state === "move" ? e.wakeT-- : (e.wakeT = 0));
         if (s.id === "venusaur") {
           let v = p < 0.25 && e.state !== "dodge" && e.state !== "hurt";
           e.stillT = v ? e.stillT + 1 : 0;
@@ -6287,7 +6294,8 @@
             s = 46 * (t(e.t) - t(e.t - 1));
           this.moveBody(e, Math.cos(e.techDir) * s, Math.sin(e.techDir) * s);
         } else this.locomote(e, 0, 0);
-        e.t >= ae.getupT + 4 && ((e.state = "move"), (e.t = 0), (e.tech = !1));
+        e.t >= ae.getupT + 4 &&
+          ((e.state = "move"), (e.t = 0), (e.tech = !1), (e.wakeT = ae.wakeT));
       }
       startSmash(e, t) {
         let s = e.kit.smash;
@@ -7046,7 +7054,9 @@
             age: 0,
             dmg: NOIV.hurDmg,
             kb: 0.5,
-            hitstun: 14,
+            // A short flinch, under the re-hit interval, so a fighter caught
+            // in the vortex can still dodge or walk out of it.
+            hitstun: NOIV.hurStun,
             hitstop: 1,
             kind: "hurricane",
             color: "#c9a6ff",

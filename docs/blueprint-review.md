@@ -1503,66 +1503,82 @@ from trade-offs, not identical stats:
   - Gardevoir moved from a pure zoner to a mid-range controller.
   - Gardevoir and Froslass were kept fragile, at most 1,000 health. Their
     escapes recharge faster instead (Teleport, Psychic, Double Team).
-- **Catch-up legendary meter.** Taking damage now fills it faster than dealing
-  it (0.11 against 0.08 per point), so the side that is behind gets its
-  legendary first. That keeps a counter-pick from snowballing.
+- **Venusaur's Thick Fat.** Venusaur takes 20% less from Ice-type Pokémon,
+  borrowed from its Mega form's ability. Froslass had beaten it 82% of the
+  time over 300 games: Ice Beam is super-effective on Grass, and Froslass
+  resists Poison. That pairing is now 56%.
+- **Catch-up legendary meter.** Taking damage now fills it much faster than
+  dealing it (0.14 against 0.06 per point), so the side that is behind gets
+  its legendary first. That keeps a counter-pick from snowballing.
 - **Two levers per Pokémon, tuned last.** Each Pokémon has a health total
   and a damage scale (`power`). They were stepped toward 50% in small, damped
   moves. Health stays within its class: the fragile kits are capped at 1,000
-  and the heavyweights are kept above 1,050.
+  and the heavyweights are kept at 1,050 or more.
 
 Result (Stadium, Ruins, Crater, Frostfall, Power Plant):
 
 | Pokémon | Stadium | Ruins | Crater | Frostfall | Power Plant | Average |
 |---|---|---|---|---|---|---|
-| Magnezone | 54% | 55% | 56% | 52% | 54% | 54% |
-| Metagross | 47% | 58% | 54% | 60% | 43% | 52% |
-| Snorlax | 51% | 59% | 53% | 48% | 49% | 52% |
-| Garchomp | 51% | 52% | 51% | 49% | 57% | 52% |
-| Blastoise | 54% | 51% | 51% | 47% | 56% | 52% |
-| Noivern | 44% | 47% | 58% | 56% | 51% | 51% |
-| Lucario | 53% | 49% | 56% | 52% | 44% | 51% |
-| Tyrantrum | 47% | 56% | 47% | 44% | 57% | 50% |
-| Scizor | 51% | 45% | 46% | 49% | 56% | 49% |
-| Golurk | 56% | 46% | 47% | 53% | 43% | 49% |
-| Charizard | 47% | 49% | 48% | 48% | 52% | 49% |
-| Rhyperior | 51% | 50% | 47% | 52% | 44% | 49% |
-| Froslass | 53% | 44% | 51% | 46% | 48% | 48% |
-| Venusaur | 50% | 45% | 51% | 44% | 49% | 48% |
-| Dragapult | 49% | 48% | 38% | 50% | 52% | 47% |
-| Gardevoir | 42% | 46% | 48% | 50% | 44% | 46% |
+| Snorlax | 54% | 53% | 46% | 57% | 57% | 53% |
+| Lucario | 51% | 54% | 46% | 52% | 59% | 52% |
+| Gardevoir | 48% | 47% | 56% | 51% | 57% | 52% |
+| Dragapult | 58% | 57% | 43% | 50% | 48% | 51% |
+| Metagross | 61% | 57% | 45% | 49% | 44% | 51% |
+| Garchomp | 49% | 49% | 54% | 55% | 47% | 51% |
+| Golurk | 51% | 48% | 57% | 49% | 49% | 51% |
+| Blastoise | 47% | 53% | 48% | 53% | 48% | 50% |
+| Tyrantrum | 47% | 51% | 48% | 51% | 52% | 50% |
+| Rhyperior | 52% | 51% | 50% | 48% | 48% | 50% |
+| Scizor | 51% | 53% | 49% | 42% | 53% | 50% |
+| Venusaur | 48% | 48% | 49% | 49% | 51% | 49% |
+| Magnezone | 46% | 44% | 51% | 55% | 49% | 49% |
+| Noivern | 44% | 44% | 64% | 44% | 47% | 49% |
+| Froslass | 48% | 46% | 41% | 52% | 48% | 47% |
+| Charizard | 46% | 44% | 53% | 42% | 44% | 46% |
 
-Every average is between 46% and 54%. Of the 120 pairings, 115 sit below 80%
-for either side (60 games each). The five strongest counters remain:
+Every average is between 46% and 53%.
 
-| Pairing | Result | Why |
+**Matchups.** A 60-game sample is noisy: a pairing that is really 75% shows
+up at 80% or more about one time in five. So every pairing was screened at 60
+games, and any that reached 73% for either side was replayed 300 times (30
+per arena per side). No pairing reaches 80% at 300 games. The strongest
+counters left:
+
+| Pairing | 300 games | Why |
 |---|---|---|
-| Blastoise vs Gardevoir | Blastoise 88% | Pump beams and Shell guard out-trade her at every range |
-| Gardevoir vs Snorlax | Gardevoir 83% | The slowest heavyweight against a controller |
-| Scizor vs Gardevoir | Scizor 83% | Bullet Punch rushdown; steel shrugs off fairy |
-| Charizard vs Snorlax | Snorlax 85% | Thick Fat |
-| Noivern vs Snorlax | Noivern 82% | It flies over Earthquake |
+| Lucario vs Tyrantrum | Lucario 78% | Aura Sphere and Extreme Speed outpace a slow brawler |
+| Blastoise vs Gardevoir | Blastoise 78% | Pump beams and Shell guard out-trade her at range |
+| Noivern vs Tyrantrum | Tyrantrum 78% | Rock moves are super-effective on a flier |
+| Gardevoir vs Snorlax | Gardevoir 75% | The slowest heavyweight against a controller |
+| Rhyperior vs Venusaur | Venusaur 75% | Grass shrugs off its Ground moves, and Ingrain stops the shoves |
+| Charizard vs Snorlax | Snorlax 71% | Thick Fat |
+| Scizor vs Venusaur | Scizor 71% | Bug is super-effective on Grass; Steel shrugs off Poison |
+| Gardevoir vs Lucario | Gardevoir 67% | Psychic and Fairy both beat Fighting |
+| Golurk vs Scizor | Golurk 67% | Ground punches are super-effective on Steel |
+| Charizard vs Rhyperior | Rhyperior 66% | Rock beats Fire |
+
+All other 110 pairings were under 73% in the screen.
 
 Final health and damage scale:
 
 | Pokémon | Health | Damage scale |
 |---|---|---|
-| Charizard | 810 | 0.80 |
-| Venusaur | 980 | 0.80 |
-| Blastoise | 1,120 | 0.80 |
-| Dragapult | 715 | 0.86 |
-| Magnezone | 1,000 | 0.81 |
-| Snorlax | 1,080 | 0.80 |
-| Noivern | 875 | 0.84 |
-| Lucario | 985 | 0.80 |
-| Garchomp | 980 | 1.26 |
-| Scizor | 970 | 1.15 |
-| Tyrantrum | 1,110 | 0.91 |
-| Golurk | 1,095 | 0.91 |
-| Rhyperior | 1,070 | 0.82 |
-| Froslass | 1,000 | 1.60 |
-| Gardevoir | 1,000 | 1.41 |
-| Metagross | 1,135 | 0.90 |
+| Charizard | 795 | 0.80 |
+| Venusaur | 975 | 0.83 |
+| Blastoise | 1,105 | 0.81 |
+| Dragapult | 725 | 0.90 |
+| Magnezone | 985 | 0.81 |
+| Snorlax | 1,050 | 0.80 |
+| Noivern | 875 | 0.85 |
+| Lucario | 980 | 0.83 |
+| Garchomp | 970 | 1.22 |
+| Scizor | 975 | 1.16 |
+| Tyrantrum | 1,125 | 0.94 |
+| Golurk | 1,090 | 0.90 |
+| Rhyperior | 1,065 | 0.83 |
+| Froslass | 995 | 1.75 |
+| Gardevoir | 1,000 | 1.50 |
+| Metagross | 1,145 | 0.91 |
 
 Froslass's scale is high because her own move numbers are small: most of
 what she does is chill and freeze, not damage.
@@ -1583,11 +1599,16 @@ Two problems turned up, and both were fixed:
 - **CPUs only ever chased the nearest foe,** so anyone who hung back was never
   punished. In crowds, a CPU now turns on whoever just hit it.
 
-Free-for-All still rewards caution. The ranged and evasive kits win most often:
+A final run on the shipped build (180 games: 60 each of Free-for-All, 2v2 and
+Zone Control) had no errors and no time-outs. All six legendaries were called
+37–56 times each and every one dealt damage.
 
-- Gardevoir 49%, Froslass 45%, Garchomp 44%, Noivern 35%.
-- The brawlers win least: Metagross, Scizor, Tyrantrum, Charizard and Golurk
-  at 10–11%.
+Free-for-All still rewards caution. The ranged and evasive kits win most often
+(an even share is 25%; 12–20 games each, so these are rough):
+
+- Dragapult 47%, Gardevoir 43%, Noivern 42%, Froslass 33%, Rhyperior 30%.
+- The brawlers win least: Scizor 8%, and Tyrantrum, Venusaur, Golurk and
+  Lucario at 13–14%.
 
 That is the nature of last-one-standing with four, not a duel imbalance.
 
@@ -1603,6 +1624,7 @@ legendaries:
 | Tyrantrum vs Gardevoir | Rayquaza and Ho-Oh | 2,282 and 1,811 |
 | Scizor vs Metagross | Groudon and Ho-Oh | 2,398 |
 | Golurk vs Rhyperior | Rayquaza and Ho-Oh | 3,725 |
+| Froslass vs Venusaur (final build, Thick Fat) | Ho-Oh and Rayquaza | 2,229 |
 
 Every duel stayed identical on both pages, with no errors, and rematch and
 leave worked.
