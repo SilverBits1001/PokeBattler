@@ -3384,6 +3384,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       magnezone: 1.09,
     },
     MODE_POW = { ffa: FFA_POW, team: TEAM_POW, zone: ZONE_POW },
+    // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
+    MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.2 } },
     // In crowds a CPU turns on whoever hit it within t ticks and r pixels.
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
@@ -12865,8 +12867,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               (!lg && t?.kind === "player"
                 ? (MODE_POW[this.match.mode]?.[t.kit.id] ?? 1)
                 : 1) *
-              (this.match.mode === "ffa" && e.kind === "player"
-                ? (FFA_TAKEN[e.kit.id] ?? 1)
+              (e.kind === "player"
+                ? (MODE_TAKEN[this.match.mode]?.[e.kit.id] ?? 1)
                 : 1) *
               Q *
               ie *
