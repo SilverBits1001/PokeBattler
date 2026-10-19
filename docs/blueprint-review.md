@@ -1376,3 +1376,34 @@ Fault test, results after the fix:
 | Venusaur | 35% |
 | Noivern | 28% (it flies over Earthquake) |
 | Overall | 54% (151 of 280) |
+
+### Balance pass: narrowing the spread
+
+The table above ranged from 42% (Magnezone, Lucario) to 61% (Venusaur). Four
+more rounds of health changes, each re-run on all five arenas with every
+matchup played eight times per arena, brought it to 45–54%:
+
+| Pokémon | HP before | HP now |
+|---|---|---|
+| Venusaur | 1140 | 1060 |
+| Dragapult | 740 | 750 |
+| Magnezone | 1000 | 1080 |
+| Noivern | 890 | 930 |
+| Lucario | 1010 | 1090 |
+
+Charizard, Blastoise and Snorlax (1200) are unchanged.
+
+| Pokémon | Stadium | Ruins | Crater | Frostfall | Power Plant | Average |
+|---|---|---|---|---|---|---|
+| Charizard | 56% | 50% | 55% | 54% | 56% | 54% |
+| Venusaur | 56% | 38% | 47% | 46% | 53% | 48% |
+| Blastoise | 43% | 44% | 46% | 48% | 43% | 45% |
+| Dragapult | 54% | 59% | 48% | 54% | 55% | 54% |
+| Magnezone | 54% | 45% | 57% | 54% | 46% | 51% |
+| Snorlax | 44% | 62% | 42% | 46% | 47% | 48% |
+| Noivern | 45% | 46% | 60% | 54% | 54% | 52% |
+| Lucario | 48% | 57% | 45% | 44% | 46% | 48% |
+
+No errors in any run. The online duel on this build (rollback with 120 ms
+latency, 50 ms jitter and 8% packet loss, legendaries on) compared 1,957
+ticks with no divergence, and rematch and leave worked.
