@@ -9875,7 +9875,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         for (let e of this.puddles)
           if ((e.life--, e.shock > 0 && (e.shock--, e.shock % 15 === 0)))
             for (let t of [...this.players, ...this.dummies])
-              t.team === e.shockTeam ||
+              this.match.phase !== "fight" ||
+                t.team === e.shockTeam ||
                 (t.kind === "player" &&
                   (t.airborne || t.invincible || t.state === "faint")) ||
                 !this.canBeHit(t) ||
@@ -10055,6 +10056,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       // Hazard damage from the arena itself (no attacker, never counts as a combo).
       // Hazards never seek, so a Charizard in flight is out of their reach.
       envHit(e, t, s, i, r, o, l, f, u = !0) {
+        // Once the fight is decided the arena does no more harm.
+        if (this.match.phase !== "fight") return;
         if (e.kind === "player" && e.state === "flyUp") return;
         this.applyHit(
           e,
@@ -10588,12 +10591,17 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         for (let t of this.heatVents) t.t--;
         this.heatVents = this.heatVents.filter((t) => t.t > 0);
         let e = (t) =>
-          [...this.players, ...this.dummies].filter(
-            (s) =>
-              this.canBeHit(s) &&
-              !(s.kind === "player" && (s.invincible || s.state === "faint")) &&
-              !this.floating(s),
-          );
+          this.match.phase !== "fight"
+            ? []
+            : [...this.players, ...this.dummies].filter(
+                (s) =>
+                  this.canBeHit(s) &&
+                  !(
+                    s.kind === "player" &&
+                    (s.invincible || s.state === "faint")
+                  ) &&
+                  !this.floating(s),
+              );
         this.updateSurge(e);
         this.arenaX(e);
         // Cinder Crater
@@ -24658,7 +24666,6 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       }
     t.cutin && lgCutin(e, t),
       s.debug && as(e),
-      s.hintT > 0 && !s.paused && e.match.phase === "fight" && ts(e, s),
       !s.paused && e.match.phase === "fight" && moveTray(e, s),
       e.match.phase === "results" && os(e, s, o),
       ga(s),
@@ -24886,23 +24893,6 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     // Your cooldowns under your card.
     let P = (x, v) => 1 - x / Math.max(1, v),
       C = e.chipFlash;
-    hudBtn(s + 8, i + b + 7, "B", P(l.cdDodge, f.dodge.cooldown), 0),
-      hudBtn(
-        s + 19,
-        i + b + 7,
-        "X",
-        f.id === "dragapult"
-          ? l.horns.includes("loaded") || l.horns.includes("out")
-            ? 1
-            : 0
-          : f.id === "charizard"
-            ? t.state === "overheat"
-              ? t.t / FLAME.overheat
-              : 1
-            : P(l.cdX, f.xCd),
-        C.x ?? 0,
-      ),
-      hudBtn(s + 30, i + b + 7, "Y", P(l.cdY, f.yCd), C.y ?? 0);
     let x = t.slots.findIndex((v, E) => E !== t.active && v.hp > 0) >= 0;
     t.slots.length > 1
       ? (Pe("L1", s + 42, i + b + 7, 2.6, !(t.switchCd === 0 && x)),
@@ -25425,23 +25415,6 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     // Cooldowns: buttons only, no move names.
     let Q = (C, x) => 1 - C / Math.max(1, x),
       ie = r ? {} : e.chipFlash;
-    hudBtn(X(113), 35, "B", Q(l.cdDodge, f.dodge.cooldown), 0),
-      hudBtn(
-        X(124),
-        35,
-        "X",
-        f.id === "dragapult"
-          ? l.horns.includes("loaded") || l.horns.includes("out")
-            ? 1
-            : 0
-          : f.id === "charizard"
-            ? t.state === "overheat"
-              ? t.t / FLAME.overheat
-              : 1
-            : Q(l.cdX, f.xCd),
-        ie.x ?? 0,
-      ),
-      hudBtn(X(135), 35, "Y", Q(l.cdY, f.yCd), ie.y ?? 0);
     // Statuses and each Pokemon's own meter.
     let v = r ? H - 206 : 143,
       E = 31.5,
@@ -25716,30 +25689,114 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         Math.min(1, t.lgMeter / 100),
         t.lgMeter >= 100 ? "" : `${Math.floor(t.lgMeter)}%`,
       ]);
-    let u = 118,
-      h = 11,
-      c = 6,
-      y = oe - 18 - f.length * h;
-    d.save(), te(c, y - 7, u, f.length * h + 4, "rgba(11,9,24,0.7)", 4);
+    // A skill bar: one key cap per move, a clock-wipe while it recharges
+    // with the seconds left, a coloured rim and a glow when it is ready.
+    let S2 = 19,
+      pitch = 31,
+      x0 = 9,
+      y0 = oe - 33,
+      cols = ["#4aa8ff", "#ffd34d", "#ff5f6d", "#4df08a", "#ffc93c"],
+      rr = (x, y, w, h2, r2) => {
+        d.beginPath(),
+          d.moveTo(m(x + r2), m(y)),
+          d.arcTo(m(x + w), m(y), m(x + w), m(y + h2), m(r2)),
+          d.arcTo(m(x + w), m(y + h2), m(x), m(y + h2), m(r2)),
+          d.arcTo(m(x), m(y + h2), m(x), m(y), m(r2)),
+          d.arcTo(m(x), m(y), m(x + w), m(y), m(r2)),
+          d.closePath();
+      };
+    t.flashTray ??= {};
+    d.save();
     f.forEach(([b, p, k, M], P) => {
-      let C = y + P * h,
-        x = k >= 1 && !M;
-      hudBtn(
-        c + 8,
-        C,
-        b.length > 2 ? b.slice(0, 2) : b,
-        Math.max(0, Math.min(1, k)),
-        0,
-      ),
-        G(p, c + 16, C + 2.3, 6.2, x ? g.chalk : g.haze, { weight: 600 }),
-        G(
-          x ? "READY" : M,
-          c + u - 5,
-          C + 2.3,
-          5.6,
-          x ? g.gold : M === "OVERHEAT" ? g.cpu : "#cfcaea",
-          { align: "right", weight: 700 },
-        );
+      let x = x0 + P * pitch,
+        y = y0,
+        cx = x + S2 / 2,
+        cy = y + S2 / 2,
+        kk = Math.max(0, Math.min(1, k)),
+        ready = kk >= 1,
+        col = cols[P] ?? g.gold,
+        // A short flash the moment a move comes back.
+        fl = t.flashTray[P] ?? 0;
+      ready &&
+        (t.flashTray["r" + P] === !1 && (t.flashTray[P] = fl = 1),
+        (t.flashTray["r" + P] = !0));
+      ready || (t.flashTray["r" + P] = !1);
+      t.flashTray[P] = Math.max(0, fl - 0.06);
+      // Plate.
+      rr(x, y, S2, S2, 4.5),
+        (d.fillStyle = ready ? "rgba(14,12,30,0.82)" : "rgba(14,12,30,0.62)"),
+        d.fill();
+      if (ready)
+        (d.shadowColor = col),
+          (d.shadowBlur = m(4 + fl * 8)),
+          (d.strokeStyle = col),
+          (d.lineWidth = m(1.3)),
+          rr(x, y, S2, S2, 4.5),
+          d.stroke(),
+          (d.shadowBlur = 0);
+      else
+        (d.strokeStyle = "rgba(255,255,255,0.14)"),
+          (d.lineWidth = m(0.8)),
+          rr(x, y, S2, S2, 4.5),
+          d.stroke();
+      // The key cap.
+      d.globalAlpha = ready ? 1 : 0.45;
+      Pe(b.length > 2 ? b.slice(0, 2) : b, cx, cy, 5.4);
+      d.globalAlpha = 1;
+      // Clock-wipe for what is left to recharge, with the seconds on top.
+      if (!ready) {
+        d.save(), rr(x, y, S2, S2, 4.5), d.clip();
+        (d.fillStyle = "rgba(4,3,12,0.62)"),
+          d.beginPath(),
+          d.moveTo(m(cx), m(cy)),
+          d.arc(
+            m(cx),
+            m(cy),
+            m(S2),
+            -Math.PI / 2 + kk * Math.PI * 2,
+            Math.PI * 1.5,
+          ),
+          d.closePath(),
+          d.fill(),
+          d.restore();
+        // A thin arc on the rim shows how far it has come back.
+        (d.strokeStyle = col),
+          (d.lineWidth = m(1.3)),
+          d.beginPath(),
+          d.arc(
+            m(cx),
+            m(cy),
+            m(S2 / 2 + 1.6),
+            -Math.PI / 2,
+            -Math.PI / 2 + kk * Math.PI * 2,
+          ),
+          d.stroke();
+        /s$/.test(M ?? "") &&
+          V(M.replace("s", ""), cx, cy + 3, 8.4, "#ffffff", {
+            align: "center",
+            outline: 2.2,
+          });
+      }
+      // A badge for live values (Heat, charges, meters).
+      M &&
+        !/s$/.test(M) &&
+        (te(
+          x + S2 - ye(M, 4.4, je, 800) - 3,
+          y - 4,
+          ye(M, 4.4, je, 800) + 4,
+          6.2,
+          M === "OVERHEAT" ? g.cpu : col,
+        ),
+        G(M, x + S2 - 1.2, y + 0.8, 4.4, "#0b0918", {
+          align: "right",
+          weight: 800,
+        }));
+      // The name, small, under the key.
+      let nm = p.length > 13 ? p.slice(0, 12) + "\u2026" : p;
+      G(nm, cx, y + S2 + 6.4, 4.6, ready ? g.chalk : g.haze, {
+        align: "center",
+        weight: 700,
+      });
     }),
       d.restore();
   }
@@ -25893,97 +25950,174 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       d.restore(),
       d.drawImage(Ke, p, k);
   }
+  // The start screen: a Pokkén-style face-off. Two halves, blue and red, a
+  // featured pair of fighters glaring across the seam (a new pair every few
+  // seconds), the logo over a turning Poké Ball, and the roster running by.
   function is(a, e) {
-    let t = a.frame;
-    Aa(t);
-    let s = Math.sin(t * 0.04) * 1.2;
-    V("STARTER", H / 2 - 104, 36 + s, 19, g.p1, { skew: !0, outline: 3 }),
-      ss("BRAWL", H / 2, 104 + s, 74, t),
-      G(
-        "A top-down Pok\xE9mon arena brawler",
-        H / 2 + 108,
-        118 + s,
-        7,
-        g.haze,
-        { align: "right", italic: !0, weight: 600 },
-      ),
-      (Math.floor(t / 480) % 2
-        ? [
-            "rhyperior",
-            "gardevoir",
-            "garchomp",
-            "scizor",
-            "metagross",
-            "froslass",
-            "golurk",
-            "tyrantrum",
-          ]
-        : [
-            "snorlax",
-            "venusaur",
-            "charizard",
-            "lucario",
-            "magnezone",
-            "blastoise",
-            "noivern",
-            "dragapult",
-          ]
-      )
-        .map((l, f) => [H / 2 - 189 + f * 54, l])
-        .forEach(([o, l], f) => {
-          let u = xe[l],
-            h = u.color,
-            c = 196 + (f % 2 ? -6 : 0),
-            y = d.createRadialGradient(m(o), m(c), 0, m(o), m(c), m(40));
-          y.addColorStop(0, h + "99"),
-            y.addColorStop(1, h + "00"),
-            (d.fillStyle = y),
-            d.beginPath(),
-            d.ellipse(m(o), m(c), m(40), m(12), 0, 0, Math.PI * 2),
-            d.fill(),
-            (d.fillStyle = "rgba(8,6,18,0.55)"),
-            d.beginPath(),
-            d.ellipse(m(o), m(c), m(15), m(4.5), 0, 0, Math.PI * 2),
-            d.fill();
-          let b = e[l],
-            p = b.anims.Idle ?? b.anims.Walk;
-          et(
-            d,
-            p,
-            Be(p, t + f * 11, 1),
-            0,
-            m(o),
-            m(c),
-            1.7 * Fe * u.size,
-            b.ground,
-          ),
-            V(u.name, o, c + 17, 9, h, {
-              align: "center",
-              outline: 2.2,
-              skew: !0,
-            }),
-            G(u.role.replace(" \xB7 ", ", "), o, c + 24, 5.2, g.haze, {
-              align: "center",
-            });
-        });
-    let r = 0.7 + 0.3 * Math.sin(t * 0.09);
+    let t = a.frame,
+      cyc = 300,
+      n = Math.floor(t / cyc),
+      ph = t % cyc,
+      q = rt(n * 7 + 3),
+      L = ge[Math.floor(q() * ge.length)],
+      R0 = ge.filter((k) => k !== L),
+      R = R0[Math.floor(q() * R0.length)],
+      inn = Ee(Math.min(1, ph / 22)),
+      out = ph > cyc - 18 ? Ee((ph - (cyc - 18)) / 18) : 0,
+      sl = (1 - inn) * 160 + out * 160,
+      seam = (y) => H / 2 + 26 - y * 0.2;
+    // Two halves with a glowing diagonal seam.
+    (d.fillStyle = "#07060f"), d.fillRect(0, 0, m(H), m(oe));
+    for (let [side, c0, c1] of [
+      [0, "#0d2a66", "#06102a"],
+      [1, "#661020", "#2a0610"],
+    ]) {
+      let gr = d.createLinearGradient(m(side ? H : 0), 0, m(H / 2), 0);
+      gr.addColorStop(0, c0),
+        gr.addColorStop(1, c1),
+        (d.fillStyle = gr),
+        d.beginPath();
+      side
+        ? (d.moveTo(m(seam(0)), 0),
+          d.lineTo(m(H), 0),
+          d.lineTo(m(H), m(oe)),
+          d.lineTo(m(seam(oe)), m(oe)))
+        : (d.moveTo(0, 0),
+          d.lineTo(m(seam(0)), 0),
+          d.lineTo(m(seam(oe)), m(oe)),
+          d.lineTo(0, m(oe)));
+      d.closePath(), d.fill();
+    }
+    // Light streaks racing outward on each side.
+    d.save(), (d.globalCompositeOperation = "lighter");
+    for (let k = 0; k < 14; k++) {
+      let qq = rt(k + 11),
+        y = qq() * oe,
+        sp = 2 + qq() * 4,
+        len = 30 + qq() * 70,
+        left = k % 2 === 0,
+        x = ((t * sp + qq() * 600) % (H / 2 + 120)) - 60;
+      (d.fillStyle = left ? "rgba(80,180,255,0.18)" : "rgba(255,80,110,0.18)"),
+        d.fillRect(m(left ? H / 2 - x - len : H / 2 + x), m(y), m(len), m(1.2));
+    }
+    d.restore();
+    // The featured pair.
+    for (let [k, side] of [
+      [L, 0],
+      [R, 1],
+    ]) {
+      let K = e[k];
+      if (!K) continue;
+      let sz = 150,
+        x = side ? H - sz - 6 + sl : 6 - sl,
+        y = 22,
+        col = xe[k].color;
+      d.save(), (d.globalAlpha = 1 - out * 0.6);
+      side &&
+        (d.translate(m(x + sz / 2), 0),
+        d.scale(-1, 1),
+        d.translate(-m(x + sz / 2), 0));
+      Oe(K, "Determined", x, y, sz, { bg: col, frame: !1, slash: !0 });
+      d.restore();
+      // A glow edge in the team colour, then the name plate.
+      let px = side ? H - 156 + sl : 10 - sl;
+      te(px, 178, 146, 20, "rgba(8,6,18,0.82)", 5),
+        (d.fillStyle = side ? g.cpu : g.p1),
+        d.fillRect(m(px + 6), m(178), m(134), m(1.4)),
+        V(xe[k].name, side ? px + 140 : px + 8, 192, 12, g.chalk, {
+          skew: !0,
+          align: side ? "right" : "left",
+        }),
+        G(
+          xe[k].role.replace(" \xB7 ", ", "),
+          side
+            ? px + 140 - ye(xe[k].name, 12, He, 900) - 6
+            : px + 14 + ye(xe[k].name, 12, He, 900),
+          191,
+          5.4,
+          g.haze,
+          {
+            align: side ? "right" : "left",
+            italic: !0,
+          },
+        );
+    }
+    // The seam's glow over the portraits.
+    d.save(), (d.globalCompositeOperation = "lighter");
+    let sg = d.createLinearGradient(m(seam(0) - 8), 0, m(seam(0) + 8), 0);
+    sg.addColorStop(0, "rgba(255,255,255,0)"),
+      sg.addColorStop(0.5, "rgba(255,255,255,0.5)"),
+      sg.addColorStop(1, "rgba(255,255,255,0)");
+    (d.fillStyle = sg),
+      d.beginPath(),
+      d.moveTo(m(seam(0) - 8), 0),
+      d.lineTo(m(seam(0) + 8), 0),
+      d.lineTo(m(seam(oe) + 8), m(oe)),
+      d.lineTo(m(seam(oe) - 8), m(oe)),
+      d.closePath(),
+      d.fill();
+    d.restore();
+    // A turning Poké Ball behind the logo.
+    let bx = H / 2,
+      by = 78,
+      br = 58;
     d.save(),
-      (d.globalAlpha = r),
-      G("Press any button to start", H / 2, 248, 9, g.chalk, {
+      d.translate(m(bx), m(by)),
+      d.rotate(t * 0.004),
+      (d.globalAlpha = 0.22);
+    (d.strokeStyle = "#ffffff"), (d.lineWidth = m(2));
+    d.beginPath(), d.arc(0, 0, m(br), 0, Math.PI * 2), d.stroke();
+    d.beginPath(),
+      d.moveTo(-m(br), 0),
+      d.lineTo(-m(14), 0),
+      d.moveTo(m(14), 0),
+      d.lineTo(m(br), 0),
+      d.stroke();
+    d.beginPath(), d.arc(0, 0, m(14), 0, Math.PI * 2), d.stroke();
+    d.beginPath(), d.arc(0, 0, m(br + 8), 0.3, 1.4), d.stroke();
+    d.beginPath(),
+      d.arc(0, 0, m(br + 8), Math.PI + 0.3, Math.PI + 1.4),
+      d.stroke();
+    d.restore();
+    // The logo.
+    let bob = Math.sin(t * 0.04) * 1.2;
+    V("STARTER", H / 2 - 74, 42 + bob, 15, g.p1, { skew: !0, outline: 3 }),
+      ss("BRAWL", H / 2, 100 + bob, 60, t),
+      V("VS", H / 2, 150, 26, "rgba(255,255,255,0.85)", {
         align: "center",
-        weight: 700,
-        italic: !0,
-        outline: 2,
+        skew: !0,
+        outline: 3,
+      });
+    // The roster, running by along the bottom.
+    let pitch = 30,
+      run = ge.length * pitch,
+      off = (t * 0.5) % run;
+    te(0, 206, H, 30, "rgba(6,5,14,0.7)", 0);
+    for (let k = 0; k < ge.length * 2 + 2; k++) {
+      let id = ge[k % ge.length],
+        x = k * pitch - off - pitch;
+      if (x > H || x < -pitch) continue;
+      let hot = id === L || id === R;
+      te(x + 2, 209, 26, 24, hot ? xe[id].color : "#1a1630", 4),
+        Oe(e[id], "Normal", x + 3, 210, 22, {
+          bg: xe[id].color,
+          frame: !1,
+          grey: !hot,
+        });
+    }
+    // Press start.
+    let pr = 0.65 + 0.35 * Math.sin(t * 0.09);
+    d.save(),
+      (d.globalAlpha = pr),
+      V("PRESS ANY BUTTON", H / 2, 252, 11, g.gold, {
+        align: "center",
+        skew: !0,
+        outline: 2.4,
       }),
       d.restore(),
-      G(
-        "Tapping the screen also turns on sound and fullscreen",
-        H / 2,
-        260,
-        6.2,
-        g.dim,
-        { align: "center" },
-      );
+      G("Tapping also turns on sound and fullscreen", H / 2, 263, 5.6, g.dim, {
+        align: "center",
+      });
   }
   // Grid moves for the 4-over-4 roster.
   var RN = {
@@ -26083,6 +26217,20 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   }
   // Cursor moves on the roster grid; the cell after the last Pokémon is
   // the random tile.
+  // Four-way movement on a grid of n items, c columns, wrapping.
+  function gridNav(i, w, n, c) {
+    let r = Math.floor(i / c),
+      k = i % c,
+      R = Math.ceil(n / c),
+      len = (q) => Math.min(c, n - q * c);
+    w === "left"
+      ? (k = (k + len(r) - 1) % len(r))
+      : w === "right"
+        ? (k = (k + 1) % len(r))
+        : ((r = (r + (w === "down" ? 1 : R - 1)) % R),
+          (k = Math.min(k, len(r) - 1)));
+    return r * c + k;
+  }
   function rosterNav(c, w) {
     let N = ge.length + 1,
       C = RG.cols,
@@ -26382,11 +26530,18 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         u ? (y ? g.cpu : g.gold) : "rgba(255,255,255,0.08)",
         5,
       ),
-        y && o > st
-          ? (te(l, f, 54, 48, "#1a1024", 5),
-            V("?", l + 27, f + 34, 26, "rgba(255,74,99,0.55)", {
-              align: "center",
-            }))
+        o > st
+          ? (te(l, f, 54, 48, y ? "#1a1024" : "#14122a", 5),
+            V(
+              "?",
+              l + 27,
+              f + 34,
+              26,
+              y ? "rgba(255,74,99,0.55)" : "rgba(255,255,255,0.3)",
+              {
+                align: "center",
+              },
+            ))
           : c &&
             Oe(e[c], h ? "Pain" : u ? "Determined" : "Normal", l, f, 48, {
               bg: xe[c].color,
@@ -26748,6 +26903,50 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       size: 4.8,
     });
   }
+  // Arcade on team select: no rival yet, just the climb ahead.
+  function arcCard(a, e, u) {
+    let t = a.frame,
+      R = arcRecord();
+    te(u + 2, 37, 140, 136, "rgba(0,0,0,0.5)", 14),
+      Ae(u, 34, 140, 136, "#ff4f6d", { edge: "right", sk: 14 }),
+      V("ARCADE", u + 18, 56, 17, "#ff4f6d", { skew: !0, outline: 2 }),
+      G("Six rivals, then a boss.", u + 18, 67, 6.4, g.chalk, { weight: 600 }),
+      G("Who waits on each stage", u + 18, 76, 6, g.haze),
+      G("is a secret until you get there.", u + 18, 84, 6, g.haze);
+    for (let n = 0; n < ARC.stages; n++) {
+      let x = u + 16 + (n % 3) * 38,
+        y = 92 + Math.floor(n / 3) * 34,
+        boss = n === ARC.stages - 1,
+        bob = Math.sin(t * 0.06 + n) * 1.2;
+      te(x, y + bob, 32, 28, boss ? "#3a1020" : "#1a1630", 4),
+        V(
+          "?",
+          x + 16,
+          y + 21 + bob,
+          18,
+          boss ? "rgba(255,79,109,0.7)" : "rgba(255,255,255,0.35)",
+          { align: "center" },
+        ),
+        boss && cueGlyph(d, "star", m(x + 28), m(y + 4 + bob), m(4.5), g.gold),
+        G(
+          boss ? "BOSS" : `${n + 1}`,
+          x + 4,
+          y + 7 + bob,
+          4.6,
+          boss ? "#ff4f6d" : g.dim,
+          { weight: 700 },
+        );
+    }
+    R.bestTime &&
+      G(
+        `Best clear ${arcClock(R.bestTime)} \xB7 ${R.clears} clear${R.clears > 1 ? "s" : ""}`,
+        u + 18,
+        166,
+        5.6,
+        g.gold,
+        { weight: 700 },
+      );
+  }
   // One side's card: the lead large, the partner behind, on a team-coloured stage.
   function selCard(a, e, t, s, i, r, o) {
     let l = a.frame,
@@ -26822,28 +27021,40 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           weight: 700,
           outline: 2,
         });
+    // Portraits, Pokkén style: the Determined face when there is one, the
+    // CPU's turned to face yours. A partner stands smaller behind the lead.
+    k = (x, v, E, Q, ie) => {
+      let K = e[x];
+      if (!K) return;
+      let sz = E >= 2.4 ? 116 : Q ? 66 : 96,
+        px = t + v - sz / 2,
+        py = y + 122 - sz;
+      d.save(), (d.globalAlpha = ie);
+      s &&
+        (d.translate(m(t + v), 0), d.scale(-1, 1), d.translate(-m(t + v), 0));
+      Oe(K, "Determined", px, py, sz, { bg: xe[x]?.color, frame: !1 });
+      d.restore();
+    };
     r[0] && r[1]
       ? ((x0) => (
-          x0.forEach(([E, Q]) => w(Q, 22)),
-          x0.forEach(([E, Q], ie) => k(E, Q, 1.9, ie, 1)),
+          [...x0].reverse().forEach(([E, Q], ie) => k(E, Q, 1.9, 1 - ie, 1)),
           U("LEAD", x0[0][1], g.chalk),
           U("PARTNER", x0[1][1], g.haze)
         ))(
           s
             ? [
-                [r[0], h * 0.68],
-                [r[1], h * 0.32],
+                [r[0], h * 0.6],
+                [r[1], h * 0.26],
               ]
             : [
-                [r[0], h * 0.32],
-                [r[1], h * 0.68],
+                [r[0], h * 0.4],
+                [r[1], h * 0.74],
               ],
         )
       : r[0]
-        ? (w(h / 2, 30), k(r[0], h / 2, 2.5, 0, 1), U("LEAD", h / 2, g.chalk))
+        ? (k(r[0], h / 2, 2.5, 0, 1), U("LEAD", h / 2, g.chalk))
         : o
-          ? (w(h / 2, 30),
-            k(o, h / 2, 2.5, 0, 0.5),
+          ? (k(o, h / 2, 2.5, 0, 0.8),
             G("Lead?", t + h / 2, y + 129, 7, "rgba(255,255,255,0.6)", {
               align: "center",
               italic: !0,
@@ -26962,11 +27173,13 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     d.restore();
     V("Choose your team", 12, 22, 16, g.chalk, { skew: !0, outline: 2 }),
       G(
-        teamSize() === 2
-          ? "Tag Team: pick two. Your first pick leads."
-          : A.gameMode === 2
-            ? `Free-for-All: you and ${cpuNeed()} CPU rivals. RT or tap Players to change.`
-            : "Pick your Pok\u00e9mon. X for Tag Team.",
+        a.arcade
+          ? "Arcade: pick the Pok\u00e9mon you'll climb with."
+          : teamSize() === 2
+            ? "Tag Team: pick two. Your first pick leads."
+            : A.gameMode === 2
+              ? `Free-for-All: you and ${cpuNeed()} CPU rivals. RT or tap Players to change.`
+              : "Pick your Pok\u00e9mon. X for Tag Team.",
         13,
         29.5,
         5.8,
@@ -26978,15 +27191,18 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     let i = ["Easy", "Normal", "Hard"][A.cpuLevel],
       r = ["#4df08a", g.gold, g.cpu][A.cpuLevel],
       o = ue(
-        A.gameMode === 5 && A.onlineTag
-          ? "ONLINE TAG TEAM"
-          : (MODE_NAMES[A.gameMode] ?? "VS CPU"),
+        a.arcade
+          ? "ARCADE"
+          : A.gameMode === 5 && A.onlineTag
+            ? "ONLINE TAG TEAM"
+            : (MODE_NAMES[A.gameMode] ?? "VS CPU"),
         s ? g.cpu : A.gameMode === 5 ? g.p1 : g.dim,
         H - 12,
         10,
         { right: !0, size: 6.4 },
       );
     s &&
+      !a.arcade &&
       ue(i.toUpperCase(), r, H - 14 - o, 10, {
         right: !0,
         size: 6.4,
@@ -27007,7 +27223,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       selPlate(!0, 10, 0, !1, "PLAYER 1", a.picks, f);
     // Right: the CPU's team, or what this mode does instead.
     let u = H - 148;
-    if (s) {
+    if (a.arcade) arcCard(a, e, u);
+    else if (s) {
       let M = a.roulette > 0 ? (a.rouletteShow ?? []) : a.cpuPicks;
       A.gameMode === 2
         ? ffaCard(a, e, u, M)
@@ -27166,30 +27383,35 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       });
     // Controls.
     let k = 12;
-    for (let [M, P, C] of [
-      ["A", "Pick", "#cfcaea"],
-      ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
-      [
-        "X",
-        `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team"][A.gameMode] ?? "VS CPU")}`,
-        "#cfcaea",
-      ],
-      ...(s
-        ? [["Y", `CPU: ${i}`, r]]
-        : A.gameMode === 5
-          ? [
-              [
-                "Y",
-                A.onlineTag ? "Format: Tag Team" : "Format: Standard",
-                "#cfcaea",
-              ],
-            ]
-          : []),
-      ["SELECT", "Arena", y],
-      ...(A.gameMode === 2
-        ? [["RT", `Players: ${A.ffaPlayers ?? 4}`, g.gold]]
-        : []),
-    ]) {
+    for (let [M, P, C] of a.arcade
+      ? [
+          ["A", "Pick", "#cfcaea"],
+          ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
+        ]
+      : [
+          ["A", "Pick", "#cfcaea"],
+          ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
+          [
+            "X",
+            `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team"][A.gameMode] ?? "VS CPU")}`,
+            "#cfcaea",
+          ],
+          ...(s
+            ? [["Y", `CPU: ${i}`, r]]
+            : A.gameMode === 5
+              ? [
+                  [
+                    "Y",
+                    A.onlineTag ? "Format: Tag Team" : "Format: Standard",
+                    "#cfcaea",
+                  ],
+                ]
+              : []),
+          ["SELECT", "Arena", y],
+          ...(A.gameMode === 2
+            ? [["RT", `Players: ${A.ffaPlayers ?? 4}`, g.gold]]
+            : []),
+        ]) {
       let x = Pe(M, k + 4, oe - 7, 3.2),
         v = {
           A: "confirm",
@@ -27920,12 +28142,12 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         7,
         g.haze,
       );
-    let o = (i - 56) / 4,
-      l = 60;
+    let o = (i - 32 - 5 * 5) / 6,
+      l = 47;
     ge.forEach((f, u) => {
       let h = xe[f],
-        c = t + 16 + (u % 4) * (o + 8),
-        y = s + 42 + (u < 4 ? 0 : 1) * (l + 8),
+        c = t + 16 + (u % 6) * (o + 5),
+        y = s + 40 + Math.floor(u / 6) * (l + 5),
         b = e.inContent && u === e.swapCursor,
         p = e.swapPicks?.indexOf(f) ?? -1,
         k = a.player.slots.some((C) => C.kit.id === f);
@@ -27935,12 +28157,16 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           ((d.strokeStyle = h.color),
           (d.lineWidth = m(1.4)),
           d.strokeRect(m(c), m(y), m(o), m(l))),
-        Oe(a.mons[f], "Normal", c + o / 2 - 17, y + 5, 34, { bg: h.color }),
-        V(h.name, c + o / 2, y + 49, 8.5, b ? g.chalk : "#d9d4f2", {
-          skew: !0,
-          align: "center",
+        tapRect(c, y, o, l, () => {
+          e.inContent && e.swapCursor === u
+            ? Ue.add("confirm")
+            : ((e.inContent = !0), (e.swapCursor = u));
         }),
-        G(h.role.split(" \xB7 ")[0], c + o / 2, y + 56, 5.4, g.haze, {
+        Oe(a.mons[f], b ? "Determined" : "Normal", c + o / 2 - 14, y + 4, 28, {
+          bg: h.color,
+        }),
+        V(h.name, c + o / 2, y + 40, 7, b ? g.chalk : "#d9d4f2", {
+          skew: !0,
           align: "center",
         });
       let M = p === 0 ? "LEAD" : p === 1 ? "PARTNER" : k ? "IN TEAM" : "";
@@ -28573,31 +28799,68 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   function ds(a, e, t, s, i) {
     let r = ge[a.moveKit],
       o = xe[r];
+    // A strip of faces that scrolls to keep the chosen one in view; tap one
+    // to pick it, or the arrows at the ends to step through.
+    let sz = 26,
+      pitch = 30,
+      vx = e + 26,
+      vw = s - 52,
+      full = ge.length * pitch - 4,
+      tgt = Math.max(
+        0,
+        Math.min(full - vw, a.moveKit * pitch - vw / 2 + sz / 2),
+      );
+    a.moveScroll = (a.moveScroll ?? tgt) + (tgt - (a.moveScroll ?? tgt)) * 0.25;
+    d.save(),
+      d.beginPath(),
+      d.rect(m(vx - 2), m(t + 2), m(vw + 4), m(sz + 10)),
+      d.clip();
     ge.forEach((l, f) => {
-      let u = (s - 40) / ge.length,
-        h = e + 18 + f * u,
+      let h = vx + f * pitch - a.moveScroll,
         c = f === a.moveKit;
-      te(h, t + 8, u - 4, 17, c ? xe[l].color : g.plate2),
-        Oe(i[l], "Normal", h + (u - 4) / 2 - 7, t + 9.5, 14, {
+      if (h > vx + vw || h + sz < vx) return;
+      tapRect(h, t + 6, sz, sz, () => {
+        (a.inContent = !0), (a.moveKit = f), S.ui(!0);
+      });
+      te(h, t + 6, sz, sz, c ? xe[l].color : g.plate2, 4),
+        Oe(i[l], c ? "Determined" : "Normal", h + 2, t + 8, sz - 4, {
           bg: xe[l].color,
           grey: !c,
           frame: !1,
-        });
+        }),
+        c &&
+          ((d.strokeStyle = "#ffffff"),
+          (d.lineWidth = m(1.2)),
+          d.strokeRect(m(h - 0.5), m(t + 5.5), m(sz + 1), m(sz + 1)));
     }),
-      V(o.name, e + 16, t + 42, 15, g.chalk, { skew: !0 }),
+      d.restore();
+    // Arrows (and a fade) wherever the strip runs on past the edge.
+    for (let [show, x, dir] of [
+      [a.moveScroll > 1, e + 14, -1],
+      [a.moveScroll < full - vw - 1, e + s - 14, 1],
+    ])
+      show &&
+        (tapRect(x - 7, t + 6, 14, sz, () => {
+          (a.moveKit = (a.moveKit + (dir < 0 ? ge.length - 1 : 1)) % ge.length),
+            S.ui(dir > 0);
+        }),
+        V(dir < 0 ? "\u25C0" : "\u25B6", x, t + 23, 9, g.gold, {
+          align: "center",
+        }));
+    V(o.name, e + 16, t + 50, 15, g.chalk, { skew: !0 }),
       G(
         o.role.replace(" \xB7 ", ", "),
         e + 18 + ye(o.name, 15, He, 900) + 6,
-        t + 41,
+        t + 49,
         7,
         g.haze,
         { italic: !0 },
       ),
-      G("Left / right: other Pok\xE9mon", e + s - 16, t + 41, 6, g.dim, {
+      G("Left / right or tap: other Pok\xE9mon", e + s - 16, t + 49, 6, g.dim, {
         align: "right",
       }),
       Ra[r].forEach(([l, f, u, k], h) => {
-        let c = t + 56 + h * 21;
+        let c = t + 62 + h * 19.5;
         l === "*"
           ? te(e + 18, c - 3, 7, 6, o.color, 1.4)
           : Pe(l, e + 22, c, 3.8),
@@ -33411,10 +33674,14 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             (s.pickBump = 1),
             S.select(),
             S.cry(W, 0.05),
-            s.picks.length === teamSize() && cpuSide()
-              ? (s.roulette = 48)
-              : s.picks.length === 1 &&
-                (s.cursor = ge.findIndex((T) => !s.picks.includes(T))))
+            s.picks.length === teamSize() && s.arcade
+              ? ((s.cpuPicks = [arcRival()]),
+                (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]),
+                lgOpen())
+              : s.picks.length === teamSize() && cpuSide()
+                ? (s.roulette = 48)
+                : s.picks.length === 1 &&
+                  (s.cursor = ge.findIndex((T) => !s.picks.includes(T))))
           : S.fizzle();
       }
       n.pressed.has("back") &&
@@ -33591,7 +33858,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             R === "left" && J(-1),
             R === "right" && J(1)),
             D === "swap" &&
-              ((s.swapCursor = RN[R][s.swapCursor] ?? s.swapCursor),
+              ((s.swapCursor = gridNav(s.swapCursor, R, ge.length, 6)),
               S.ui(R === "right" || R === "down")),
             D === "arena" &&
               ((s.arenaCursor =
@@ -36918,20 +37185,23 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         e.summons.find((ee) => ee.phase === "intro" || ee.phase === "cine");
       Cz
         ? t.follow([cineFocus(Cz)], cineZoom(Cz))
-        : !ne || e.match.phase !== "fight"
-          ? t.follow([])
-          : e.players.some((ee) => ee.vanished) ||
-            t.follow(
-              e
-                .bodies()
-                .filter(
-                  (ee) =>
-                    ee.kind !== "assist" &&
-                    !ee.hidden &&
-                    !(ee.kind === "player" && ee.state === "faint"),
-                )
-                .map((ee) => ({ x: ee.x, y: ee.y - ee.z * 0.5 })),
-            ),
+        : // When the fight ends the camera holds where it is: no pull back.
+          ne && e.match.phase === "end"
+          ? 0
+          : !ne || e.match.phase !== "fight"
+            ? t.follow([])
+            : e.players.some((ee) => ee.vanished) ||
+              t.follow(
+                e
+                  .bodies()
+                  .filter(
+                    (ee) =>
+                      ee.kind !== "assist" &&
+                      !ee.hidden &&
+                      !(ee.kind === "player" && ee.state === "faint"),
+                  )
+                  .map((ee) => ({ x: ee.x, y: ee.y - ee.z * 0.5 })),
+              ),
         t.computeView();
       // Online: the visual offset left by a rollback correction fades out.
       // The true positions are put back exactly afterwards: subtracting the
