@@ -17213,6 +17213,21 @@
         ),
         b = tagOf(h, e).label,
         p = tagOf(h, e).color;
+      // In a duel the HUD already names both sides: after the first few
+      // seconds the flag shrinks to its pointer, so it never covers the
+      // damage numbers and move callouts.
+      if (e.players.length <= 2 && (e.match.ticks ?? 0) > 180) {
+        (a.globalAlpha = h.vanished ? 0.4 : 0.85),
+          (a.fillStyle = p),
+          a.beginPath(),
+          a.moveTo(c - 3.5, y - 3),
+          a.lineTo(c + 3.5, y - 3),
+          a.lineTo(c, y + 2),
+          a.closePath(),
+          a.fill(),
+          (a.globalAlpha = 1);
+        continue;
+      }
       (a.font = fontOf(8, He)),
         (a.textAlign = "center"),
         (a.textBaseline = "alphabetic");
@@ -20821,7 +20836,25 @@
       }
     }
     if (
-      (!s.paused && e.match.phase !== "results" && (Ja(e, s, o), es(s, o)),
+      (!s.paused &&
+        e.match.phase !== "results" &&
+        ((() => {
+          // A fighter up under the HUD: fade it so the action stays visible.
+          let c = e.players.some(
+            (y) =>
+              y.kit &&
+              y.state !== "faint" &&
+              !y.vanished &&
+              u(h(y.py, y.y) - h(y.pz, y.z) - y.kit.tall * Bz(y)) <
+                (e.players.length > 2 ? 48 : 54),
+          );
+          t.hudA = (t.hudA ?? 1) + ((c ? 0.42 : 1) - (t.hudA ?? 1)) * 0.2;
+        })(),
+        d.save(),
+        (d.globalAlpha = t.hudA),
+        Ja(e, s, o),
+        es(s, o),
+        d.restore()),
       e.match.phase !== "results")
     )
       for (let c of t.banners.filter((r) => r.top).slice(0, 1)) {
@@ -21884,8 +21917,13 @@
           : l(i.cdY, s.yCd)),
       ],
       dodge: ["Dodge", ...l(i.cdDodge, s.dodge.cooldown)],
-      smash: [tc(s.smash.name ?? "Smash"), 1, ""],
+      smash: [
+        tc(s.smash.name ?? "Smash"),
+        ...(i.curseSm > 0 ? l(i.curseSm, 90) : [1, ""]),
+      ],
       attack: ["Attack", 1, ""],
+      switch: ["Switch", ...l(t.switchCd ?? 0, A.switchCooldown)],
+      assist: ["Assist", ...l(t.assistCd ?? 0, A.assistCooldown)],
       legend: t.legend
         ? [
             LG_INFO[t.legend]?.name ? tc(LG_INFO[t.legend].name) : "Legend",
@@ -22550,7 +22588,8 @@
       let r = a.picks[a.briefKit ?? 0] ?? a.picks[0],
         o = xe[r],
         l = BRIEF_STYLE[r] ?? ["", []];
-      V("TRAINING BRIEFING", 14, 22, 14, g.gold, { skew: !0, outline: 2.2 }),
+      a.picks.length > 1 && tapRect(H - 90, 10, 80, 14, () => Ue.add("right")),
+        V("TRAINING BRIEFING", 14, 22, 14, g.gold, { skew: !0, outline: 2.2 }),
         a.picks.length > 1 &&
           G(
             `◀ ▶  ${(a.briefKit ?? 0) + 1} of ${a.picks.length}`,
@@ -28253,23 +28292,25 @@
       e.match.phase === "results"
       ? t
       : [
-          ["attack", "A", ["attack", "confirm"], 424, 236, 15],
-          ["dodge", "B", ["dodge", "back"], 455, 205, 12.5],
-          ["sp1", "X", ["special1"], 393, 205, 12.5],
-          ["sp2", "Y", ["special2"], 424, 175, 12.5],
-          ["guard", "GUARD", ["guard"], 458, 160, 8],
-          ["lock", "LOCK", ["lock"], 390, 160, 8],
-          ["smash", "SMASH", ["smash"], 370, 245, 9],
+          // Right thumb: Attack biggest, specials around it, Dodge outside.
+          ["attack", "A", ["attack", "confirm"], 432, 230, 18],
+          ["sp1", "X", ["special1"], 394, 214, 13.5],
+          ["sp2", "Y", ["special2"], 420, 188, 13.5],
+          ["dodge", "B", ["dodge", "back"], 462, 196, 12.5],
+          ["smash", "SMASH", ["smash"], 386, 251, 10],
+          ["guard", "GUARD", ["guard"], 456, 160, 9.5],
+          ["lock", "LOCK", ["lock"], 382, 178, 9],
+          // Left side, above the stick.
           ...(e.player.legend
-            ? [["legend", "LEGEND", ["legend"], 54, 108, 8]]
+            ? [["legend", "LEGEND", ["legend"], 30, 142, 11]]
             : []),
           ...(e.player.slots.length > 1
             ? [
-                ["switch", "SWITCH", ["switch"], 30, 132, 8],
-                ["assist", "ASSIST", ["assist"], 78, 132, 8],
+                ["switch", "SWITCH", ["switch"], 30, 112, 9.5],
+                ["assist", "ASSIST", ["assist"], 60, 124, 9.5],
               ]
             : []),
-          ["start", "II", ["start"], H / 2, 56, 7],
+          ["start", "II", ["start"], H / 2, oe - 12, 8],
         ];
   }
   function touchXY(a) {
@@ -28381,79 +28422,119 @@
         e.match.phase === "fight" &&
         e.player?.kit &&
         moveInfo(e.player),
-      // Where each move's name goes, so labels clear the other buttons.
-      lp = {
-        sp1: "left",
-        sp2: "up",
-        dodge: "up",
-        smash: "left",
-        attack: "down",
-        legend: "down",
-      };
+      // Face colours, as on a pad; the rest are pale chips, Legend is gold.
+      bc = {
+        A: "#4df08a",
+        B: "#ff5f6d",
+        X: "#4aa8ff",
+        Y: "#ffd34d",
+        LEGEND: "#ffd75e",
+      },
+      // Move names under the buttons that cast something.
+      // 1 under, -1 above (Y sits above A, so its name goes on top).
+      nm = { sp1: 1, sp2: -1, smash: 1, legend: 1 };
+    TOUCH.cd ??= {};
+    TOUCH.flash ??= {};
     for (let [i, r, , o, l, f] of TOUCH.btnList) {
-      d.globalAlpha = s.has(i) ? 0.95 : r === "II" ? 0.85 : 0.55;
-      if (r === "II")
-        (d.fillStyle = "rgba(10,8,22,0.75)"),
+      let M = mi && mi[i],
+        C = M ? M[1] : 1,
+        x = M ? M[2] : "",
+        y = C >= 1,
+        b = s.has(i),
+        c = bc[r] ?? "#e9e6f7";
+      // A flash when a move comes back off cooldown.
+      (TOUCH.cd[i] ?? 1) < 1 && y && (TOUCH.flash[i] = 14), (TOUCH.cd[i] = C);
+      if (r === "II") {
+        (d.globalAlpha = 0.85),
+          (d.fillStyle = "rgba(10,8,22,0.75)"),
           d.beginPath(),
           d.arc(m(o), m(l), m(f), 0, Math.PI * 2),
           d.fill(),
           (d.fillStyle = g.chalk),
           d.fillRect(m(o - 2.6), m(l - 3.2), m(1.8), m(6.4)),
           d.fillRect(m(o + 0.8), m(l - 3.2), m(1.8), m(6.4));
-      else if (r.length === 1) Pe(r, o, l, f);
-      else {
-        let u = ye(r, f * 0.75, je, 700) + f * 1.4;
-        te(
-          o - u / 2,
-          l - f * 0.75,
-          u,
-          f * 1.5,
-          s.has(i) ? g.p1 : "rgba(233,230,247,0.9)",
-          f * 0.3,
+        continue;
+      }
+      let k = b ? f * 0.92 : f;
+      d.globalAlpha = 0.95;
+      // Base: darker while the move recharges.
+      (d.fillStyle = b
+        ? "rgba(40,34,70,0.85)"
+        : y
+          ? "rgba(10,8,22,0.55)"
+          : "rgba(6,5,14,0.8)"),
+        d.beginPath(),
+        d.arc(m(o), m(l), m(k), 0, Math.PI * 2),
+        d.fill(),
+        // Track and the refilling ring.
+        (d.lineWidth = m(f > 12 ? 2.4 : 1.9)),
+        (d.strokeStyle = "rgba(255,255,255,0.16)"),
+        d.beginPath(),
+        d.arc(m(o), m(l), m(k - 1.2), 0, Math.PI * 2),
+        d.stroke(),
+        (d.strokeStyle = c),
+        (d.globalAlpha = y ? 0.95 : 0.85),
+        d.beginPath(),
+        d.arc(
+          m(o),
+          m(l),
+          m(k - 1.2),
+          -Math.PI / 2,
+          -Math.PI / 2 + Math.PI * 2 * Math.max(0.001, Math.min(1, C)),
         ),
-          G(r, o, l + f * 0.27, f * 0.75, g.night, {
+        d.stroke();
+      // Ready flash: a ring that grows and fades.
+      let h = TOUCH.flash[i] ?? 0;
+      h > 0 &&
+        ((d.globalAlpha = h / 14),
+        (d.strokeStyle = c),
+        (d.lineWidth = m(1.4)),
+        d.beginPath(),
+        d.arc(m(o), m(l), m(k + (14 - h) * 0.6), 0, Math.PI * 2),
+        d.stroke(),
+        TOUCH.flash[i]--);
+      // Glyph, or the countdown with the glyph small above it.
+      d.globalAlpha = 1;
+      let u = r.length === 1;
+      !y && x
+        ? (G(r, o, l - k * 0.38, k * (u ? 0.4 : 0.3), c, {
             align: "center",
             weight: 700,
-          });
-      }
-      let M = mi && mi[i];
-      if (M) {
-        let [P, C, x] = M,
-          v = lp[i],
-          ch = r.length > 1;
-        // Text chips (Smash, Legend) carry their note beside the name.
-        ch && x && ((P = `${P} ${x}`), (x = ""));
-        C < 1 &&
-          !ch &&
-          ((d.globalAlpha = 0.8),
-          (d.fillStyle = "rgba(11,9,24,0.78)"),
-          d.beginPath(),
-          d.moveTo(m(o), m(l)),
-          d.arc(
-            m(o),
-            m(l),
-            m(f + 0.5),
-            -Math.PI / 2 + Math.PI * 2 * C,
-            Math.PI * 1.5,
-          ),
-          d.closePath(),
-          d.fill(),
-          x &&
-            ((d.globalAlpha = 1),
-            G(x, o, l + 2.2, Math.min(6.4, f * 0.6), g.chalk, {
+          }),
+          V(x, o, l + k * 0.32, Math.min(k * 0.55, 7.5), g.chalk, {
+            align: "center",
+            outline: 1.6,
+          }))
+        : u
+          ? V(r, o, l + k * 0.34, k * 0.95, y ? c : "rgba(255,255,255,0.4)", {
+              align: "center",
+              outline: 1.6,
+            })
+          : (G(r, o, l + k * 0.18, Math.min(k * 0.42, 4.6), y ? c : g.haze, {
               align: "center",
               weight: 700,
-            }))),
-          (d.globalAlpha = 0.9),
-          G(
-            P,
-            v === "left" ? o - f - 3 : o,
-            v === "up" ? l - f - 3 : v === "down" ? l + f + 7 : l + 2,
-            5.4,
-            C >= 1 && !x ? g.chalk : g.haze,
-            { align: v === "left" ? "right" : "center", weight: 700 },
-          );
-      }
+            }),
+            // Legend shows its meter as a number until it is ready.
+            x &&
+              G(x, o, l + k * 0.62, 3.6, g.chalk, {
+                align: "center",
+                weight: 700,
+              }));
+      // The move's name under the button.
+      M &&
+        nm[i] &&
+        G(
+          M[0],
+          o,
+          nm[i] < 0 ? l - f - 2.4 : l + f + 5.6,
+          4.6,
+          y ? g.chalk : g.haze,
+          {
+            align: "center",
+            weight: 700,
+            outline: 1.6,
+          },
+        );
     }
     d.restore();
   }
