@@ -1677,57 +1677,64 @@ Tried and reverted, because each made the spread worse:
 - a "second wind" heal for survivors at each knockout;
 - a longer revenge memory.
 
-What shipped is a Free-for-All damage scale per Pokémon (`FFA_POW`), tuned in
-damped steps from those runs, 0.6 (Gardevoir) to 1.3 (the brawlers). Duels
-and team modes do not use it. Gardevoir also takes 25% more in Free-for-All
-(`FFA_TAKEN`): she dealt the least damage of anyone yet was first out 3% of
-the time, so damage alone could not bring her down. Result on fresh seeds
-(320 games, no errors, no time-outs):
+What shipped is a Free-for-All damage scale per Pokémon (`FFA_POW`, 0.6 to
+1.4), plus a damage-taken scale (`FFA_TAKEN`) where damage alone could not
+do it: Gardevoir takes ×1.49 (she dealt the least damage of anyone yet was
+first out 3% of the time), and Blastoise, Metagross and Charizard, pinned at
+the 1.4 cap, take slightly less. Duels and the other modes do not use them.
 
-| Pokémon | FFA wins | | Pokémon | FFA wins |
-|---|---|---|---|---|
-| Rhyperior | 35% | | Snorlax | 22% |
-| Dragapult | 33% | | Garchomp | 22% |
-| Lucario | 29% | | Magnezone | 21% |
-| Charizard | 28% | | Gardevoir | 20% |
-| Tyrantrum | 26% | | Noivern | 20% |
-| Golurk | 26% | | Metagross | 18% |
-| Froslass | 26% | | Venusaur | 16% |
-| Scizor | 25% | | | |
-| Blastoise | 25% | | | |
+**How Free-for-All is measured.** With four fighters an even share of wins
+is 25%, so outright wins can never sit in a 45–55% band. The tuning target
+is pairwise placement instead: how often a Pokémon finishes ahead of each
+opponent, (average place − 1) / 3. It averages 50% by construction, like a
+duel win rate, and counts every finishing place, not just first. Result on
+fresh seeds (640 games, about 160 per Pokémon, no errors, no time-outs):
 
-**2v2 and Zone Control.** These were measured the same way, then tuned the
-same way. 2v2 started at 27% (Lucario) to 67% (Garchomp) over 320 games;
-Zone Control (one-on-one over capture points) had Venusaur at 68%, since
-rooting with Ingrain is ideal for holding a point. Each mode got its own
-per-Pokémon damage scale (`TEAM_POW`, `ZONE_POW`, 0.75–1.3), tuned in damped
-steps. Dragapult kept 63% of 2v2 wins even at 0.75, its edge being Phantom
-Force keeping it out of reach, so in 2v2 it takes 20% more instead
-(`MODE_TAKEN`). Final runs on fresh seeds, about 160 games per Pokémon (±4%):
+| Pokémon | Ahead of each foe | Outright wins | | Pokémon | Ahead of each foe | Outright wins |
+|---|---|---|---|---|---|---|
+| Dragapult | 54% | 26% | | Golurk | 50% | 26% |
+| Tyrantrum | 53% | 34% | | Froslass | 50% | 15% |
+| Rhyperior | 52% | 24% | | Charizard | 50% | 25% |
+| Snorlax | 51% | 21% | | Lucario | 49% | 25% |
+| Gardevoir | 51% | 13% | | Noivern | 49% | 28% |
+| Metagross | 51% | 25% | | Scizor | 47% | 22% |
+| Magnezone | 51% | 21% | | Venusaur | 46% | 28% |
+| Blastoise | 51% | 28% | | Garchomp | 46% | 21% |
 
-| Pokémon | 2v2 | Zone Control |
+**2v2 and Zone Control.** Measured and tuned the same way. 2v2 started at
+27% (Lucario) to 67% (Garchomp); Zone Control (one-on-one over capture points)
+had Venusaur at 68%, rooting with Ingrain being ideal for holding a point.
+Each mode has its own per-Pokémon damage scale (`TEAM_POW`, `ZONE_POW`), and
+in 2v2 Dragapult takes ×1.05, its Phantom Force keeping it out of reach.
+
+These runs are noisy: in 2v2 the random partner adds variance, and single
+640-game runs moved a Pokémon by 10 points with no change. So the last steps
+were taken only on pooled runs on an unchanged build, and the spread across
+all sixteen was checked against what pure chance gives. At about 320 games per
+Pokémon, even a perfectly even roster shows extremes of roughly 44–56%; the
+final spreads sit at that floor. Final pooled results on the shipped build:
+
+| Pokémon | 2v2 (1,280 games) | Zone Control (2,560 games) |
 |---|---|---|
-| Garchomp | 58% | 51% |
-| Snorlax | 58% | 44% |
-| Gardevoir | 54% | 54% |
-| Charizard | 53% | 54% |
-| Magnezone | 52% | 52% |
-| Tyrantrum | 52% | 48% |
-| Rhyperior | 51% | 54% |
-| Dragapult | 50% | 41% |
-| Metagross | 50% | 55% |
-| Golurk | 50% | 50% |
-| Scizor | 49% | 54% |
-| Noivern | 48% | 43% |
-| Venusaur | 47% | 52% |
-| Blastoise | 46% | 47% |
-| Lucario | 43% | 50% |
-| Froslass | 41% | 50% |
+| Tyrantrum | 56% | 47% |
+| Dragapult | 54% | 47% |
+| Blastoise | 53% | 50% |
+| Snorlax | 52% | 56% |
+| Gardevoir | 52% | 46% |
+| Charizard | 50% | 52% |
+| Golurk | 50% | 53% |
+| Froslass | 50% | 53% |
+| Magnezone | 50% | 46% |
+| Scizor | 49% | 43% |
+| Metagross | 48% | 54% |
+| Noivern | 48% | 53% |
+| Garchomp | 48% | 51% |
+| Venusaur | 47% | 49% |
+| Rhyperior | 46% | 46% |
+| Lucario | 46% | 53% |
 
-An even share is 50%. A team result also depends on the partner, so 2v2 is
-held to a slightly wider band than duels. Every mode-specific scale applies
-only in its own mode: duels, Tag Team and online play use the duel tuning
-alone.
+An even share is 50%. Every mode-specific scale applies only in its own
+mode: duels, Tag Team and online play use the duel tuning alone.
 
 ### Legendaries in every mode
 
@@ -1770,7 +1777,8 @@ legendaries:
 | Golurk vs Rhyperior | Rayquaza and Ho-Oh | 3,725 |
 | Froslass vs Venusaur (final build, Thick Fat) | Ho-Oh and Rayquaza | 2,229 |
 | Snorlax vs Rhyperior | Rayquaza and Ho-Oh | 3,872 |
-| Gardevoir vs Charizard (final build) | Ho-Oh and Rayquaza | 3,056 |
+| Gardevoir vs Charizard | Ho-Oh and Rayquaza | 3,056 |
+| Golurk vs Metagross (final build) | Rayquaza and Ho-Oh | 2,648 |
 
 Every duel stayed identical on both pages, with no errors, and rematch and
 leave worked.

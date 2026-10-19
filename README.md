@@ -49,9 +49,10 @@ all five arenas in CPU duels, and no pairing reaches 80% over 300 games. Crowd
 control is kept short: getting up is fully invincible and followed by a moment
 of safety, and no move chain locks a fighter for more than about 2.6 seconds.
 Free-for-All, 2v2 and Zone Control each have their own per-Pokémon damage
-scale, so last one standing doesn't just reward whoever hangs back: every
-Pokémon wins 16–35% of four-way Free-for-Alls (an even share is 25%), 41–58% of
-2v2 games and 41–55% of Zone Control.
+scale. In Free-for-All every Pokémon finishes ahead of each opponent 46–54% of
+the time (outright wins can't be 50% with four fighters; an even share is
+25%). In 2v2 every Pokémon wins 46–56% and in Zone Control 43–56%, which is
+as tight as those sample sizes can show.
 Each legendary wins 50–58% of Standard and 44–64% of Tag Team mirror matches.
 Details and numbers are in the design review.
 
