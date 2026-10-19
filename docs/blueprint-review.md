@@ -926,3 +926,35 @@ corner on a phone. A panel shows the last ten seconds:
 One screenshot from a real match shows whether a problem is the network (high
 round trip, the delay at its 12-tick cap, deep predictions) or the game (large
 corrections at low latency, low frame rate).
+
+## Charizard: Flamethrower runs on heat alone
+
+Flamethrower no longer has a button cooldown; heat is the only limit, as asked.
+Removing the cooldown alone pushed Charizard from 58% to 71%, and it exposed an
+older problem: just holding X beat the Hard CPU 81% of the time, because the
+flame stun-locked (12-tick hitstun against a 6-tick re-hit) and nobody punished
+an overheat. The tuning, all in `FLAME`:
+
+- Each breath costs 6 heat to light (`ignite`), so tapping X can't beat the heat
+  drain. Heat builds 0.95 per tick while burning, as before.
+- Overheating stuns for 60 ticks (was 45), and Charizard takes 25% more damage
+  while venting (`ventTaken`).
+- Flame hitstun is 5 (`hitstun`), under the re-hit gap, so a target can dodge
+  out. Each tick then lands at full damage instead of decaying combo damage, so
+  per-tick damage is 6 (`dmg`, was 8).
+- Heat's damage bonus is +40% at 100 (was +50%).
+- The CPU rushes in to punish an overheated Charizard (more often on harder
+  levels).
+- HUD: the X button stays lit and greys out only while overheated; the heat bar
+  is the meter to watch.
+
+Results (Hard CPU against Hard CPU, every matchup; six repetitions on the
+Stadium, three on each of the five arenas):
+
+| | before | after |
+|---|---|---|
+| Charizard, Stadium | 58% | 55% |
+| Charizard, average of all arenas | 60% | 54% |
+| Roster range, Stadium | 42–62% | 43–60% |
+| Holding X against the Hard CPU | 81% | 0% |
+| Tapping X against the Hard CPU | 0% | 0% |
