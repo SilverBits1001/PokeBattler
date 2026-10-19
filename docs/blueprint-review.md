@@ -1639,11 +1639,11 @@ Every special starts within 0–27 ticks of the button. The exceptions are
 deliberate: charge moves the player holds (Aura Sphere, Leech Seed aim,
 Hydro Pump) and Golurk's Fly, which spends 48 ticks in the air before landing.
 
-**Keyboard playtest.** Through the real menus, every new Pokémon was picked
-with the arrow keys and Enter, and each move key was pressed in battle. Every
-pick was correct, and every move reacted within 1–9 frames of the key, in a
-headless browser. A 30-frame Gardevoir attack in the first run did not
-repeat: three retries took 3–6 frames.
+**Keyboard playtest.** Through the real menus, every one of the sixteen was
+picked with the arrow keys and Enter, and each move key was pressed in battle.
+Every pick was correct, and every move started within 2–6 frames of the key,
+in a headless browser (a stray "hurt" on one Magnezone press was a hit from
+the arena; six retries took 2–3 frames).
 
 ### Four-fighter matches
 
@@ -1696,11 +1696,38 @@ the time, so damage alone could not bring her down. Result on fresh seeds
 | Scizor | 25% | | | |
 | Blastoise | 25% | | | |
 
-**2v2 and Zone Control** (160 games each, 30–49 appearances per Pokémon in
-2v2 and 12–29 in Zone Control): every Pokémon won 30–66% of its 2v2 games
-and 29–83% in Zone Control, an even share being 50%. A team result also
-depends on the partner, so these samples are too small to tune from;
-Metagross was lowest in both.
+**2v2 and Zone Control.** These were measured the same way, then tuned the
+same way. 2v2 started at 27% (Lucario) to 67% (Garchomp) over 320 games;
+Zone Control (one-on-one over capture points) had Venusaur at 68%, since
+rooting with Ingrain is ideal for holding a point. Each mode got its own
+per-Pokémon damage scale (`TEAM_POW`, `ZONE_POW`, 0.75–1.3), tuned in damped
+steps. Dragapult kept 63% of 2v2 wins even at 0.75, its edge being Phantom
+Force keeping it out of reach, so in 2v2 it takes 20% more instead
+(`MODE_TAKEN`). Final runs on fresh seeds, about 160 games per Pokémon (±4%):
+
+| Pokémon | 2v2 | Zone Control |
+|---|---|---|
+| Garchomp | 58% | 51% |
+| Snorlax | 58% | 44% |
+| Gardevoir | 54% | 54% |
+| Charizard | 53% | 54% |
+| Magnezone | 52% | 52% |
+| Tyrantrum | 52% | 48% |
+| Rhyperior | 51% | 54% |
+| Dragapult | 50% | 41% |
+| Metagross | 50% | 55% |
+| Golurk | 50% | 50% |
+| Scizor | 49% | 54% |
+| Noivern | 48% | 43% |
+| Venusaur | 47% | 52% |
+| Blastoise | 46% | 47% |
+| Lucario | 43% | 50% |
+| Froslass | 41% | 50% |
+
+An even share is 50%. A team result also depends on the partner, so 2v2 is
+held to a slightly wider band than duels. Every mode-specific scale applies
+only in its own mode: duels, Tag Team and online play use the duel tuning
+alone.
 
 ### Legendaries in every mode
 
