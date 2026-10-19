@@ -9,9 +9,13 @@ Open `index.html` in a browser. A gamepad is recommended; the keyboard works too
 Q switch, E assist).
 
 On a phone or tablet, touch controls appear as soon as you touch the screen: drag
-anywhere on the left half for a floating stick, use the A/B/X/Y cluster on the right
-(attack, dodge, specials), plus Guard, Lock, Smash (aimed with the stick), Switch,
-Assist and a pause button. Menus, team select, the lobby and results are tap to
+anywhere on the left half for a floating stick. On the right, a large Attack button
+sits in an arc with the two specials, Dodge and Smash (aimed with the stick), with
+Guard and Lock above; Legendary, Switch and Assist are on the left edge and pause is
+at the bottom centre. Every button shows its own cooldown, like a fighting game's
+touch layout: the button dims, a coloured ring refills, the seconds left are written
+on it, and it flashes when it is ready again. The battle HUD fades back while a
+fighter is underneath it. Menus, team select, the lobby and results are tap to
 select. The overlay hides again when a keyboard or controller is used.
 
 ## What's new
@@ -23,6 +27,15 @@ move types, Magnezone, two battle themes plus victory/defeat music, and five mod
 (VS CPU, Training, Free-for-All, Team 2v2, Zone Control). Mode, arena and items can be
 switched in Options → Match, or with X / Select on team select. Accessibility options
 (reduced effects, high-contrast team colours, swapped specials) are in Options.
+
+Match flow: in Free-for-All, pick 3 or 4 fighters on team select (RT, O or tap
+Players); the CPU rivals are shown there before the match. After choosing your
+Pokémon and legendary, a ready screen sums up the match and waits for Start (Back
+returns to the legendary). In Training that screen is a briefing for each of your
+Pokémon: every move with its typical damage and what it does, what each effect
+(burn, chill, daze, armour...) means, and a guide to how to play it. Mid-fight
+announcements (combos, surges, items, legendaries) now appear as a small pill under
+the HUD, so only Ready?, Go!, K.O. and the result take the middle of the screen.
 
 Roster (16): Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern,
 Lucario, Garchomp, Scizor, Tyrantrum, Golurk, Rhyperior, Froslass, Gardevoir and
@@ -44,12 +57,12 @@ real weakness, an answer to ranged attacks and a way to escape:
   Sight traps.
 - **Metagross** floats on Magnet Rise and is never slowed (Clear Body).
 
-The whole roster was rebalanced together. Every Pokémon averages 46–53% across
+The whole roster was rebalanced together. Every Pokémon averages 46–52% across
 all five arenas in CPU duels, and no pairing reaches 80% over 300 games. Crowd
 control is kept short: getting up is fully invincible and followed by a moment
 of safety, and no move chain locks a fighter for more than about 2.6 seconds.
 Free-for-All, 2v2 and Zone Control each have their own per-Pokémon damage
-scale. In Free-for-All every Pokémon finishes ahead of each opponent 46–54% of
+scale. In Free-for-All every Pokémon finishes ahead of each opponent 44–54% of
 the time (outright wins can't be 50% with four fighters; an even share is
 25%). In 2v2 every Pokémon wins 46–56% and in Zone Control 43–56%, which is
 as tight as those sample sizes can show.

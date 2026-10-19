@@ -1782,3 +1782,69 @@ legendaries:
 
 Every duel stayed identical on both pages, with no errors, and rematch and
 leave worked.
+
+## Battle readability, touch controls and the match flow
+
+### Announcements off the fighters
+
+Every mid-fight announcement used to be a large banner across the middle of
+the arena, which is where the fight is. Now only the round's flow (Ready?,
+Go!, K.O. in a duel, Victory, Defeat, Draw, Time) takes the middle. Everything
+else (combo and surge callouts, Close Call, Overheat, Guard Break, fainting,
+zone capture, items, legendary summons, K.O.s in three- and four-way fights)
+is a compact translucent pill under the HUD, lasts at most about two seconds,
+and queues on its own so it never cuts off a centre banner. Damage and status
+popups that land close together now stack upwards instead of drawing over
+each other. In duels the name tag over each fighter shrinks to a small
+coloured pointer after the first three seconds. The HUD fades to about 40%
+while any fighter is underneath it.
+
+### Touch controls
+
+The touch overlay was laid out again around a large Attack button, with the
+two specials, Dodge and Smash in an arc around it and Guard and Lock above,
+so the thumb rolls between them; Legendary, Switch and Assist sit on the left
+edge above the stick and pause is at the bottom centre, away from both thumbs.
+Each button now shows its own cooldown: it dims, a ring in the button's colour
+refills, the seconds left are written on it, and a ring flashes when it is
+ready. Move names are printed next to the special, Smash and Legendary
+buttons. Switch, Assist and Smash curse cooldowns were added to the per-button
+state so those buttons count down too.
+
+### Free-for-All size, the ready screen and the Training briefing
+
+- Free-for-All takes 3 or 4 fighters (RT, O or tap Players on team select;
+  the setting is remembered). The CPU rivals are rolled on team select and
+  shown as one card each, so the match that starts is the one you saw.
+- After choosing the legendary, a ready screen sums up the match (you
+  against your rivals) and waits for Start; Back returns to the legendary
+  roster. Online play goes through the same step.
+- In Training that screen is a briefing for each of your Pokémon (left and
+  right to switch): portrait, types and role, a short guide to how to play
+  it, every move with its typical damage per hit and what it does, and a
+  glossary of the effects its moves use (burn, poison, Leech Seed, paralysis,
+  daze, chill, freeze, curse, confusion, launch, armour, invulnerability,
+  reflect, grab, guard-piercing, flinch, rooted, counter).
+
+### Final balance changes
+
+- Rock Slide drops five boulders in a cross, a little sooner; each boulder
+  hits for 22 (was 26) because the surer cross made Tyrantrum beat Noivern
+  80% of the time.
+- The CPU Noivern now flies clear of charged smashes and rushes (against
+  Tyrantrum it dodged 29 times in 60 games while Head Smash did most of the
+  damage). Tyrantrum vs Noivern went from 80% to 76% over 300 games.
+- Free-for-All only: Groudon hits at x0.9 and Deoxys a little softer.
+
+Final results on this build: CPU duels average 46–52% per Pokémon across all
+five arenas; Free-for-All finishing ahead of each opponent 44–54%; Zone
+Control 43–56%.
+
+### Checks
+
+- Online rollback duel (Snorlax vs Rhyperior, Ho-Oh and Rayquaza; 120 ms,
+  50 ms jitter, 8% loss) through the new ready step: 2,957 ticks compared,
+  identical on both pages, rematch and leave worked, no errors.
+- Keyboard playtest through the real menus for all 16 Pokémon: every move
+  starts within 1–4 frames of the key press, no errors.
+- Four-fighter Free-for-All and Zone Control runs: no errors or time-outs.
