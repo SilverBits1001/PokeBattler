@@ -2380,21 +2380,6 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           },
           r = this.rand,
           o = e.nearestTarget(t.team, t.x, t.y);
-        // Free-for-All: pick your own fight. A foe already trading blows with
-        // someone else counts as further away, so CPUs don't all pile onto
-        // whoever is brawling while the ones hanging back go untouched.
-        if (e.match.mode === "ffa" && e.players.length > 2) {
-          let bs = 1 / 0;
-          for (let q of e.targetsFor(t.team)) {
-            let busy =
-                q.kind === "player" &&
-                q.lastHitBy &&
-                q.lastHitBy !== t &&
-                e.tick - q.lastHitT < 90,
-              d = Math.hypot(q.x - t.x, q.y - t.y) * (busy ? 1.8 : 1);
-            d < bs && ((bs = d), (o = q));
-          }
-        }
         // In a crowd, go after whoever just hit you, so nobody can pick
         // everyone off from the back unanswered.
         let rv = t.lastHitBy;
@@ -3335,6 +3320,8 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     Oa = 1,
     Na = 2,
     yt = { strong: 1.05, weak: 0.95 },
+    // Free-for-All: share of health every survivor gets back on a knockout.
+    FFA_WIND = 0.15,
     // Match modes, indexed by the gameMode option.
     // Tag Team (6) runs the "vs" match with two Pokemon a side.
     MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag"],
@@ -5297,6 +5284,26 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             e.out = !0;
             // Placing = how many were still standing when this one fell.
             e.place = this.players.filter((o) => !o.out).length + 1;
+            // Free-for-All second wind: each knockout gives every survivor
+            // back some health, so whoever won the brawl isn't left easy
+            // pickings for someone who hung back.
+            if (this.match.mode === "ffa")
+              for (let o of this.players) {
+                if (o.out || o.state === "faint") continue;
+                let sl = o.slot,
+                  h0 = sl.hp;
+                (sl.hp = Math.min(
+                  sl.maxHp,
+                  sl.hp + Math.round(sl.maxHp * FFA_WIND),
+                )),
+                  this.emit({
+                    type: "heal",
+                    x: o.x,
+                    y: o.y,
+                    amount: sl.hp - h0,
+                    who: o,
+                  });
+              }
             let s = this.players[0].team,
               i = this.players.some((o) => !o.out && o.team === s),
               r = this.players.some((o) => !o.out && o.team !== s),
@@ -12716,9 +12723,21 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           w = e.owner;
         for (let p of this.players) {
           if (p.team !== w.team || p.state === "faint") continue;
-          let s = p.slot,
+          // With a partner, Rebirth is the support: it brings a fallen one
+          // back, once per team per match. A lone Pokémon is healed instead.
+          let rb = (this.match.reborn ??= []),
+            fallen = rb.includes(p.team)
+              ? null
+              : p.slots.find((q) => q !== p.slot && q.hp <= 0),
+            s = p.slot,
             h0 = s.hp;
-          (s.hp = Math.min(s.maxHp, s.hp + Math.round(s.maxHp * O.heal))),
+          fallen
+            ? ((fallen.hp = Math.round(fallen.maxHp * O.revive)),
+              (fallen.burnT = fallen.poisonT = 0),
+              rb.push(p.team),
+              this.emit({ type: "rebirth", who: p, kit: fallen.kit }))
+            : p.slots.length === 1 &&
+              (s.hp = Math.min(s.maxHp, s.hp + Math.round(s.maxHp * O.heal))),
             (s.burnT = 0),
             (s.poisonT = 0),
             (p.paraT = 0),
@@ -12739,17 +12758,6 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
               amount: Math.round(s.hp - h0),
               who: p,
             });
-          // Rebirth brings a fainted partner back once per team per match.
-          let rb = (this.match.reborn ??= []);
-          if (!rb.includes(p.team))
-            for (let q of p.slots)
-              q !== p.slot &&
-                q.hp <= 0 &&
-                !rb.includes(p.team) &&
-                ((q.hp = Math.round(q.maxHp * O.revive)),
-                (q.burnT = q.poisonT = 0),
-                rb.push(p.team),
-                this.emit({ type: "rebirth", who: p, kit: q.kit }));
         }
         this.emit({ type: "hoohHeal", who: w, x: w.x, y: w.y });
       }
