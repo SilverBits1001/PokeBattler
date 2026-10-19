@@ -1255,3 +1255,39 @@ Fault test, results after the fix:
   corner: each move's button, name and cooldown ring with seconds left (heat
   for Flamethrower), plus the legendary meter.
 
+
+### Evidence for each change
+
+- **Select twice.** I replayed it on the previous build and on the new one:
+  after a battle, choose Change team, then press A once.
+  - The old build kept your lead filled in while the CPU's pick was cleared,
+    and nothing happened (`picks: charizard, cpu: none`).
+  - The new build takes the pick, rolls the CPU's (Venusaur against
+    Magnezone) and opens the legendary roster.
+- **Fair random.** 40,000 draws with Charizard already taken:
+
+| Method | Charizard drawn | Each other Pokémon |
+|---|---|---|
+| Old random-comparator sort | 22.2% (fair would be 12.5%) | 8.1–14.8% |
+| New `freshPicks` | 0% | 14.0–14.4% |
+
+  Tag Team CPU pairs, with Charizard and Snorlax taken: 16.4–16.8% each,
+  and never a taken Pokémon or a duplicate.
+- **Fly in live CPU matches.** Charizard against each Pokémon, six matches
+  each, counting every hit taken while flying.
+  - Hits that landed: Venusaur's homing leaves, Dreepy, Magnezone's locked-on
+    Zap and Lock-On, Lucario's Aura Sphere, and Noivern's Hurricane, which
+    steers toward the nearest target.
+  - Blastoise and Snorlax, with no seeking attacks, never hit a flying
+    Charizard. No melee hit landed mid-flight.
+- **Online Tag Team over the real friend-link stack** (local PeerJS server and
+  MQTT brokers): two Pokémon each, a switch on one side and an assist on the
+  other show the same on both pages, and 2,423 compared ticks are identical.
+  The fake-room test also covers New team and the arena roulette in Tag Team.
+- **Touch.** Each touch button now carries its move's name, and the round
+  buttons show a cooldown ring with seconds left. The Smash and Legend chips
+  show the move or legendary name with the meter beside it.
+- **Snorlax across all five arenas** (4 rounds of all 56 matchups each),
+  final build: Stadium 52%, Ruins 59%, Crater 57%, Frostfall 50%, Power Plant
+  46%, an average of 53%. Every Pokémon's average falls between 44%
+  (Magnezone) and 58% (Venusaur).
