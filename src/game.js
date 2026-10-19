@@ -3250,6 +3250,27 @@
     Oa = 1,
     Na = 2,
     yt = { strong: 1.05, weak: 0.95 },
+    // Free-for-All damage scale per Pokémon. Last one standing rewards
+    // range and escapes far more than a duel does, so each kit's damage is
+    // tuned for this mode on its own (duels and team modes use 1).
+    FFA_POW = {
+      gardevoir: 0.62,
+      garchomp: 0.91,
+      froslass: 0.9,
+      noivern: 1.0,
+      rhyperior: 0.84,
+      dragapult: 0.88,
+      lucario: 1.1,
+      snorlax: 1.21,
+      magnezone: 0.97,
+      venusaur: 1.17,
+      scizor: 1.24,
+      tyrantrum: 1.2,
+      blastoise: 1.3,
+      golurk: 1.3,
+      charizard: 1.3,
+      metagross: 1.3,
+    },
     // In crowds a CPU turns on whoever hit it within t ticks and r pixels.
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
@@ -12728,6 +12749,9 @@
             s *
               ae.dmg *
               (lg ? 1 : this.outgoingMult(t) * this.exOut(t, s, k)) *
+              (!lg && this.match.mode === "ffa" && t?.kind === "player"
+                ? (FFA_POW[t.kit.id] ?? 1)
+                : 1) *
               Q *
               ie *
               (an ? MAGNE.analytic : 1) *
