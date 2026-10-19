@@ -24,7 +24,25 @@ move types, Magnezone, two battle themes plus victory/defeat music, and five mod
 switched in Options → Match, or with X / Select on team select. Accessibility options
 (reduced effects, high-contrast team colours, swapped specials) are in Options.
 
-Roster: Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern, Lucario.
+Roster (16): Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern,
+Lucario, Garchomp, Scizor, Tyrantrum, Golurk, Rhyperior, Froslass, Gardevoir and
+Metagross. Each has a class from [the design document](docs/design-doc.md) (speedster,
+heavyweight, trickster, controller, artillery or skirmisher), a signature gimmick, a
+real weakness, an answer to ranged attacks and a way to escape:
+
+- **Garchomp** digs underground and erupts beneath foes; Outrage is a rampage
+  followed by confusion.
+- **Scizor**'s Bullet Punch always strikes first (three charges); U-turn hits and
+  hops out, or tags your partner in.
+- **Tyrantrum**'s Crunch grabs through guard; Rock Slide drops boulders on shooters.
+- **Golurk** fires a homing rocket fist and blasts off with Fly.
+- **Rhyperior** raises Rock Tomb pillars for cover, then shatters them with Rock
+  Wrecker.
+- **Froslass** chills: three chills freeze for a moment. Double Team leaves an ice
+  doll behind.
+- **Gardevoir** lifts and throws foes with Psychic, reflects shots, and sets Future
+  Sight traps.
+- **Metagross** floats on Magnet Rise and is never slowed (Clear Body).
 
 ## Modes and legendaries
 
@@ -51,11 +69,23 @@ launches them:
   - Attack sweeps a target down the arena with Hyper Beam.
   - Defense heals you and raises a barrier that bursts outward.
   - Speed crisscrosses its target with Extreme Speed before diving on it.
+- **Groudon, Precipice Blades** (area control). Three rings of stone blades erupt
+  outward from the aim point, a beat apart. Anyone caught gets a scene of erupting
+  blades and a magma geyser. Otherwise Drought scorches the centre and burns anyone
+  who stands in it.
+- **Rayquaza, Dragon Ascent** (hunter). It marks up to three foes, nearest the aim
+  point first, and dives on each in turn. Each mark locks just before the dive, so
+  a late dodge escapes. Everyone it hit shares one scene in the sky. Made for
+  Free-for-All.
+- **Ho-Oh, Sacred Fire** (support). It heals your side 25% and cleanses burn,
+  poison, paralysis, chill, sleep and freeze. Rebirth revives a fainted Tag Team
+  partner at 30%. Then a ring of fire rolls out and stays around you, burning foes
+  inside. Made for Tag Team and 2v2.
 
 **Team select** asks for as many Pokémon as the mode needs: one in Standard and the
 party modes, two in Tag Team. The last tile picks a random Pokémon you haven't
 picked, and the CPU never copies yours. Once every fighter is chosen, the legendary
-roster opens: choose Zekrom, Darkrai, Deoxys, Random or Off, and the battle starts.
+roster opens: choose one of the six legendaries, Random or Off, and the battle starts.
 Each CPU gets a random legendary. Online, both players must have legendaries on for
 them to appear.
 
