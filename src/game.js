@@ -23500,6 +23500,36 @@
   };
   function Pe(a, e, t, s = 4.2, i = !1) {
     d.save(), (d.globalAlpha *= i ? 0.35 : 1);
+    if (STICKS[a]) {
+      // A thumbstick seen from above: a dark well, a domed cap with a grip
+      // ring, and which stick it is.
+      let R = s * 1.05;
+      return (
+        (d.fillStyle = "rgba(0,0,0,0.5)"),
+        d.beginPath(),
+        d.arc(m(e + 0.4), m(t + 0.6), m(R), 0, Math.PI * 2),
+        d.fill(),
+        (d.fillStyle = "#2a2740"),
+        d.beginPath(),
+        d.arc(m(e), m(t), m(R), 0, Math.PI * 2),
+        d.fill(),
+        (d.fillStyle = "#e9e6f7"),
+        d.beginPath(),
+        d.arc(m(e), m(t - R * 0.06), m(R * 0.74), 0, Math.PI * 2),
+        d.fill(),
+        (d.strokeStyle = "#a9a3c8"),
+        (d.lineWidth = m(Math.max(0.5, R * 0.1))),
+        d.beginPath(),
+        d.arc(m(e), m(t - R * 0.06), m(R * 0.5), 0, Math.PI * 2),
+        d.stroke(),
+        G(STICKS[a], e, t + R * 0.28, R * 0.78, g.night, {
+          align: "center",
+          weight: 800,
+        }),
+        d.restore(),
+        R * 2
+      );
+    }
     let r = Ta[a];
     if (r)
       return (
@@ -23525,8 +23555,13 @@
       l
     );
   }
-  var ba = (a, e) =>
-    Ta[a] ? e * 2 : Math.max(e * 2.4, ye(a, e * 1.05, je, 700) + e * 1.4);
+  var STICKS = { RS: "R", LS: "L", R3: "R", L3: "L" },
+    ba = (a, e) =>
+      STICKS[a]
+        ? e * 2.1
+        : Ta[a]
+          ? e * 2
+          : Math.max(e * 2.4, ye(a, e * 1.05, je, 700) + e * 1.4);
   function tt(a) {
     return (
       {
@@ -25872,6 +25907,134 @@
       d.restore(),
       d.drawImage(Ke, p, k);
   }
+  // Face-off pieces shared by the start screen and the ready screen.
+  var FACE_SEAM = (y) => H / 2 + 26 - y * 0.2;
+  // Two halves, blue and red, with light streaks racing outward.
+  function faceBg(t) {
+    (d.fillStyle = "#07060f"), d.fillRect(0, 0, m(H), m(oe));
+    for (let [side, c0, c1] of [
+      [0, "#0d2a66", "#06102a"],
+      [1, "#661020", "#2a0610"],
+    ]) {
+      let gr = d.createLinearGradient(m(side ? H : 0), 0, m(H / 2), 0);
+      gr.addColorStop(0, c0),
+        gr.addColorStop(1, c1),
+        (d.fillStyle = gr),
+        d.beginPath();
+      side
+        ? (d.moveTo(m(FACE_SEAM(0)), 0),
+          d.lineTo(m(H), 0),
+          d.lineTo(m(H), m(oe)),
+          d.lineTo(m(FACE_SEAM(oe)), m(oe)))
+        : (d.moveTo(0, 0),
+          d.lineTo(m(FACE_SEAM(0)), 0),
+          d.lineTo(m(FACE_SEAM(oe)), m(oe)),
+          d.lineTo(0, m(oe)));
+      d.closePath(), d.fill();
+    }
+    d.save(), (d.globalCompositeOperation = "lighter");
+    for (let k = 0; k < 14; k++) {
+      let qq = rt(k + 11),
+        y = qq() * oe,
+        sp = 2 + qq() * 4,
+        len = 30 + qq() * 70,
+        left = k % 2 === 0,
+        x = ((t * sp + qq() * 600) % (H / 2 + 120)) - 60;
+      (d.fillStyle = left ? "rgba(80,180,255,0.18)" : "rgba(255,80,110,0.18)"),
+        d.fillRect(m(left ? H / 2 - x - len : H / 2 + x), m(y), m(len), m(1.2));
+    }
+    d.restore();
+  }
+  // The glowing seam, drawn over the portraits.
+  function faceSeam() {
+    d.save(), (d.globalCompositeOperation = "lighter");
+    let x0 = FACE_SEAM(0),
+      x1 = FACE_SEAM(oe),
+      sg = d.createLinearGradient(m(x0 - 8), 0, m(x0 + 8), 0);
+    sg.addColorStop(0, "rgba(255,255,255,0)"),
+      sg.addColorStop(0.5, "rgba(255,255,255,0.5)"),
+      sg.addColorStop(1, "rgba(255,255,255,0)");
+    (d.fillStyle = sg),
+      d.beginPath(),
+      d.moveTo(m(x0 - 8), 0),
+      d.lineTo(m(x0 + 8), 0),
+      d.lineTo(m(x1 + 8), m(oe)),
+      d.lineTo(m(x1 - 8), m(oe)),
+      d.closePath(),
+      d.fill();
+    d.restore();
+  }
+  // One side: a big portrait (turned inward on the right), any partners
+  // smaller at its inner foot, and a name plate. ks[0] leads; null is "?".
+  function faceSide(e, ks, side, sl, al, y0, sz, chip) {
+    let k = ks[0],
+      x = side ? H - sz - 6 + sl : 6 - sl;
+    d.save(), (d.globalAlpha = al);
+    if (k && e[k]) {
+      d.save();
+      side &&
+        (d.translate(m(x + sz / 2), 0),
+        d.scale(-1, 1),
+        d.translate(-m(x + sz / 2), 0));
+      Oe(e[k], "Determined", x, y0, sz, {
+        bg: xe[k].color,
+        frame: !1,
+        slash: !0,
+      });
+      d.restore();
+    } else
+      te(x, y0, sz, sz, side ? "#3a1020" : "#0c2140", sz * ke),
+        V("?", x + sz / 2, y0 + sz * 0.68, sz * 0.5, "rgba(255,255,255,0.3)", {
+          align: "center",
+        });
+    // Partners (Tag Team) or the other rivals (Free-for-All), small, inside.
+    ks.slice(1).forEach((p, n) => {
+      if (!e[p]) return;
+      let ps = sz * 0.38,
+        px = side
+          ? x - ps * 0.5 - n * (ps + 3)
+          : x + sz - ps * 0.5 + n * (ps + 3),
+        py = y0 + sz - ps - 4;
+      d.save();
+      side &&
+        (d.translate(m(px + ps / 2), 0),
+        d.scale(-1, 1),
+        d.translate(-m(px + ps / 2), 0));
+      Oe(e[p], "Determined", px, py, ps, { bg: xe[p].color, slash: !0 });
+      d.restore();
+    });
+    let py = y0 + sz + 6,
+      px = side ? H - 156 + sl : 10 - sl,
+      nm = k ? xe[k].name : "???",
+      sub = k ? xe[k].role.replace(" \xB7 ", ", ") : "Waiting for an opponent";
+    te(px, py, 146, 20, "rgba(8,6,18,0.82)", 5),
+      (d.fillStyle = side ? g.cpu : g.p1),
+      d.fillRect(m(px + 6), m(py), m(134), m(1.4)),
+      V(nm, side ? px + 140 : px + 8, py + 14, 12, g.chalk, {
+        skew: !0,
+        align: side ? "right" : "left",
+      }),
+      G(
+        sub,
+        side
+          ? px + 140 - ye(nm, 12, He, 900) - 6
+          : px + 14 + ye(nm, 12, He, 900),
+        py + 13,
+        5.4,
+        g.haze,
+        {
+          align: side ? "right" : "left",
+          italic: !0,
+        },
+      );
+    chip &&
+      ue(chip, side ? g.cpu : g.p1, side ? px + 140 : px + 6, py - 7, {
+        right: !!side,
+        size: 5.4,
+        text: g.night,
+      });
+    d.restore();
+  }
   // The start screen: a Pokkén-style face-off. Two halves, blue and red, a
   // featured pair of fighters glaring across the seam (a new pair every few
   // seconds), the logo over a turning Poké Ball, and the roster running by.
@@ -25886,99 +26049,11 @@
       R = R0[Math.floor(q() * R0.length)],
       inn = Ee(Math.min(1, ph / 22)),
       out = ph > cyc - 18 ? Ee((ph - (cyc - 18)) / 18) : 0,
-      sl = (1 - inn) * 160 + out * 160,
-      seam = (y) => H / 2 + 26 - y * 0.2;
-    // Two halves with a glowing diagonal seam.
-    (d.fillStyle = "#07060f"), d.fillRect(0, 0, m(H), m(oe));
-    for (let [side, c0, c1] of [
-      [0, "#0d2a66", "#06102a"],
-      [1, "#661020", "#2a0610"],
-    ]) {
-      let gr = d.createLinearGradient(m(side ? H : 0), 0, m(H / 2), 0);
-      gr.addColorStop(0, c0),
-        gr.addColorStop(1, c1),
-        (d.fillStyle = gr),
-        d.beginPath();
-      side
-        ? (d.moveTo(m(seam(0)), 0),
-          d.lineTo(m(H), 0),
-          d.lineTo(m(H), m(oe)),
-          d.lineTo(m(seam(oe)), m(oe)))
-        : (d.moveTo(0, 0),
-          d.lineTo(m(seam(0)), 0),
-          d.lineTo(m(seam(oe)), m(oe)),
-          d.lineTo(0, m(oe)));
-      d.closePath(), d.fill();
-    }
-    // Light streaks racing outward on each side.
-    d.save(), (d.globalCompositeOperation = "lighter");
-    for (let k = 0; k < 14; k++) {
-      let qq = rt(k + 11),
-        y = qq() * oe,
-        sp = 2 + qq() * 4,
-        len = 30 + qq() * 70,
-        left = k % 2 === 0,
-        x = ((t * sp + qq() * 600) % (H / 2 + 120)) - 60;
-      (d.fillStyle = left ? "rgba(80,180,255,0.18)" : "rgba(255,80,110,0.18)"),
-        d.fillRect(m(left ? H / 2 - x - len : H / 2 + x), m(y), m(len), m(1.2));
-    }
-    d.restore();
-    // The featured pair.
-    for (let [k, side] of [
-      [L, 0],
-      [R, 1],
-    ]) {
-      let K = e[k];
-      if (!K) continue;
-      let sz = 150,
-        x = side ? H - sz - 6 + sl : 6 - sl,
-        y = 22,
-        col = xe[k].color;
-      d.save(), (d.globalAlpha = 1 - out * 0.6);
-      side &&
-        (d.translate(m(x + sz / 2), 0),
-        d.scale(-1, 1),
-        d.translate(-m(x + sz / 2), 0));
-      Oe(K, "Determined", x, y, sz, { bg: col, frame: !1, slash: !0 });
-      d.restore();
-      // A glow edge in the team colour, then the name plate.
-      let px = side ? H - 156 + sl : 10 - sl;
-      te(px, 178, 146, 20, "rgba(8,6,18,0.82)", 5),
-        (d.fillStyle = side ? g.cpu : g.p1),
-        d.fillRect(m(px + 6), m(178), m(134), m(1.4)),
-        V(xe[k].name, side ? px + 140 : px + 8, 192, 12, g.chalk, {
-          skew: !0,
-          align: side ? "right" : "left",
-        }),
-        G(
-          xe[k].role.replace(" \xB7 ", ", "),
-          side
-            ? px + 140 - ye(xe[k].name, 12, He, 900) - 6
-            : px + 14 + ye(xe[k].name, 12, He, 900),
-          191,
-          5.4,
-          g.haze,
-          {
-            align: side ? "right" : "left",
-            italic: !0,
-          },
-        );
-    }
-    // The seam's glow over the portraits.
-    d.save(), (d.globalCompositeOperation = "lighter");
-    let sg = d.createLinearGradient(m(seam(0) - 8), 0, m(seam(0) + 8), 0);
-    sg.addColorStop(0, "rgba(255,255,255,0)"),
-      sg.addColorStop(0.5, "rgba(255,255,255,0.5)"),
-      sg.addColorStop(1, "rgba(255,255,255,0)");
-    (d.fillStyle = sg),
-      d.beginPath(),
-      d.moveTo(m(seam(0) - 8), 0),
-      d.lineTo(m(seam(0) + 8), 0),
-      d.lineTo(m(seam(oe) + 8), m(oe)),
-      d.lineTo(m(seam(oe) - 8), m(oe)),
-      d.closePath(),
-      d.fill();
-    d.restore();
+      sl = (1 - inn) * 160 + out * 160;
+    faceBg(t);
+    faceSide(e, [L], 0, sl, 1 - out * 0.6, 22, 150);
+    faceSide(e, [R], 1, sl, 1 - out * 0.6, 22, 150);
+    faceSeam();
     // A turning Poké Ball behind the logo.
     let bx = H / 2,
       by = 78,
@@ -26606,57 +26681,66 @@
       );
     } else if (a.arcade) arcLadder(a, e, t);
     else {
-      // A summary of who fights whom, where.
-      V(
-        A.gameMode === 5 ? "READY TO GO ONLINE" : "READY?",
-        H / 2,
-        34,
-        18,
-        g.gold,
-        { align: "center", skew: !0, outline: 2.6 },
-      ),
-        G(
-          `${MODE_NAMES[A.gameMode] ?? "VS CPU"} · ${ARENAS[A.arena]?.name ?? "Stadium"}`,
+      // The face-off from the start screen: you on the left, your rival on
+      // the right (partners and other rivals smaller at their feet).
+      let sl = (1 - Ee(Math.min(1, t / 16))) * 170,
+        rv = cpuSide()
+          ? A.gameMode === 2
+            ? a.cpuPicks
+            : a.cpuPicks.slice(0, 2)
+          : [null];
+      faceBg(t + 400),
+        faceSide(e, a.picks.slice(0, 2), 0, sl, 1, 26, 140, "YOU"),
+        faceSide(
+          e,
+          rv,
+          1,
+          sl,
+          1,
+          26,
+          140,
+          cpuSide()
+            ? A.gameMode === 2
+              ? `${rv.length} CPU RIVALS`
+              : "CPU"
+            : A.gameMode === 5
+              ? "ONLINE"
+              : null,
+        ),
+        faceSeam(),
+        V(
+          A.gameMode === 5 ? "READY TO GO ONLINE" : "READY?",
           H / 2,
-          46,
+          30,
+          18,
+          g.gold,
+          {
+            align: "center",
+            skew: !0,
+            outline: 2.6,
+          },
+        ),
+        G(
+          `${MODE_NAMES[A.gameMode] ?? "VS CPU"} \xB7 ${ARENAS[A.arena]?.name ?? "Stadium"}`,
+          H / 2,
+          41,
           6.4,
-          g.haze,
-          { align: "center", weight: 700 },
-        );
-      let r = A.gameMode === 2 ? a.cpuPicks : a.cpuPicks.slice(0, 2),
-        o = (l, f, u, h) => {
-          l.forEach((c, y) => {
-            let b = f + (h ? -1 : 1) * y * 0,
-              p = 62 + y * 44;
-            Oe(e[c], h ? "Normal" : "Determined", h ? b - 40 : b, p, 38, {
-              bg: xe[c].color,
-              frame: !1,
-              slash: !0,
-            }),
-              V(xe[c].name, h ? b - 46 : b + 46, p + 16, 9, g.chalk, {
-                align: h ? "right" : "left",
-              }),
-              G(xe[c].role, h ? b - 46 : b + 46, p + 26, 5.4, g.haze, {
-                align: h ? "right" : "left",
-                italic: !0,
-              });
-          });
-          G(u, f + (h ? -40 : 0), 58, 6, h ? g.cpu : g.p1, {
+          g.chalk,
+          {
+            align: "center",
             weight: 700,
-            align: "left",
-          });
-        };
-      G(ARENA_TIPS[A.arena] ?? "", H / 2, 198, 6, g.gold, {
-        align: "center",
-        weight: 700,
-        italic: !0,
-      }),
-        o(a.picks, 40, "YOU", !1),
-        cpuSide() &&
-          o(r, H - 40, A.gameMode === 2 ? `${r.length} CPU RIVALS` : "CPU", !0),
-        V("VS", H / 2, 120, 26, "rgba(255,255,255,0.4)", {
+          },
+        ),
+        V("VS", H / 2, 112, 30, "rgba(255,255,255,0.9)", {
           align: "center",
           skew: !0,
+          outline: 3,
+        }),
+        G(ARENA_TIPS[A.arena] ?? "", H / 2, 240, 6, g.gold, {
+          align: "center",
+          weight: 700,
+          italic: !0,
+          outline: 2,
         });
     }
     // Start button.
