@@ -4660,8 +4660,8 @@
     // gets close.
     BELT = {
       loops: [
-        { x0: 70, y0: 92, x1: 280, y1: 324, h: 20, dir: 1 },
-        { x0: 360, y0: 92, x1: 570, y1: 324, h: 20, dir: 1 },
+        { x0: 70, y0: 118, x1: 280, y1: 298, h: 20, dir: 1 },
+        { x0: 360, y0: 118, x1: 570, y1: 298, h: 20, dir: 1 },
       ],
       speed: 2.4,
       flip: 900,
@@ -5114,8 +5114,8 @@
       // [dx, dy, r]; the middle one carries the art, so the vat sorts with
       // fighters by its base line and hides anyone standing behind it.
       vats: [
-        [520, 130],
-        [120, 286],
+        [520, 166],
+        [120, 250],
       ],
       vatFoot: [
         [0, -8, 12],
@@ -37646,7 +37646,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 20,
+  var NETV = 21,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
