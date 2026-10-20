@@ -19161,7 +19161,22 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     arenaLight(a, e), ambTick(e);
   }
   // Light: a dim ambient with holes cut where real light falls, then glows.
-  var LIGHT = { c: null, g: null };
+  var LIGHT = { c: null, g: null, hole: null, glow: {} };
+  // Soft discs drawn once and stamped where light falls. Building a fresh
+  // radial gradient for every hole and glow each frame (one per projectile,
+  // too) was the largest cost left on the fire arenas.
+  function lightDisc(rgb) {
+    let k = rgb ?? "hole";
+    if (k === "hole" ? LIGHT.hole : LIGHT.glow[k])
+      return k === "hole" ? LIGHT.hole : LIGHT.glow[k];
+    let c = Zt(64, 64),
+      g = c.getContext("2d"),
+      f = g.createRadialGradient(32, 32, 0, 32, 32, 32),
+      col = rgb ?? "0,0,0";
+    f.addColorStop(0, `rgba(${col},1)`), f.addColorStop(1, `rgba(${col},0)`);
+    (g.fillStyle = f), g.fillRect(0, 0, 64, 64);
+    return k === "hole" ? (LIGHT.hole = c) : (LIGHT.glow[k] = c);
+  }
   function arenaLight(a, e) {
     let k = e.arena,
       t = e.tick,
@@ -19190,28 +19205,22 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         "rgba(6,10,20,0.36)",
       ][k];
     if (!amb) return;
-    LIGHT.c ||
-      ((LIGHT.c = Zt(Y / 2, _ / 2)), (LIGHT.g = LIGHT.c.getContext("2d")));
+    LIGHT.c || ((LIGHT.c = Zt(Y, _)), (LIGHT.g = LIGHT.c.getContext("2d")));
     let g = LIGHT.g,
+      disc = lightDisc(),
       hole = (x, y, r, s = 1) => {
-        let f = g.createRadialGradient(x / 2, y / 2, 0, x / 2, y / 2, r / 2);
-        f.addColorStop(0, `rgba(0,0,0,${s})`),
-          f.addColorStop(1, "rgba(0,0,0,0)");
-        (g.fillStyle = f),
-          g.beginPath(),
-          g.ellipse(x / 2, y / 2, r / 2, r / 3.2, 0, 0, Math.PI * 2),
-          g.fill();
+        s > 0.01 &&
+          ((g.globalAlpha = Math.min(1, s)),
+          g.drawImage(disc, x - r, y - r / 1.6, r * 2, r / 0.8));
       },
       glow = [];
     g.globalCompositeOperation = "source-over";
-    g.clearRect(0, 0, Y / 2, _ / 2),
-      (g.fillStyle = amb),
-      g.fillRect(0, 0, Y / 2, _ / 2);
+    g.clearRect(0, 0, Y, _), (g.fillStyle = amb), g.fillRect(0, 0, Y, _);
     g.globalCompositeOperation = "destination-out";
     // Every fighter carries a little light, so nobody is lost in the dark.
     for (let p of e.players)
       p.state !== "faint" && hole(p.x, p.y - 8, 46, 0.75);
-    for (let p of e.projectiles) hole(p.x, p.y, 34, 0.8);
+    for (let p of e.projectiles.slice(0, 16)) hole(p.x, p.y, 34, 0.8);
     let flick = (n) =>
       0.85 + 0.15 * Math.sin(t * 0.3 + n * 2.1) * Math.sin(t * 0.17 + n);
     if (k === 0) {
@@ -19253,15 +19262,16 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           glow.push([p.x, p.y - 20, 36, "127,227,255", 0.35]));
       for (let v of e.voltorbs ?? []) v.fuse > 0 && hole(v.x, v.y, 70, 1);
     }
+    g.globalAlpha = 1;
+    // The light layer is on the arena's own pixel grid (640x360), stamped
+    // unsmoothed: smoothing it up to the screen cost far more than the rest.
     a.save(),
-      (a.imageSmoothingEnabled = !0),
-      a.drawImage(LIGHT.c, 0, 0, Y, _),
+      (a.imageSmoothingEnabled = !1),
+      a.drawImage(LIGHT.c, 0, 0),
       (a.globalCompositeOperation = "lighter");
-    for (let [x, y, r, c, s] of glow) {
-      let f = a.createRadialGradient(x, y, 0, x, y, r);
-      f.addColorStop(0, `rgba(${c},${s})`), f.addColorStop(1, `rgba(${c},0)`);
-      (a.fillStyle = f), a.fillRect(x - r, y - r, r * 2, r * 2);
-    }
+    for (let [x, y, r, c, s] of glow)
+      (a.globalAlpha = s),
+        a.drawImage(lightDisc(c), x - r, y - r, r * 2, r * 2);
     a.restore();
   }
   // Ambience: a quiet bed per arena, and the crowd's roar on big moments.
@@ -20330,22 +20340,17 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     for (let s of e.heatVents ?? []) {
       let i = Math.min(1, s.t / 60),
         r = 0.6 + 0.4 * Math.sin(t * 0.2);
-      a.save(), (a.globalCompositeOperation = "lighter");
-      let o = a.createRadialGradient(s.x, s.y, 0, s.x, s.y, CRATER.heatR + 6);
-      o.addColorStop(0, `rgba(255,170,60,${0.5 * i * r})`),
-        o.addColorStop(1, "rgba(255,90,30,0)"),
-        (a.fillStyle = o),
-        a.beginPath(),
-        a.ellipse(
-          s.x,
-          s.y,
-          CRATER.heatR + 6,
-          (CRATER.heatR + 6) * 0.75,
-          0,
-          0,
-          Math.PI * 2,
+      a.save(),
+        (a.globalCompositeOperation = "lighter"),
+        (a.imageSmoothingEnabled = !0),
+        (a.globalAlpha = 0.5 * i * r),
+        a.drawImage(
+          lightDisc("255,150,50"),
+          s.x - CRATER.heatR - 6,
+          s.y - (CRATER.heatR + 6) * 0.75,
+          (CRATER.heatR + 6) * 2,
+          (CRATER.heatR + 6) * 1.5,
         ),
-        a.fill(),
         a.restore(),
         (a.globalAlpha = 0.85 * i),
         (a.strokeStyle = "#ffb347"),
@@ -28098,6 +28103,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       d.save(),
       d.translate(m(e), m(t)),
       r.skew && d.transform(1, 0, -ke, 1, 0, 0),
+      r.glow && glowText(a, r.glow),
       r.outline &&
         ((d.lineJoin = "round"),
         (d.lineWidth = m(r.outline)),
@@ -28119,6 +28125,31 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
   }
   function te(a, e, t, s, i, r = s * ke) {
     ze(a, e, t, s, r), (d.fillStyle = i), d.fill();
+  }
+  // Glow without canvas shadows. A shadow re-rasterises and blurs the shape
+  // on every draw at full screen resolution, which was most of the frame time
+  // on sharp (high-DPI) screens. These stroke the shape wide and faint a few
+  // times instead, which costs about as much as drawing it three times.
+  function haloPath(col, r, a = 1) {
+    let g0 = d.globalAlpha;
+    d.save(), (d.strokeStyle = col), (d.lineJoin = "round");
+    for (let k of [1, 0.6, 0.3])
+      (d.globalAlpha = g0 * a * 0.3),
+        (d.lineWidth = m(r * k * 1.6)),
+        d.stroke();
+    d.restore();
+  }
+  function teHalo(a, e, t, s, i, r, col, rad, al = 1) {
+    ze(a, e, t, s, r), haloPath(col, rad, al), (d.fillStyle = i), d.fill();
+  }
+  function glowText(a, [col, r]) {
+    let g0 = d.globalAlpha;
+    (d.lineJoin = "round"), (d.strokeStyle = col);
+    for (let k of [1, 0.6, 0.3])
+      (d.globalAlpha = g0 * 0.3),
+        (d.lineWidth = m(r * k * 1.6)),
+        d.strokeText(a, 0, 0);
+    d.globalAlpha = g0;
   }
   function Ae(a, e, t, s, i, r = {}) {
     let o = r.sk ?? Math.min(s * ke, 12);
@@ -28500,24 +28531,50 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       l.push([Math.random(), Math.random(), Math.random()]);
     return { rails: r, embers: l, horizon: e };
   }
+  // The neon grid behind the menus and team select. What never moves (the
+  // sky, the grid, the rails, the vignette) is drawn once per screen size
+  // into two layers; only the moving lines are drawn each frame.
   function neonBg(a) {
     NB || (NB = nbBuild());
+    let key = `${d.canvas.width}x${d.canvas.height}:${Fe}`;
+    if (NB.key !== key) {
+      let d0 = d;
+      (NB.under = Zt(d0.canvas.width, d0.canvas.height)),
+        (NB.over = Zt(d0.canvas.width, d0.canvas.height)),
+        (d = NB.under.getContext("2d")),
+        neonPass(a, 1),
+        (d = NB.over.getContext("2d")),
+        neonPass(a, 2),
+        (d = d0),
+        (NB.key = key);
+    }
+    d.drawImage(NB.under, 0, 0), neonPass(a, 0), d.drawImage(NB.over, 0, 0);
+  }
+  // P: 1 the still layer under, 0 the moving lines, 2 the vignette over.
+  function neonPass(a, P) {
     let e = NB.horizon,
-      t = H / 2,
-      s = d.createLinearGradient(0, 0, 0, m(oe));
-    s.addColorStop(0, "#050816"),
-      s.addColorStop(0.55, "#0b1434"),
-      s.addColorStop(1, "#070b1d"),
-      (d.fillStyle = s),
-      d.fillRect(0, 0, m(H), m(oe));
-    let i = d.createRadialGradient(m(t), m(e - 20), 0, m(t), m(e - 20), m(260));
-    i.addColorStop(0, "rgba(64,120,255,0.28)"),
-      i.addColorStop(1, "rgba(64,120,255,0)"),
-      (d.fillStyle = i),
-      d.fillRect(0, 0, m(H), m(oe)),
-      d.save(),
-      (d.globalCompositeOperation = "lighter"),
-      (d.lineCap = "round");
+      t = H / 2;
+    if (P === 1) {
+      let s = d.createLinearGradient(0, 0, 0, m(oe));
+      s.addColorStop(0, "#050816"),
+        s.addColorStop(0.55, "#0b1434"),
+        s.addColorStop(1, "#070b1d"),
+        (d.fillStyle = s),
+        d.fillRect(0, 0, m(H), m(oe));
+      let i = d.createRadialGradient(
+        m(t),
+        m(e - 20),
+        0,
+        m(t),
+        m(e - 20),
+        m(260),
+      );
+      i.addColorStop(0, "rgba(64,120,255,0.28)"),
+        i.addColorStop(1, "rgba(64,120,255,0)"),
+        (d.fillStyle = i),
+        d.fillRect(0, 0, m(H), m(oe));
+    }
+    d.save(), (d.globalCompositeOperation = "lighter"), (d.lineCap = "round");
     let r = (u, h, c, y, b, p) => {
       (d.strokeStyle = b),
         (d.globalAlpha = p),
@@ -28527,19 +28584,20 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         d.lineTo(m(c), m(y)),
         d.stroke();
     };
-    for (let u = -6; u <= 6; u++)
+    for (let u = -6; P === 1 && u <= 6; u++)
       r(t + u * 34, 18, t + u * 34, e, "#33d6ff", 0.13);
-    for (let u = 0; u < 4; u++)
+    for (let u = 0; P === 1 && u < 4; u++)
       r(0, 30 + u * 32, H, 30 + u * 32, "#33d6ff", 0.08);
-    for (let u = -14; u <= 14; u++)
+    for (let u = -14; P === 1 && u <= 14; u++)
       r(t + u * 6, e, t + u * 46, oe, "#33d6ff", 0.16);
     let o = (a * 0.012) % 1;
-    for (let u = 0; u < 9; u++) {
+    for (let u = 0; P === 0 && u < 9; u++) {
       let h = (u + o) / 9,
         c = e + (oe - e) * h * h;
       r(0, c, H, c, "#33d6ff", 0.05 + 0.2 * h);
     }
-    (d.strokeStyle = "#33d6ff"),
+    P === 1 &&
+      ((d.strokeStyle = "#33d6ff"),
       (d.lineWidth = m(1.4)),
       (d.globalAlpha = 0.55),
       d.beginPath(),
@@ -28555,7 +28613,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       d.stroke(),
       (d.globalAlpha = 0.18),
       (d.lineWidth = m(5)),
-      d.stroke();
+      d.stroke());
     let l = (u, h, c, y, b) => {
       for (let p = 0; p < 10; p++) {
         // Skip the piece that would jump from the rail's end back to its start.
@@ -28576,6 +28634,12 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       }
     };
     NB.rails.forEach((u, h) => {
+      if (P === 0)
+        return (
+          l(u, a * 1.6 + h * 70, 60, u.color, 1),
+          l(u, a * 1.6 + h * 70 + u.len / 2, 40, "#ffffff", 0.6)
+        );
+      if (P !== 1) return;
       r(u.pts[0][0], u.pts[0][1], u.pts[1][0], u.pts[1][1], u.color, 0.2);
       for (let c = 1; c < u.pts.length - 1; c++)
         r(
@@ -28586,14 +28650,14 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           u.color,
           0.2,
         );
-      l(u, a * 1.6 + h * 70, 60, u.color, 1),
-        l(u, a * 1.6 + h * 70 + u.len / 2, 40, "#ffffff", 0.6);
     });
-    for (let [u, h, c, y] of [
-      [H * 0.78, 0.3, "255,63,164", 0.16],
-      [H * 0.66, -0.25, "90,140,255", 0.14],
-      [H * 0.9, 0.12, "160,110,255", 0.12],
-    ]) {
+    for (let [u, h, c, y] of P
+      ? []
+      : [
+          [H * 0.78, 0.3, "255,63,164", 0.16],
+          [H * 0.66, -0.25, "90,140,255", 0.14],
+          [H * 0.9, 0.12, "160,110,255", 0.12],
+        ]) {
       let b = u + Math.sin(a * 0.01 + h * 10) * 18,
         p = d.createLinearGradient(m(b), 0, m(b - 60), m(oe));
       p.addColorStop(0, `rgba(${c},${y})`),
@@ -28608,7 +28672,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         d.closePath(),
         d.fill();
     }
-    for (let u of NB.embers) {
+    for (let u of P ? [] : NB.embers) {
       let h = (u[1] - a * (0.0015 + u[2] * 0.002)) % 1,
         c = h < 0 ? h + 1 : h,
         y = 10 + u[0] * 150 + Math.sin(a * 0.03 + u[2] * 9) * 6,
@@ -28619,7 +28683,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     }
     d.restore(), d.save(), (d.lineCap = "butt");
     let f = Math.floor(a / 3);
-    for (let u = 0; u < 70; u++) {
+    for (let u = 0; P === 0 && u < 70; u++) {
       let h = (u / 70) * Math.PI * 2 + ((f * 7 + u * 13) % 11) * 0.004,
         c = Math.cos(h),
         y = Math.sin(h),
@@ -28634,20 +28698,22 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         d.lineTo(m(t + c * k), m(oe / 2 + y * k)),
         d.stroke();
     }
-    let k = d.createRadialGradient(
-      m(t),
-      m(oe / 2),
-      m(120),
-      m(t),
-      m(oe / 2),
-      m(300),
-    );
-    k.addColorStop(0, "rgba(0,0,0,0)"),
-      k.addColorStop(1, "rgba(0,0,0,0.55)"),
-      (d.fillStyle = k),
-      (d.globalAlpha = 1),
-      d.fillRect(0, 0, m(H), m(oe)),
-      d.restore();
+    if (P === 2) {
+      let k = d.createRadialGradient(
+        m(t),
+        m(oe / 2),
+        m(120),
+        m(t),
+        m(oe / 2),
+        m(300),
+      );
+      k.addColorStop(0, "rgba(0,0,0,0)"),
+        k.addColorStop(1, "rgba(0,0,0,0.55)"),
+        (d.fillStyle = k),
+        (d.globalAlpha = 1),
+        d.fillRect(0, 0, m(H), m(oe));
+    }
+    d.restore();
   }
   function hexRgb(h) {
     let n = parseInt(String(h).replace("#", "").slice(0, 6), 16) || 0;
@@ -29270,13 +29336,14 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       d.translate(m(H / 2 + dx), m(cy)),
       d.scale(sc, sc),
       d.translate(-m(H / 2 + dx), -m(cy)),
-      (d.shadowColor =
-        word === "READY" ? "rgba(51,214,255,0.8)" : "rgba(255,190,60,0.9)"),
-      (d.shadowBlur = m(word === "GO!" ? 14 : 9)),
       V(word, H / 2 + dx, cy + size * 0.32, size, col, {
         align: "center",
         skew: !0,
         outline: size * 0.09,
+        glow: [
+          word === "READY" ? "rgba(51,214,255,0.8)" : "rgba(255,190,60,0.9)",
+          word === "GO!" ? 14 : 9,
+        ],
       }),
       d.restore();
     // Under READY: who you're up against.
@@ -29639,9 +29706,8 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     // A glow around it when full.
     full &&
       (d.save(),
-      (d.shadowColor = col),
-      (d.shadowBlur = m(7 + 5 * pulse)),
       hudBarPath(x - 0.8, y2 - 0.8, w + 1.6, H2 + 1.6, sk, r),
+      haloPath(col, 7 + 5 * pulse),
       (d.fillStyle = `rgba(${rgb},0.95)`),
       d.fill(),
       d.restore());
@@ -29730,8 +29796,6 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       (d.globalAlpha = burst),
       (d.strokeStyle = "#ffffff"),
       (d.lineWidth = m(1.2)),
-      (d.shadowColor = col),
-      (d.shadowBlur = m(6)),
       hudBarPath(
         x - (1 - burst) * 8,
         y2 - (1 - burst) * 4,
@@ -29740,6 +29804,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         sk,
         r,
       ),
+      haloPath(col, 6),
       d.stroke(),
       d.restore());
     // The legendary itself at the inner end.
@@ -30142,14 +30207,14 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     i > 0 &&
       (d.save(),
       (d.globalCompositeOperation = "lighter"),
-      (d.shadowColor = c ? "rgba(255,70,50,0.9)" : "rgba(255,170,60,0.85)"),
-      (d.shadowBlur = m(5)),
       (d.strokeStyle = c ? "rgba(255,120,100,0.5)" : "rgba(255,210,120,0.45)"),
       (d.lineWidth = m(0.6)),
+      (d.lineCap = "round"),
       d.beginPath(),
       o
         ? (d.moveTo(m(a + t - t * i), m(e)), d.lineTo(m(a + t - f), m(e)))
         : (d.moveTo(m(a + f), m(e)), d.lineTo(m(a + t * i), m(e))),
+      haloPath(c ? "rgba(255,70,50,0.9)" : "rgba(255,170,60,0.85)", 3),
       d.stroke(),
       d.restore());
   }
@@ -30165,10 +30230,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     let f = t * Math.max(0, Math.min(1, i)),
       u = o ? a + t - f : a;
     (d.fillStyle = r),
-      (d.shadowColor = r),
-      (d.shadowBlur = m(4)),
       d.fillRect(m(u), m(e), m(f), m(s)),
-      (d.shadowBlur = 0),
       (d.fillStyle = "rgba(255,255,255,0.55)"),
       d.fillRect(m(u), m(e), m(f), m(s * 0.35)),
       d.restore();
@@ -30179,12 +30241,15 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       ? ["#5d5780", "#3a3550", "#2a2638"]
       : ["#ef3b3b", "#f4f2fb", "#1b1428"];
     d.save(),
-      !s && ((d.shadowColor = "rgba(255,90,70,0.7)"), (d.shadowBlur = m(3))),
+      !s &&
+        ((d.fillStyle = "rgba(255,90,70,0.28)"),
+        d.beginPath(),
+        d.arc(m(a), m(e), m(t + 2.2), 0, Math.PI * 2),
+        d.fill()),
       (d.fillStyle = i[2]),
       d.beginPath(),
       d.arc(m(a), m(e), m(t + 0.7), 0, Math.PI * 2),
       d.fill(),
-      (d.shadowBlur = 0),
       (d.fillStyle = i[0]),
       d.beginPath(),
       d.arc(m(a), m(e), m(t), Math.PI, 0),
@@ -30667,13 +30732,11 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         (d.fillStyle = ready ? "rgba(14,12,30,0.82)" : "rgba(14,12,30,0.62)"),
         d.fill();
       if (ready)
-        (d.shadowColor = col),
-          (d.shadowBlur = m(4 + fl * 8)),
-          (d.strokeStyle = col),
+        (d.strokeStyle = col),
           (d.lineWidth = m(1.3)),
           rr(x, y, S2, S2, 4.5),
-          d.stroke(),
-          (d.shadowBlur = 0);
+          haloPath(col, 2.5 + fl * 6, 0.8),
+          d.stroke();
       else
         (d.strokeStyle = "rgba(255,255,255,0.14)"),
           (d.lineWidth = m(0.8)),
@@ -31097,11 +31160,10 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       (d.font = fontOf(8 * q * Fe, je, 700)),
       "letterSpacing" in d && (d.letterSpacing = `${m(3.2 * q).toFixed(1)}px`),
       (d.textAlign = "center"),
+      (d.fillStyle = "rgba(0,0,0,0.55)"),
+      d.fillText("POK\xC9MON", m(cx + 1.6 * q + 0.6), m(py + 0.9)),
       (d.fillStyle = "#f3d88a"),
-      (d.shadowColor = "rgba(0,0,0,0.7)"),
-      (d.shadowBlur = m(3)),
-      d.fillText("POK\xC9MON", m(cx + 1.6 * q), m(py)),
-      (d.shadowColor = "transparent");
+      d.fillText("POK\xC9MON", m(cx + 1.6 * q), m(py));
     for (let sd of [-1, 1]) {
       let gr = d.createLinearGradient(
         m(cx + sd * 30 * q),
@@ -31588,8 +31650,6 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       (d.fillStyle = g.p1),
       d.fillRect(m(H / 2 - bw / 2), m(y - 17), m(bw), m(1.2)),
       d.fillRect(m(H / 2 - bw / 2), m(y + 11.8), m(bw), m(1.2)),
-      (d.shadowColor = g.p1),
-      (d.shadowBlur = m(12)),
       V(
         "READY?",
         H / 2 + (1 - k) * 60,
@@ -31600,6 +31660,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           align: "center",
           skew: !0,
           outline: 3,
+          glow: [g.p1, 10],
         },
       ),
       d.restore();
@@ -31613,15 +31674,16 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       r &&
         (d.save(),
         (d.globalCompositeOperation = "lighter"),
-        (d.shadowColor = "#ffffff"),
-        (d.shadowBlur = m(10)),
-        te(
+        teHalo(
           t - 2,
           s - 2,
           i + 4,
           i + 4,
           "rgba(255,255,255,0.55)",
           (i + 4) * RG_SK,
+          "#ffffff",
+          6,
+          0.6,
         ),
         d.restore()),
       te(
@@ -32090,12 +32152,10 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     d.save(),
       ze(x, y, sz, sz, sz * ke),
       (d.lineJoin = "round"),
-      (d.shadowColor = col),
-      (d.shadowBlur = m(sz * 0.06)),
+      haloPath(col, sz * 0.035, 0.8),
       (d.strokeStyle = col),
       (d.lineWidth = m(lw)),
       d.stroke(),
-      (d.shadowBlur = 0),
       (d.strokeStyle = "rgba(255,255,255,0.55)"),
       (d.lineWidth = m(lw * 0.35)),
       d.stroke(),
@@ -32483,9 +32543,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         b &&
           (d.save(),
           (d.globalCompositeOperation = "lighter"),
-          (d.shadowColor = k),
-          (d.shadowBlur = m(14)),
-          te(M - 2, P - 2, i + 4, r + 4, k + "99", 8),
+          teHalo(M - 2, P - 2, i + 4, r + 4, k + "99", 8, k, 8, 0.7),
           d.restore()),
         Ae(M, P, i, r, k, { bright: b });
       let C = e[f];
@@ -32729,8 +32787,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       d.stroke(),
       d.save(),
       (d.globalCompositeOperation = "lighter"),
-      (d.shadowColor = f),
-      (d.shadowBlur = m(8)),
+      haloPath(f, 5, 0.7),
       (d.strokeStyle = `rgba(${u},0.5)`),
       (d.lineWidth = m(0.8)),
       d.stroke(),
@@ -32957,15 +33014,16 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       K &&
         (d.save(),
         (d.globalCompositeOperation = "lighter"),
-        (d.shadowColor = "#ffffff"),
-        (d.shadowBlur = m(10)),
-        te(
+        teHalo(
           C - 2 - $,
           x - 2 - $,
           v + 4 + $ * 2,
           v + 4 + $ * 2,
           "rgba(255,255,255,0.55)",
           (v + 4 + $ * 2) * RG_SK,
+          "#ffffff",
+          6,
+          0.6,
         ),
         d.restore()),
         te(
@@ -33014,8 +33072,6 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           (d.globalAlpha = fl),
           (d.strokeStyle = fl > 0.5 ? "#ffffff" : g.p1),
           (d.lineWidth = m(1.6)),
-          (d.shadowColor = g.p1),
-          (d.shadowBlur = m(8)),
           ze(
             C - 2 - (1 - fl) * 9,
             x - 2 - (1 - fl) * 9,
@@ -33023,6 +33079,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
             v + 4 + (1 - fl) * 18,
             (v + 4 + (1 - fl) * 18) * RG_SK,
           ),
+          haloPath(g.p1, 5),
           d.stroke(),
           d.restore()),
         V(
@@ -33072,9 +33129,12 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         d.beginPath(),
         d.rect(m(M ? h : 0), 0, m(M ? H : h), m(oe)),
         d.clip(),
-        (d.shadowColor = P),
-        (d.shadowBlur = m(10)),
-        V("VS", h + 1, b, 30, P, { align: "center", skew: !0, outline: 3.4 }),
+        V("VS", h + 1, b, 30, P, {
+          align: "center",
+          skew: !0,
+          outline: 3.4,
+          glow: [P, 7],
+        }),
         d.restore();
     d.restore(),
       V("VS", h + 1, b, 30, "rgba(255,255,255,0.35)", {
@@ -33739,9 +33799,17 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         k &&
           (d.save(),
           (d.globalCompositeOperation = "lighter"),
-          (d.shadowColor = g.gold),
-          (d.shadowBlur = m(16)),
-          te(b - 3, p - 3, u + 6, h + 6, "rgba(255,216,74,0.7)", 4),
+          teHalo(
+            b - 3,
+            p - 3,
+            u + 6,
+            h + 6,
+            "rgba(255,216,74,0.7)",
+            4,
+            g.gold,
+            9,
+            0.8,
+          ),
           d.restore()),
         te(b - 1.5, p - 1.5, u + 3, h + 3, k ? g.gold : "#1b1730", 3),
         (d.globalAlpha = M ? 0.3 : 1),
@@ -38811,9 +38879,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           te(v, x, Q, E, ie, 8),
           d.save(),
           (d.globalCompositeOperation = "lighter"),
-          (d.shadowColor = p.color),
-          (d.shadowBlur = m(8)),
-          te(v, x, Q, E, "rgba(255,255,255,0.08)", 8),
+          teHalo(v, x, Q, E, "rgba(255,255,255,0.08)", 8, p.color, 5, 0.35),
           d.restore();
       } else
         te(v + 1.5, x + 2, Q, E, "rgba(0,0,0,0.5)", 6),
@@ -39201,7 +39267,14 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         ee = Math.floor(_ * T);
       for (let Kt of [i, r, o])
         (Kt.style.width = ne + "px"), (Kt.style.height = ee + "px");
-      let Je = Math.min(devicePixelRatio || 1, 3);
+      // The HUD canvas follows the screen's pixel density for crisp text, up
+      // to 2x and about 2560x1440 in all: past that the extra pixels cost
+      // frame rate on phones and 4K screens without looking any sharper.
+      let Je = Math.min(
+        devicePixelRatio || 1,
+        2,
+        Math.sqrt((2560 * 1440) / Math.max(1, ne * ee)),
+      );
       (o.width = Math.round(ne * Je)),
         (o.height = Math.round(ee * Je)),
         (h = o.width / H);
