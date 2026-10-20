@@ -2050,6 +2050,201 @@
         xCd: 170,
         yCd: 300,
       },
+      // The bloom sickle. A flamboyant mantis that fights from the longest
+      // melee reach in the game. Sunny Day plants its own patch of sunlight:
+      // inside it Solar Blade needs no charge, Synthesis heals and Leaf Guard
+      // shrugs off status. Outside it, it is a slow, readable swordsman.
+      lurantis: {
+        id: "lurantis",
+        name: "LURANTIS",
+        type: "GRASS",
+        color: "#e8749a",
+        typeInk: "#3a0f1f",
+        hp: 1000,
+        power: 1.15,
+        speed: 2.8,
+        weight: 0.95,
+        r: 9,
+        hurtR: 11,
+        size: 0.95,
+        tall: 34,
+        role: "Duelist \xB7 sun blade",
+        ex: !0,
+        leafGuard: !0,
+        crit: 0.15,
+        stats: { speed: 3, power: 4, defense: 3, range: 4, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 5,
+            active: 3,
+            recovery: 9,
+            lunge: 8,
+            dmg: 21,
+            kb: 1.7,
+            heavy: !1,
+            shape: "circle",
+            reach: 21,
+            radius: 13,
+            mtype: "GRASS",
+          },
+          {
+            anim: "Double",
+            startup: 5,
+            active: 3,
+            recovery: 10,
+            lunge: 8,
+            dmg: 23,
+            kb: 1.9,
+            heavy: !1,
+            shape: "circle",
+            reach: 22,
+            radius: 13,
+            mtype: "GRASS",
+          },
+          {
+            anim: "MultiScratch",
+            startup: 7,
+            active: 5,
+            recovery: 15,
+            lunge: 10,
+            dmg: 38,
+            kb: 5.6,
+            heavy: !0,
+            shape: "circle",
+            reach: 23,
+            radius: 17,
+            mtype: "GRASS",
+          },
+        ],
+        dodge: {
+          kind: "dash",
+          dist: 84,
+          ticks: 10,
+          iframes: 8,
+          cooldown: 34,
+          anim: "Walk",
+        },
+        smash: {
+          name: "SOLAR BLADE",
+          anim: "Swing",
+          windup: 12,
+          maxCharge: 64,
+          active: 6,
+          recovery: 22,
+          lunge: 10,
+          dmg: 30,
+          kb: 6,
+          shape: "blade",
+          reach: 52,
+          reachGrow: 0.55,
+          radius: 12,
+          mtype: "GRASS",
+          solar: !0,
+        },
+        xName: "X-SCISSOR",
+        yName: "SUNNY DAY",
+        xCd: 150,
+        yCd: 600,
+      },
+      // The luring chandelier. It burns the spirits it draws in: Will-O-Wisp
+      // sets foes alight from afar and Hex cashes the burns in for double.
+      // It floats and it is fragile; Overheat is a huge blast that leaves it
+      // drained. Flash Fire turns fire aimed at it into fuel.
+      chandelure: {
+        id: "chandelure",
+        name: "CHANDELURE",
+        type: "GHOST",
+        type2: "FIRE",
+        color: "#8a5ce0",
+        typeInk: "#1a0f33",
+        hp: 860,
+        power: 1.05,
+        speed: 2.4,
+        weight: 1.25,
+        r: 9,
+        hurtR: 11,
+        size: 0.95,
+        tall: 38,
+        role: "Zoner \xB7 soul burner",
+        ex: !0,
+        flier: !0,
+        flashFire: !0,
+        stats: { speed: 2, power: 4, defense: 1, range: 5, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 5,
+            active: 3,
+            recovery: 9,
+            lunge: 2,
+            dmg: 16,
+            kb: 1.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 27,
+            radius: 11,
+            mtype: "FIRE",
+          },
+          {
+            anim: "Double",
+            startup: 5,
+            active: 3,
+            recovery: 10,
+            lunge: 2,
+            dmg: 17,
+            kb: 1.8,
+            heavy: !1,
+            shape: "circle",
+            reach: 28,
+            radius: 11,
+            mtype: "FIRE",
+          },
+          {
+            anim: "Shoot",
+            startup: 8,
+            active: 4,
+            recovery: 15,
+            lunge: 2,
+            dmg: 28,
+            kb: 5,
+            heavy: !0,
+            shape: "circle",
+            reach: 30,
+            radius: 14,
+            mtype: "GHOST",
+          },
+        ],
+        dodge: {
+          kind: "blink",
+          dist: 96,
+          ticks: 9,
+          iframes: 9,
+          cooldown: 32,
+          anim: "Idle",
+        },
+        smash: {
+          name: "OVERHEAT",
+          anim: "Emit",
+          windup: 14,
+          maxCharge: 48,
+          active: 8,
+          recovery: 30,
+          lunge: 0,
+          dmg: 36,
+          kb: 7,
+          shape: "circle",
+          reach: 20,
+          radius: 16,
+          beam: { len: 84, grow: 40, r: 16, style: "soulfire" },
+          mtype: "FIRE",
+          overheat: !0,
+        },
+        xName: "WILL-O-WISP",
+        yName: "HEX",
+        xCd: 210,
+        yCd: 150,
+      },
     },
     ge = [
       "charizard",
@@ -2070,6 +2265,8 @@
       "metagross",
       "greninja",
       "aegislash",
+      "lurantis",
+      "chandelure",
     ],
     ut = 360,
     // Deliberate pacing: every move commits a little longer, so attacks can be
@@ -2232,6 +2429,48 @@
         ksArc: 1.9,
         ksDown: 0.75,
         ksDownT: 240,
+      },
+      lurantis: {
+        pref: 34,
+        // X-Scissor: a crossing dash slash that carries on through the foe.
+        xsWind: 8,
+        xsDash: 10,
+        xsSpeed: 7,
+        xsDmg: 34,
+        xsKb: 4.2,
+        xsRec: 16,
+        // Sunny Day: a patch of sunlight at Lurantis's feet, one at a time.
+        sunCast: 16,
+        sunRec: 8,
+        sunR: 64,
+        sunT: 480,
+        // Synthesis: share of max HP healed every half second in the sun.
+        synth: 0.004,
+      },
+      chandelure: {
+        pref: 120,
+        // Will-O-Wisp: three slow homing ghost flames that burn.
+        wwWind: 12,
+        wwN: 3,
+        wwEvery: 5,
+        wwSpeed: 2.3,
+        wwHome: 0.05,
+        wwDmg: 8,
+        wwRec: 10,
+        // Hex: a curse flame bursts on the spot after a beat; double vs burned.
+        hxWind: 10,
+        hxRange: 230,
+        hxDelay: 30,
+        hxR: 28,
+        hxDmg: 24,
+        hxRec: 8,
+        // Overheat: Chandelure's damage drops this much for ohT after.
+        ohT: 240,
+        ohMult: 0.7,
+        // Flash Fire: fire taken is halved and fuels its fire moves.
+        ffTaken: 0.5,
+        ffT: 240,
+        ffMult: 1.3,
       },
       greninja: {
         pref: 70,
@@ -3224,6 +3463,46 @@
                     : y > 36 && y < 110 && r() < 0.12
                       ? smash(6 + Math.floor(r() * 30))
                       : y > 60 && y < 120 && r() < 0.15 && dash(b);
+        } else if (f === "chandelure") {
+          // Keep away: wisps to burn, Hex on a burned foe, flicker away from
+          // anyone who closes in, Overheat as the finisher.
+          let burnt = op && (op.slot.burnT ?? 0) > 0,
+            close = y < 46;
+          close && u.cdDodge === 0 && r() < 0.35
+            ? dash(b + Math.PI + (r() - 0.5) * 1.2)
+            : u.cdY === 0 && burnt && y < 220 && r() < 0.6
+              ? i.pressed.add("special2")
+              : u.cdX === 0 && y < 260 && r() < 0.5
+                ? i.pressed.add("special1")
+                : y < 36 || (N && y < 48)
+                  ? i.pressed.add("attack")
+                  : !(u.ohT > 0) &&
+                      y < 96 &&
+                      y > 30 &&
+                      (op?.state === "hurt" ||
+                        op?.state === "stunned" ||
+                        r() < 0.03)
+                    ? smash(6 + Math.floor(r() * 30))
+                    : u.cdY === 0 &&
+                      y < 200 &&
+                      r() < 0.06 &&
+                      i.pressed.add("special2");
+        } else if (f === "lurantis") {
+          // Plant the sun and duel inside it, where Solar Blade is instant;
+          // X-Scissor through from mid range; long charges only outside.
+          let sun = e.fields.find((q) => q.kind === "sun" && q.owner === t),
+            lit = e.inSun(t);
+          !sun && u.cdY === 0 && y < 180 && r() < 0.5
+            ? i.pressed.add("special2")
+            : lit && y < 76 && r() < 0.35
+              ? smash(2)
+              : y < 38 || (N && y < 50)
+                ? i.pressed.add("attack")
+                : u.cdX === 0 && los && y > 44 && y < 140 && r() < 0.45
+                  ? i.pressed.add("special1")
+                  : !lit && y > 58 && y < 88 && r() < 0.08
+                    ? smash(30 + Math.floor(r() * 40))
+                    : y > 70 && y < 140 && r() < 0.12 && dash(b);
         } else if (f === "greninja") {
           // Stars from range, Substitute against a committed attack, slash
           // through a guard, dart in and out.
@@ -4881,6 +5160,7 @@
         this.exq = [];
         this.exDone = [];
         this.dolls = [];
+        this.fields = [];
         this.surge = null;
         this.surgeT = SURGE.first;
         this.arc = null;
@@ -5032,6 +5312,7 @@
           (this.exq = []),
           (this.exDone = []),
           (this.dolls = []),
+          (this.fields = []),
           (this.surge = null),
           (this.surgeT = SURGE.first),
           (this.arcPair = 0),
@@ -5252,16 +5533,20 @@
         return i;
       }
       step(e) {
+        // Beams and vines stay on screen through a hitstop freeze.
+        let ob = this.beams,
+          ov = this.vines;
         this.tick++,
           (this.events = []),
           (this.hitboxes = []),
-          (this.beams = []),
-          (this.vines = []);
+          (this.beams = ob.filter((b) => (b.owner?.hitstop ?? 0) > 0)),
+          (this.vines = ov.filter((b) => (b.owner?.hitstop ?? 0) > 0));
         for (let i of this.bodies()) (i.px = i.x), (i.py = i.y), (i.pz = i.z);
         for (let i of this.projectiles)
           (i.px = i.x), (i.py = i.y), (i.pz = i.z);
         for (let i of this.dreepy) (i.px = i.x), (i.py = i.y), (i.pz = i.z);
         if (this.frozen()) {
+          (this.beams = ob), (this.vines = ov);
           this.updateSummons(), this.resolveHits();
           for (let i of this.bodies())
             i.flash > 0 && i.flash--, i.tint > 0 && i.tint--;
@@ -7040,7 +7325,7 @@
         )
           return;
         let s = e.smashCharge;
-        (e.smashCharge = Math.min(1, (e.t - t.windup) / t.maxCharge)),
+        (e.smashCharge = this.r3Charge(e, t)),
           e.smashCharge >= 1 &&
             s < 1 &&
             this.emit({ type: "smashFull", who: e }),
@@ -7164,12 +7449,21 @@
                     y2: e.y + l * s.reach,
                     r: s.radius,
                   }
-                : {
-                    kind: "circle",
-                    x: e.x + o * (s.reach + 2),
-                    y: e.y + l * (s.reach + 2),
-                    r: s.radius * 1.2,
-                  };
+                : s.shape === "blade"
+                  ? {
+                      kind: "capsule",
+                      x1: e.x + o * 8,
+                      y1: e.y + l * 8,
+                      x2: e.x + o * s.reach * (1 + (s.reachGrow ?? 0) * i),
+                      y2: e.y + l * s.reach * (1 + (s.reachGrow ?? 0) * i),
+                      r: s.radius,
+                    }
+                  : {
+                      kind: "circle",
+                      x: e.x + o * (s.reach + 2),
+                      y: e.y + l * (s.reach + 2),
+                      r: s.radius * 1.2,
+                    };
           this.hitboxes.push({
             id: e.swingId,
             team: e.team,
@@ -8778,6 +9072,7 @@
       paralyze(e) {
         e.kind === "player" &&
           e.state !== "faint" &&
+          !this.statusImmune(e) &&
           ((e.paraT = MAGNE.para),
           this.emit({ type: "paralyzed", who: e }),
           this.exSync(e, "para", this.hitBy));
@@ -11666,7 +11961,11 @@
         if (e.kind === "player") {
           let t = e;
           if (t.state === "faint") return;
-          if (t.kit.type === "FIRE") {
+          if (this.statusImmune(t)) {
+            this.emit({ type: "leafGuard", who: t });
+            return;
+          }
+          if (t.kit.type === "FIRE" || t.kit.type2 === "FIRE") {
             this.emit({ type: "burnImmune", who: e });
             return;
           }
@@ -11747,6 +12046,20 @@
               (sl.cdY = e.kit.yCd),
               this.stance(e, !1),
               this.emit({ type: "ksStart", who: e });
+            break;
+          case "lurantisx":
+            go("xscissor", "Attack"),
+              (sl.cdX = e.kit.xCd),
+              this.emit({ type: "xScissorWind", who: e });
+            break;
+          case "lurantisy":
+            go("sunny", "Charge"), (sl.cdY = e.kit.yCd);
+            break;
+          case "chandelurex":
+            go("wisp", "Shoot"), (sl.cdX = e.kit.xCd);
+            break;
+          case "chandelurey":
+            go("hex", "Charge"), (sl.cdY = e.kit.yCd);
             break;
           case "greninjax":
             go("shuriken", "Shoot"), (sl.cdX = e.kit.xCd);
@@ -11988,6 +12301,7 @@
           } else dk.push(d);
         }
         this.dolls = dk;
+        this.fields.length && this.fieldTick();
         // Rock Tomb pillars crumble with time; a broken one is gone for good.
         if (this.rocks.some((r) => r.exPillar)) {
           for (let r of this.rocks)
@@ -12014,6 +12328,7 @@
             s === e.slot && this.emit({ type: "confused", who: e }));
           s.confT > 0 && (s.confT--, (s.cdY = Math.max(s.cdY, s.confT)));
           s.meteorT > 0 && s.meteorT--;
+          this.r3Slot(e, s);
           if (s.kit.id === "scizor") {
             let n = this.exBp(s);
             n < X.scizor.bpMax &&
@@ -12083,8 +12398,9 @@
         );
       }
       // Damage multiplier from the attacker's ability and buffs.
-      exOut(t, s, k) {
+      exOut(t, s, k, v) {
         if (!t || t.kind !== "player") return 1;
+        let r3 = this.r3Out(t, s, String(k), v);
         // power: each kit's overall damage scale, used for fine balance.
         let d = t.kit,
           X = EXK,
@@ -12102,7 +12418,7 @@
             (m *= X.golurk.ironFist),
           t.slot.rage > 0 && (m *= X.garchomp.rageDmg),
           t.slot.meteorT > 0 && (m *= X.metagross.mmBoost),
-          m
+          m * r3
         );
       }
       // The defender's side: Solid Rock, Rough Skin, Cursed Body, thawing.
@@ -12114,6 +12430,7 @@
           by.team !== w.team &&
           re > 0 &&
           ((w.lastHitBy = by), (w.lastHitT = this.tick));
+        re = this.r3Taken(w, t, re, l, String(k), M);
         // Stance Change: Shield Forme is tough, Blade Forme is not.
         w.kit.stance &&
           (re = Math.round(
@@ -12158,6 +12475,7 @@
       // frost immunity stops a second freeze straight away.
       exChill(v, n, by) {
         if (v.kind !== "player" || v.state === "faint") return;
+        if (this.statusImmune(v)) return;
         if (v.frostImmT > 0 || v.frozenT > 0) return;
         let c = EXK.froslass;
         (v.chill = Math.min(c.chillMax, (v.chill ?? 0) + n)),
@@ -12228,6 +12546,7 @@
         if (!ok || v.kind !== "player") return;
         h.chill && this.exChill(v, h.chill, h.owner),
           h.daze &&
+            !this.statusImmune(v) &&
             ((v.dazeT = Math.max(v.dazeT ?? 0, h.daze)),
             this.emit({ type: "dazed", who: v }),
             this.exSync(v, "daze", h.owner)),
@@ -12248,6 +12567,9 @@
         let s = e.kit.smash,
           o = Math.cos(e.atkDir),
           l = Math.sin(e.atkDir);
+        s.overheat &&
+          ((e.slot.ohT = EXK.chandelure.ohT),
+          this.emit({ type: "overheatDrop", who: e }));
         if (s.custom === "stoneEdge") {
           let c = EXK.garchomp,
             hl = [];
@@ -12401,6 +12723,14 @@
             return this.exRoar(e);
           case "dig":
             return this.exDig(e, mx, my);
+          case "xscissor":
+            return this.exXScissor(e, P);
+          case "sunny":
+            return this.exSunny(e);
+          case "wisp":
+            return this.exWisp(e, P);
+          case "hex":
+            return this.exHex(e, P);
           case "shuriken":
             return this.exShuriken(e, P);
           case "shadowball":
@@ -13415,6 +13745,259 @@
           (best.flameEnd = 0),
           this.emit({ type: "mindPull", who: e, v: best });
       }
+      // ---- Roster 3 -------------------------------------------------------
+      // Smash charge: Solar Blade fills at once in Lurantis's sunlight.
+      r3Charge(e, t) {
+        let c = Math.min(1, (e.t - t.windup) / t.maxCharge);
+        return t.solar && this.inSun(e) ? 1 : c;
+      }
+      // Timers on a fighter's slot (also ticking while it is tagged out).
+      r3Slot(e, s) {
+        s.ohT > 0 && s.ohT--, s.ffT > 0 && s.ffT--;
+      }
+      inSun(e) {
+        return this.fields.some(
+          (f) =>
+            f.kind === "sun" &&
+            f.owner === e &&
+            e.kit.id === "lurantis" &&
+            Math.hypot(e.x - f.x, (e.y - f.y) * 1.4) < f.r,
+        );
+      }
+      // Statuses that cannot land right now.
+      statusImmune(v) {
+        return v.kind === "player" && v.kit.leafGuard && this.inSun(v);
+      }
+      // Outgoing damage from roster-3 abilities (k: source label, v: victim).
+      r3Out(t, s, k, v) {
+        let d = t.kit,
+          sl = t.slot,
+          X = EXK,
+          m = 1;
+        // Leaf Blade (Lurantis's combo) lands critical hits.
+        d.crit &&
+          /:basic\d/.test(k) &&
+          this.rand() < d.crit &&
+          ((m *= 1.5), this.emit({ type: "crit", who: t, v }));
+        // Overheat drains Chandelure; Flash Fire fuels its fire moves.
+        sl.ohT > 0 && (m *= X.chandelure.ohMult),
+          d.flashFire &&
+            sl.ffT > 0 &&
+            this.attackerType(t) === "FIRE" &&
+            (m *= X.chandelure.ffMult);
+        return m;
+      }
+      // Incoming damage from roster-3 abilities on the defender.
+      r3Taken(w, t, re, l, k, M) {
+        let X = EXK;
+        w.kit.flashFire &&
+          this.attackerType(t) === "FIRE" &&
+          re > 0 &&
+          ((re = Math.round(re * X.chandelure.ffTaken)),
+          (w.slot.ffT = X.chandelure.ffT),
+          this.emit({ type: "flashFire", who: w }));
+        return re;
+      }
+      // Persistent zones: tick, apply, expire.
+      fieldTick() {
+        let keep = [];
+        for (let f of this.fields) {
+          f.t = (f.t ?? 0) + 1;
+          let o = f.owner,
+            gone = !o || o.state === "faint" || f.t >= f.life;
+          if (!gone) this.fieldStep(f);
+          gone || f.dead
+            ? (f.kind === "sun" && o && ((o.slot.sunLeft = 0), (o.sunLit = !1)),
+              this.emit({ type: "fieldEnd", f }))
+            : keep.push(f);
+        }
+        this.fields = keep;
+      }
+      fieldStep(f) {
+        let o = f.owner,
+          X = EXK;
+        if (f.kind === "hex" && f.t === X.chandelure.hxDelay) {
+          let c = X.chandelure,
+            n = 0,
+            hot = 0;
+          for (let v of this.victimsFor(f.team)) {
+            let dx = v.x - f.x,
+              dy = v.y - f.y,
+              d = Math.hypot(dx, dy);
+            if (d > f.r + v.hurtR) continue;
+            let burnt = v.kind === "player" && (v.slot.burnT ?? 0) > 0;
+            this.exHit(
+              v,
+              o,
+              burnt ? c.hxDmg * 2 : c.hxDmg,
+              burnt ? 6.4 : 3.4,
+              d > 1 ? dx / d : 1,
+              d > 1 ? dy / d : 0,
+              {
+                src: "hexflame",
+                mtype: "GHOST",
+                heavy: burnt,
+                hitstun: burnt ? 30 : 20,
+                color: "#a070ff",
+              },
+            ) && (n++, burnt && hot++);
+          }
+          this.emit({
+            type: "hexBurst",
+            who: o,
+            x: f.x,
+            y: f.y,
+            r: f.r,
+            n,
+            hot,
+          });
+        }
+        if (f.kind === "sun") {
+          (o.slot.sunLeft = f.life - f.t), (o.sunLit = this.inSun(o));
+          // Synthesis: Lurantis heals slowly while it basks in its sun.
+          o.kit.id === "lurantis" &&
+            f.t % 30 === 0 &&
+            this.inSun(o) &&
+            o.slot.hp < o.slot.maxHp &&
+            ((o.slot.hp = Math.min(
+              o.slot.maxHp,
+              o.slot.hp + Math.round(o.slot.maxHp * X.lurantis.synth),
+            )),
+            this.emit({ type: "synthesis", who: o }));
+        }
+      }
+      // Lurantis -------------------------------------------------------------
+      exXScissor(e, P) {
+        let c = EXK.lurantis,
+          w = c.xsWind,
+          d = w + c.xsDash,
+          o = Math.cos(e.dir2),
+          l = Math.sin(e.dir2);
+        if (e.t <= w) {
+          this.locomote(e, 0, 0),
+            e.t <= w - 2 && this.exAim(e, P, 170),
+            this.exFr(e, "Attack", 2, !1),
+            (e.exDanger = e.t > w - 4 ? 26 : 0);
+          return;
+        }
+        if (e.t <= d) {
+          // It keeps going after it connects: the cut passes through.
+          this.moveBody(e, o * c.xsSpeed, l * c.xsSpeed),
+            this.exFr(e, "Attack", 1.2, !1, w - 3),
+            (e.exDanger = 26),
+            this.hitboxes.push({
+              id: e.moveId,
+              team: e.team,
+              owner: e,
+              shape: {
+                kind: "circle",
+                x: e.x + o * 10,
+                y: e.y + l * 10,
+                r: 15,
+              },
+              dmg: c.xsDmg,
+              kb: c.xsKb,
+              kbMode: "dir",
+              dx: o,
+              dy: l,
+              heavy: !1,
+              hitstop: 6,
+              hitstun: 22,
+              color: "#b8d64a",
+              rehit: 0,
+              attackerStop: !1,
+              src: "xscissor",
+              melee: !0,
+              mtype: "BUG",
+              exTag: e,
+            }),
+            e.t % 2 === 0 &&
+              this.emit({ type: "xScissorDash", who: e, dx: o, dy: l });
+          return;
+        }
+        (e.exRec = !0),
+          this.locomote(e, 0, 0),
+          this.exFr(e, "Idle", 4, !0),
+          e.t >= d + c.xsRec && this.exEnd(e);
+      }
+      exSunny(e) {
+        let c = EXK.lurantis;
+        this.locomote(e, 0, 0), this.exFr(e, "Charge", 2, !0);
+        e.t === c.sunCast &&
+          ((this.fields = this.fields.filter(
+            (f) => !(f.kind === "sun" && f.owner === e),
+          )),
+          this.fields.push({
+            id: this.nextId++,
+            kind: "sun",
+            x: e.x,
+            y: e.y,
+            r: c.sunR,
+            life: c.sunT,
+            t: 0,
+            owner: e,
+            team: e.team,
+          }),
+          this.emit({ type: "sunnyDay", who: e, x: e.x, y: e.y }));
+        e.t >= c.sunCast + c.sunRec && this.exEnd(e);
+      }
+      // Chandelure -----------------------------------------------------------
+      exWisp(e, P) {
+        let c = EXK.chandelure;
+        this.locomote(e, 0, 0);
+        if (e.t <= c.wwWind) {
+          this.exAim(e, P, 260), this.exFr(e, "Shoot", 2, !1);
+          return;
+        }
+        let k = e.t - c.wwWind - 1;
+        if (k >= 0 && k % c.wwEvery === 0 && k / c.wwEvery < c.wwN) {
+          let n = k / c.wwEvery,
+            tg = e.lock ?? this.nearestTarget(e.team, e.x, e.y);
+          this.exProj(e, e.team, e.dir2 + (n - 1) * 0.55, {
+            kind: "wwisp",
+            speed: c.wwSpeed,
+            r: 6,
+            life: 170,
+            dmg: c.wwDmg,
+            kb: 1.2,
+            hitstun: 14,
+            hitstop: 3,
+            color: "#9a6cff",
+            mtype: "FIRE",
+            homing: c.wwHome,
+            target: tg,
+            ghost: !0,
+            burns: !0,
+          }),
+            this.emit({ type: "wispOut", who: e, n });
+        }
+        (e.exRec = k >= c.wwEvery * c.wwN),
+          this.exFr(e, "Shoot", 2, !1),
+          k >= c.wwEvery * (c.wwN - 1) + c.wwRec && this.exEnd(e);
+      }
+      exHex(e, P) {
+        let c = EXK.chandelure;
+        this.locomote(e, 0, 0), this.exFr(e, "Charge", 2, !0);
+        if (e.t === c.hxWind) {
+          let tg = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+            ok = tg && Math.hypot(tg.x - e.x, tg.y - e.y) < c.hxRange,
+            x = ok ? tg.x : e.x + Math.cos(e.dir2) * 140,
+            y = ok ? tg.y : e.y + Math.sin(e.dir2) * 140;
+          this.fields.push({
+            id: this.nextId++,
+            kind: "hex",
+            x: me(x, B.x0 + 10, B.x1 - 10),
+            y: me(y, B.y0 + 8, B.y1 - 6),
+            r: c.hxR,
+            life: c.hxDelay + 18,
+            t: 0,
+            owner: e,
+            team: e.team,
+          }),
+            this.emit({ type: "hexMark", who: e, x, y });
+        }
+        (e.exRec = e.t > c.hxWind), e.t >= c.hxWind + c.hxRec && this.exEnd(e);
+      }
       // Tag Team assists for the second-generation kits.
       exAssist(e, t, s) {
         let id = e.kit.id,
@@ -13423,7 +14006,71 @@
           ty = s ? s.y : e.y + Math.sin(e.dir) * 80,
           o = Math.cos(e.dir),
           l = Math.sin(e.dir);
-        if (id === "garchomp") {
+        if (id === "chandelure") {
+          if (e.t === 10 || e.t === 15 || e.t === 20) {
+            let a = Math.atan2(ty - e.y, tx - e.x) + ((e.t - 15) / 5) * 0.5;
+            this.exProj(e, t, a, {
+              kind: "wwisp",
+              speed: 2.4,
+              r: 6,
+              life: 140,
+              dmg: 7,
+              kb: 1,
+              hitstun: 12,
+              color: "#9a6cff",
+              mtype: "FIRE",
+              homing: 0.05,
+              target: s,
+              ghost: !0,
+              burns: !0,
+            });
+          }
+          (e.animName = "Shoot"), (e.animFrame = Math.floor(e.t / 3) % 8);
+        } else if (id === "lurantis") {
+          let k = e.t - 8;
+          k === 0 &&
+            ((e.dir = Math.atan2(ty - e.y, tx - e.x)),
+            (e.moveId = this.nextId++),
+            this.emit({
+              type: "xScissorDash",
+              who: e,
+              dx: Math.cos(e.dir),
+              dy: Math.sin(e.dir),
+            }));
+          let dx = Math.cos(e.dir),
+            dy = Math.sin(e.dir);
+          k >= 0 &&
+            k < 12 &&
+            ((e.x = me(e.x + dx * 6, B.x0 + 8, B.x1 - 8)),
+            (e.y = me(e.y + dy * 6, B.y0 + 6, B.y1 - 4)),
+            this.hitboxes.push({
+              id: e.moveId,
+              team: t,
+              owner: e,
+              shape: {
+                kind: "circle",
+                x: e.x + dx * 10,
+                y: e.y + dy * 10,
+                r: 15,
+              },
+              dmg: 18,
+              kb: 3.4,
+              kbMode: "dir",
+              dx,
+              dy,
+              heavy: !1,
+              hitstop: 5,
+              hitstun: 20,
+              color: "#b8d64a",
+              rehit: 0,
+              attackerStop: !1,
+              src: "xscissor",
+              melee: !0,
+              mtype: "BUG",
+            })),
+            (e.animName = k < 0 ? "Charge" : "Attack"),
+            (e.animFrame = Math.floor(Math.max(0, k) / 1.5) % 6);
+        } else if (id === "garchomp") {
           if (e.t >= 8 && e.t < 30) {
             e.alpha = 0;
             let dx = tx - e.x,
@@ -14019,7 +14666,7 @@
           K = Math.round(
             s *
               ae.dmg *
-              (lg ? 1 : this.outgoingMult(t) * this.exOut(t, s, k)) *
+              (lg ? 1 : this.outgoingMult(t) * this.exOut(t, s, k, e)) *
               // Wide legendaries catch more fighters at once in a four-way
               // brawl, so Free-for-All scales them on their own.
               (lg && this.match.mode === "ffa"
@@ -20304,6 +20951,7 @@
     surgeGround(a, e);
     summonGround(a, e);
     exGround(a, e);
+    r3Ground(a, e);
     lightPools(a, e);
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
@@ -21184,6 +21832,7 @@
     dropsAir(a, e);
     summonAir(a, e);
     exAir(a, e);
+    r3Air(a, e);
     arenaAir(a, e, t);
     for (let h of t.ambient)
       (a.globalAlpha = 0.18 + 0.14 * Math.sin(h.ph * 2)),
@@ -23147,10 +23796,265 @@
       }
     }
   }
+  // ---- Roster 3: drawing ----
+  // Ground layer: zones on the floor (sun, whirlpools, curse marks).
+  function r3Ground(a, e) {
+    let t = e.tick;
+    for (let f of e.fields) r3Field(a, e, f, t);
+  }
+  // Over the fighters: auras, sights, blades.
+  function r3Air(a, e) {
+    let t = e.tick;
+    for (let p of e.players) {
+      if (p.state === "faint" || (p.vanished && p.isRival)) continue;
+      r3Over(a, e, p, t);
+    }
+  }
+  function r3Field(a, e, f, t) {
+    f.kind === "sun" && fieldSun(a, f, t);
+    f.kind === "hex" && fieldHex(a, f, t);
+  }
+  // Hex: a ring of curse runes that tightens, then violet flames.
+  function fieldHex(a, f, t) {
+    let D = EXK.chandelure.hxDelay,
+      q = Math.min(1, f.t / D),
+      boom = f.t >= D;
+    a.save();
+    if (!boom) {
+      let rr = f.r * (1.6 - 0.6 * q);
+      (a.globalAlpha = 0.25 + 0.5 * q),
+        (a.strokeStyle = "#a070ff"),
+        (a.lineWidth = 1.5),
+        a.beginPath(),
+        a.ellipse(f.x, f.y, rr, rr * 0.5, 0, 0, Math.PI * 2),
+        a.stroke(),
+        (a.globalAlpha = 0.15 + 0.25 * q),
+        (a.fillStyle = "#5a3ca8"),
+        a.fill();
+      for (let n = 0; n < 6; n++) {
+        let g = (n / 6) * Math.PI * 2 - t * 0.05;
+        (a.globalAlpha = 0.6 + 0.4 * q),
+          (a.fillStyle = n % 2 ? "#e0c8ff" : "#a070ff"),
+          a.fillRect(
+            Math.round(f.x + Math.cos(g) * rr) - 1,
+            Math.round(f.y + Math.sin(g) * rr * 0.5) - 2,
+            2,
+            3,
+          );
+      }
+    } else {
+      let k = 1 - (f.t - D) / 18;
+      a.globalCompositeOperation = "lighter";
+      for (let n = 0; n < 9; n++) {
+        let g = (n / 9) * Math.PI * 2,
+          d = (f.r * 0.6 * ((n * 7) % 10)) / 10,
+          x = f.x + Math.cos(g) * d,
+          y = f.y + Math.sin(g) * d * 0.5,
+          h = (14 + ((n * 5) % 9)) * (0.4 + 0.6 * k);
+        (a.globalAlpha = 0.7 * k),
+          (a.fillStyle = n % 2 ? "#8a5ce0" : "#c9a6ff"),
+          a.beginPath(),
+          a.moveTo(x - 3, y),
+          a.quadraticCurveTo(x, y - h * 1.3, x + 3, y),
+          a.fill();
+      }
+      glowAt(a, f.x, f.y - 6, f.r * 1.3, "160,112,255", 0.5 * k);
+    }
+    a.restore();
+  }
+  // Sunny Day: a warm pool of light with slow rays and drifting pollen.
+  function fieldSun(a, f, t) {
+    let k = Math.min(1, f.t / 12) * Math.min(1, (f.life - f.t) / 40),
+      end = f.life - f.t < 90 && t % 10 < 5 ? 0.6 : 1,
+      rx = f.r,
+      ry = f.r / 1.4;
+    k *= end;
+    a.save();
+    let g = a.createRadialGradient(f.x, f.y, 0, f.x, f.y, rx);
+    g.addColorStop(0, `rgba(255,236,140,${0.42 * k})`),
+      g.addColorStop(0.6, `rgba(255,206,90,${0.24 * k})`),
+      g.addColorStop(1, "rgba(255,190,70,0)"),
+      (a.fillStyle = g),
+      a.beginPath(),
+      a.ellipse(f.x, f.y, rx, ry, 0, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalCompositeOperation = "lighter");
+    for (let n = 0; n < 8; n++) {
+      let q = (n / 8) * Math.PI * 2 + t * 0.006,
+        u = 0.09;
+      (a.globalAlpha = (n % 2 ? 0.05 : 0.09) * k),
+        (a.fillStyle = "#fff1b0"),
+        a.beginPath(),
+        a.moveTo(f.x, f.y),
+        a.lineTo(f.x + Math.cos(q - u) * rx, f.y + Math.sin(q - u) * ry),
+        a.lineTo(f.x + Math.cos(q + u) * rx, f.y + Math.sin(q + u) * ry),
+        a.closePath(),
+        a.fill();
+    }
+    (a.globalCompositeOperation = "source-over"),
+      (a.globalAlpha = 0.7 * k),
+      (a.strokeStyle = "#ffd25e"),
+      (a.lineWidth = 1),
+      a.setLineDash([5, 4]),
+      (a.lineDashOffset = -t * 0.3),
+      a.beginPath(),
+      a.ellipse(f.x, f.y, rx, ry, 0, 0, Math.PI * 2),
+      a.stroke(),
+      a.setLineDash([]);
+    // Pollen rising out of the light.
+    for (let n = 0; n < 10; n++) {
+      let ph = (t * 0.6 + n * 37) % 90,
+        q = n * 2.399,
+        d = ((n * 53) % 100) / 100,
+        x = f.x + Math.cos(q) * rx * d * 0.9,
+        y = f.y + Math.sin(q) * ry * d * 0.9 - ph * 0.35;
+      (a.globalAlpha = k * (1 - ph / 90) * 0.9),
+        (a.fillStyle = n % 3 ? "#fff6c8" : "#ffd25e"),
+        a.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+    a.restore();
+  }
+  function r3Over(a, e, p, t) {
+    p.kit.id === "lurantis" && overLurantis(a, e, p, t);
+    p.kit.id === "chandelure" && overChandelure(a, e, p, t);
+  }
+  // Chandelure: smoke when drained by Overheat, flames when Flash Fire burns.
+  function overChandelure(a, e, p, t) {
+    let x = p.x,
+      y = p.y - p.z - p.kit.tall * Bz(p);
+    if ((p.slot.ohT ?? 0) > 0)
+      for (let n = 0; n < 3; n++) {
+        let g = ((t * 0.7 + n * 17) % 40) / 40;
+        (a.globalAlpha = 0.45 * (1 - g)),
+          (a.fillStyle = "#6a6a7a"),
+          a.beginPath(),
+          a.arc(
+            x + Math.sin(n * 2 + t * 0.05) * 6,
+            y + 6 - g * 18,
+            3 + g * 4,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill();
+      }
+    if ((p.slot.ffT ?? 0) > 0) {
+      a.save(), (a.globalCompositeOperation = "lighter");
+      for (let n = 0; n < 4; n++) {
+        let g = (n / 4) * Math.PI * 2 + t * 0.12;
+        (a.globalAlpha = 0.7),
+          (a.fillStyle = n % 2 ? "#ffb347" : "#ff6a3d"),
+          a.fillRect(
+            Math.round(x + Math.cos(g) * 12),
+            Math.round(y + 14 + Math.sin(g) * 4),
+            2,
+            3,
+          );
+      }
+      a.restore();
+    }
+    a.globalAlpha = 1;
+  }
+  // Solar Blade: sunlight gathers while it charges, then a blade of light
+  // sweeps out along the aim.
+  function overLurantis(a, e, p, t) {
+    let s = p.kit.smash,
+      x = p.x,
+      y = p.y - p.z - 12;
+    if (p.state === "smashCharge" && p.t >= s.windup * 0.5) {
+      let full = p.smashCharge >= 1;
+      a.save(), (a.globalCompositeOperation = "lighter");
+      for (let n = 0; n < 8; n++) {
+        let q = (n / 8) * Math.PI * 2 + t * 0.05,
+          d = 26 - ((t * 1.2 + n * 5) % 22);
+        (a.globalAlpha = 0.8),
+          (a.fillStyle = n % 2 ? "#fff1b0" : "#ffd25e"),
+          a.fillRect(
+            Math.round(x + Math.cos(q) * d),
+            Math.round(y + Math.sin(q) * d * 0.7),
+            2,
+            2,
+          );
+      }
+      full && glowAt(a, x, y, 22 + Math.sin(t * 0.4) * 3, "255,226,122", 0.5);
+      a.restore();
+    }
+    if (p.state === "smash") {
+      let i = p.smashCharge,
+        on = p.t >= 2 && p.t <= 2 + s.active + 6;
+      if (!on) return;
+      let k = p.t <= 2 + s.active ? 1 : 1 - (p.t - 2 - s.active) / 6,
+        o = Math.cos(p.atkDir),
+        l = Math.sin(p.atkDir),
+        L = s.reach * (1 + (s.reachGrow ?? 0) * i),
+        x1 = x + o * 8,
+        y1 = y + l * 8,
+        x2 = x + o * L,
+        y2 = y + l * L;
+      a.save(),
+        (a.globalCompositeOperation = "lighter"),
+        (a.globalAlpha = 0.35 * k),
+        summonBand(a, x1, y1, x2, y2, 12 + 6 * i, "#ffd25e"),
+        (a.globalAlpha = 0.8 * k),
+        summonBand(a, x1, y1, x2, y2, 5 + 2 * i, "#fff2a8"),
+        (a.globalAlpha = k),
+        summonBand(a, x1, y1, x2, y2, 2, "#ffffff");
+      for (let n = 0; n < 6; n++) {
+        let q = ((n + t * 0.3) % 6) / 6;
+        (a.globalAlpha = k * (1 - q)),
+          (a.fillStyle = "#fff6c8"),
+          a.fillRect(
+            Math.round(x1 + (x2 - x1) * q + l * (n % 2 ? 4 : -4)),
+            Math.round(y1 + (y2 - y1) * q - o * (n % 2 ? 4 : -4)),
+            2,
+            2,
+          );
+      }
+      a.restore();
+    }
+  }
+  function r3DrawProj(a, e, h, c, y, ang) {
+    if (h.kind === "wwisp") {
+      // A ghost flame: violet halo, blue-white heart, a flickering tail.
+      let t = e.tick,
+        f = 1 + Math.sin(h.age * 0.5 + h.id) * 0.15;
+      a.save(), (a.globalCompositeOperation = "lighter");
+      for (let k = 4; k >= 1; k--)
+        (a.globalAlpha = 0.1 * (5 - k)),
+          (a.fillStyle = "#7b4fe0"),
+          a.beginPath(),
+          a.arc(
+            c - Math.cos(ang) * k * 3,
+            y - Math.sin(ang) * k * 3 + k,
+            5 - k * 0.7,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill();
+      (a.globalCompositeOperation = "source-over"),
+        (a.globalAlpha = 0.95),
+        (a.fillStyle = "#6a3fd0"),
+        a.beginPath(),
+        a.arc(c, y, 4.5, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#9a6cff"),
+        a.beginPath(),
+        a.moveTo(c - 5 * f, y + 2),
+        a.quadraticCurveTo(c, y - 11 * f, c + 5 * f, y + 2),
+        a.quadraticCurveTo(c, y + 5, c - 5 * f, y + 2),
+        a.fill(),
+        (a.globalAlpha = 1),
+        (a.fillStyle = "#e6f0ff"),
+        a.fillRect(Math.round(c) - 1, Math.round(y) - 2, 2, 3),
+        a.restore();
+      return !0;
+    }
+    return !1;
+  }
   // Projectiles of the second-generation kits. Returns true when drawn.
   function exDrawProj(a, e, h, c, y) {
     let t = e.tick,
       ang = Math.atan2(h.vy, h.vx);
+    if (r3DrawProj(a, e, h, c, y, ang)) return !0;
     if (h.kind === "shadowball") {
       let k = 1 + Math.sin(h.age * 0.4) * 0.12;
       for (let n = 3; n >= 1; n--)
@@ -23376,6 +24280,18 @@
       return l.blade
         ? ue("BLADE FORME", "#e05a3a", v, E)
         : ue("SHIELD FORME", "#c9a24a", v, E);
+    if (id === "chandelure")
+      return l.ohT > 0
+        ? ue(`OVERHEATED ${Math.ceil(l.ohT / 60)}`, "#8a8aa0", v, E)
+        : l.ffT > 0
+          ? ue("FLASH FIRE", "#ff8a3d", v, E)
+          : hint("Hex hits burned foes double");
+    if (id === "lurantis")
+      return t.sunLit
+        ? ue(`SUNNY DAY ${Math.ceil((l.sunLeft ?? 0) / 60)}`, "#ffc83d", v, E)
+        : (l.sunLeft ?? 0) > 0
+          ? hint("Fight inside your sun")
+          : hint("Sunny Day: instant Solar Blade");
     if (id === "greninja")
       return t.protean
         ? ue(`PROTEAN ${t.protean}`, Rt[t.protean] ?? "#3f7fd6", v, E)
@@ -23698,6 +24614,13 @@
   // Styled beam columns: steel (Flash Cannon), aura, and anything else that
   // wants a layered glowing capsule with its own palette and texture.
   var BEAMS = {
+    soulfire: [
+      "rgba(150,110,255,0.32)",
+      "#8a5ce0",
+      "#c9a6ff",
+      "#ffffff",
+      "#3a1a7a",
+    ],
     ice: ["rgba(154,216,240,0.30)", "#7cc8ec", "#d6f4ff", "#ffffff", "#4aa3d6"],
     steel: [
       "rgba(184,196,224,0.30)",
@@ -27487,6 +28410,13 @@
         X: "~39",
         Y: "blocks",
       },
+      chandelure: {
+        A: "17 · 18 · 29",
+        RS: "38–61",
+        X: "3 × ~8 + burn",
+        Y: "25 / 50",
+      },
+      lurantis: { A: "28 · 31 · 51", RS: "40–64", X: "~43", Y: "zone" },
       greninja: {
         A: "29 · 32 · 55",
         RS: "~61",
@@ -27553,6 +28483,14 @@
       aegislash: [
         "Stance fighter. You start in Shield Forme: slow, and you take 30% less. Any attack turns you to Blade Forme: faster, 30% stronger, but you take 25% more. King's Shield blocks everything from the front, weakens a melee attacker, and puts you back in Shield Forme. Switch at the right moment.",
         ["counter", "pierce", "armor"],
+      ],
+      chandelure: [
+        "Zoner. Burn them from range with Will-O-Wisp, then Hex for double damage. You float over ground attacks but you are fragile: flicker away when they close in. Overheat is a huge finisher that drains you.",
+        ["burn", "zone"],
+      ],
+      lurantis: [
+        "Duelist. Plant Sunny Day and fight inside it: Solar Blade needs no charge there, Synthesis heals and Leaf Guard blocks status. Outside it, Solar Blade is a long charge. Leaf Blade can crit; X-Scissor cuts straight through.",
+        ["zone", "pierce"],
       ],
       greninja: [
         "Ninja. The fastest and the most fragile. Pepper them with Water Shuriken, slip in with Shadow Sneak, and hold Substitute for the moment they commit: you reappear behind them. Night Slash cuts through a guard. Protean makes you the type of the last move you landed, so it changes what hurts you.",
@@ -30060,6 +30998,72 @@
         "PASSIVE",
       ],
     ],
+    chandelure: [
+      [
+        "A",
+        "Flame flicks",
+        "Short-range puffs of fire; the last is a ghost flame.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Overheat",
+        "A huge soul-fire blast. Afterwards your damage drops for four seconds.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Will-O-Wisp",
+        "Three slow homing ghost flames that burn.",
+        "RANGED",
+      ],
+      [
+        "Y",
+        "Hex",
+        "A curse flame bursts on the target a moment later. Double damage to burned foes.",
+        "RANGED",
+      ],
+      ["B", "Phase", "Flicker a short way.", "DODGE"],
+      [
+        "*",
+        "Flash Fire",
+        "Fire hits on you are halved and power up your fire moves for four seconds.",
+        "PASSIVE",
+      ],
+    ],
+    lurantis: [
+      [
+        "A",
+        "Leaf Blade",
+        "Three long scythe sweeps. Leaf Blade can land a critical hit.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Solar Blade",
+        "The longest blade in the game. Slow to charge, but instant inside your sun.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "X-Scissor",
+        "A crossing dash slash that carries on through the foe.",
+        "DASH",
+      ],
+      [
+        "Y",
+        "Sunny Day",
+        "Plant a patch of sunlight for eight seconds. Synthesis heals you inside it.",
+        "ZONE",
+      ],
+      ["B", "Petal step", "A quick dash.", "DODGE"],
+      [
+        "*",
+        "Leaf Guard",
+        "In your sun, burn, chill, paralysis and daze cannot land.",
+        "PASSIVE",
+      ],
+    ],
     greninja: [
       ["A", "Kunai combo", "Three quick Dark slashes.", "COMBO"],
       [
@@ -30880,289 +31884,371 @@
       },
       cry(a, e = 0) {
         O() &&
-          (a === "aegislash"
-            ? (I("saw", 220, 180, 0.3, 0.08, e, { vib: 30 }),
-              I("tri", 880, 660, 0.35, 0.06, e + 0.05),
-              X(0.3, "highpass", 3000, 1, 0.06, 6000, e, !0))
-            : a === "greninja"
-              ? (I("p25", 660, 990, 0.12, 0.08, e),
-                I("p25", 990, 740, 0.22, 0.07, e + 0.1, { vib: 20 }),
-                X(0.25, "bandpass", 2400, 2, 0.08, 1200, e))
-              : a === "charizard"
-                ? (I("saw", 520, 260, 0.32, 0.12, e, {
-                    vib: 60,
-                    vibDelay: 0.02,
-                  }),
-                  I("p25", 780, 300, 0.36, 0.08, e + 0.03),
-                  X(0.32, "bandpass", 1800, 1, 0.18, 700, e, !0))
-                : a === "venusaur"
-                  ? (I("p50", 180, 150, 0.45, 0.16, e, {
-                      vib: 40,
-                      vibDelay: 0.05,
-                    }),
-                    I("tri", 360, 240, 0.4, 0.14, e + 0.05),
-                    X(0.2, "bandpass", 600, 2, 0.12, 300, e + 0.1))
-                  : a === "blastoise"
-                    ? (I("p50", 140, 110, 0.4, 0.18, e),
-                      I("saw", 280, 200, 0.35, 0.06, e + 0.02, { vib: 30 }),
-                      X(0.35, "bandpass", 2400, 0.8, 0.22, 500, e + 0.05))
-                    : a === "snorlax"
-                      ? (I("p50", 110, 80, 0.55, 0.2, e, { vib: 20 }),
-                        I("tri", 220, 150, 0.5, 0.16, e + 0.04),
-                        X(0.3, "lowpass", 500, 1, 0.16, 300, e + 0.1))
-                      : a === "noivern"
-                        ? (I("saw", 900, 1500, 0.18, 0.09, e, { vib: 80 }),
-                          I("p25", 1400, 700, 0.22, 0.08, e + 0.1),
-                          X(0.25, "bandpass", 3200, 2, 0.14, 1200, e + 0.05))
-                        : a === "darkrai"
-                          ? (I("tri", 220, 110, 0.7, 0.16, e, { vib: 8 }),
-                            I("p25", 330, 160, 0.6, 0.08, e + 0.08, { vib: 6 }),
-                            X(0.6, "lowpass", 700, 2, 0.1, 300, e, !0))
-                          : a === "deoxys"
-                            ? (I("sq", 900, 1300, 0.12, 0.08, e),
-                              I("sq", 1300, 600, 0.18, 0.08, e + 0.12, {
-                                vib: 50,
-                              }),
-                              I("tri", 400, 900, 0.3, 0.1, e + 0.05))
-                            : a === "zekrom"
-                              ? (I("saw", 170, 80, 0.75, 0.22, e, { vib: 30 }),
-                                I("p50", 340, 150, 0.6, 0.12, e + 0.05),
-                                X(0.5, "bandpass", 2600, 1.5, 0.16, 900, e, !0))
-                              : a === "garchomp"
-                                ? (I("saw", 260, 140, 0.45, 0.14, e, {
-                                    vib: 40,
+          (a === "chandelure"
+            ? (I("tri", 660, 440, 0.45, 0.08, e, { vib: 10 }),
+              I("p25", 330, 220, 0.5, 0.05, e + 0.06, { vib: 6 }),
+              X(0.4, "bandpass", 1200, 2, 0.06, 500, e, !0))
+            : a === "lurantis"
+              ? (I("tri", 990, 1320, 0.18, 0.08, e, { vib: 30 }),
+                I("p25", 1320, 1100, 0.22, 0.06, e + 0.12),
+                X(0.18, "highpass", 4e3, 1, 0.06, 6e3, e + 0.04))
+              : a === "aegislash"
+                ? (I("saw", 220, 180, 0.3, 0.08, e, { vib: 30 }),
+                  I("tri", 880, 660, 0.35, 0.06, e + 0.05),
+                  X(0.3, "highpass", 3000, 1, 0.06, 6000, e, !0))
+                : a === "greninja"
+                  ? (I("p25", 660, 990, 0.12, 0.08, e),
+                    I("p25", 990, 740, 0.22, 0.07, e + 0.1, { vib: 20 }),
+                    X(0.25, "bandpass", 2400, 2, 0.08, 1200, e))
+                  : a === "charizard"
+                    ? (I("saw", 520, 260, 0.32, 0.12, e, {
+                        vib: 60,
+                        vibDelay: 0.02,
+                      }),
+                      I("p25", 780, 300, 0.36, 0.08, e + 0.03),
+                      X(0.32, "bandpass", 1800, 1, 0.18, 700, e, !0))
+                    : a === "venusaur"
+                      ? (I("p50", 180, 150, 0.45, 0.16, e, {
+                          vib: 40,
+                          vibDelay: 0.05,
+                        }),
+                        I("tri", 360, 240, 0.4, 0.14, e + 0.05),
+                        X(0.2, "bandpass", 600, 2, 0.12, 300, e + 0.1))
+                      : a === "blastoise"
+                        ? (I("p50", 140, 110, 0.4, 0.18, e),
+                          I("saw", 280, 200, 0.35, 0.06, e + 0.02, { vib: 30 }),
+                          X(0.35, "bandpass", 2400, 0.8, 0.22, 500, e + 0.05))
+                        : a === "snorlax"
+                          ? (I("p50", 110, 80, 0.55, 0.2, e, { vib: 20 }),
+                            I("tri", 220, 150, 0.5, 0.16, e + 0.04),
+                            X(0.3, "lowpass", 500, 1, 0.16, 300, e + 0.1))
+                          : a === "noivern"
+                            ? (I("saw", 900, 1500, 0.18, 0.09, e, { vib: 80 }),
+                              I("p25", 1400, 700, 0.22, 0.08, e + 0.1),
+                              X(
+                                0.25,
+                                "bandpass",
+                                3200,
+                                2,
+                                0.14,
+                                1200,
+                                e + 0.05,
+                              ))
+                            : a === "darkrai"
+                              ? (I("tri", 220, 110, 0.7, 0.16, e, { vib: 8 }),
+                                I("p25", 330, 160, 0.6, 0.08, e + 0.08, {
+                                  vib: 6,
+                                }),
+                                X(0.6, "lowpass", 700, 2, 0.1, 300, e, !0))
+                              : a === "deoxys"
+                                ? (I("sq", 900, 1300, 0.12, 0.08, e),
+                                  I("sq", 1300, 600, 0.18, 0.08, e + 0.12, {
+                                    vib: 50,
                                   }),
-                                  I("p25", 520, 300, 0.3, 0.08, e + 0.04),
-                                  X(0.35, "bandpass", 900, 1, 0.16, 400, e, !0))
-                                : a === "scizor"
-                                  ? (I("sq", 1200, 1600, 0.08, 0.08, e),
-                                    I("sq", 1600, 900, 0.14, 0.07, e + 0.1, {
-                                      vib: 40,
+                                  I("tri", 400, 900, 0.3, 0.1, e + 0.05))
+                                : a === "zekrom"
+                                  ? (I("saw", 170, 80, 0.75, 0.22, e, {
+                                      vib: 30,
                                     }),
+                                    I("p50", 340, 150, 0.6, 0.12, e + 0.05),
                                     X(
-                                      0.12,
-                                      "highpass",
-                                      4e3,
-                                      1,
-                                      0.08,
-                                      2e3,
-                                      e + 0.02,
+                                      0.5,
+                                      "bandpass",
+                                      2600,
+                                      1.5,
+                                      0.16,
+                                      900,
+                                      e,
+                                      !0,
                                     ))
-                                  : a === "tyrantrum"
-                                    ? (I("saw", 150, 70, 0.7, 0.2, e, {
-                                        vib: 25,
+                                  : a === "garchomp"
+                                    ? (I("saw", 260, 140, 0.45, 0.14, e, {
+                                        vib: 40,
                                       }),
-                                      I("p50", 300, 140, 0.5, 0.12, e + 0.05),
+                                      I("p25", 520, 300, 0.3, 0.08, e + 0.04),
                                       X(
-                                        0.6,
-                                        "lowpass",
-                                        800,
+                                        0.35,
+                                        "bandpass",
+                                        900,
                                         1,
-                                        0.2,
-                                        300,
+                                        0.16,
+                                        400,
                                         e,
                                         !0,
                                       ))
-                                    : a === "golurk"
-                                      ? (I("sq", 110, 110, 0.5, 0.12, e, {
-                                          vib: 6,
-                                        }),
-                                        I("tri", 220, 180, 0.45, 0.1, e + 0.1),
-                                        I("p25", 440, 330, 0.2, 0.05, e + 0.25))
-                                      : a === "rhyperior"
-                                        ? (I("saw", 120, 90, 0.6, 0.18, e, {
-                                            vib: 20,
+                                    : a === "scizor"
+                                      ? (I("sq", 1200, 1600, 0.08, 0.08, e),
+                                        I(
+                                          "sq",
+                                          1600,
+                                          900,
+                                          0.14,
+                                          0.07,
+                                          e + 0.1,
+                                          {
+                                            vib: 40,
+                                          },
+                                        ),
+                                        X(
+                                          0.12,
+                                          "highpass",
+                                          4e3,
+                                          1,
+                                          0.08,
+                                          2e3,
+                                          e + 0.02,
+                                        ))
+                                      : a === "tyrantrum"
+                                        ? (I("saw", 150, 70, 0.7, 0.2, e, {
+                                            vib: 25,
                                           }),
                                           I(
                                             "p50",
-                                            240,
-                                            200,
-                                            0.4,
-                                            0.1,
-                                            e + 0.08,
+                                            300,
+                                            140,
+                                            0.5,
+                                            0.12,
+                                            e + 0.05,
                                           ),
                                           X(
-                                            0.4,
+                                            0.6,
                                             "lowpass",
-                                            600,
+                                            800,
                                             1,
-                                            0.18,
+                                            0.2,
                                             300,
-                                            e + 0.05,
+                                            e,
+                                            !0,
                                           ))
-                                        : a === "froslass"
-                                          ? (I("tri", 880, 1320, 0.4, 0.09, e, {
-                                              vib: 12,
+                                        : a === "golurk"
+                                          ? (I("sq", 110, 110, 0.5, 0.12, e, {
+                                              vib: 6,
                                             }),
                                             I(
                                               "tri",
-                                              1320,
-                                              990,
+                                              220,
+                                              180,
                                               0.45,
-                                              0.07,
-                                              e + 0.2,
-                                              { vib: 10 },
+                                              0.1,
+                                              e + 0.1,
+                                            ),
+                                            I(
+                                              "p25",
+                                              440,
+                                              330,
+                                              0.2,
+                                              0.05,
+                                              e + 0.25,
                                             ))
-                                          : a === "gardevoir"
-                                            ? (I("tri", 660, 990, 0.25, 0.1, e),
+                                          : a === "rhyperior"
+                                            ? (I("saw", 120, 90, 0.6, 0.18, e, {
+                                                vib: 20,
+                                              }),
                                               I(
-                                                "p25",
-                                                990,
-                                                1180,
-                                                0.3,
-                                                0.07,
-                                                e + 0.12,
-                                                { vib: 20 },
+                                                "p50",
+                                                240,
+                                                200,
+                                                0.4,
+                                                0.1,
+                                                e + 0.08,
+                                              ),
+                                              X(
+                                                0.4,
+                                                "lowpass",
+                                                600,
+                                                1,
+                                                0.18,
+                                                300,
+                                                e + 0.05,
                                               ))
-                                            : a === "metagross"
+                                            : a === "froslass"
                                               ? (I(
-                                                  "sq",
-                                                  220,
-                                                  330,
-                                                  0.18,
-                                                  0.1,
-                                                  e,
-                                                ),
-                                                I(
-                                                  "sq",
-                                                  330,
-                                                  220,
-                                                  0.25,
-                                                  0.1,
-                                                  e + 0.15,
-                                                ),
-                                                I(
-                                                  "saw",
-                                                  110,
-                                                  90,
+                                                  "tri",
+                                                  880,
+                                                  1320,
                                                   0.4,
-                                                  0.1,
-                                                  e + 0.05,
-                                                  { vib: 30 },
+                                                  0.09,
+                                                  e,
+                                                  {
+                                                    vib: 12,
+                                                  },
+                                                ),
+                                                I(
+                                                  "tri",
+                                                  1320,
+                                                  990,
+                                                  0.45,
+                                                  0.07,
+                                                  e + 0.2,
+                                                  { vib: 10 },
                                                 ))
-                                              : a === "groudon"
+                                              : a === "gardevoir"
                                                 ? (I(
-                                                    "saw",
-                                                    120,
-                                                    60,
-                                                    0.9,
-                                                    0.22,
+                                                    "tri",
+                                                    660,
+                                                    990,
+                                                    0.25,
+                                                    0.1,
                                                     e,
-                                                    {
-                                                      vib: 20,
-                                                    },
                                                   ),
                                                   I(
-                                                    "p50",
-                                                    240,
-                                                    120,
-                                                    0.7,
-                                                    0.12,
-                                                    e + 0.05,
-                                                  ),
-                                                  X(
-                                                    0.7,
-                                                    "lowpass",
-                                                    600,
-                                                    1,
-                                                    0.22,
-                                                    200,
-                                                    e,
-                                                    !0,
+                                                    "p25",
+                                                    990,
+                                                    1180,
+                                                    0.3,
+                                                    0.07,
+                                                    e + 0.12,
+                                                    { vib: 20 },
                                                   ))
-                                                : a === "rayquaza"
+                                                : a === "metagross"
                                                   ? (I(
-                                                      "saw",
-                                                      600,
-                                                      300,
-                                                      0.6,
-                                                      0.14,
+                                                      "sq",
+                                                      220,
+                                                      330,
+                                                      0.18,
+                                                      0.1,
                                                       e,
-                                                      { vib: 50 },
                                                     ),
                                                     I(
-                                                      "p25",
-                                                      900,
-                                                      450,
-                                                      0.5,
-                                                      0.08,
-                                                      e + 0.05,
-                                                      { vib: 40 },
+                                                      "sq",
+                                                      330,
+                                                      220,
+                                                      0.25,
+                                                      0.1,
+                                                      e + 0.15,
                                                     ),
-                                                    X(
-                                                      0.5,
-                                                      "bandpass",
-                                                      2400,
-                                                      1.5,
-                                                      0.14,
-                                                      800,
-                                                      e,
-                                                      !0,
+                                                    I(
+                                                      "saw",
+                                                      110,
+                                                      90,
+                                                      0.4,
+                                                      0.1,
+                                                      e + 0.05,
+                                                      { vib: 30 },
                                                     ))
-                                                  : a === "hooh"
+                                                  : a === "groudon"
                                                     ? (I(
-                                                        "tri",
-                                                        900,
-                                                        1400,
-                                                        0.4,
-                                                        0.12,
+                                                        "saw",
+                                                        120,
+                                                        60,
+                                                        0.9,
+                                                        0.22,
                                                         e,
-                                                        { vib: 30 },
+                                                        {
+                                                          vib: 20,
+                                                        },
                                                       ),
                                                       I(
-                                                        "p25",
-                                                        1400,
-                                                        1e3,
-                                                        0.5,
-                                                        0.08,
-                                                        e + 0.15,
-                                                        { vib: 20 },
+                                                        "p50",
+                                                        240,
+                                                        120,
+                                                        0.7,
+                                                        0.12,
+                                                        e + 0.05,
                                                       ),
                                                       X(
-                                                        0.3,
-                                                        "bandpass",
-                                                        3e3,
-                                                        1.5,
-                                                        0.1,
-                                                        1500,
-                                                        e + 0.05,
+                                                        0.7,
+                                                        "lowpass",
+                                                        600,
+                                                        1,
+                                                        0.22,
+                                                        200,
+                                                        e,
+                                                        !0,
                                                       ))
-                                                    : a === "lucario"
+                                                    : a === "rayquaza"
                                                       ? (I(
-                                                          "p25",
-                                                          520,
-                                                          640,
-                                                          0.14,
-                                                          0.11,
-                                                          e,
-                                                        ),
-                                                        I(
-                                                          "p25",
-                                                          780,
-                                                          420,
-                                                          0.22,
-                                                          0.1,
-                                                          e + 0.12,
-                                                          {
-                                                            vib: 30,
-                                                          },
-                                                        ))
-                                                      : (I(
-                                                          "p25",
+                                                          "saw",
                                                           600,
-                                                          900,
-                                                          0.12,
-                                                          0.1,
+                                                          300,
+                                                          0.6,
+                                                          0.14,
                                                           e,
+                                                          { vib: 50 },
                                                         ),
                                                         I(
                                                           "p25",
                                                           900,
-                                                          500,
-                                                          0.18,
-                                                          0.1,
-                                                          e + 0.12,
-                                                        )));
+                                                          450,
+                                                          0.5,
+                                                          0.08,
+                                                          e + 0.05,
+                                                          { vib: 40 },
+                                                        ),
+                                                        X(
+                                                          0.5,
+                                                          "bandpass",
+                                                          2400,
+                                                          1.5,
+                                                          0.14,
+                                                          800,
+                                                          e,
+                                                          !0,
+                                                        ))
+                                                      : a === "hooh"
+                                                        ? (I(
+                                                            "tri",
+                                                            900,
+                                                            1400,
+                                                            0.4,
+                                                            0.12,
+                                                            e,
+                                                            { vib: 30 },
+                                                          ),
+                                                          I(
+                                                            "p25",
+                                                            1400,
+                                                            1e3,
+                                                            0.5,
+                                                            0.08,
+                                                            e + 0.15,
+                                                            { vib: 20 },
+                                                          ),
+                                                          X(
+                                                            0.3,
+                                                            "bandpass",
+                                                            3e3,
+                                                            1.5,
+                                                            0.1,
+                                                            1500,
+                                                            e + 0.05,
+                                                          ))
+                                                        : a === "lucario"
+                                                          ? (I(
+                                                              "p25",
+                                                              520,
+                                                              640,
+                                                              0.14,
+                                                              0.11,
+                                                              e,
+                                                            ),
+                                                            I(
+                                                              "p25",
+                                                              780,
+                                                              420,
+                                                              0.22,
+                                                              0.1,
+                                                              e + 0.12,
+                                                              {
+                                                                vib: 30,
+                                                              },
+                                                            ))
+                                                          : (I(
+                                                              "p25",
+                                                              600,
+                                                              900,
+                                                              0.12,
+                                                              0.1,
+                                                              e,
+                                                            ),
+                                                            I(
+                                                              "p25",
+                                                              900,
+                                                              500,
+                                                              0.18,
+                                                              0.1,
+                                                              e + 0.12,
+                                                            )));
       },
       ready() {
         O() &&
@@ -36583,6 +37669,53 @@
           break;
         case "dazed":
           t.popup(n.who.x, n.who.y - 36, "DAZED", "#ffe27a", !1);
+          break;
+        case "wispOut":
+          S.wisp();
+          break;
+        case "hexMark":
+          S.charge(), t.ring(n.x, n.y, 6, 2, 12, "#a070ff");
+          break;
+        case "hexBurst":
+          n.hot
+            ? (S.ultHit?.(),
+              t.shake(0, 1, 4),
+              t.popup(n.x, n.y - 36, "HEX!", "#c9a6ff", !0))
+            : S.wisp(),
+            t.wisps(n.x, n.y, 12, 8, "#a070ff", 10);
+          break;
+        case "overheatDrop":
+          S.overheat(), t.smoke(n.who.x, n.who.y - 20, 10, 8);
+          break;
+        case "flashFire":
+          t.popup(n.who.x, n.who.y - 44, "FLASH FIRE", "#ff8a3d", !1);
+          break;
+        case "sunnyDay":
+          I("tri", F(72), F(84), 0.35, 0.07),
+            I("tri", F(79), F(91), 0.4, 0.05, 0.08),
+            t.ring(n.x, n.y, 8, 4, 18, "#ffd25e", !0),
+            t.popup(n.who.x, n.who.y - 44, "SUNNY DAY", "#ffc83d", !1);
+          break;
+        case "synthesis":
+          I("tri", F(84), F(88), 0.08, 0.025),
+            t.motes(n.who.x, n.who.y - 8, 4, 8, "#9fe07a", 0.8);
+          break;
+        case "xScissorWind":
+          S.charge();
+          break;
+        case "xScissorDash":
+          t.streaks(n.who.x, n.who.y - 10, n.dx, n.dy, 3, "#b8d64a"),
+            n.who.t % 4 === 0 && S.swing(!1);
+          break;
+        case "crit":
+          n.v &&
+            (t.popup(n.v.x, n.v.y - 46, "CRITICAL!", "#ffe27a", !0),
+            t.ring(n.v.x, n.v.y - 12, 6, 3, 12, "#ffe27a"));
+          break;
+        case "leafGuard":
+          t.popup(n.who.x, n.who.y - 40, "LEAF GUARD", "#7fd36a", !1);
+          break;
+        case "fieldEnd":
           break;
         case "mindPullWind":
           S.charge();
