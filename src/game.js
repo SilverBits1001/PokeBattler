@@ -156,6 +156,7 @@
         "Cinder Crater",
         "Frostfall Peak",
         "Power Plant",
+        "Magma Isle",
       ],
     },
     {
@@ -3337,7 +3338,12 @@
           this.rand() < [0.2, 0.45, 0.65][this.level ?? A.cpuLevel] &&
             (this.holdA = 18 + Math.floor(this.rand() * 26)));
         this.holdA > 0 && (i.held.add("attack"), this.holdA--);
-        if (e.lava.length || e.ice.length || e.rocks.some((f) => f.pylon)) {
+        if (
+          e.lava.length ||
+          e.stage === MAGMA.stage ||
+          e.ice.length ||
+          e.rocks.some((f) => f.pylon)
+        ) {
           let f = Math.hypot(i.mx, i.my),
             u = Math.atan2(i.my, i.mx);
           if (
@@ -4687,6 +4693,7 @@
       "Erupted vents run hot: +25% damage",
       "Dodge on ice to slide further",
       "Stand by a live pylon to recharge",
+      "Slammed into the edge? The magma burns",
     ],
     // Free-for-All damage scale per Pokémon. Last one standing rewards
     // range and escapes far more than a duel does, so each kit's damage is
@@ -4901,6 +4908,9 @@
       { id: "crater", name: "Cinder Crater" },
       { id: "frost", name: "Frostfall Peak" },
       { id: "plant", name: "Power Plant" },
+      // An obsidian island in a magma sea: Cinder Crater's eruptions and hot
+      // spots without the pools, and a hard splat into the edge dunks you.
+      { id: "magma", name: "Magma Isle", kind: 2 },
     ],
     // Cinder Crater: lava pools, telegraphed eruptions; water cools lava to crust.
     CRATER = {
@@ -4923,6 +4933,8 @@
       ventR: 34,
       ventDmg: 34,
     },
+    // Magma Isle: extra damage for a splat into the edge (on top of the splat).
+    MAGMA = { stage: 5, dunk: 12 },
     // Frostfall Peak: ice rinks you slide on; fire melts them; icicles fall.
     FROST = {
       rinks: [
@@ -5939,6 +5951,7 @@
         this.item = null;
         this.itemT = 0;
         this.arena = 0;
+        this.stage = 0;
         this.hitboxes = [];
         this.beams = [];
         this.vines = [];
@@ -5995,7 +6008,8 @@
           (this.puddles = []),
           (this.mines = []),
           (this.grass = []),
-          (this.arena = A.arena),
+          (this.stage = A.arena),
+          (this.arena = ARENAS[A.arena]?.kind ?? A.arena),
           (this.rocks =
             A.arena === 1
               ? RUINS.spots.map(([o, l], n) => ({
@@ -11607,8 +11621,8 @@
               );
         this.updateSurge(e);
         this.arenaX(e);
-        // Cinder Crater
-        if (this.lava.length) {
+        // Cinder Crater (and Magma Isle, which has no pools)
+        if (this.lava.length || this.stage === MAGMA.stage) {
           // Water shots and jets crust over any pool they pass across.
           let w = [];
           for (let t of this.projectiles)
@@ -12124,9 +12138,14 @@
                     !e.splatted &&
                     -o > 3.2)
                 ) {
-                  let l = e,
-                    f = Math.round(ae.splat * ae.dmg);
+                  // Magma Isle: the edge is a magma sea.
+                  let dunk = this.stage === MAGMA.stage && !rk,
+                    l = e,
+                    f = Math.round(ae.splat * ae.dmg) + (dunk ? MAGMA.dunk : 0);
                   l.splatted = !0;
+                  dunk &&
+                    (this.burn(l),
+                    this.emit({ type: "lavaBurn", x: l.x, y: l.y }));
                   let u = l.slot.hp;
                   (l.slot.hp = Math.max(1, l.slot.hp - f)),
                     (l.hitstop = 8),
@@ -22734,12 +22753,13 @@
         Math.round(r.ox * Ye),
         Math.round(r.oy * Ye),
       ),
-      arenaArt(e.arena)
+      arenaArt(e.stage ?? e.arena)
         ? // Pixel art up to the canvas's own size (1280x720) stays
           // unsmoothed; a larger painting is smoothed down.
-          ((a.imageSmoothingEnabled = arenaArt(e.arena).width > Y * Ye),
+          ((a.imageSmoothingEnabled =
+            arenaArt(e.stage ?? e.arena).width > Y * Ye),
           (a.imageSmoothingQuality = "high"),
-          a.drawImage(arenaArt(e.arena), 0, 0, Y, _),
+          a.drawImage(arenaArt(e.stage ?? e.arena), 0, 0, Y, _),
           (a.imageSmoothingEnabled = !1))
         : a.drawImage(Bt, 0, 0),
       i)
@@ -32237,8 +32257,9 @@
         });
       // The stage, between the two name plates.
       let ac =
-        ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030"][A.arena] ??
-        "#cfcaea";
+        ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030", "#ff6a3d"][
+          A.arena
+        ] ?? "#cfcaea";
       te(H / 2 - 54, 176, 108, 22, "rgba(8,6,18,0.86)", 5),
         (d.fillStyle = ac),
         d.fillRect(m(H / 2 - 48), m(176), m(96), m(1.2)),
@@ -32925,8 +32946,9 @@
     let h = H / 2,
       c = 194,
       y =
-        ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030"][A.arena] ??
-        "#cfcaea";
+        ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030", "#ff6a3d"][
+          A.arena
+        ] ?? "#cfcaea";
     tapRect(h - 52, c - 9, 104, 18, () => Ue.add("select")),
       te(h - 52, c - 9, 104, 18, "rgba(10,8,22,0.88)", 5),
       G("BATTLE STAGE", h, c - 2.5, 4.6, g.haze, {
@@ -33548,12 +33570,17 @@
       "Electric arcs between pylons",
       "Live pylons recharge specials. Electric types absorb arcs",
     ],
+    [
+      "Ring out",
+      "Eruptions; splatting into the edge dunks you in magma",
+      "Erupted vents run hot: +25% damage",
+    ],
   ];
   var arenaThumbs = [];
   function arenaThumb(c) {
     if (!arenaThumbs[c]) {
       // Bake the live features (lava, ice, pylons) into the thumbnail.
-      let k = Va(c),
+      let k = Va(ARENAS[c].kind ?? c),
         M = k.getContext("2d"),
         art = arenaArt(c);
       art && M.drawImage(art, 0, 0, Y, _);
@@ -33671,13 +33698,14 @@
         7,
         g.haze,
       );
-    let r = (i - 36 - 4 * 6) / 5,
+    let n = ARENAS.length,
+      r = (i - 36 - (n - 1) * 5) / n,
       o = r * 0.56,
       l = s + 42,
-      f = e.inContent ? e.arenaCursor : a.arena;
+      f = e.inContent ? e.arenaCursor : a.stage;
     ARENAS.forEach((h, c) => {
       arenaThumb(c);
-      let y = t + 18 + c * (r + 6),
+      let y = t + 18 + c * (r + 5),
         b = c === f;
       te(y - 1, l - 1, r + 2, o + 2, b ? g.p1 : "#1b1730", 2),
         d.drawImage(
@@ -33691,7 +33719,7 @@
           m(r),
           m(o),
         ),
-        c === a.arena &&
+        c === a.stage &&
           ue("NOW", g.gold, y + r - 2, l + 2, {
             right: !0,
             size: 4.6,
@@ -36684,7 +36712,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 9,
+  var NETV = 10,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -40087,7 +40115,7 @@
                     ));
               })()
             : D === "arena"
-              ? s.arenaCursor === e.arena
+              ? s.arenaCursor === e.stage
                 ? ((s.inContent = !1), pe())
                 : ((A.arena = s.arenaCursor),
                   Ze(),
@@ -40119,7 +40147,7 @@
             D === "swap" ||
             D === "arena") &&
             ((s.inContent = !0),
-            (s.arenaCursor = e.arena),
+            (s.arenaCursor = e.stage),
             (s.quitIndex = 0),
             (s.swapPicks = []),
             (s.swapCursor = Math.max(0, ge.indexOf(e.player.kit.id))),
@@ -42764,7 +42792,7 @@
             t.popups.push({
               x: Se,
               y: B.y0 + 30,
-              text: ARENA_TIPS[e.arena],
+              text: ARENA_TIPS[e.stage],
               life: 150,
               max: 150,
               color: L.gold,
