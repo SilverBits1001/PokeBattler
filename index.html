@@ -4971,7 +4971,7 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
         this.rand = rt(1234);
         this.nextId = 1;
         this.hitLog = new Map();
-        this.intro = 70;
+        this.intro = this.introLen = 70;
         this.match = {
           mode: "vs",
           round: 1,
@@ -5177,7 +5177,12 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
                 : this.match.cpuLegends?.[o.cpuIndex ?? 0]) ?? "zekrom")
             : null),
             (o.lgMeter = e === "practice" ? 100 : 0);
-        (this.intro = 70),
+        // The first round's READY, SET, GO runs with the battle song: GO lands
+        // on the frame its main theme comes in (INTRO_GO). Later rounds, and
+        // Training, take the short count.
+        (this.introLen = this.intro =
+          r.round === 1 && e !== "practice" ? INTRO_GO + 20 : 70),
+          (this.goTick = null),
           this.emit({
             type: "roundStart",
             round: r.round,
@@ -5337,7 +5342,9 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
         }
         this.match.phase === "fight" && this.intro <= 0 && this.match.ticks++,
           this.intro > 0 &&
-            (this.intro--, this.intro === 20 && this.emit({ type: "readyGo" }));
+            (this.intro--,
+            this.intro === 20 &&
+              ((this.goTick = this.tick), this.emit({ type: "readyGo" })));
         let t = this.players.map((i) => (i.brain ? i.brain.think(this, i) : e)),
           s =
             this.tick % 2 === 0
@@ -24471,6 +24478,122 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
     }
     c.restore();
   }
+  // READY, SET, GO across the middle of the arena. A dark band wipes in
+  // with READY sliding along it, SET punches in gold, and GO! bursts out
+  // huge with rays, then flies apart as the fight starts.
+  function readySetGo(e, s) {
+    let L0 = e.introLen ?? 70,
+      long = L0 > 70,
+      el = L0 - e.intro,
+      rT = long ? INTRO_READY : 1,
+      sT = long ? INTRO_SET : 36,
+      gT = L0 - 20,
+      ge2 = e.goTick == null ? -1 : e.tick - e.goTick;
+    if (el < rT || ge2 > 46) return;
+    let cy = 112,
+      word,
+      k,
+      col,
+      out = 0;
+    if (ge2 < 0)
+      el < sT
+        ? ((word = "READY"), (k = el - rT), (col = g.chalk))
+        : ((word = "SET"), (k = el - sT), (col = g.gold));
+    else
+      (word = "GO!"),
+        (k = ge2),
+        (col = g.gold),
+        (out = Math.max(0, (k - 28) / 18));
+    // The band.
+    let bandIn = Ee(Math.min(1, (el - rT) / 10)),
+      bandOut = out,
+      bh = 34 * (1 - bandOut),
+      bw = H * bandIn;
+    d.save(),
+      (d.globalAlpha = 1 - bandOut),
+      te(H / 2 - bw / 2, cy - bh / 2 - 4, bw, bh, "rgba(6,4,14,0.62)", 10),
+      (d.fillStyle = word === "GO!" ? g.gold : word === "SET" ? g.gold : g.p1),
+      d.fillRect(m(H / 2 - bw / 2), m(cy - bh / 2 - 4), m(bw), m(0.9)),
+      d.fillRect(m(H / 2 - bw / 2), m(cy + bh / 2 - 4.9), m(bw), m(0.9)),
+      d.restore();
+    if (word === "GO!") {
+      // Rays and a flash behind GO.
+      let rk = Ee(Math.min(1, k / 10));
+      d.save(),
+        (d.globalCompositeOperation = "lighter"),
+        (d.globalAlpha = (1 - out) * (k < 6 ? 1 : 0.55));
+      for (let n = 0; n < 16; n++) {
+        let a = (n / 16) * Math.PI * 2 + k * 0.01,
+          r0 = 18 + rk * 10,
+          r1 = 40 + rk * 140;
+        (d.fillStyle =
+          n % 2 ? "rgba(255,215,94,0.35)" : "rgba(255,255,255,0.3)"),
+          d.beginPath(),
+          d.moveTo(
+            m(H / 2 + Math.cos(a) * r0),
+            m(cy - 6 + Math.sin(a) * r0 * 0.6),
+          ),
+          d.lineTo(
+            m(H / 2 + Math.cos(a + 0.06) * r1),
+            m(cy - 6 + Math.sin(a + 0.06) * r1 * 0.6),
+          ),
+          d.lineTo(
+            m(H / 2 + Math.cos(a - 0.06) * r1),
+            m(cy - 6 + Math.sin(a - 0.06) * r1 * 0.6),
+          ),
+          d.closePath(),
+          d.fill();
+      }
+      d.restore();
+    }
+    // The word: READY slides along the band, SET and GO punch in from big.
+    let sc =
+        word === "READY"
+          ? 1
+          : 1 +
+            Math.max(0, 1 - k / (word === "GO!" ? 8 : 6)) *
+              (word === "GO!" ? 1.6 : 0.8),
+      dx =
+        word === "READY" ? (1 - Ee(Math.min(1, k / 9))) * -140 + k * 0.08 : 0,
+      size = word === "GO!" ? 54 : word === "SET" ? 42 : 38,
+      a2 = word === "READY" ? Math.min(1, k / 5) : 1;
+    out > 0 && ((sc *= 1 + out * 0.8), (a2 = 1 - out));
+    // Old word fading out as the next comes in.
+    d.save(),
+      (d.globalAlpha = a2),
+      d.translate(m(H / 2 + dx), m(cy)),
+      d.scale(sc, sc),
+      d.translate(-m(H / 2 + dx), -m(cy)),
+      (d.shadowColor =
+        word === "READY" ? "rgba(51,214,255,0.8)" : "rgba(255,190,60,0.9)"),
+      (d.shadowBlur = m(word === "GO!" ? 14 : 9)),
+      V(word, H / 2 + dx, cy + size * 0.32, size, col, {
+        align: "center",
+        skew: !0,
+        outline: size * 0.09,
+      }),
+      d.restore();
+    // Under READY: who you're up against.
+    if (word === "READY") {
+      let T = e.cpu,
+        sub =
+          e.match.mode === "vs" && T
+            ? `Round ${e.match.round} \xB7 vs ${T.kit.name}${T.slots[1] ? " & " + T.slots[1].kit.name : ""}`
+            : ({
+                ffa: "Free-for-all \xB7 last one standing",
+                team: "Team battle \xB7 you and your ally vs two CPUs",
+                zone: "Zone control \xB7 hold the ring to fill your meter",
+              }[e.match.mode] ?? "Training");
+      d.save(),
+        (d.globalAlpha = a2),
+        G(sub, H / 2, cy + 22, 6.4, g.haze, {
+          align: "center",
+          weight: 700,
+          outline: 2,
+        }),
+        d.restore();
+    }
+  }
   function Ca(a, e, t, s, i, r, o) {
     if (
       ((d = a),
@@ -24704,7 +24827,8 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
             }),
           d.restore();
       }
-    t.cutin && lgCutin(e, t),
+    e.match.phase === "fight" && readySetGo(e, s),
+      t.cutin && lgCutin(e, t),
       s.debug && as(e),
       !s.paused && e.match.phase === "fight" && moveTray(e, s),
       e.match.phase === "results" && os(e, s, o),
@@ -31067,7 +31191,8 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
       // its loop points for as long as it plays. Decoded once, on first use.
       playTrack(e) {
         let t = _e(),
-          T = window.__MUSIC__[e];
+          T = window.__MUSIC__[e],
+          asked = t.currentTime;
         (this.name = e), (this.song = { track: e });
         let go = (buf) => {
           if (this.name !== e || this.song?.track !== e || !this.bus) return;
@@ -31079,7 +31204,21 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
             src.connect(this.bus),
             this.bus.gain.cancelScheduledValues(t.currentTime),
             this.bus.gain.setValueAtTime(A.music, t.currentTime),
-            src.start(t.currentTime + 0.05, 0),
+            // Start where the music should be by now: any wait for decoding,
+            // the output's latency, and (for the battle song) the gap between
+            // INTRO_GO's frame time and the theme's real entry, so GO and the
+            // theme are heard together.
+            (this.at = [
+              t.currentTime,
+              Math.max(
+                0,
+                t.currentTime -
+                  asked +
+                  (t.outputLatency || t.baseLatency || 0) +
+                  (e === "rse" ? SONG_GO - INTRO_GO / 60 : 0),
+              ),
+            ]),
+            src.start(...this.at),
             (this.src = src);
         };
         T.buf ? go(T.buf) : this.load(e).then(go, () => {});
@@ -31239,6 +31378,12 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
     Me = new Wt(),
     // Battles always play the recorded Trainer Battle (assets/music.js).
     battleSong = () => "rse";
+  // Its intro riff starts 0.51 s in and the main theme 2.92 s in: READY on
+  // the riff, SET halfway, GO on the theme (frames at 60 a second).
+  var INTRO_GO = 175,
+    INTRO_READY = 31,
+    INTRO_SET = 103,
+    SONG_GO = 2.92;
   // ---- Online play ----------------------------------------------------------
   // Players find each other through the claude.ai room: everyone who has this
   // page open right now. A match is deterministic lockstep. Each side sends only
@@ -37091,9 +37236,10 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
               big: !1,
               vy: -0.05,
             }),
-            t.banner("GO!", L.gold, 40),
             S.go(),
-            (t.screenFlash = 2),
+            t.shake(0, 1, 5),
+            buzz(0.8, 0.9, 160),
+            (t.screenFlash = 3),
             (t.screenFlashColor = "#ffffff");
           break;
       }
@@ -37769,24 +37915,15 @@ window.__MUSIC__={rse:{src:"data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADT
           "pump",
           e.assists.some((T) => e.isPumping(T)),
         ),
-        e.intro === 69)
+        e.intro === e.introLen - (e.introLen > 70 ? INTRO_READY : 1))
       ) {
         let T = e.cpu;
-        t.banner(
-          "READY?",
-          "#eef2e6",
-          48,
-          e.match.mode === "vs" && T
-            ? `Round ${e.match.round} \xB7 vs ${T.kit.name} & ${T.slots[1]?.kit.name ?? ""}`
-            : ({
-                ffa: "Free-for-all \xB7 last one standing",
-                team: "Team battle \xB7 you and your ally vs two CPUs",
-                zone: "Zone control \xB7 hold the ring to fill your meter",
-              }[e.match.mode] ?? "Training"),
-        ),
-          S.ready(),
-          T && S.cry(T.kit.id, 0.35);
+        // READY: the short count has its sting; the long one has the song.
+        e.introLen > 70 || S.ready(), T && S.cry(T.kit.id, 0.35);
       }
+      e.introLen > 70 &&
+        e.intro === e.introLen - INTRO_SET &&
+        (S.ui(!0), buzz(0.3, 0.2, 60));
       (t.leanX += (n.mvx * 1.1 - t.leanX) * 0.08),
         (t.leanY += (n.mvy * 0.8 - t.leanY) * 0.08);
       let R = D.hp < D.maxHp * 0.25 && e.match.phase === "fight";
