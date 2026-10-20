@@ -23472,7 +23472,7 @@
         // Whole-number steps keep pixels even, unless that would leave a
         // small portrait well short of its frame (roster tiles on a phone).
         c =
-          h >= 40 && (h >= 160 || Math.floor(h / 40) * 40 >= h * 0.9)
+          !r.fill && h >= 40 && (h >= 160 || Math.floor(h / 40) * 40 >= h * 0.9)
             ? Math.floor(h / 40)
             : h / 40,
         y = 40 * c,
@@ -24705,58 +24705,153 @@
   // and tag, name, Poke Balls, a glowing HP bar and guard strip. Your card
   // carries the cooldown buttons underneath; a fighter who is out dims and
   // shows where they placed.
-  // The legendary meter: icon, fill, and a pulsing READY (with the button
-  // to press, on your own side) once it is full.
-  function lgGauge(a, e, t, s, i, r, o, l) {
+  // The legendary meter under the health bar: the legendary's colour
+  // charging with energy running through it toward the full end. Once full
+  // the whole strip swells, glows and flashes, a ring bursts off it, and it
+  // reads the legendary's name and READY with the button to press.
+  var LG_SEEN = new WeakMap();
+  function lgStrip(a, e, t, x, y, w, ht, r, o, h) {
     let f = LG_INFO[t.legend],
-      u = Math.min(1, t.lgMeter / 100),
-      h = u >= 1,
-      c = e.frame;
-    te(s, i, r, 9, "rgba(6,4,10,0.82)", 3);
-    let y = o ? s + r - 11 : s + 1.5;
-    l[t.legend] &&
-      Oe(l[t.legend], "Normal", y, i + 0.5, 8, { bg: f.color, frame: !1 });
-    let b = o ? s + 3 : s + 12,
-      p = r - 15;
-    if (
-      (te(b, i + 3, p, 3, g.track2, 1),
-      te(
-        o ? b + p * (1 - u) : b,
-        i + 3,
-        p * u,
-        3,
-        h ? (c % 20 < 10 ? "#ffe066" : "#ffffff") : f.color,
-        1,
-      ),
-      !h)
-    )
-      return;
-    d.save(),
+      col = f?.color ?? g.gold,
+      rgb = f?.rgb ?? "255,215,94",
+      u = Math.max(0, Math.min(1, t.lgMeter / 100)),
+      full = u >= 1,
+      seen = LG_SEEN.get(t);
+    full
+      ? seen?.full || LG_SEEN.set(t, (seen = { full: 1, at: h }))
+      : LG_SEEN.set(t, (seen = { full: 0 }));
+    let burst = full ? Math.max(0, 1 - (h - seen.at) / 26) : 0,
+      H2 = full ? ht + 3.4 : ht,
+      y2 = full ? y - 1.7 : y,
+      sk = H2 * 0.7,
+      fw = w * u,
+      fx = r ? x + w - fw : x,
+      pulse = 0.5 + 0.5 * Math.sin(h * 0.28);
+    d.save();
+    // A glow around it when full.
+    full &&
+      (d.save(),
+      (d.shadowColor = col),
+      (d.shadowBlur = m(7 + 5 * pulse)),
+      hudBarPath(x - 0.8, y2 - 0.8, w + 1.6, H2 + 1.6, sk, r),
+      (d.fillStyle = `rgba(${rgb},0.95)`),
+      d.fill(),
+      d.restore());
+    hudBarPath(x - 0.7, y2 - 0.7, w + 1.4, H2 + 1.4, sk, r),
+      (d.fillStyle = "rgba(6,4,10,0.9)"),
+      d.fill(),
+      hudBarPath(x, y2, w, H2, sk, r),
+      d.clip(),
+      (d.fillStyle = `rgba(${rgb},0.12)`),
+      d.fillRect(m(x), m(y2), m(w), m(H2));
+    // The charge: deep at the start, bright at the leading edge.
+    let gr = d.createLinearGradient(m(r ? x + w : x), 0, m(r ? x : x + w), 0);
+    gr.addColorStop(0, `rgba(${rgb},0.55)`),
+      gr.addColorStop(Math.max(0.01, u * 0.85), col),
+      gr.addColorStop(Math.max(0.02, u), "#ffffff"),
+      gr.addColorStop(1, "#ffffff"),
+      (d.fillStyle = gr),
+      d.fillRect(m(fx), m(y2), m(fw), m(H2));
+    // Energy running through it toward the full end.
+    d.save(), d.beginPath(), d.rect(m(fx), m(y2), m(fw), m(H2)), d.clip();
+    (d.globalCompositeOperation = "lighter"),
+      (d.fillStyle = `rgba(255,255,255,${full ? 0.3 : 0.2})`);
+    for (let k = 0; k < w / 9 + 2; k++) {
+      let sx = ((h * (full ? 1.6 : 0.8) + k * 9) % (w + 18)) - 9,
+        px = r ? x + w - sx : x + sx;
+      d.beginPath(),
+        d.moveTo(m(px), m(y2)),
+        d.lineTo(m(px + 2.4), m(y2)),
+        d.lineTo(m(px + 2.4 - H2 * 0.7), m(y2 + H2)),
+        d.lineTo(m(px - H2 * 0.7), m(y2 + H2)),
+        d.closePath(),
+        d.fill();
+    }
+    d.restore();
+    // A lit top edge, and quarter marks.
+    (d.fillStyle = "rgba(255,255,255,0.45)"),
+      d.fillRect(m(fx), m(y2), m(fw), m(Math.max(0.5, H2 * 0.22))),
+      (d.fillStyle = "rgba(6,4,10,0.55)");
+    for (let k = 1; k < 4; k++)
+      d.fillRect(m(x + (w * k) / 4 - 0.3), m(y2), m(0.6), m(H2));
+    let you = !1,
+      btn = "E";
+    if (full) {
+      // The whole strip flashes, and a shine sweeps across it.
       (d.globalCompositeOperation = "lighter"),
-      (d.globalAlpha = 0.35 + 0.25 * Math.sin(c * 0.2)),
-      te(b - 1, i + 1.5, p + 2, 6, f.color, 2),
-      d.restore();
-    let k =
-      t === a.player &&
-      !(t.brain?.net && !t.brain.local) &&
-      e.source !== "touch";
-    G("READY", o ? b + p - 2 : b + 2, i + 7.6, 5, "#0b0918", {
-      align: o ? "right" : "left",
-      weight: 800,
-    }),
-      k &&
-        Pe(
+        (d.fillStyle = `rgba(255,255,255,${0.12 + 0.38 * (h % 16 < 8 ? 1 : 0) * pulse + burst * 0.6})`),
+        d.fillRect(m(x), m(y2), m(w), m(H2));
+      let sx = ((h * 4) % (w + 60)) - 30,
+        px = r ? x + w - sx : x + sx;
+      (d.fillStyle = "rgba(255,255,255,0.7)"),
+        d.beginPath(),
+        d.moveTo(m(px), m(y2)),
+        d.lineTo(m(px + 6), m(y2)),
+        d.lineTo(m(px + 6 - H2), m(y2 + H2)),
+        d.lineTo(m(px - H2), m(y2 + H2)),
+        d.closePath(),
+        d.fill(),
+        (d.globalCompositeOperation = "source-over");
+      (you =
+        t === a.player &&
+        !(t.brain?.net && !t.brain.local) &&
+        e.source !== "touch"),
+        (btn =
           e.source === "pad"
             ? t.slots.length === 1
               ? "L2"
               : "L3"
             : t.slots.length === 1
               ? "E"
-              : "R",
-          o ? s - 5 : s + r + 5,
-          i + 4.5,
-          3.4,
-        );
+              : "R");
+      G(
+        `★ ${f?.name ?? "LEGEND"} READY`,
+        x + w / 2,
+        y2 + H2 * 0.8,
+        H2 * 0.82,
+        "#0b0918",
+        { align: "center", weight: 800 },
+      );
+    }
+    d.restore();
+    // The button to press, at the strip's outer end, on your side.
+    you && Pe(btn, r ? x + w - 7 : x + 7, y2 + H2 / 2, 3.2);
+    // The burst as it fills: a ring thrown off the strip.
+    burst > 0 &&
+      (d.save(),
+      (d.globalAlpha = burst),
+      (d.strokeStyle = "#ffffff"),
+      (d.lineWidth = m(1.2)),
+      (d.shadowColor = col),
+      (d.shadowBlur = m(6)),
+      hudBarPath(
+        x - (1 - burst) * 8,
+        y2 - (1 - burst) * 4,
+        w + (1 - burst) * 16,
+        H2 + (1 - burst) * 8,
+        sk,
+        r,
+      ),
+      d.stroke(),
+      d.restore());
+    // The legendary itself at the inner end.
+    let ix = r ? x - 11 : x + w + 2,
+      iy = y2 + H2 / 2 - 4.5;
+    o[t.legend] &&
+      (te(ix - 0.8, iy, 10.6, 10.6, "rgba(6,4,10,0.9)", 2),
+      Oe(o[t.legend], "Normal", ix, iy + 0.8, 9, {
+        bg: col,
+        frame: !1,
+        flip: r,
+      }),
+      full &&
+        (d.save(),
+        (d.globalAlpha = 0.6 + 0.4 * pulse),
+        ze(ix - 0.8, iy, 10.6, 10.6, 2),
+        (d.strokeStyle = col),
+        (d.lineWidth = m(1)),
+        d.stroke(),
+        d.restore()));
   }
   function partyCard(a, e, t, s, i, r, o) {
     let l = t.slot,
@@ -25292,7 +25387,6 @@
       V(f.name, r ? b + 70 : b + 5, 51.3, 8.4, g.chalk, {
         align: r ? "right" : "left",
       });
-    t.legend && lgGauge(a, e, t, b, 56, 74, r, o);
     // Types above the bar.
     let p = t.protean ? [t.protean] : f.type2 ? [f.type, f.type2] : [f.type],
       k = r ? H - 50 : 50;
@@ -25309,32 +25403,13 @@
     let M = X(44, 170),
       P = Qa(e, `${t.team}-${f.id}`, l.hp);
     energyBar(M, 11, 170, 10, l.hp / l.maxHp, P / l.maxHp, r, h);
-    let C0 = Math.max(0, l.guard) / 100,
-      C1 = t.state === "stunned";
-    glowStrip(
-      X(50, 150),
-      23,
-      150,
-      2.4,
-      C0,
-      C1
-        ? h % 10 < 5
-          ? g.cpu
-          : g.gold
-        : C0 < 0.3
-          ? g.cpu
-          : t.state === "guard"
-            ? "#bff1ff"
-            : r
-              ? "#ff6a7a"
-              : "#5fb4ff",
-      r,
-    ),
-      G(`${Math.ceil(l.hp)}`, X(190), 8.8, 7.4, Sa(l.hp / l.maxHp)[1], {
-        align: r ? "left" : "right",
-        weight: 700,
-        outline: 2,
-      });
+    // Under it, the legendary meter (guard shows on the shield in the arena).
+    t.legend && lgStrip(a, e, t, X(50, 150), 23, 150, 4, r, o, h);
+    G(`${Math.ceil(l.hp)}`, X(190), 8.8, 7.4, Sa(l.hp / l.maxHp)[1], {
+      align: r ? "left" : "right",
+      weight: 700,
+      outline: 2,
+    });
     // The benched partner: mini portrait (grey once fainted) and its buttons.
     let x0 = t.slots.findIndex((C, x) => x !== t.active);
     if (x0 >= 0) {
@@ -27550,13 +27625,19 @@
     k = (x, v, E, Q, ie) => {
       let K = e[x];
       if (!K) return;
-      let sz = E >= 2.4 ? 116 : Q ? 66 : 96,
+      // The portrait fills the card: a single pick is the card's full height,
+      // a pair stands on its floor, the lead larger.
+      let sz = E >= 2.4 ? c + 4 : Q ? 78 : 124,
         px = t + v - sz / 2,
-        py = y + 122 - sz;
+        py = y + c + 2 - sz;
       d.save(), (d.globalAlpha = ie);
       s &&
         (d.translate(m(t + v), 0), d.scale(-1, 1), d.translate(-m(t + v), 0));
-      Oe(K, "Determined", px, py, sz, { bg: xe[x]?.color, frame: !1 });
+      Oe(K, "Determined", px, py, sz, {
+        bg: xe[x]?.color,
+        frame: !1,
+        fill: !0,
+      });
       d.restore();
     };
     r[0] && r[1]
