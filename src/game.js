@@ -24403,7 +24403,8 @@
       sT = long ? INTRO_SET : 36,
       gT = L0 - 20,
       ge2 = e.goTick == null ? -1 : e.tick - e.goTick;
-    if (el < rT || ge2 > 46) return;
+    // Nothing once the fight is on without a GO (a skipped count).
+    if (el < rT || ge2 > 46 || (ge2 < 0 && e.intro <= 20)) return;
     let cy = 112,
       word,
       k,
