@@ -3988,7 +3988,8 @@ window.__ARENA_ART__={0:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAaAAAADuC
     CRATER = {
       pools: [
         [Se, Te - 86, 54, 18],
-        [Se, Te + 86, 54, 18],
+        // (12 right of centre, where the painted crater has it.)
+        [Se + 12, Te + 86, 54, 18],
         [Se - 214, Te - 82, 40, 26],
         [Se + 214, Te + 82, 40, 26],
       ],
@@ -16159,8 +16160,9 @@ window.__ARENA_ART__={0:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAaAAAADuC
             "rgba(220,200,170,0.6)",
           );
         }
-    } else if (k === 2) {
-      // Lavafalls and a shimmering channel; the rim's seams pulse.
+    } else if (k === 2 && !arenaArt(2)) {
+      // Lavafalls and a shimmering channel; the rim's seams pulse. (A
+      // painted crater has its own.)
       for (let x of [130, Y - 130]) {
         for (let y = 0; y < top - 10; y += 2) {
           let b = (((y - t * 1.4) % 12) + 12) % 12;
@@ -16981,7 +16983,7 @@ window.__ARENA_ART__={0:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAaAAAADuC
     let t = e.tick,
       k = e.arena;
     if (FLOOR_FX.kind !== k) return;
-    if (k === 2) {
+    if (k === 2 && !arenaArt(2)) {
       a.save(), (a.globalCompositeOperation = "lighter");
       FLOOR_FX.cracks.forEach((P, n) => {
         let p = 0.35 + 0.35 * Math.sin(t * 0.05 + n * 1.7);
