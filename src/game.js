@@ -15977,8 +15977,10 @@
     LIVE.hype *= 0.985;
     LIVE.dust *= 0.97;
     if (k === 0) {
-      // The crowd: a wave runs through it when it's excited.
+      // The crowd: a wave runs through it when it's excited. (A painted
+      // stadium has its own crowd.)
       let q = rt(5),
+        painted = !!arenaArt(0),
         skins = ["#f2c9a0", "#d9a27a", "#a8704a", "#7a4a2c", "#f8dcc0"],
         shirts = [
           "#ef5a4f",
@@ -15990,7 +15992,7 @@
           "#ff8a3d",
           "#33d6ff",
         ];
-      for (let y = 6, row = 0; y < top - 16; y += 7, row++)
+      for (let y = 6, row = 0; !painted && y < top - 16; y += 7, row++)
         for (let x = 2; x < Y; x += 5) {
           let sh = shirts[(q() * shirts.length) | 0],
             sk = skins[(q() * skins.length) | 0],
@@ -19745,6 +19747,17 @@
         a.setLineDash([]));
     }
   }
+  // Painted arena backgrounds (assets/arenas.js), decoded up front. An arena
+  // with one draws it in place of its tiles, walls and surroundings.
+  var ARENA_ART = {};
+  for (let [k, src] of Object.entries(window.__ARENA_ART__ ?? {})) {
+    let im = new Image();
+    (im.src = src), (ARENA_ART[k] = im);
+  }
+  var arenaArt = (k) => {
+    let im = ARENA_ART[k];
+    return im && im.complete && im.naturalWidth ? im : null;
+  };
   function fa(a, e, t, s, i = !1) {
     (Bt && Bt.kind === e.arena) || ((Bt = Va(e.arena)), (Bt.kind = e.arena)),
       a.setTransform(1, 0, 0, 1, 0, 0),
@@ -19761,7 +19774,12 @@
         Math.round(r.ox * Ye),
         Math.round(r.oy * Ye),
       ),
-      a.drawImage(Bt, 0, 0),
+      arenaArt(e.arena)
+        ? ((a.imageSmoothingEnabled = !0),
+          (a.imageSmoothingQuality = "high"),
+          a.drawImage(arenaArt(e.arena), 0, 0, Y, _),
+          (a.imageSmoothingEnabled = !1))
+        : a.drawImage(Bt, 0, 0),
       i)
     )
       return;
@@ -28802,7 +28820,9 @@
     if (!arenaThumbs[c]) {
       // Bake the live features (lava, ice, pylons) into the thumbnail.
       let k = Va(c),
-        M = k.getContext("2d");
+        M = k.getContext("2d"),
+        art = arenaArt(c);
+      art && M.drawImage(art, 0, 0, Y, _);
       for (let [P, C, x, v] of c === 2 ? CRATER.pools : [])
         (M.fillStyle = tilePat(M, 2, !1) || "#ff6a1a"),
           M.beginPath(),
@@ -28820,7 +28840,9 @@
           M.beginPath(),
           M.ellipse(P, C - 6, 14, 11, 0, 0, Math.PI * 2),
           M.fill();
-      arenaThumbs[c] = k;
+      // Without its painting yet, try again next time.
+      (art || !ARENA_ART[c]) && (arenaThumbs[c] = k);
+      return k;
     }
     return arenaThumbs[c];
   }
