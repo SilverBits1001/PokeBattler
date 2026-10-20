@@ -158,6 +158,7 @@
         "Power Plant",
         "Magma Isle",
         "Sunken Shrine",
+        "Ember Caldera",
       ],
     },
     {
@@ -4696,6 +4697,7 @@
       "Stand by a live pylon to recharge",
       "Slammed into the edge? The magma burns",
       "The pools slow you, and carry Electric shocks",
+      "Mind the pools, and the edge: the lava lake burns",
     ],
     // Free-for-All damage scale per Pokémon. Last one standing rewards
     // range and escapes far more than a duel does, so each kit's damage is
@@ -4916,6 +4918,10 @@
       // A flooded temple: the Ruins' rules (field shifts, tremors) without
       // its columns, with four standing pools that slow and conduct.
       { id: "shrine", name: "Sunken Shrine", kind: 1 },
+      // A basalt plateau in a lava lake: Cinder Crater's rules with its own
+      // pools, rock spires for cover (assets/layouts.js), and Magma Isle's
+      // dunk at the edge.
+      { id: "caldera", name: "Ember Caldera", kind: 2 },
     ],
     // Cinder Crater: lava pools, telegraphed eruptions; water cools lava to crust.
     CRATER = {
@@ -4940,6 +4946,17 @@
     },
     // Magma Isle: extra damage for a splat into the edge (on top of the splat).
     MAGMA = { stage: 5, dunk: 12 },
+    // Ember Caldera: its painted lava pools [x, y, rx, ry]. The first two
+    // swell while the others ebb, as in Cinder Crater.
+    CALDERA = {
+      stage: 7,
+      pools: [
+        [192, 118, 20, 12.5],
+        [452, 303, 18, 13],
+        [321, 210, 33, 18],
+        [85, 287, 27, 18],
+      ],
+    },
     // Sunken Shrine: the shell lamps round the walls, for its light. (Its
     // pools are water shapes in assets/layouts.js.)
     SHRINE = {
@@ -6096,16 +6113,18 @@
               })),
           )),
           (this.lava =
-            A.arena === 2
-              ? CRATER.pools.map(([o, l, f, u]) => ({
-                  x: o,
-                  y: l,
-                  rx: f,
-                  ry: u,
-                  rx0: f,
-                  ry0: u,
-                  cool: 0,
-                }))
+            A.arena === 2 || A.arena === CALDERA.stage
+              ? (A.arena === 2 ? CRATER.pools : CALDERA.pools).map(
+                  ([o, l, f, u]) => ({
+                    x: o,
+                    y: l,
+                    rx: f,
+                    ry: u,
+                    rx0: f,
+                    ry0: u,
+                    cool: 0,
+                  }),
+                )
               : []),
           (this.ice =
             A.arena === 3
@@ -12205,7 +12224,10 @@
                     -o > 3.2)
                 ) {
                   // Magma Isle: the edge is a magma sea.
-                  let dunk = this.stage === MAGMA.stage && !rk,
+                  let dunk =
+                      (this.stage === MAGMA.stage ||
+                        this.stage === CALDERA.stage) &&
+                      !rk,
                     l = e,
                     f = Math.round(ae.splat * ae.dmg) + (dunk ? MAGMA.dunk : 0);
                   l.splatted = !0;
@@ -18117,7 +18139,7 @@
     a.save(),
       shapePath(a, s),
       a.clip(),
-      (a.imageSmoothingEnabled = art.width > Y * Ye),
+      (a.imageSmoothingEnabled = art.width >= Y * Ye),
       a.drawImage(art, 0, 0, Y, _),
       LIGHT.on && ((a.imageSmoothingEnabled = !1), a.drawImage(LIGHT.c, 0, 0)),
       a.restore();
@@ -23099,10 +23121,11 @@
         Math.round(r.oy * Ye),
       ),
       arenaArt(e.stage ?? e.arena)
-        ? // Pixel art up to the canvas's own size (1280x720) stays
-          // unsmoothed; a larger painting is smoothed down.
+        ? // Pixel art drawn on its own grid stays unsmoothed; a painting at
+          // the canvas's full size (1280x720) or larger is smoothed, so it
+          // stays clean when the camera zooms in.
           ((a.imageSmoothingEnabled =
-            arenaArt(e.stage ?? e.arena).width > Y * Ye),
+            arenaArt(e.stage ?? e.arena).width >= Y * Ye),
           (a.imageSmoothingQuality = "high"),
           a.drawImage(arenaArt(e.stage ?? e.arena), 0, 0, Y, _),
           (a.imageSmoothingEnabled = !1))
@@ -32698,6 +32721,7 @@
           "#f8d030",
           "#ff6a3d",
           "#5ad8ff",
+          "#ff8a3d",
         ][A.arena] ?? "#cfcaea";
       te(H / 2 - 54, 176, 108, 22, "rgba(8,6,18,0.86)", 5),
         (d.fillStyle = ac),
@@ -33390,6 +33414,7 @@
           "#f8d030",
           "#ff6a3d",
           "#5ad8ff",
+          "#ff8a3d",
         ][A.arena] ?? "#cfcaea";
     tapRect(h - 52, c - 9, 104, 18, () => Ue.add("select")),
       te(h - 52, c - 9, 104, 18, "rgba(10,8,22,0.88)", 5),
@@ -34025,6 +34050,11 @@
       "Four pools slow you down; tremors bring rocks down",
       "Electric moves shock foes standing in the water",
     ],
+    [
+      "Pressure",
+      "Lava pools that rise and fall; a splat into the edge burns",
+      "Rock spires for cover; erupted vents run hot: +25% damage",
+    ],
   ];
   var arenaThumbs = [];
   function arenaThumb(c) {
@@ -34034,7 +34064,11 @@
         M = k.getContext("2d"),
         art = arenaArt(c);
       art && M.drawImage(art, 0, 0, Y, _);
-      for (let [P, C, x, v] of c === 2 ? CRATER.pools : [])
+      for (let [P, C, x, v] of c === 2
+        ? CRATER.pools
+        : c === CALDERA.stage
+          ? CALDERA.pools
+          : [])
         (M.fillStyle = tilePat(M, 2, !1) || "#ff6a1a"),
           M.beginPath(),
           M.ellipse(P, C, x, v, 0, 0, Math.PI * 2),
@@ -37198,7 +37232,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 12,
+  var NETV = 13,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,

@@ -59,8 +59,8 @@ and Magnet Rise. Snorlax keeps armour only on its Stomp finisher. Froslass chill
 with her finisher, freezes for less and has a lower damage scale.
 
 See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
-callouts, seven arenas, each with its own hazard and benefit (Stadium spotlights, Ruins
-collapse and Ancient Power, Cinder Crater heat vents, Frostfall slides, Power Plant recharge, Magma Isle edge dunks, Sunken Shrine pools), items (Sitrus Berry, X Attack, Poké Ball, Rocky Helmet, Choice Scarf, Focus Band, Quick Claw, Smoke Ball, Leftovers), Smash-style
+callouts, eight arenas, each with its own hazard and benefit (Stadium spotlights, Ruins
+collapse and Ancient Power, Cinder Crater heat vents, Frostfall slides, Power Plant recharge, Magma Isle edge dunks, Sunken Shrine pools, Ember Caldera lava pools), items (Sitrus Berry, X Attack, Poké Ball, Rocky Helmet, Choice Scarf, Focus Band, Quick Claw, Smoke Ball, Leftovers), Smash-style
 move types, Magnezone, battle music (Trainer Battle from Ruby/Sapphire/Emerald, © Nintendo /
 Creatures / GAME FREAK, looping seamlessly after its intro), the Opening Title from FireRed/LeafGreen on the title and
 menus, plus victory/defeat music, and five modes
@@ -112,6 +112,9 @@ floodlit night. Each arena also gained a mechanic:
   the magma for extra damage and a burn.
 - **Sunken Shrine:** a flooded temple lit by shell lamps (a painted arena). The Ruins' field shifts and
   tremors without its columns; its four pools slow everyone, and Electric damage in them shocks the water.
+- **Ember Caldera:** a basalt plateau in a lava lake (a full-resolution painting). Cinder Crater's rules
+  with its own four lava pools that rise and fall, rock spires as solid cover (in `assets/layouts.js`, editable
+  in `editor.html`), and Magma Isle's burn for a splat into the edge.
 
 **New Pokémon.** Greninja (Water/Dark ninja): Water Shuriken, Substitute (a hit
 on it becomes a counter from behind), Night Slash through guard, and Protean (it
