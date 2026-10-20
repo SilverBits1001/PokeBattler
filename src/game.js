@@ -16186,6 +16186,13 @@
       let k = Math.min(1, g.life / 20),
         x = Math.round(g.x),
         y = Math.round(g.y);
+      let lg = propOf("subLog");
+      if (lg) {
+        (a.globalAlpha = k),
+          a.drawImage(lg, x - 16, y - 24),
+          (a.globalAlpha = 1);
+        continue;
+      }
       (a.globalAlpha = k),
         R(x - 7, y - 12, 14, 12, "#8a5a32"),
         R(x - 7, y - 12, 14, 2, "#c49a6a"),
@@ -17248,7 +17255,36 @@
     let s = Math.round(e.x),
       i = Math.round(e.y),
       r = e.off > 0,
-      o = e.charge > 0;
+      o = e.charge > 0,
+      ps = propOf("pylon");
+    // The PixelLab pylon; its lamp shows the state: dark and smoking when
+    // shorted out, bright and blinking when overcharged.
+    if (ps) {
+      let lx = s - 16 + 16,
+        ly = i - 60 + 7;
+      a.drawImage(ps, s - 16, i - 60);
+      if (r)
+        (a.fillStyle = "#4a4f58"),
+          a.beginPath(),
+          a.arc(lx, ly, 3.5, 0, Math.PI * 2),
+          a.fill(),
+          t % 30 < 15 &&
+            ((a.fillStyle = "rgba(90,90,100,0.6)"),
+            a.fillRect(lx - 1, ly - 10 - ((t / 3) % 6), 3, 3));
+      else if (o || t % 20 < 10) {
+        a.save(), (a.globalCompositeOperation = "lighter");
+        let gr = a.createRadialGradient(lx, ly, 0, lx, ly, o ? 12 : 8);
+        gr.addColorStop(
+          0,
+          o ? "rgba(255,240,140,0.9)" : "rgba(255,220,110,0.5)",
+        ),
+          gr.addColorStop(1, "rgba(255,200,80,0)"),
+          (a.fillStyle = gr),
+          a.fillRect(lx - 12, ly - 12, 24, 24),
+          a.restore();
+      }
+      return;
+    }
     (a.fillStyle = "#2b3038"), a.fillRect(s - 9, i - 6, 18, 8);
     (a.fillStyle = "#59636f"), a.fillRect(s - 5, i - 34, 10, 30);
     (a.fillStyle = "#7c8794"), a.fillRect(s - 5, i - 34, 3, 30);
@@ -17326,11 +17362,15 @@
     if (e.pylon) return pylonArt(a, e, t);
     if (e.exPillar) return exPillarArt(a, e, t);
     if (e.column && columnArt(a, e, t)) return;
-    Rk || (Rk = Fk());
     let s = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
+      bs = propOf(e.id % 2 ? "boulderMoss" : "boulder"),
       i = Math.round(e.x - 18 + s),
       r = Math.round(e.y - 27);
-    a.drawImage(Rk[e.id % 2], i, r);
+    // The PixelLab boulder (plain or mossy); the old generated one until
+    // it has loaded.
+    bs
+      ? a.drawImage(bs, Math.round(e.x - 20 + s), Math.round(e.y - 31))
+      : (Rk || (Rk = Fk()), a.drawImage(Rk[e.id % 2], i, r));
     let o = 1 - e.hp / e.max;
     if (o > 0.2) {
       (a.strokeStyle = "#231f1b"), (a.lineWidth = 1), a.beginPath();
@@ -17730,7 +17770,18 @@
     }
     for (let s of e.ice) {
       if (s.life !== void 0 && s.life < 90 && t % 10 < 5) continue;
-      let i = s.melt > 0;
+      let i = s.melt > 0,
+        fp = s.life !== void 0 && !i && propOf("frozenPatch");
+      if (fp) {
+        a.drawImage(
+          fp,
+          Math.round(s.x - s.rx * 1.14),
+          Math.round(s.y - s.ry * 1.45),
+          Math.round(s.rx * 2.29),
+          Math.round(s.ry * 2.91),
+        );
+        continue;
+      }
       // A shadowed snow bank on the near side, then the tiled ice.
       i ||
         ((a.fillStyle = "#848dc6"),
@@ -19089,6 +19140,15 @@
       if (i > 0.4) {
         let l = (i - 0.4) / 0.6,
           o = s.y - (1 - l) * (1 - l) * 230 - 18;
+        let ic = propOf("icicle");
+        if (ic) {
+          (a.globalAlpha = 0.35 * l),
+            (a.fillStyle = "#e9f6ff"),
+            a.fillRect(s.x - 1, o - 30 * l, 2, 26 * l),
+            (a.globalAlpha = 1),
+            a.drawImage(ic, Math.round(s.x - 16), Math.round(o - 10));
+          continue;
+        }
         (a.globalAlpha = 0.35 * l),
           (a.fillStyle = "#e9f6ff"),
           a.fillRect(s.x - 1, o - 26 * l, 2, 26 * l),
@@ -19117,18 +19177,25 @@
         if (i < 0.3) continue;
         let r = (i - 0.3) / 0.7,
           o = (1 - r) * (1 - r) * 150;
-        Rk || (Rk = Fk());
-        let l = Rk[(s.x | 0) % 2],
-          f = 0.5 + 0.2 * r;
-        (a.globalAlpha = Math.min(1, r * 3)),
-          a.drawImage(
-            l,
-            Math.round(s.x - 18 * f),
-            Math.round(s.y - 30 * f - o),
-            36 * f,
-            34 * f,
-          ),
-          (a.globalAlpha = 1);
+        let rs = propOf("rockSmall");
+        if (rs)
+          (a.globalAlpha = Math.min(1, r * 3)),
+            a.drawImage(rs, Math.round(s.x - 16), Math.round(s.y - 28 - o)),
+            (a.globalAlpha = 1);
+        else {
+          Rk || (Rk = Fk());
+          let l = Rk[(s.x | 0) % 2],
+            f = 0.5 + 0.2 * r;
+          (a.globalAlpha = Math.min(1, r * 3)),
+            a.drawImage(
+              l,
+              Math.round(s.x - 18 * f),
+              Math.round(s.y - 30 * f - o),
+              36 * f,
+              34 * f,
+            ),
+            (a.globalAlpha = 1);
+        }
       } else {
         if (i < 0.15) continue;
         // Meteors come in steeply from the upper right.
@@ -19441,6 +19508,12 @@
       a.beginPath(),
       a.ellipse(e.x, e.y + 1, 5, 2, 0, 0, Math.PI * 2),
       a.fill();
+    // The PixelLab item sprite, standing where the hand-drawn one did.
+    let spr = propOf("s_" + e.kind);
+    if (spr) {
+      a.drawImage(spr, i - Math.floor(spr.width / 2), r + 4 - spr.height);
+      return;
+    }
     let o = ITEM_ART[e.kind] ?? ITEM_ART.sitrus;
     o.forEach((l, f) => {
       for (let u = 0; u < l.length; u++) {
@@ -19680,7 +19753,33 @@
     // Ruins plates and their lanes.
     for (let pl of e.plates ?? []) {
       let hot = pl.warn > 0,
-        ready = pl.cd <= 0;
+        ready = pl.cd <= 0,
+        ps = propOf("dartPlate");
+      if (ps) {
+        // The stone plate (mirrored for darts flying left), glowing red
+        // while armed and dimmed while it resets.
+        a.save(),
+          a.translate(Math.round(pl.x), Math.round(pl.y)),
+          pl.dir < 0 && a.scale(-1, 1),
+          a.drawImage(ps, -16, -17),
+          a.restore(),
+          (hot || !ready) &&
+            ((a.globalAlpha = hot ? 0.35 + 0.25 * (t % 6 < 3) : 0.3),
+            (a.fillStyle = hot ? "#ff4a2a" : "#1a1612"),
+            a.fillRect(Math.round(pl.x - 11), Math.round(pl.y - 11), 22, 21),
+            (a.globalAlpha = 1));
+        let wx = pl.dir > 0 ? B.x0 + 1 : B.x1 - 4;
+        for (let k = -1; k <= 1; k++)
+          R(
+            wx,
+            pl.y + k * 5 - 1,
+            3,
+            2,
+            hot && t % 6 < 3 ? "#ff5a3a" : "#1a1612",
+          );
+        hot && dash(B.x0, pl.y, B.x1, pl.y, "rgba(255,90,60,0.85)");
+        continue;
+      }
       R(pl.x - 9, pl.y - 6, 18, 12, "#3a332d"),
         R(
           pl.x - 8,
@@ -19705,8 +19804,20 @@
         R(wx, pl.y + k * 5 - 1, 3, 2, hot && t % 6 < 3 ? "#ff5a3a" : "#1a1612");
       hot && dash(B.x0, pl.y, B.x1, pl.y, "rgba(255,90,60,0.85)");
     }
+    let dsp = propOf("dartS");
     for (let d of e.darts ?? [])
       for (let k = -1; k <= 1; k++) {
+        if (dsp) {
+          let x = d.x - d.dir * Math.abs(k) * 6,
+            y = d.y + k * 5;
+          // The dart art points up-right; turn it to fly along the lane.
+          a.save(),
+            a.translate(Math.round(x), Math.round(y)),
+            a.rotate(d.dir > 0 ? Math.PI / 4 : (Math.PI * 5) / 4),
+            a.drawImage(dsp, -7, -7),
+            a.restore();
+          continue;
+        }
         let x = d.x - d.dir * Math.abs(k) * 6,
           y = d.y + k * 5;
         R(x - 6 * d.dir * (d.dir > 0), y, 7, 1, "#d8c8a0"),
@@ -19759,7 +19870,11 @@
         for (let n = 0; n < 9; n++) {
           let x = Se + (q() - 0.5) * rx * 1.6 + Math.sin(t * 0.02 + n) * 2,
             y = Te + (q() - 0.5) * ry * 1.4;
-          R(x - 6, y - 2, 12, 4, "#d8f0ff"), R(x - 6, y + 2, 12, 1, "#7fb0d0");
+          let fl = propOf("floeS");
+          fl
+            ? a.drawImage(fl, Math.round(x - 6), Math.round(y - 4))
+            : (R(x - 6, y - 2, 12, 4, "#d8f0ff"),
+              R(x - 6, y + 2, 12, 1, "#7fb0d0"));
         }
         for (let n = 0; n < 3; n++) {
           let r = ((t * 0.3 + n * 20) % 60) / 60;
@@ -19922,7 +20037,23 @@
       l = e.player;
     for (let h of e.grass) {
       let c = Math.min(1, (h.max - h.life) / 20),
-        y = Math.min(1, h.life / 40);
+        y = Math.min(1, h.life / 40),
+        gp = propOf("grassPatch");
+      if (gp) {
+        let w = Math.round(h.r * 2.1 * c),
+          hh = Math.round(h.r * 1.4 * c);
+        (a.globalAlpha = y),
+          w > 2 &&
+            a.drawImage(
+              gp,
+              Math.round(h.x - w / 2),
+              Math.round(h.y - hh * 0.6),
+              w,
+              hh,
+            ),
+          (a.globalAlpha = 1);
+        continue;
+      }
       (a.globalAlpha = 0.55 * y),
         (a.fillStyle = "#3f8a35"),
         a.beginPath(),
@@ -19943,7 +20074,40 @@
     }
     for (let h of e.puddles) {
       let c = Math.min(1, (h.max - h.life) / 8),
-        y = Math.min(1, h.life / 60);
+        y = Math.min(1, h.life / 60),
+        pd = propOf("puddle");
+      if (pd) {
+        let w = Math.round(h.r * 2.2 * c),
+          hh = Math.round(h.r * 1.3 * c);
+        (a.globalAlpha = 0.9 * y),
+          w > 2 &&
+            a.drawImage(
+              pd,
+              Math.round(h.x - w / 2),
+              Math.round(h.y - hh / 2),
+              w,
+              hh,
+            );
+        // Electrified: a yellow wash and a crackle across it.
+        h.shock > 0 &&
+          ((a.globalAlpha = 0.35 * y),
+          (a.fillStyle = "#ffe066"),
+          a.beginPath(),
+          a.ellipse(h.x, h.y, h.r * c, h.r * 0.5 * c, 0, 0, Math.PI * 2),
+          a.fill(),
+          e.tick % 3 !== 0 &&
+            ((a.globalAlpha = y),
+            (a.strokeStyle = "#fff6a0"),
+            (a.lineWidth = 1),
+            a.beginPath(),
+            a.moveTo(h.x - h.r * 0.6, h.y + ((e.tick * 7) % 5) - 2),
+            a.lineTo(h.x - h.r * 0.1, h.y - 2),
+            a.lineTo(h.x + h.r * 0.2, h.y + 2),
+            a.lineTo(h.x + h.r * 0.6, h.y - ((e.tick * 5) % 4)),
+            a.stroke()));
+        a.globalAlpha = 1;
+        continue;
+      }
       (a.globalAlpha = 0.6 * y),
         (a.fillStyle = h.shock > 0 ? "#b39a2a" : "#3f7fb5"),
         a.beginPath(),
@@ -19983,12 +20147,21 @@
         a.beginPath(),
         a.ellipse(h.x, h.y + 1, 4, 1.6, 0, 0, Math.PI * 2),
         a.fill(),
-        (a.fillStyle = "#7a5a2c"),
-        a.fillRect(h.x - 2, h.y - 3, 4, 4),
-        (a.fillStyle = "#c9a25a"),
-        a.fillRect(h.x - 1, h.y - 3, 2, 1),
-        (a.fillStyle = y ? "#d6ff8a" : "#6cc04a"),
-        a.fillRect(h.x - 1, h.y - 5, 2, 2),
+        propOf("seedS")
+          ? (a.drawImage(
+              propOf("seedS"),
+              Math.round(h.x - 6),
+              Math.round(h.y - 10),
+            ),
+            y &&
+              ((a.fillStyle = "#d6ff8a"),
+              a.fillRect(Math.round(h.x), Math.round(h.y - 10), 2, 2)))
+          : ((a.fillStyle = "#7a5a2c"),
+            a.fillRect(h.x - 2, h.y - 3, 4, 4),
+            (a.fillStyle = "#c9a25a"),
+            a.fillRect(h.x - 1, h.y - 3, 2, 1),
+            (a.fillStyle = y ? "#d6ff8a" : "#6cc04a"),
+            a.fillRect(h.x - 1, h.y - 5, 2, 2)),
         c &&
           ((a.globalAlpha = 0.25),
           (a.strokeStyle = L.leaf),
@@ -22467,29 +22640,35 @@
           a.stroke();
         // The boulder itself, falling.
         let z = (1 - p) * (1 - p) * 120,
-          rr = q.r * 0.7;
-        (a.globalAlpha = Math.min(1, p * 3)),
-          (a.fillStyle = "#6e5f4d"),
-          a.beginPath(),
-          a.arc(x, y - 6 - z, rr, 0, Math.PI * 2),
-          a.fill(),
-          (a.fillStyle = "#a8916a"),
-          a.beginPath(),
-          a.arc(
-            x - rr * 0.25,
-            y - 6 - z - rr * 0.25,
-            rr * 0.62,
-            0,
-            Math.PI * 2,
-          ),
-          a.fill(),
-          (a.fillStyle = "#d6c4a0"),
-          a.fillRect(
-            Math.round(x - rr * 0.45),
-            Math.round(y - 6 - z - rr * 0.55),
-            2,
-            2,
-          );
+          rr = q.r * 0.7,
+          rs = propOf("rockSmall");
+        if (rs) {
+          (a.globalAlpha = Math.min(1, p * 3)),
+            a.drawImage(rs, Math.round(x - 16), Math.round(y - 22 - z)),
+            (a.globalAlpha = 1);
+        } else
+          (a.globalAlpha = Math.min(1, p * 3)),
+            (a.fillStyle = "#6e5f4d"),
+            a.beginPath(),
+            a.arc(x, y - 6 - z, rr, 0, Math.PI * 2),
+            a.fill(),
+            (a.fillStyle = "#a8916a"),
+            a.beginPath(),
+            a.arc(
+              x - rr * 0.25,
+              y - 6 - z - rr * 0.25,
+              rr * 0.62,
+              0,
+              Math.PI * 2,
+            ),
+            a.fill(),
+            (a.fillStyle = "#d6c4a0"),
+            a.fillRect(
+              Math.round(x - rr * 0.45),
+              Math.round(y - 6 - z - rr * 0.55),
+              2,
+              2,
+            );
       } else if (q.kind === "edge") {
         (a.globalAlpha = 0.6 + 0.4 * p),
           (a.strokeStyle = "#3a2c1c"),
@@ -22552,7 +22731,29 @@
         // A stone spire shoots up, holds, then sinks back.
         let h =
             (k < 4 ? k / 4 : k > 18 ? Math.max(0, 1 - (k - 18) / 9) : 1) * 26,
-          w = q.r * 0.55;
+          w = q.r * 0.55,
+          se = propOf("stoneEdge");
+        if (se) {
+          // The spire rises out of the ground: clip at the floor line.
+          a.save(), a.beginPath(), a.rect(q.x - 40, q.y - 60, 80, 62), a.clip();
+          for (let n of [-1, 1]) {
+            let hh = Math.round(h * 0.55 * 1.15);
+            a.drawImage(
+              se,
+              Math.round(q.x + n * w * 1.1 - 8),
+              Math.round(q.y + 2 - hh),
+              16,
+              16,
+            );
+          }
+          a.drawImage(
+            se,
+            Math.round(q.x - 16),
+            Math.round(q.y + 2 - (h / 26) * 31),
+          );
+          a.restore();
+          continue;
+        }
         (a.fillStyle = "#5e5244"),
           a.beginPath(),
           a.moveTo(q.x - w, q.y + 1),
@@ -22604,6 +22805,30 @@
     // Ice dolls: a frosted copy of Froslass that bursts when touched.
     let fm = e.mons.froslass;
     for (let d of e.dolls) {
+      let id = propOf("iceDoll");
+      if (id) {
+        (a.globalAlpha = 0.35),
+          (a.fillStyle = L.shadow),
+          a.beginPath(),
+          a.ellipse(d.x, d.y, 8, 2.8, 0, 0, Math.PI * 2),
+          a.fill(),
+          (a.globalAlpha = d.life < 24 && t % 4 < 2 ? 0.5 : 0.92);
+        let bob = Math.round(Math.sin(t * 0.08 + d.id) * 1.5);
+        a.drawImage(id, Math.round(d.x - 20), Math.round(d.y - 44 + bob)),
+          (a.globalAlpha = 0.6),
+          (a.fillStyle = "#ffffff");
+        for (let s = 0; s < 3; s++) {
+          let g = t * 0.07 + s * 2.1 + d.id;
+          a.fillRect(
+            Math.round(d.x + Math.cos(g) * 11),
+            Math.round(d.y - 20 + Math.sin(g * 1.3) * 10),
+            1,
+            1,
+          );
+        }
+        a.globalAlpha = 1;
+        continue;
+      }
       let n = fm?.anims.Idle;
       if (!n) continue;
       let row = Math.min(nt(d.facing), n.rows - 1),
@@ -22841,6 +23066,20 @@
             2,
           );
       a.globalAlpha = 1;
+      let sk = propOf("shurikenS");
+      if (sk)
+        return (
+          a.save(),
+          a.translate(c, y),
+          a.rotate(Math.round((h.age * 0.6) / (Math.PI / 4)) * (Math.PI / 4)),
+          a.drawImage(
+            sk,
+            -Math.floor(sk.width / 2),
+            -Math.floor(sk.height / 2),
+          ),
+          a.restore(),
+          !0
+        );
       a.save(), a.translate(c, y), a.rotate(h.age * 0.6);
       a.fillStyle = "#2a6fc0";
       a.beginPath();
@@ -22890,7 +23129,17 @@
       );
     }
     if (h.kind === "boulder") {
-      let s = h.age * 0.25;
+      let s = h.age * 0.25,
+        rk = propOf("rockSmall");
+      if (rk)
+        return (
+          a.save(),
+          a.translate(c, y),
+          a.rotate(Math.round(s / (Math.PI / 4)) * (Math.PI / 4)),
+          a.drawImage(rk, -16, -17),
+          a.restore(),
+          !0
+        );
       return (
         a.save(),
         a.translate(c, y),
@@ -23022,7 +23271,28 @@
     let s = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
       x = Math.round(e.x + s),
       y = Math.round(e.y),
-      k = e.life < 90 && t % 8 < 4 ? 0.7 : 1;
+      k = e.life < 90 && t % 8 < 4 ? 0.7 : 1,
+      tomb = propOf("rockTomb");
+    // The PixelLab Rock Tomb spire, with cracks as it takes damage.
+    if (tomb) {
+      (a.globalAlpha = k), a.drawImage(tomb, x - 16, y - 44);
+      let o2 = 1 - e.hp / e.max;
+      o2 > 0.25 &&
+        ((a.fillStyle = "#231f1b"),
+        a.fillRect(x - 3, y - 22, 1, 6),
+        a.fillRect(x - 2, y - 16, 1, 5),
+        a.fillRect(x - 3, y - 11, 1, 4),
+        o2 > 0.6 &&
+          (a.fillRect(x + 4, y - 26, 1, 5), a.fillRect(x + 3, y - 21, 1, 5)));
+      e.hitT > 3 &&
+        ((a.globalAlpha = 0.35),
+        (a.fillStyle = "#ffffff"),
+        a.beginPath(),
+        a.ellipse(x, y - 18, 12, 18, 0, 0, Math.PI * 2),
+        a.fill());
+      a.globalAlpha = 1;
+      return;
+    }
     (a.globalAlpha = k),
       (a.fillStyle = "#4e463d"),
       a.beginPath(),
