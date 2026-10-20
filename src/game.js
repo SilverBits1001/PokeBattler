@@ -157,6 +157,7 @@
         "Frostfall Peak",
         "Power Plant",
         "Magma Isle",
+        "Sunken Shrine",
       ],
     },
     {
@@ -4694,6 +4695,7 @@
       "Dodge on ice to slide further",
       "Stand by a live pylon to recharge",
       "Slammed into the edge? The magma burns",
+      "The pools slow you, and carry Electric shocks",
     ],
     // Free-for-All damage scale per Pokémon. Last one standing rewards
     // range and escapes far more than a duel does, so each kit's damage is
@@ -4911,6 +4913,9 @@
       // An obsidian island in a magma sea: Cinder Crater's eruptions and hot
       // spots without the pools, and a hard splat into the edge dunks you.
       { id: "magma", name: "Magma Isle", kind: 2 },
+      // A flooded temple: the Ruins' rules (field shifts, tremors) without
+      // its columns, with four standing pools that slow and conduct.
+      { id: "shrine", name: "Sunken Shrine", kind: 1 },
     ],
     // Cinder Crater: lava pools, telegraphed eruptions; water cools lava to crust.
     CRATER = {
@@ -4935,6 +4940,29 @@
     },
     // Magma Isle: extra damage for a splat into the edge (on top of the splat).
     MAGMA = { stage: 5, dunk: 12 },
+    // Sunken Shrine: the painted pools, as standing puddles [x, y, r], and
+    // the shell lamps round the walls for its light.
+    SHRINE = {
+      stage: 6,
+      pools: [
+        [104, 120, 40],
+        [529, 123, 40],
+        [106, 290, 40],
+        [546, 290, 40],
+      ],
+      lamps: [
+        [220, 46],
+        [420, 46],
+        [12, 123],
+        [627, 123],
+        [12, 273],
+        [627, 273],
+        [69, 352],
+        [220, 352],
+        [420, 352],
+        [571, 352],
+      ],
+    },
     // Frostfall Peak: ice rinks you slide on; fire melts them; icicles fall.
     FROST = {
       rinks: [
@@ -6005,7 +6033,19 @@
           (r.ticks = 0),
           (this.players = [new bt(this.mons, Se - 120, Te, mt, t)]),
           (this.projectiles = []),
-          (this.puddles = []),
+          (this.puddles =
+            A.arena === SHRINE.stage
+              ? SHRINE.pools.map(([x, y, r]) => ({
+                  id: this.nextId++,
+                  x,
+                  y,
+                  r,
+                  life: 1e9,
+                  max: 1e9,
+                  team: -1,
+                  pool: !0,
+                }))
+              : []),
           (this.mines = []),
           (this.grass = []),
           (this.stage = A.arena),
@@ -10887,7 +10927,15 @@
           max: 540,
           team: i,
         }),
-          this.puddles.length > 20 && this.puddles.shift();
+          // The oldest goes first; the Shrine's pools never do.
+          this.puddles.length > 20 &&
+            this.puddles.splice(
+              Math.max(
+                0,
+                this.puddles.findIndex((p) => !p.pool),
+              ),
+              1,
+            );
       }
       updateGround() {
         for (let e of this.puddles)
@@ -18889,7 +18937,7 @@
           (R(x, y, 2, 2, "#ffffff"),
           R(x - 1, y + 0.5, 4, 1, "rgba(255,255,255,0.6)"));
       }
-    } else if (k === 1) {
+    } else if (k === 1 && e.stage !== SHRINE.stage) {
       // Brazier flames on the pillars.
       for (let x of [60, 180, 460, 580]) {
         for (let n = 0; n < 6; n++) {
@@ -19106,7 +19154,7 @@
       R = (x, y, w, h, c) => ((a.fillStyle = c), a.fillRect(x, y, w, h));
     for (let c of LIVE.critters) c.fly && critterTick(a, e, c);
     // A flock of Pidgey crosses the Stadium now and then; shadows on the pitch.
-    if (k === 0 || k === 1) {
+    if ((k === 0 || k === 1) && e.stage !== SHRINE.stage) {
       if (!LIVE.flock && --LIVE.flockT <= 0) {
         let dir = Math.random() < 0.5 ? 1 : -1,
           y = 40 + Math.random() * 140;
@@ -19257,6 +19305,8 @@
         "rgba(10,26,64,0.22)",
         "rgba(6,10,20,0.36)",
       ][k];
+    // The Shrine: deep blue water light.
+    e.stage === SHRINE.stage && (amb = "rgba(4,22,52,0.30)");
     if (!amb) return;
     LIGHT.c || ((LIGHT.c = Zt(Y, _)), (LIGHT.g = LIGHT.c.getContext("2d")));
     let g = LIGHT.g,
@@ -19281,6 +19331,15 @@
       hole(Se, Te, 520, 0.6 * night),
         hole(40, B.y0, 200, 0.7 * night),
         hole(Y - 40, B.y0, 200, 0.7 * night);
+    } else if (e.stage === SHRINE.stage) {
+      // Warm shell lamps round the walls; the pools glow.
+      SHRINE.lamps.forEach(([x, y], n) => {
+        hole(x, y, 110 * flick(n), 1),
+          glow.push([x, y, 30 * flick(n), "255,190,90", 0.45]);
+      });
+      for (let [x, y, r] of SHRINE.pools)
+        hole(x, y, r * 3, 0.8), glow.push([x, y, r * 1.3, "90,210,255", 0.18]);
+      hole(Se, Te, Y * 0.9, 0.35);
     } else if (k === 1) {
       for (let [x, n] of [
         [60, 0],
@@ -22963,6 +23022,8 @@
       a.globalAlpha = 1;
     }
     for (let h of e.puddles) {
+      // The Shrine's pools are in its painting.
+      if (h.pool) continue;
       let c = Math.min(1, (h.max - h.life) / 8),
         y = Math.min(1, h.life / 60),
         pd = propOf("puddle");
@@ -32493,9 +32554,15 @@
         });
       // The stage, between the two name plates.
       let ac =
-        ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030", "#ff6a3d"][
-          A.arena
-        ] ?? "#cfcaea";
+        [
+          "#cfcaea",
+          "#c9bfa6",
+          "#ff9a5c",
+          "#bfe6ff",
+          "#f8d030",
+          "#ff6a3d",
+          "#5ad8ff",
+        ][A.arena] ?? "#cfcaea";
       te(H / 2 - 54, 176, 108, 22, "rgba(8,6,18,0.86)", 5),
         (d.fillStyle = ac),
         d.fillRect(m(H / 2 - 48), m(176), m(96), m(1.2)),
@@ -33179,9 +33246,15 @@
     let h = H / 2,
       c = 194,
       y =
-        ["#cfcaea", "#c9bfa6", "#ff9a5c", "#bfe6ff", "#f8d030", "#ff6a3d"][
-          A.arena
-        ] ?? "#cfcaea";
+        [
+          "#cfcaea",
+          "#c9bfa6",
+          "#ff9a5c",
+          "#bfe6ff",
+          "#f8d030",
+          "#ff6a3d",
+          "#5ad8ff",
+        ][A.arena] ?? "#cfcaea";
     tapRect(h - 52, c - 9, 104, 18, () => Ue.add("select")),
       te(h - 52, c - 9, 104, 18, "rgba(10,8,22,0.88)", 5),
       G("BATTLE STAGE", h, c - 2.5, 4.6, g.haze, {
@@ -33810,6 +33883,11 @@
       "Ring out",
       "Eruptions; splatting into the edge dunks you in magma",
       "Erupted vents run hot: +25% damage",
+    ],
+    [
+      "Footing",
+      "Four pools slow you down; tremors bring rocks down",
+      "Electric moves shock foes standing in the water",
     ],
   ];
   var arenaThumbs = [];
@@ -36984,7 +37062,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 10,
+  var NETV = 11,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
