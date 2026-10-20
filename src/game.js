@@ -17569,6 +17569,69 @@
     let t = e.tick;
     for (let s of e.lava) {
       let i = s.cool > 0;
+      // On a painted crater the pool is in the painting: only the tide's
+      // overflow past its resting size, a breathing glow, and a cooled
+      // crust are drawn over it.
+      if (arenaArt(2) && s.rx0) {
+        let k = s.rx / s.rx0,
+          p = 0.5 + 0.5 * Math.sin(t * 0.06 + s.x * 0.05);
+        if (i)
+          (a.globalAlpha = 0.85),
+            (a.fillStyle = "#2a2321"),
+            a.beginPath(),
+            a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
+            a.fill(),
+            (a.globalAlpha = 1);
+        else {
+          if (k > 1.02) {
+            // The overflow: a ring of molten lava spreading past the rim.
+            a.save(),
+              a.beginPath(),
+              a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
+              a.ellipse(
+                s.x,
+                s.y,
+                s.rx0 * 0.92,
+                s.ry0 * 0.92,
+                0,
+                0,
+                Math.PI * 2,
+              ),
+              (a.fillStyle = tilePat(a, 2, !1) || "#ff6a1a"),
+              a.fill("evenodd"),
+              (a.strokeStyle = "#ffb347"),
+              (a.lineWidth = 1),
+              a.beginPath(),
+              a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
+              a.stroke(),
+              a.restore();
+          }
+          a.save(), (a.globalCompositeOperation = "lighter");
+          let g = a.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.rx);
+          g.addColorStop(0, `rgba(255,170,60,${0.18 + 0.14 * p})`),
+            g.addColorStop(1, "rgba(255,90,30,0)"),
+            (a.fillStyle = g),
+            a.beginPath(),
+            a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
+            a.fill(),
+            a.restore();
+        }
+        let r = rt(Math.round(s.x * 7 + s.y));
+        for (let o = 0; o < 10; o++) {
+          let l = r() * Math.PI * 2,
+            f = Math.sqrt(r()) * 0.8,
+            c = Math.sin(t * 0.08 + o);
+          c > 0.6 &&
+            ((a.fillStyle = i ? "#ff7a2a" : "#ffe08a"),
+            a.fillRect(
+              Math.round(s.x + Math.cos(l) * s.rx * f),
+              Math.round(s.y + Math.sin(l) * s.ry * f),
+              2,
+              1,
+            ));
+        }
+        continue;
+      }
       // Black crust rim with a red glowing lip, then the tiled lava itself.
       (a.fillStyle = i ? "#2a2321" : "#1b102d"),
         a.beginPath(),
