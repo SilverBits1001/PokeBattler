@@ -302,3 +302,63 @@ each of three arenas (Stadium, Ruins, Frostfall), plus Free-for-All and 2v2 samp
   - Beams (Ice Beam, Overheat and the rest) no longer vanish while their user is
     in hitstop.
   - Fire as a second type now blocks burns.
+
+## Risk vs reward evidence
+
+Win rates alone don't show risk vs reward, so each new kit was checked three more
+ways.
+
+**1. Frame data: what each commitment costs.** Damage is shown after the kit's damage
+scale and frames after pacing.
+- *Combo efficiency* is A-combo damage per committed frame. The old roster spans
+  0.80–2.21. The new kits span 0.76–1.58, inside that range, so no new combo out-earns
+  its commitment.
+- *Smash efficiency* is uncharged smash damage per frame. The new kits span 0.55–1.01,
+  against 0.46–1.07 before. Milotic's Whirlpool is the exception, since it deals its
+  damage over two seconds.
+- Jab startup (5–7 frames) and finisher whiff recovery (18–22 frames) match the old
+  roster.
+
+**2. Measured trades in play.** For every use of a move in CPU duels against ten
+established fighters, two numbers were recorded:
+- *reward*: damage dealt while the move runs.
+- *risk*: damage taken while committed to it, plus the 20 ticks after.
+
+This exposed two outliers:
+- Fiery Dance cost far more than it earned (17 dealt / 45 taken). It is now 26 / 29,
+  with faster windup and recovery and more damage.
+- Sunny Day left Lurantis open while she cast it. The cast is now faster.
+
+After the fixes, every new kit's moves trade in the old roster's range.
+
+| Kit | Combo (reward / risk) | Smash (reward / risk) | Signature special (reward / risk) |
+|---|---|---|---|
+| Lurantis | 67 / 23 | 26 / 31 | X-Scissor 27 / 22 |
+| Chandelure | 41 / 19 | 28 / 19 | Wisp and Hex: damage lands later |
+| Ceruledge | 71 / 24 | 29 / 30 | Flame Charge 32 / 13 |
+| Volcarona | 83 / 24 | 26 / 29 | Bug Buzz 41 / 8 |
+| Milotic | 48 / 16 | Whirlpool lands later | Scald 17 / 8 |
+| Inteleon | 42 / 20 | 32 / 25 | Water Gun 24 / 9 |
+| Zoroark | 74 / 16 | 35 / 25 | Night Daze 52 / 12 |
+
+The old roster spans combo 37–96 / 13–30 and smash 2–55 / 20–48.
+
+**3. Across CPU skill.** Duel win rates for the new kits at all three CPU levels
+(rookie, normal, hard), each against the whole roster:
+
+| Level | Lurantis | Chandelure | Ceruledge | Volcarona | Milotic | Inteleon | Zoroark |
+|---|---|---|---|---|---|---|---|
+| 0 | 0.41 | 0.56 | 0.50 | 0.61 | 0.42 | 0.49 | 0.48 |
+| 1 | 0.55 | 0.49 | 0.48 | 0.55 | 0.46 | 0.40 | 0.46 |
+| 2 | 0.47 | 0.52 | 0.45 | 0.51 | 0.45 | 0.49 | 0.51 |
+
+No kit depends on one skill level to be viable. The big payoffs carry a visible,
+measurable cost:
+- Solar Blade outside the sun is a long, punishable charge.
+- Overheat drains Chandelure afterwards.
+- Poltergeist leaves Ceruledge bare-handed until the blades return.
+- The Quiver Dance can be interrupted, and hard hits remove stacks.
+- Snipe Shot has a laser-sight telegraph.
+- A disguise breaks on any hit.
+
+This testing is CPU-only. A human session is still the right final check on feel.
