@@ -24,8 +24,7 @@ See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
 callouts, five arenas, each with its own hazard and benefit (Stadium spotlights, Ruins
 collapse and Ancient Power, Cinder Crater heat vents, Frostfall slides, Power Plant recharge), items (Sitrus Berry, X Attack, Poké Ball, Rocky Helmet, Choice Scarf, Focus Band, Quick Claw, Smoke Ball, Leftovers), Smash-style
 move types, Magnezone, battle music (Trainer Battle from Ruby/Sapphire/Emerald, © Nintendo /
-Creatures / GAME FREAK, looping seamlessly after its intro; two chiptune themes in
-Options → Battle music), the Opening Title from FireRed/LeafGreen on the title and
+Creatures / GAME FREAK, looping seamlessly after its intro), the Opening Title from FireRed/LeafGreen on the title and
 menus, plus victory/defeat music, and five modes
 (VS CPU, Training, Free-for-All, Team 2v2, Zone Control). Mode, arena and items can be
 switched in Options → Match, or with X / Select on team select. Accessibility options

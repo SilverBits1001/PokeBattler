@@ -36,7 +36,6 @@
       cpuLevel: 2,
       arena: 1,
       items: 1,
-      theme: 0,
       fx: 0,
       colors: 0,
       swapSp: 0,
@@ -70,7 +69,6 @@
       "slowmo",
       "arena",
       "items",
-      "theme",
       "fx",
       "colors",
       "swapSp",
@@ -120,12 +118,6 @@
       step: 0.05,
       min: 0,
       max: 1,
-    },
-    {
-      kind: "choice",
-      key: "theme",
-      label: "Battle music",
-      options: ["Ruby/Sapphire", "Chiptune Trainer", "Chiptune Champion"],
     },
     { kind: "header", label: "Match" },
     {
@@ -31159,9 +31151,8 @@
       }
     },
     Me = new Wt(),
-    // Which battle theme to use for the next match.
-    battleSong = () =>
-      A.theme === 1 ? "battle" : A.theme === 2 ? "champion" : "rse";
+    // Battles always play the recorded Trainer Battle (assets/music.js).
+    battleSong = () => "rse";
   // ---- Online play ----------------------------------------------------------
   // Players find each other through the claude.ai room: everyone who has this
   // page open right now. A match is deterministic lockstep. Each side sends only
@@ -31203,7 +31194,6 @@
       "rumble",
       "volume",
       "music",
-      "theme",
       "colors",
       "swapSp",
       "swapFace",
