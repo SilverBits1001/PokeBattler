@@ -2543,6 +2543,101 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         xCd: 110,
         yCd: 240,
       },
+      // The tender Pokémon, said to calm any anger. A long serpent body
+      // that controls space: Whirlpool drags foes into a vortex, Scald
+      // burns, and Aqua Ring heals it and washes status off. Marvel Scale
+      // makes it tougher while it is afflicted. Low burst, long fights.
+      milotic: {
+        id: "milotic",
+        name: "MILOTIC",
+        type: "WATER",
+        color: "#4aa8e0",
+        typeInk: "#0a2236",
+        hp: 1040,
+        power: 0.9,
+        speed: 2.35,
+        weight: 0.7,
+        r: 11,
+        hurtR: 13,
+        size: 0.82,
+        tall: 34,
+        role: "Controller \xB7 sustain",
+        ex: !0,
+        marvelScale: !0,
+        stats: { speed: 2, power: 2, defense: 4, range: 4, difficulty: 3 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 5,
+            active: 3,
+            recovery: 10,
+            lunge: 6,
+            dmg: 20,
+            kb: 1.8,
+            heavy: !1,
+            shape: "circle",
+            reach: 26,
+            radius: 14,
+            mtype: "WATER",
+          },
+          {
+            anim: "Double",
+            startup: 5,
+            active: 3,
+            recovery: 11,
+            lunge: 6,
+            dmg: 22,
+            kb: 2,
+            heavy: !1,
+            shape: "circle",
+            reach: 27,
+            radius: 14,
+            mtype: "WATER",
+          },
+          {
+            anim: "Swing",
+            startup: 8,
+            active: 5,
+            recovery: 16,
+            lunge: 4,
+            dmg: 34,
+            kb: 5.6,
+            heavy: !0,
+            shape: "circle",
+            reach: 12,
+            radius: 26,
+            mtype: "WATER",
+          },
+        ],
+        dodge: {
+          kind: "dash",
+          dist: 80,
+          ticks: 11,
+          iframes: 8,
+          cooldown: 34,
+          anim: "Walk",
+        },
+        smash: {
+          name: "WHIRLPOOL",
+          anim: "Shoot",
+          windup: 12,
+          maxCharge: 50,
+          active: 4,
+          recovery: 20,
+          lunge: 0,
+          dmg: 8,
+          kb: 1,
+          shape: "circle",
+          reach: 60,
+          radius: 34,
+          mtype: "WATER",
+          custom: "whirlpool",
+        },
+        xName: "SCALD",
+        yName: "AQUA RING",
+        xCd: 90,
+        yCd: 600,
+      },
     },
     ge = [
       "charizard",
@@ -2567,6 +2662,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       "chandelure",
       "ceruledge",
       "volcarona",
+      "milotic",
     ],
     ut = 360,
     // Deliberate pacing: every move commits a little longer, so attacks can be
@@ -2826,6 +2922,30 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         scaleBurn: 0.3,
         // Flame Body: chance that touching it burns you.
         flameBody: 0.3,
+      },
+      milotic: {
+        pref: 60,
+        // Scald: a boiling water shot that may burn.
+        scWind: 10,
+        scSpeed: 5,
+        scDmg: 22,
+        scKb: 3.6,
+        scBurn: 0.3,
+        scRec: 10,
+        // Whirlpool: a vortex placed further with charge; pulls and churns.
+        wpDist0: 60,
+        wpDist: 100,
+        wpR: 34,
+        wpT: 120,
+        wpPull: 0.85,
+        wpEvery: 20,
+        wpDmg: 6,
+        // Aqua Ring: heals over six seconds and washes status off.
+        arCast: 18,
+        arT: 360,
+        arHeal: 0.008,
+        // Marvel Scale: damage taken while afflicted.
+        marvel: 0.75,
       },
       greninja: {
         pref: 70,
@@ -3818,6 +3938,20 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
                     : y > 36 && y < 110 && r() < 0.12
                       ? smash(6 + Math.floor(r() * 30))
                       : y > 60 && y < 120 && r() < 0.15 && dash(b);
+        } else if (f === "milotic") {
+          // Control space: Whirlpool where they stand, Scald at range, Aqua
+          // Ring when hurt or afflicted, tail whips at its long reach.
+          let sick =
+            (u.burnT ?? 0) > 0 || (u.poisonT ?? 0) > 0 || (t.chill ?? 0) > 0;
+          u.cdY === 0 && (hp < 0.7 || sick) && y > 60 && r() < 0.5
+            ? i.pressed.add("special2")
+            : y < 38 || (N && y < 50)
+              ? i.pressed.add("attack")
+              : y > 60 && y < 160 && los && r() < 0.14
+                ? smash(Math.round(me((y - 60) / 100, 0, 1) * 62))
+                : u.cdX === 0 && los && y > 50 && y < 240 && r() < 0.5
+                  ? i.pressed.add("special1")
+                  : y > 46 && y < 70 && r() < 0.1 && dash(b + Math.PI);
         } else if (f === "volcarona") {
           // Dance when there is room, then take over. Bug Buzz at range,
           // Fiery Dance when they crowd in.
@@ -12469,6 +12603,12 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
               (sl.cdY = e.kit.yCd),
               this.emit({ type: "quiverStart", who: e });
             break;
+          case "miloticx":
+            go("scald", "Shoot"), (sl.cdX = e.kit.xCd);
+            break;
+          case "miloticy":
+            go("aquaring", "RearUp"), (sl.cdY = e.kit.yCd);
+            break;
           case "greninjax":
             go("shuriken", "Shoot"), (sl.cdX = e.kit.xCd);
             break;
@@ -12995,6 +13135,27 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         s.overheat &&
           ((e.slot.ohT = EXK.chandelure.ohT),
           this.emit({ type: "overheatDrop", who: e }));
+        if (s.custom === "whirlpool") {
+          let c = EXK.milotic,
+            d = c.wpDist0 + c.wpDist * i;
+          this.fields = this.fields.filter(
+            (f) => !(f.kind === "whirl" && f.owner === e),
+          );
+          let x = me(e.x + o * d, B.x0 + 16, B.x1 - 16),
+            y = me(e.y + l * d, B.y0 + 12, B.y1 - 10);
+          this.fields.push({
+            id: this.nextId++,
+            kind: "whirl",
+            x,
+            y,
+            r: c.wpR * (1 + 0.25 * i),
+            life: c.wpT,
+            t: 0,
+            owner: e,
+            team: e.team,
+          }),
+            this.emit({ type: "whirlpool", who: e, x, y });
+        }
         if (s.custom === "stoneEdge") {
           let c = EXK.garchomp,
             hl = [];
@@ -13166,6 +13327,10 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
             return this.exBugBuzz(e, P);
           case "quiver":
             return this.exQuiver(e);
+          case "scald":
+            return this.exScald(e, P);
+          case "aquaring":
+            return this.exAquaRing(e);
           case "shuriken":
             return this.exShuriken(e, P);
           case "shadowball":
@@ -14191,6 +14356,17 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         s.ohT > 0 && s.ohT--, s.ffT > 0 && s.ffT--;
         s.fcT > 0 && --s.fcT === 0 && (s.fcN = 0);
         s.waT > 0 && s.waT--;
+        // Aqua Ring heals on a beat while it lasts.
+        s.arT > 0 &&
+          (s.arT--,
+          s.arT % 30 === 0 &&
+            s.hp > 0 &&
+            s.hp < s.maxHp &&
+            ((s.hp = Math.min(
+              s.maxHp,
+              s.hp + Math.round(s.maxHp * EXK.milotic.arHeal),
+            )),
+            s === e.slot && this.emit({ type: "aquaHeal", who: e })));
         e.state === "faint" && (s.qd = 0);
         // At full Quiver, burning scales fall around Volcarona.
         s === e.slot &&
@@ -14286,6 +14462,17 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           ((re = Math.round(re * X.chandelure.ffTaken)),
           (w.slot.ffT = X.chandelure.ffT),
           this.emit({ type: "flashFire", who: w }));
+        // Marvel Scale: tougher while afflicted.
+        w.kit.marvelScale &&
+          re > 0 &&
+          ((w.slot.burnT ?? 0) > 0 ||
+            (w.slot.poisonT ?? 0) > 0 ||
+            (w.chill ?? 0) > 0 ||
+            (w.paraT ?? 0) > 0 ||
+            (w.dazeT ?? 0) > 0 ||
+            (w.frozenT ?? 0) > 0) &&
+          ((re = Math.round(re * X.milotic.marvel)),
+          this.tick % 20 === 0 && this.emit({ type: "marvelScale", who: w }));
         // Volcarona loses a Quiver stack to a hard hit; touching it can burn.
         if (w.kit.flameBody && re > 0) {
           re >= X.volcarona.qdLoseAt &&
@@ -14325,6 +14512,36 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       fieldStep(f) {
         let o = f.owner,
           X = EXK;
+        if (f.kind === "whirl") {
+          let c = X.milotic,
+            k = f.t % c.wpEvery === 0 && f.t > 4;
+          for (let v of this.victimsFor(f.team)) {
+            if (this.floating(v) || v.heldBy) continue;
+            let dx = f.x - v.x,
+              dy = f.y - v.y,
+              d = Math.hypot(dx, dy);
+            if (d > f.r + 18 + v.hurtR) continue;
+            // Drag towards the eye, swirling round it.
+            d > 4 &&
+              v.state !== "faint" &&
+              this.moveBody(
+                v,
+                (dx / d) * c.wpPull - (dy / d) * 0.6,
+                (dy / d) * c.wpPull + (dx / d) * 0.6,
+              );
+            k &&
+              d < f.r + v.hurtR &&
+              this.exHit(v, o, c.wpDmg, 0.2, -dx / (d || 1), -dy / (d || 1), {
+                src: "whirlpool",
+                mtype: "WATER",
+                hitstun: 14,
+                hitstop: 2,
+                multi: !0,
+                color: "#4aa8e0",
+              });
+          }
+          k && this.emit({ type: "whirlChurn", x: f.x, y: f.y });
+        }
         if (f.kind === "hex" && f.t === X.chandelure.hxDelay) {
           let c = X.chandelure,
             n = 0,
@@ -14674,6 +14891,45 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           this.emit({ type: "quiverUp", who: e, n: sl.qd }),
           this.exEnd(e));
       }
+      // Milotic --------------------------------------------------------------
+      exScald(e, P) {
+        let c = EXK.milotic;
+        this.locomote(e, 0, 0), this.exFr(e, "Shoot", 2, !1);
+        if (e.t <= c.scWind) {
+          this.exAim(e, P, 240);
+          return;
+        }
+        e.t === c.scWind + 1 &&
+          (this.exProj(e, e.team, e.dir2, {
+            kind: "scald",
+            speed: c.scSpeed,
+            r: 7,
+            life: 70,
+            dmg: c.scDmg,
+            kb: c.scKb,
+            hitstun: 18,
+            hitstop: 5,
+            color: "#9fe0ff",
+            mtype: "WATER",
+            burns: c.scBurn,
+          }),
+          this.emit({ type: "scald", who: e }));
+        (e.exRec = !0), e.t >= c.scWind + c.scRec && this.exEnd(e);
+      }
+      exAquaRing(e) {
+        let c = EXK.milotic,
+          sl = e.slot;
+        this.locomote(e, 0, 0), this.exFr(e, "RearUp", 2, !1);
+        e.t === c.arCast &&
+          ((sl.arT = c.arT),
+          (sl.burnT = 0),
+          (sl.poisonT = 0),
+          (e.chill = 0),
+          (e.paraT = 0),
+          (e.dazeT = 0),
+          this.emit({ type: "aquaRing", who: e }));
+        e.t >= c.arCast + 6 && this.exEnd(e);
+      }
       // Tag Team assists for the second-generation kits.
       exAssist(e, t, s) {
         let id = e.kit.id,
@@ -14682,7 +14938,24 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           ty = s ? s.y : e.y + Math.sin(e.dir) * 80,
           o = Math.cos(e.dir),
           l = Math.sin(e.dir);
-        if (id === "volcarona") {
+        if (id === "milotic") {
+          e.t === 12 &&
+            (this.exProj(e, t, Math.atan2(ty - e.y, tx - e.x), {
+              kind: "scald",
+              speed: 5,
+              r: 7,
+              life: 70,
+              dmg: 16,
+              kb: 3,
+              hitstun: 16,
+              color: "#9fe0ff",
+              mtype: "WATER",
+              burns: 0.3,
+            }),
+            this.emit({ type: "scald", who: e })),
+            (e.animName = "Shoot"),
+            (e.animFrame = Math.min(8, Math.floor(e.t / 3)));
+        } else if (id === "volcarona") {
           let a = Math.atan2(ty - e.y, tx - e.x),
             k = e.t - 12;
           if (k >= 0 && k <= 8) {
@@ -24562,6 +24835,54 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
   function r3Field(a, e, f, t) {
     f.kind === "sun" && fieldSun(a, f, t);
     f.kind === "hex" && fieldHex(a, f, t);
+    f.kind === "whirl" && fieldWhirl(a, f, t);
+  }
+  // Whirlpool: churning rings and a spiral of foam around a dark eye.
+  function fieldWhirl(a, f, t) {
+    let k = Math.min(1, f.t / 10) * Math.min(1, (f.life - f.t) / 20),
+      R = f.r,
+      rot = t * 0.12;
+    a.save();
+    let g = a.createRadialGradient(f.x, f.y, 0, f.x, f.y, R);
+    g.addColorStop(0, `rgba(10,40,90,${0.75 * k})`),
+      g.addColorStop(0.6, `rgba(30,100,170,${0.5 * k})`),
+      g.addColorStop(1, "rgba(60,150,220,0)"),
+      (a.fillStyle = g),
+      a.beginPath(),
+      a.ellipse(f.x, f.y, R, R * 0.55, 0, 0, Math.PI * 2),
+      a.fill();
+    for (let n = 0; n < 3; n++) {
+      let rr = R * (0.35 + 0.25 * n);
+      (a.globalAlpha = (0.75 - n * 0.15) * k),
+        (a.strokeStyle = n % 2 ? "#bfeaff" : "#7fd0ff"),
+        (a.lineWidth = 1.5),
+        a.beginPath(),
+        a.ellipse(
+          f.x,
+          f.y,
+          rr,
+          rr * 0.55,
+          0,
+          rot * (1 + n * 0.3) + n,
+          rot * (1 + n * 0.3) + n + 3.6,
+        ),
+        a.stroke();
+    }
+    // Foam spiralling inward.
+    for (let n = 0; n < 12; n++) {
+      let q = (t * 0.02 + n / 12) % 1,
+        rr = R * (1 - q),
+        g2 = rot * 2 + n * 0.52 + q * 6;
+      (a.globalAlpha = k * q),
+        (a.fillStyle = "#ffffff"),
+        a.fillRect(
+          Math.round(f.x + Math.cos(g2) * rr),
+          Math.round(f.y + Math.sin(g2) * rr * 0.55),
+          2,
+          1,
+        );
+    }
+    a.restore();
   }
   // Hex: a ring of curse runes that tightens, then violet flames.
   function fieldHex(a, f, t) {
@@ -24668,6 +24989,38 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     p.kit.id === "chandelure" && overChandelure(a, e, p, t);
     p.kit.id === "ceruledge" && overCeruledge(a, e, p, t);
     p.kit.id === "volcarona" && overVolcarona(a, e, p, t);
+    (p.slot.arT ?? 0) > 0 && overAquaRing(a, p, t);
+  }
+  // Aqua Ring: a band of water turning round the body, shedding droplets.
+  function overAquaRing(a, p, t) {
+    let k = p.slot.arT < 60 && t % 8 < 4 ? 0.5 : 1,
+      x = p.x,
+      y = p.y - p.z - 10,
+      R = 18;
+    a.save(),
+      (a.globalAlpha = 0.55 * k),
+      (a.strokeStyle = "#7fd0ff"),
+      (a.lineWidth = 3),
+      a.beginPath(),
+      a.ellipse(x, y, R, R * 0.4, 0, 0, Math.PI * 2),
+      a.stroke(),
+      (a.globalAlpha = 0.9 * k),
+      (a.strokeStyle = "#e6f8ff"),
+      (a.lineWidth = 1),
+      a.beginPath(),
+      a.ellipse(x, y, R, R * 0.4, 0, t * 0.1, t * 0.1 + 2),
+      a.stroke();
+    for (let n = 0; n < 4; n++) {
+      let g = (n / 4) * Math.PI * 2 + t * 0.1;
+      (a.fillStyle = "#bfeaff"),
+        a.fillRect(
+          Math.round(x + Math.cos(g) * R),
+          Math.round(y + Math.sin(g) * R * 0.4) - 1,
+          2,
+          2,
+        );
+    }
+    a.restore();
   }
   // Volcarona: a halo of embers per Quiver stack (the sun at three), the
   // Fiery Dance ring of flame, and Bug Buzz's sound waves.
@@ -24878,6 +25231,33 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     }
   }
   function r3DrawProj(a, e, h, c, y, ang) {
+    if (h.kind === "scald") {
+      // Scald: a boiling water bolt trailing steam.
+      for (let k = 4; k >= 1; k--)
+        (a.globalAlpha = 0.12 * (5 - k)),
+          (a.fillStyle = "#eaf6ff"),
+          a.beginPath(),
+          a.arc(
+            c - Math.cos(ang) * k * 5,
+            y - Math.sin(ang) * k * 5 - k,
+            3 + k,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill();
+      (a.globalAlpha = 1),
+        (a.fillStyle = "#3f9fe0"),
+        a.beginPath(),
+        a.ellipse(c, y, 7, 5, ang, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#bfeaff"),
+        a.beginPath(),
+        a.ellipse(c + Math.cos(ang) * 2, y - 1, 3, 2, ang, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#ff8a5a"),
+        a.fillRect(Math.round(c) - 1, Math.round(y) + 1, 2, 1);
+      return !0;
+    }
     if (h.kind === "pblade") {
       // Poltergeist: two spectral blades crossed and spinning, trailing fire.
       let sp = h.age * 0.55;
@@ -25173,6 +25553,10 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       return l.blade
         ? ue("BLADE FORME", "#e05a3a", v, E)
         : ue("SHIELD FORME", "#c9a24a", v, E);
+    if (id === "milotic")
+      return l.arT > 0
+        ? ue(`AQUA RING ${Math.ceil(l.arT / 60)}`, "#4aa8e0", v, E)
+        : hint("Marvel Scale: tough when afflicted");
     if (id === "volcarona")
       return (l.qd ?? 0) > 0
         ? ue(`QUIVER \xD7${l.qd}`, l.qd >= 3 ? "#ffb347" : "#ff8a2a", v, E)
@@ -29315,6 +29699,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         X: "~39",
         Y: "blocks",
       },
+      milotic: { A: "20 · 22 · 33", RS: "6 × ~8", X: "~22", Y: "+9.6% HP" },
       volcarona: { A: "18 · 19 · 32", RS: "29–46", X: "~23", Y: "+12% dmg" },
       ceruledge: {
         A: "23 · 25 · 41",
@@ -29395,6 +29780,10 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       aegislash: [
         "Stance fighter. You start in Shield Forme: slow, and you take 30% less. Any attack turns you to Blade Forme: faster, 30% stronger, but you take 25% more. King's Shield blocks everything from the front, weakens a melee attacker, and puts you back in Shield Forme. Switch at the right moment.",
         ["counter", "pierce", "armor"],
+      ],
+      milotic: [
+        "Controller. Long tail whips keep foes at your distance; Whirlpool drags them where you want them; Scald burns from range. Aqua Ring heals and cleanses, and Marvel Scale makes statuses work in your favour. Win the long fight.",
+        ["zone", "heal", "burn"],
       ],
       volcarona: [
         "Set-up. Quiver Dance when you have room: each stack adds damage and speed, and at three you shed burning scales. Hard hits knock stacks off, so dance at a distance. Bug Buzz holds them off; Fiery Dance answers anyone who closes in.",
@@ -31918,6 +32307,34 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         "PASSIVE",
       ],
     ],
+    milotic: [
+      [
+        "A",
+        "Aqua Tail",
+        "Long tail whips; the third sweeps all around you.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Whirlpool",
+        "A vortex that drags foes in and churns them for two seconds. Charge to place it further.",
+        "OPTIONAL CHARGE",
+      ],
+      ["X", "Scald", "A boiling water shot that may burn.", "RANGED"],
+      [
+        "Y",
+        "Aqua Ring",
+        "Heal over six seconds and wash off burn, poison, chill, paralysis and daze.",
+        "HEAL",
+      ],
+      ["B", "Coil slide", "A sliding dash.", "DODGE"],
+      [
+        "*",
+        "Marvel Scale",
+        "You take a quarter less damage while you have a status.",
+        "PASSIVE",
+      ],
+    ],
     volcarona: [
       ["A", "Scale gusts", "Wing gusts, then a burst of flame.", "COMBO"],
       [
@@ -32860,416 +33277,459 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       },
       cry(a, e = 0) {
         O() &&
-          (a === "volcarona"
-            ? (I("tri", 523, 784, 0.3, 0.08, e, { vib: 40 }),
-              I("tri", 784, 1046, 0.35, 0.05, e + 0.1, { vib: 30 }),
-              X(0.3, "bandpass", 3000, 1, 0.05, 1500, e))
-            : a === "ceruledge"
-              ? (I("saw", 330, 220, 0.3, 0.08, e, { vib: 25 }),
-                I("p25", 660, 440, 0.25, 0.06, e + 0.06),
-                X(0.25, "bandpass", 1800, 1.5, 0.08, 700, e, !0))
-              : a === "chandelure"
-                ? (I("tri", 660, 440, 0.45, 0.08, e, { vib: 10 }),
-                  I("p25", 330, 220, 0.5, 0.05, e + 0.06, { vib: 6 }),
-                  X(0.4, "bandpass", 1200, 2, 0.06, 500, e, !0))
-                : a === "lurantis"
-                  ? (I("tri", 990, 1320, 0.18, 0.08, e, { vib: 30 }),
-                    I("p25", 1320, 1100, 0.22, 0.06, e + 0.12),
-                    X(0.18, "highpass", 4e3, 1, 0.06, 6e3, e + 0.04))
-                  : a === "aegislash"
-                    ? (I("saw", 220, 180, 0.3, 0.08, e, { vib: 30 }),
-                      I("tri", 880, 660, 0.35, 0.06, e + 0.05),
-                      X(0.3, "highpass", 3000, 1, 0.06, 6000, e, !0))
-                    : a === "greninja"
-                      ? (I("p25", 660, 990, 0.12, 0.08, e),
-                        I("p25", 990, 740, 0.22, 0.07, e + 0.1, { vib: 20 }),
-                        X(0.25, "bandpass", 2400, 2, 0.08, 1200, e))
-                      : a === "charizard"
-                        ? (I("saw", 520, 260, 0.32, 0.12, e, {
-                            vib: 60,
-                            vibDelay: 0.02,
-                          }),
-                          I("p25", 780, 300, 0.36, 0.08, e + 0.03),
-                          X(0.32, "bandpass", 1800, 1, 0.18, 700, e, !0))
-                        : a === "venusaur"
-                          ? (I("p50", 180, 150, 0.45, 0.16, e, {
-                              vib: 40,
-                              vibDelay: 0.05,
+          (a === "milotic"
+            ? (I("tri", 587, 880, 0.5, 0.08, e, { vib: 8 }),
+              I("tri", 880, 740, 0.45, 0.05, e + 0.18, { vib: 6 }),
+              X(0.4, "lowpass", 2400, 1, 0.05, 900, e))
+            : a === "volcarona"
+              ? (I("tri", 523, 784, 0.3, 0.08, e, { vib: 40 }),
+                I("tri", 784, 1046, 0.35, 0.05, e + 0.1, { vib: 30 }),
+                X(0.3, "bandpass", 3000, 1, 0.05, 1500, e))
+              : a === "ceruledge"
+                ? (I("saw", 330, 220, 0.3, 0.08, e, { vib: 25 }),
+                  I("p25", 660, 440, 0.25, 0.06, e + 0.06),
+                  X(0.25, "bandpass", 1800, 1.5, 0.08, 700, e, !0))
+                : a === "chandelure"
+                  ? (I("tri", 660, 440, 0.45, 0.08, e, { vib: 10 }),
+                    I("p25", 330, 220, 0.5, 0.05, e + 0.06, { vib: 6 }),
+                    X(0.4, "bandpass", 1200, 2, 0.06, 500, e, !0))
+                  : a === "lurantis"
+                    ? (I("tri", 990, 1320, 0.18, 0.08, e, { vib: 30 }),
+                      I("p25", 1320, 1100, 0.22, 0.06, e + 0.12),
+                      X(0.18, "highpass", 4e3, 1, 0.06, 6e3, e + 0.04))
+                    : a === "aegislash"
+                      ? (I("saw", 220, 180, 0.3, 0.08, e, { vib: 30 }),
+                        I("tri", 880, 660, 0.35, 0.06, e + 0.05),
+                        X(0.3, "highpass", 3000, 1, 0.06, 6000, e, !0))
+                      : a === "greninja"
+                        ? (I("p25", 660, 990, 0.12, 0.08, e),
+                          I("p25", 990, 740, 0.22, 0.07, e + 0.1, { vib: 20 }),
+                          X(0.25, "bandpass", 2400, 2, 0.08, 1200, e))
+                        : a === "charizard"
+                          ? (I("saw", 520, 260, 0.32, 0.12, e, {
+                              vib: 60,
+                              vibDelay: 0.02,
                             }),
-                            I("tri", 360, 240, 0.4, 0.14, e + 0.05),
-                            X(0.2, "bandpass", 600, 2, 0.12, 300, e + 0.1))
-                          : a === "blastoise"
-                            ? (I("p50", 140, 110, 0.4, 0.18, e),
-                              I("saw", 280, 200, 0.35, 0.06, e + 0.02, {
-                                vib: 30,
+                            I("p25", 780, 300, 0.36, 0.08, e + 0.03),
+                            X(0.32, "bandpass", 1800, 1, 0.18, 700, e, !0))
+                          : a === "venusaur"
+                            ? (I("p50", 180, 150, 0.45, 0.16, e, {
+                                vib: 40,
+                                vibDelay: 0.05,
                               }),
-                              X(
-                                0.35,
-                                "bandpass",
-                                2400,
-                                0.8,
-                                0.22,
-                                500,
-                                e + 0.05,
-                              ))
-                            : a === "snorlax"
-                              ? (I("p50", 110, 80, 0.55, 0.2, e, { vib: 20 }),
-                                I("tri", 220, 150, 0.5, 0.16, e + 0.04),
-                                X(0.3, "lowpass", 500, 1, 0.16, 300, e + 0.1))
-                              : a === "noivern"
-                                ? (I("saw", 900, 1500, 0.18, 0.09, e, {
-                                    vib: 80,
-                                  }),
-                                  I("p25", 1400, 700, 0.22, 0.08, e + 0.1),
-                                  X(
-                                    0.25,
-                                    "bandpass",
-                                    3200,
-                                    2,
-                                    0.14,
-                                    1200,
-                                    e + 0.05,
-                                  ))
-                                : a === "darkrai"
-                                  ? (I("tri", 220, 110, 0.7, 0.16, e, {
-                                      vib: 8,
+                              I("tri", 360, 240, 0.4, 0.14, e + 0.05),
+                              X(0.2, "bandpass", 600, 2, 0.12, 300, e + 0.1))
+                            : a === "blastoise"
+                              ? (I("p50", 140, 110, 0.4, 0.18, e),
+                                I("saw", 280, 200, 0.35, 0.06, e + 0.02, {
+                                  vib: 30,
+                                }),
+                                X(
+                                  0.35,
+                                  "bandpass",
+                                  2400,
+                                  0.8,
+                                  0.22,
+                                  500,
+                                  e + 0.05,
+                                ))
+                              : a === "snorlax"
+                                ? (I("p50", 110, 80, 0.55, 0.2, e, { vib: 20 }),
+                                  I("tri", 220, 150, 0.5, 0.16, e + 0.04),
+                                  X(0.3, "lowpass", 500, 1, 0.16, 300, e + 0.1))
+                                : a === "noivern"
+                                  ? (I("saw", 900, 1500, 0.18, 0.09, e, {
+                                      vib: 80,
                                     }),
-                                    I("p25", 330, 160, 0.6, 0.08, e + 0.08, {
-                                      vib: 6,
-                                    }),
-                                    X(0.6, "lowpass", 700, 2, 0.1, 300, e, !0))
-                                  : a === "deoxys"
-                                    ? (I("sq", 900, 1300, 0.12, 0.08, e),
-                                      I("sq", 1300, 600, 0.18, 0.08, e + 0.12, {
-                                        vib: 50,
+                                    I("p25", 1400, 700, 0.22, 0.08, e + 0.1),
+                                    X(
+                                      0.25,
+                                      "bandpass",
+                                      3200,
+                                      2,
+                                      0.14,
+                                      1200,
+                                      e + 0.05,
+                                    ))
+                                  : a === "darkrai"
+                                    ? (I("tri", 220, 110, 0.7, 0.16, e, {
+                                        vib: 8,
                                       }),
-                                      I("tri", 400, 900, 0.3, 0.1, e + 0.05))
-                                    : a === "zekrom"
-                                      ? (I("saw", 170, 80, 0.75, 0.22, e, {
-                                          vib: 30,
-                                        }),
-                                        I("p50", 340, 150, 0.6, 0.12, e + 0.05),
-                                        X(
-                                          0.5,
-                                          "bandpass",
-                                          2600,
-                                          1.5,
-                                          0.16,
-                                          900,
-                                          e,
-                                          !0,
-                                        ))
-                                      : a === "garchomp"
-                                        ? (I("saw", 260, 140, 0.45, 0.14, e, {
-                                            vib: 40,
+                                      I("p25", 330, 160, 0.6, 0.08, e + 0.08, {
+                                        vib: 6,
+                                      }),
+                                      X(
+                                        0.6,
+                                        "lowpass",
+                                        700,
+                                        2,
+                                        0.1,
+                                        300,
+                                        e,
+                                        !0,
+                                      ))
+                                    : a === "deoxys"
+                                      ? (I("sq", 900, 1300, 0.12, 0.08, e),
+                                        I(
+                                          "sq",
+                                          1300,
+                                          600,
+                                          0.18,
+                                          0.08,
+                                          e + 0.12,
+                                          {
+                                            vib: 50,
+                                          },
+                                        ),
+                                        I("tri", 400, 900, 0.3, 0.1, e + 0.05))
+                                      : a === "zekrom"
+                                        ? (I("saw", 170, 80, 0.75, 0.22, e, {
+                                            vib: 30,
                                           }),
                                           I(
-                                            "p25",
-                                            520,
-                                            300,
-                                            0.3,
-                                            0.08,
-                                            e + 0.04,
+                                            "p50",
+                                            340,
+                                            150,
+                                            0.6,
+                                            0.12,
+                                            e + 0.05,
                                           ),
                                           X(
-                                            0.35,
+                                            0.5,
                                             "bandpass",
-                                            900,
-                                            1,
+                                            2600,
+                                            1.5,
                                             0.16,
-                                            400,
+                                            900,
                                             e,
                                             !0,
                                           ))
-                                        : a === "scizor"
-                                          ? (I("sq", 1200, 1600, 0.08, 0.08, e),
+                                        : a === "garchomp"
+                                          ? (I("saw", 260, 140, 0.45, 0.14, e, {
+                                              vib: 40,
+                                            }),
                                             I(
-                                              "sq",
-                                              1600,
-                                              900,
-                                              0.14,
-                                              0.07,
-                                              e + 0.1,
-                                              {
-                                                vib: 40,
-                                              },
+                                              "p25",
+                                              520,
+                                              300,
+                                              0.3,
+                                              0.08,
+                                              e + 0.04,
                                             ),
                                             X(
-                                              0.12,
-                                              "highpass",
-                                              4e3,
+                                              0.35,
+                                              "bandpass",
+                                              900,
                                               1,
-                                              0.08,
-                                              2e3,
-                                              e + 0.02,
+                                              0.16,
+                                              400,
+                                              e,
+                                              !0,
                                             ))
-                                          : a === "tyrantrum"
-                                            ? (I("saw", 150, 70, 0.7, 0.2, e, {
-                                                vib: 25,
-                                              }),
+                                          : a === "scizor"
+                                            ? (I(
+                                                "sq",
+                                                1200,
+                                                1600,
+                                                0.08,
+                                                0.08,
+                                                e,
+                                              ),
                                               I(
-                                                "p50",
-                                                300,
-                                                140,
-                                                0.5,
-                                                0.12,
-                                                e + 0.05,
+                                                "sq",
+                                                1600,
+                                                900,
+                                                0.14,
+                                                0.07,
+                                                e + 0.1,
+                                                {
+                                                  vib: 40,
+                                                },
                                               ),
                                               X(
-                                                0.6,
-                                                "lowpass",
-                                                800,
+                                                0.12,
+                                                "highpass",
+                                                4e3,
                                                 1,
-                                                0.2,
-                                                300,
-                                                e,
-                                                !0,
+                                                0.08,
+                                                2e3,
+                                                e + 0.02,
                                               ))
-                                            : a === "golurk"
+                                            : a === "tyrantrum"
                                               ? (I(
-                                                  "sq",
-                                                  110,
-                                                  110,
-                                                  0.5,
-                                                  0.12,
+                                                  "saw",
+                                                  150,
+                                                  70,
+                                                  0.7,
+                                                  0.2,
                                                   e,
                                                   {
-                                                    vib: 6,
+                                                    vib: 25,
                                                   },
                                                 ),
                                                 I(
-                                                  "tri",
-                                                  220,
-                                                  180,
-                                                  0.45,
-                                                  0.1,
-                                                  e + 0.1,
+                                                  "p50",
+                                                  300,
+                                                  140,
+                                                  0.5,
+                                                  0.12,
+                                                  e + 0.05,
                                                 ),
-                                                I(
-                                                  "p25",
-                                                  440,
-                                                  330,
+                                                X(
+                                                  0.6,
+                                                  "lowpass",
+                                                  800,
+                                                  1,
                                                   0.2,
-                                                  0.05,
-                                                  e + 0.25,
+                                                  300,
+                                                  e,
+                                                  !0,
                                                 ))
-                                              : a === "rhyperior"
+                                              : a === "golurk"
                                                 ? (I(
-                                                    "saw",
-                                                    120,
-                                                    90,
-                                                    0.6,
-                                                    0.18,
+                                                    "sq",
+                                                    110,
+                                                    110,
+                                                    0.5,
+                                                    0.12,
                                                     e,
                                                     {
-                                                      vib: 20,
+                                                      vib: 6,
                                                     },
                                                   ),
                                                   I(
-                                                    "p50",
-                                                    240,
-                                                    200,
-                                                    0.4,
+                                                    "tri",
+                                                    220,
+                                                    180,
+                                                    0.45,
                                                     0.1,
-                                                    e + 0.08,
+                                                    e + 0.1,
                                                   ),
-                                                  X(
-                                                    0.4,
-                                                    "lowpass",
-                                                    600,
-                                                    1,
-                                                    0.18,
-                                                    300,
-                                                    e + 0.05,
+                                                  I(
+                                                    "p25",
+                                                    440,
+                                                    330,
+                                                    0.2,
+                                                    0.05,
+                                                    e + 0.25,
                                                   ))
-                                                : a === "froslass"
+                                                : a === "rhyperior"
                                                   ? (I(
-                                                      "tri",
-                                                      880,
-                                                      1320,
-                                                      0.4,
-                                                      0.09,
+                                                      "saw",
+                                                      120,
+                                                      90,
+                                                      0.6,
+                                                      0.18,
                                                       e,
                                                       {
-                                                        vib: 12,
+                                                        vib: 20,
                                                       },
                                                     ),
                                                     I(
-                                                      "tri",
-                                                      1320,
-                                                      990,
-                                                      0.45,
-                                                      0.07,
-                                                      e + 0.2,
-                                                      { vib: 10 },
+                                                      "p50",
+                                                      240,
+                                                      200,
+                                                      0.4,
+                                                      0.1,
+                                                      e + 0.08,
+                                                    ),
+                                                    X(
+                                                      0.4,
+                                                      "lowpass",
+                                                      600,
+                                                      1,
+                                                      0.18,
+                                                      300,
+                                                      e + 0.05,
                                                     ))
-                                                  : a === "gardevoir"
+                                                  : a === "froslass"
                                                     ? (I(
                                                         "tri",
-                                                        660,
-                                                        990,
-                                                        0.25,
-                                                        0.1,
+                                                        880,
+                                                        1320,
+                                                        0.4,
+                                                        0.09,
                                                         e,
+                                                        {
+                                                          vib: 12,
+                                                        },
                                                       ),
                                                       I(
-                                                        "p25",
+                                                        "tri",
+                                                        1320,
                                                         990,
-                                                        1180,
-                                                        0.3,
+                                                        0.45,
                                                         0.07,
-                                                        e + 0.12,
-                                                        { vib: 20 },
+                                                        e + 0.2,
+                                                        { vib: 10 },
                                                       ))
-                                                    : a === "metagross"
+                                                    : a === "gardevoir"
                                                       ? (I(
-                                                          "sq",
-                                                          220,
-                                                          330,
-                                                          0.18,
+                                                          "tri",
+                                                          660,
+                                                          990,
+                                                          0.25,
                                                           0.1,
                                                           e,
                                                         ),
                                                         I(
-                                                          "sq",
-                                                          330,
-                                                          220,
-                                                          0.25,
-                                                          0.1,
-                                                          e + 0.15,
-                                                        ),
-                                                        I(
-                                                          "saw",
-                                                          110,
-                                                          90,
-                                                          0.4,
-                                                          0.1,
-                                                          e + 0.05,
-                                                          { vib: 30 },
+                                                          "p25",
+                                                          990,
+                                                          1180,
+                                                          0.3,
+                                                          0.07,
+                                                          e + 0.12,
+                                                          { vib: 20 },
                                                         ))
-                                                      : a === "groudon"
+                                                      : a === "metagross"
                                                         ? (I(
-                                                            "saw",
-                                                            120,
-                                                            60,
-                                                            0.9,
-                                                            0.22,
+                                                            "sq",
+                                                            220,
+                                                            330,
+                                                            0.18,
+                                                            0.1,
                                                             e,
-                                                            {
-                                                              vib: 20,
-                                                            },
                                                           ),
                                                           I(
-                                                            "p50",
-                                                            240,
-                                                            120,
-                                                            0.7,
-                                                            0.12,
-                                                            e + 0.05,
+                                                            "sq",
+                                                            330,
+                                                            220,
+                                                            0.25,
+                                                            0.1,
+                                                            e + 0.15,
                                                           ),
-                                                          X(
-                                                            0.7,
-                                                            "lowpass",
-                                                            600,
-                                                            1,
-                                                            0.22,
-                                                            200,
-                                                            e,
-                                                            !0,
+                                                          I(
+                                                            "saw",
+                                                            110,
+                                                            90,
+                                                            0.4,
+                                                            0.1,
+                                                            e + 0.05,
+                                                            { vib: 30 },
                                                           ))
-                                                        : a === "rayquaza"
+                                                        : a === "groudon"
                                                           ? (I(
                                                               "saw",
-                                                              600,
-                                                              300,
-                                                              0.6,
-                                                              0.14,
+                                                              120,
+                                                              60,
+                                                              0.9,
+                                                              0.22,
                                                               e,
-                                                              { vib: 50 },
+                                                              {
+                                                                vib: 20,
+                                                              },
                                                             ),
                                                             I(
-                                                              "p25",
-                                                              900,
-                                                              450,
-                                                              0.5,
-                                                              0.08,
+                                                              "p50",
+                                                              240,
+                                                              120,
+                                                              0.7,
+                                                              0.12,
                                                               e + 0.05,
-                                                              { vib: 40 },
                                                             ),
                                                             X(
-                                                              0.5,
-                                                              "bandpass",
-                                                              2400,
-                                                              1.5,
-                                                              0.14,
-                                                              800,
+                                                              0.7,
+                                                              "lowpass",
+                                                              600,
+                                                              1,
+                                                              0.22,
+                                                              200,
                                                               e,
                                                               !0,
                                                             ))
-                                                          : a === "hooh"
+                                                          : a === "rayquaza"
                                                             ? (I(
-                                                                "tri",
-                                                                900,
-                                                                1400,
-                                                                0.4,
-                                                                0.12,
+                                                                "saw",
+                                                                600,
+                                                                300,
+                                                                0.6,
+                                                                0.14,
                                                                 e,
-                                                                { vib: 30 },
+                                                                { vib: 50 },
                                                               ),
                                                               I(
                                                                 "p25",
-                                                                1400,
-                                                                1e3,
+                                                                900,
+                                                                450,
                                                                 0.5,
                                                                 0.08,
-                                                                e + 0.15,
-                                                                { vib: 20 },
+                                                                e + 0.05,
+                                                                { vib: 40 },
                                                               ),
                                                               X(
-                                                                0.3,
+                                                                0.5,
                                                                 "bandpass",
-                                                                3e3,
+                                                                2400,
                                                                 1.5,
-                                                                0.1,
-                                                                1500,
-                                                                e + 0.05,
+                                                                0.14,
+                                                                800,
+                                                                e,
+                                                                !0,
                                                               ))
-                                                            : a === "lucario"
+                                                            : a === "hooh"
                                                               ? (I(
-                                                                  "p25",
-                                                                  520,
-                                                                  640,
-                                                                  0.14,
-                                                                  0.11,
-                                                                  e,
-                                                                ),
-                                                                I(
-                                                                  "p25",
-                                                                  780,
-                                                                  420,
-                                                                  0.22,
-                                                                  0.1,
-                                                                  e + 0.12,
-                                                                  {
-                                                                    vib: 30,
-                                                                  },
-                                                                ))
-                                                              : (I(
-                                                                  "p25",
-                                                                  600,
+                                                                  "tri",
                                                                   900,
+                                                                  1400,
+                                                                  0.4,
                                                                   0.12,
-                                                                  0.1,
                                                                   e,
+                                                                  { vib: 30 },
                                                                 ),
                                                                 I(
                                                                   "p25",
-                                                                  900,
-                                                                  500,
-                                                                  0.18,
+                                                                  1400,
+                                                                  1e3,
+                                                                  0.5,
+                                                                  0.08,
+                                                                  e + 0.15,
+                                                                  { vib: 20 },
+                                                                ),
+                                                                X(
+                                                                  0.3,
+                                                                  "bandpass",
+                                                                  3e3,
+                                                                  1.5,
                                                                   0.1,
-                                                                  e + 0.12,
-                                                                )));
+                                                                  1500,
+                                                                  e + 0.05,
+                                                                ))
+                                                              : a === "lucario"
+                                                                ? (I(
+                                                                    "p25",
+                                                                    520,
+                                                                    640,
+                                                                    0.14,
+                                                                    0.11,
+                                                                    e,
+                                                                  ),
+                                                                  I(
+                                                                    "p25",
+                                                                    780,
+                                                                    420,
+                                                                    0.22,
+                                                                    0.1,
+                                                                    e + 0.12,
+                                                                    {
+                                                                      vib: 30,
+                                                                    },
+                                                                  ))
+                                                                : (I(
+                                                                    "p25",
+                                                                    600,
+                                                                    900,
+                                                                    0.12,
+                                                                    0.1,
+                                                                    e,
+                                                                  ),
+                                                                  I(
+                                                                    "p25",
+                                                                    900,
+                                                                    500,
+                                                                    0.18,
+                                                                    0.1,
+                                                                    e + 0.12,
+                                                                  )));
       },
       ready() {
         O() &&
@@ -38690,6 +39150,26 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           break;
         case "dazed":
           t.popup(n.who.x, n.who.y - 36, "DAZED", "#ffe27a", !1);
+          break;
+        case "scald":
+          S.splash?.(), t.motes(n.who.x, n.who.y - 14, 4, 10, "#eaf6ff", 1);
+          break;
+        case "whirlpool":
+          S.splash?.(), t.ring(n.x, n.y, 8, 3.4, 18, "#7fd0ff");
+          break;
+        case "whirlChurn":
+          I("tri", F(55), F(50), 0.12, 0.03);
+          break;
+        case "aquaRing":
+          S.heal?.(),
+            t.ring(n.who.x, n.who.y - 10, 6, 3, 16, "#7fd0ff", !0),
+            t.popup(n.who.x, n.who.y - 44, "AQUA RING", "#7fd0ff", !1);
+          break;
+        case "aquaHeal":
+          t.motes(n.who.x, n.who.y - 10, 3, 8, "#bfeaff", 0.7);
+          break;
+        case "marvelScale":
+          t.popup(n.who.x, n.who.y - 40, "MARVEL SCALE", "#ffd25e", !1);
           break;
         case "quiverStart":
           I("tri", F(76), F(83), 0.2, 0.05);
