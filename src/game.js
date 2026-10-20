@@ -4935,10 +4935,12 @@
           (this.arena = A.arena),
           (this.rocks =
             A.arena === 1
-              ? RUINS.spots.map(([o, l]) => ({
+              ? RUINS.spots.map(([o, l], n) => ({
                   id: this.nextId++,
                   x: o,
                   y: l,
+                  // The four round the centre are marble columns.
+                  column: n < 4,
                   r: RUINS.r,
                   hp: RUINS.hp,
                   max: RUINS.hp,
@@ -17267,9 +17269,63 @@
         ((a.fillStyle = "rgba(90,90,100,0.6)"),
         a.fillRect(s - 3, i - 48 - ((t / 3) % 6), 3, 3));
   }
+  // Ruins columns (assets/arenas.js __PROPS__), decoded up front.
+  var PROP = {};
+  for (let [k, src] of Object.entries(window.__PROPS__ ?? {})) {
+    let im = new Image();
+    (im.src = src), (PROP[k] = im);
+  }
+  var propOf = (k) => {
+    let im = PROP[k];
+    return im && im.complete && im.naturalWidth ? im : null;
+  };
+  // A column: the PixelLab sprite with cracks spreading down it as it is
+  // worn down, chunks gone from its capital near the end, and a white
+  // flash when hit.
+  function columnArt(a, e, t) {
+    let im = propOf("column");
+    if (!im) return !1;
+    let s = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
+      x = Math.round(e.x - 24 + s),
+      y = Math.round(e.y - 72),
+      o = 1 - e.hp / e.max;
+    // Near the end, chunks are gone from its capital (a chipped copy).
+    if (o > 0.65) {
+      if (!PROP.chipped) {
+        let c = Zt(48, 80),
+          q = c.getContext("2d");
+        q.drawImage(im, 0, 0),
+          (q.globalCompositeOperation = "destination-out"),
+          q.fillRect(12, 3, 5, 4),
+          q.fillRect(31, 4, 5, 5),
+          q.fillRect(20, 2, 3, 2),
+          (PROP.chipped = c);
+      }
+      im = PROP.chipped;
+    }
+    a.drawImage(im, x, y);
+    if (o > 0.15) {
+      let l = rt(e.id * 13);
+      a.fillStyle = "#3b322b";
+      for (let f = 0; f < Math.ceil(o * 6); f++) {
+        let u = x + 17 + Math.floor(l() * 14),
+          h = y + 14 + Math.floor(l() * 34),
+          len = 5 + Math.floor(o * 12 * l());
+        for (let k = 0; k < len; k++)
+          a.fillRect(u, h + k, 1, 1), l() < 0.35 && (u += l() < 0.5 ? -1 : 1);
+      }
+    }
+    e.hitT > 3 &&
+      ((a.globalAlpha = 0.4),
+      (a.fillStyle = "#ffffff"),
+      a.fillRect(x + 12, y + 4, 24, 66),
+      (a.globalAlpha = 1));
+    return !0;
+  }
   function ht2(a, e, t) {
     if (e.pylon) return pylonArt(a, e, t);
     if (e.exPillar) return exPillarArt(a, e, t);
+    if (e.column && columnArt(a, e, t)) return;
     Rk || (Rk = Fk());
     let s = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
       i = Math.round(e.x - 18 + s),
@@ -19237,6 +19293,14 @@
         a.fill();
       return;
     }
+    // A fallen column leaves its stump.
+    e.column &&
+      propOf("columnBroken") &&
+      a.drawImage(
+        propOf("columnBroken"),
+        Math.round(e.x - 24),
+        Math.round(e.y - 72),
+      );
     let s = rt(e.id * 7);
     for (let i = 0; i < 9; i++) {
       let r = e.x + (s() - 0.5) * 26,
