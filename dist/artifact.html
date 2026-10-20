@@ -23510,7 +23510,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     let o = i * 0.2,
       l = () => {
         if ((d.beginPath(), r.slash)) {
-          let h = i * ke;
+          let h = i * (r.sk ?? ke);
           d.moveTo(m(t + h), m(s)),
             d.lineTo(m(t + i), m(s)),
             d.lineTo(m(t + i - h), m(s + i)),
@@ -23540,10 +23540,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
     if (u) {
       d.imageSmoothingEnabled = !1;
       let h = i * Fe,
-        // Whole-number steps keep pixels even, unless that would leave the
-        // portrait well short of its frame (small tiles on a phone).
+        // Whole-number steps keep pixels even, unless that would leave a
+        // small portrait well short of its frame (roster tiles on a phone).
         c =
-          h >= 40 && Math.floor(h / 40) * 40 >= h * 0.9
+          h >= 40 && (h >= 160 || Math.floor(h / 40) * 40 >= h * 0.9)
             ? Math.floor(h / 40)
             : h / 40,
         y = 40 * c,
@@ -26607,7 +26607,10 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
   // ---- Team select ----
   // A versus layout: your side's card on the left, the opponent's on the right,
   // the roster in three columns in the middle, and a VS emblem below it.
-  var RG = { x: H / 2 - 99, y: 34, tile: 26, gap: 2.5, pitch: 43, cols: 7 };
+  var RG = { x: H / 2 - 99, y: 34, tile: 26, gap: 2.5, pitch: 43, cols: 7 },
+    // Roster tiles lean only slightly, so the square portraits keep their
+    // corners.
+    RG_SK = 0.09;
   function rs(a) {
     let e = Math.floor(a / RG.cols),
       t = a % RG.cols,
@@ -26667,10 +26670,17 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         (d.globalCompositeOperation = "lighter"),
         (d.shadowColor = g.p1),
         (d.shadowBlur = m(10)),
-        te(t - 2, s - 2, i + 4, i + 4, "rgba(51,214,255,0.6)"),
+        te(t - 2, s - 2, i + 4, i + 4, "rgba(51,214,255,0.6)", (i + 4) * RG_SK),
         d.restore()),
-      te(t - 1.4, s - 1.4, i + 2.8, i + 2.8, r ? g.p1 : "rgba(10,8,22,0.95)"),
-      te(t, s, i, i, "#191530"),
+      te(
+        t - 1.4,
+        s - 1.4,
+        i + 2.8,
+        i + 2.8,
+        r ? g.p1 : "rgba(10,8,22,0.95)",
+        (i + 2.8) * RG_SK,
+      ),
+      te(t, s, i, i, "#191530", i * RG_SK),
       V("?", t + i / 2, s + i * 0.72, 18, r ? g.gold : g.chalk, {
         align: "center",
         outline: 2,
@@ -27886,6 +27896,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           v + 4 + $ * 2,
           v + 4 + $ * 2,
           "rgba(51,214,255,0.6)",
+          (v + 4 + $ * 2) * RG_SK,
         ),
         d.restore()),
         te(
@@ -27894,6 +27905,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           v + 2.8 + $ * 2,
           v + 2.8 + $ * 2,
           K ? g.p1 : Q >= 0 ? "#1f6f8a" : ie ? "#7a1f30" : "rgba(10,8,22,0.95)",
+          (v + 2.8 + $ * 2) * RG_SK,
         ),
         Oe(
           e[M],
@@ -27901,11 +27913,11 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           C - $,
           x - $,
           v + $ * 2,
-          { bg: E.color, frame: !1, slash: !0 },
+          { bg: E.color, frame: !1, slash: !0, sk: RG_SK },
         ),
         (Q >= 0 || ie) &&
           (d.save(),
-          ze(C, x, v, v),
+          ze(C, x, v, v, v * RG_SK),
           d.clip(),
           (d.fillStyle =
             Q >= 0 ? "rgba(51,214,255,0.18)" : "rgba(255,74,99,0.18)"),
@@ -27920,7 +27932,7 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
           { align: "center", outline: 1.2 },
         ),
         Q >= 0 &&
-          ue(`P${Q + 1}`, g.p1, C + v * ke + 1, x + 2, {
+          ue(`P${Q + 1}`, g.p1, C + v * RG_SK + 1, x + 2, {
             text: g.night,
             size: 4.8,
           }),
