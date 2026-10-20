@@ -4940,16 +4940,10 @@
     },
     // Magma Isle: extra damage for a splat into the edge (on top of the splat).
     MAGMA = { stage: 5, dunk: 12 },
-    // Sunken Shrine: the painted pools, as standing puddles [x, y, r], and
-    // the shell lamps round the walls for its light.
+    // Sunken Shrine: the shell lamps round the walls, for its light. (Its
+    // pools are water shapes in assets/layouts.js.)
     SHRINE = {
       stage: 6,
-      pools: [
-        [104, 120, 40],
-        [529, 123, 40],
-        [106, 290, 40],
-        [546, 290, 40],
-      ],
       lamps: [
         [220, 46],
         [420, 46],
@@ -6033,19 +6027,22 @@
           (r.ticks = 0),
           (this.players = [new bt(this.mons, Se - 120, Te, mt, t)]),
           (this.projectiles = []),
-          (this.puddles =
-            A.arena === SHRINE.stage
-              ? SHRINE.pools.map(([x, y, r]) => ({
-                  id: this.nextId++,
-                  x,
-                  y,
-                  r,
-                  life: 1e9,
-                  max: 1e9,
-                  team: -1,
-                  pool: !0,
-                }))
-              : []),
+          (this.puddles = layoutOf(A.arena)
+            .filter((s) => s.kind === "water")
+            .map((s) => {
+              let [x0, y0, x1, y1] = shapeBox(s);
+              return {
+                id: this.nextId++,
+                x: (x0 + x1) / 2,
+                y: (y0 + y1) / 2,
+                r: (x1 - x0) / 2,
+                life: 1e9,
+                max: 1e9,
+                team: -1,
+                pool: !0,
+                shape: s,
+              };
+            })),
           (this.mines = []),
           (this.grass = []),
           (this.stage = A.arena),
@@ -6081,6 +6078,23 @@
                     charge: 0,
                   }))
                 : []),
+          (this.rocks = this.rocks.concat(
+            layoutOf(A.arena)
+              .filter((s) => s.kind === "solid")
+              .flatMap(packShape)
+              .map(([x, y, r]) => ({
+                id: this.nextId++,
+                x,
+                y,
+                r,
+                hp: 1 / 0,
+                max: 1 / 0,
+                state: "solid",
+                t: 0,
+                hitT: 0,
+                ghost: !0,
+              })),
+          )),
           (this.lava =
             A.arena === 2
               ? CRATER.pools.map(([o, l, f, u]) => ({
@@ -10907,7 +10921,9 @@
         for (let r of this.puddles)
           if (
             !(s !== void 0 && i !== void 0 && (r.team === s) !== i) &&
-            Math.hypot(r.x - e, (r.y - t) * 1.6) < r.r
+            (r.shape
+              ? inShape(r.shape, e, t)
+              : Math.hypot(r.x - e, (r.y - t) * 1.6) < r.r)
           )
             return !0;
         return !1;
@@ -11967,6 +11983,8 @@
           (this.itemT = SITRUS.every));
       }
       hitRock(e, t, s, i, r) {
+        // Layout cover is painted scenery: it stops you but never breaks.
+        if (e.ghost) return;
         if (e.pylon) {
           let o = r ? this.attackerType(r) : "";
           o === "ELECTRIC" && e.charge <= 0
@@ -18002,6 +18020,108 @@
       shadow: "rgba(8,10,14,0.38)",
     },
     Bt = null;
+  // ---- Arena layouts (assets/layouts.js, drawn with editor.html) ----
+  // Per arena, shapes that are solid (invisible cover the engine treats as
+  // unbreakable rocks), water (standing pools that slow) or layer (that part
+  // of the painting drawn over fighters: sorted by its base line, or always
+  // in front). ?layouts=local plays the editor's layouts from this browser
+  // instead; both players online need the same ones.
+  var LAYOUTS = (() => {
+      let L = window.__LAYOUTS__ ?? {};
+      try {
+        if (/[?&]layouts=local\b/.test(location.search)) {
+          let o = JSON.parse(localStorage.getItem("pb-layouts") ?? "null");
+          o?.arenas && (L = o.arenas);
+        }
+      } catch {}
+      return L;
+    })(),
+    layoutOf = (k) => LAYOUTS[k]?.shapes ?? [];
+  function shapeBox(s) {
+    if (s.shape === "rect") return [s.x, s.y, s.x + s.w, s.y + s.h];
+    if (s.shape === "ellipse")
+      return [s.cx - s.rx, s.cy - s.ry, s.cx + s.rx, s.cy + s.ry];
+    let xs = s.pts.map((p) => p[0]),
+      ys = s.pts.map((p) => p[1]);
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  }
+  function inShape(s, x, y) {
+    if (s.shape === "rect")
+      return x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h;
+    if (s.shape === "ellipse")
+      return ((x - s.cx) / s.rx) ** 2 + ((y - s.cy) / s.ry) ** 2 <= 1;
+    let c = !1,
+      p = s.pts;
+    for (let i = 0, j = p.length - 1; i < p.length; j = i++)
+      p[i][1] > y !== p[j][1] > y &&
+        x <
+          ((p[j][0] - p[i][0]) * (y - p[i][1])) / (p[j][1] - p[i][1]) +
+            p[i][0] &&
+        (c = !c);
+    return c;
+  }
+  // A solid shape as the circles the collision code knows: a row along an
+  // ellipse's long axis, a grid over a rectangle, points inside a polygon.
+  // (editor.html packs them the same way to preview them.)
+  function packShape(s) {
+    let out = [];
+    if (s.shape === "ellipse") {
+      let a = Math.max(s.rx, s.ry),
+        b = Math.min(s.rx, s.ry),
+        n = Math.max(1, Math.round(a / Math.max(1, b))),
+        hz = s.rx >= s.ry;
+      for (let i = 0; i < n; i++) {
+        let d = n === 1 ? 0 : -(a - b) + (2 * (a - b) * i) / (n - 1);
+        out.push([s.cx + (hz ? d : 0), s.cy + (hz ? 0 : d), b]);
+      }
+    } else if (s.shape === "rect") {
+      let r = Math.min(12, Math.min(s.w, s.h) / 2),
+        nx = Math.max(1, Math.ceil((s.w - 2 * r) / (1.4 * r)) + 1),
+        ny = Math.max(1, Math.ceil((s.h - 2 * r) / (1.4 * r)) + 1);
+      for (let i = 0; i < nx; i++)
+        for (let j = 0; j < ny; j++)
+          out.push([
+            nx === 1 ? s.x + s.w / 2 : s.x + r + ((s.w - 2 * r) * i) / (nx - 1),
+            ny === 1 ? s.y + s.h / 2 : s.y + r + ((s.h - 2 * r) * j) / (ny - 1),
+            r,
+          ]);
+    } else {
+      let [x0, y0, x1, y1] = shapeBox(s);
+      for (let x = x0 + 5; x <= x1 - 4; x += 9)
+        for (let y = y0 + 5; y <= y1 - 4; y += 9)
+          inShape(s, x, y) && out.push([x, y, 7]);
+      out.length ||
+        out.push([
+          (x0 + x1) / 2,
+          (y0 + y1) / 2,
+          Math.max(3, Math.min(x1 - x0, y1 - y0) / 2),
+        ]);
+    }
+    return out.slice(0, 80);
+  }
+  function shapePath(a, s) {
+    a.beginPath();
+    if (s.shape === "rect") a.rect(s.x, s.y, s.w, s.h);
+    else if (s.shape === "ellipse")
+      a.ellipse(s.cx, s.cy, s.rx, s.ry, 0, 0, Math.PI * 2);
+    else {
+      s.pts.forEach(([x, y], i) => (i ? a.lineTo(x, y) : a.moveTo(x, y)));
+      a.closePath();
+    }
+  }
+  // A layer shape: its part of the painting (with the arena's light) drawn
+  // again, over whatever stands behind it.
+  function layerDraw(a, e, s) {
+    let art = arenaArt(e.stage ?? e.arena);
+    if (!art) return;
+    a.save(),
+      shapePath(a, s),
+      a.clip(),
+      (a.imageSmoothingEnabled = art.width > Y * Ye),
+      a.drawImage(art, 0, 0, Y, _),
+      LIGHT.on && ((a.imageSmoothingEnabled = !1), a.drawImage(LIGHT.c, 0, 0)),
+      a.restore();
+  }
   // ---- PixelLab effect sheets (assets/vfx.js) ----
   var VFX = {};
   // Draws frame f of an effect, anchored at (x, y); loops wrap, one-shots hold.
@@ -19307,6 +19427,7 @@
       ][k];
     // The Shrine: deep blue water light.
     e.stage === SHRINE.stage && (amb = "rgba(4,22,52,0.30)");
+    LIGHT.on = !!amb;
     if (!amb) return;
     LIGHT.c || ((LIGHT.c = Zt(Y, _)), (LIGHT.g = LIGHT.c.getContext("2d")));
     let g = LIGHT.g,
@@ -19337,8 +19458,15 @@
         hole(x, y, 110 * flick(n), 1),
           glow.push([x, y, 30 * flick(n), "255,190,90", 0.45]);
       });
-      for (let [x, y, r] of SHRINE.pools)
-        hole(x, y, r * 3, 0.8), glow.push([x, y, r * 1.3, "90,210,255", 0.18]);
+      for (let s of layoutOf(e.stage))
+        if (s.kind === "water") {
+          let [x0, y0, x1, y1] = shapeBox(s),
+            x = (x0 + x1) / 2,
+            y = (y0 + y1) / 2,
+            r = (x1 - x0) / 2;
+          hole(x, y, r * 3, 0.8),
+            glow.push([x, y, r * 1.3, "90,210,255", 0.18]);
+        }
       hole(Se, Te, Y * 0.9, 0.35);
     } else if (k === 1) {
       for (let [x, n] of [
@@ -22278,6 +22406,7 @@
     }
   }
   function rockGround(a, e, t) {
+    if (e.ghost) return;
     if (e.state === "solid") {
       // No shadow under the PixelLab sprites.
       if (
@@ -23300,16 +23429,23 @@
     a.globalAlpha = 1;
     for (let h of e.vines)
       h.y2 < h.y1 && ca(a, h.x1, h.y1, h.x2, h.y2, h.ext, e.tick);
-    let f = [
-      ...e.bodies().filter((h) => !h.hidden),
-      ...e.rocks.filter((h) => h.state === "solid"),
-    ].sort((h, c) => h.y - c.y);
+    let lay = layoutOf(e.stage ?? e.arena).filter((s) => s.kind === "layer"),
+      f = [
+        ...e.bodies().filter((h) => !h.hidden),
+        ...e.rocks.filter((h) => h.state === "solid" && !h.ghost),
+        ...lay
+          .filter((s) => s.z !== "front")
+          .map((s) => ({ layer: s, y: s.base ?? shapeBox(s)[3] })),
+      ].sort((h, c) => h.y - c.y);
     for (let h of f)
-      h.max !== void 0 && h.kind === void 0
-        ? ((a.globalAlpha = CINE_DIM.size ? 0.12 : 1),
-          ht2(a, h, e.tick),
-          (a.globalAlpha = 1))
-        : da(a, h, e, o(h.px, h.x), o(h.py, h.y), o(h.pz, h.z));
+      h.layer
+        ? layerDraw(a, e, h.layer)
+        : h.max !== void 0 && h.kind === void 0
+          ? ((a.globalAlpha = CINE_DIM.size ? 0.12 : 1),
+            ht2(a, h, e.tick),
+            (a.globalAlpha = 1))
+          : da(a, h, e, o(h.px, h.x), o(h.py, h.y), o(h.pz, h.z));
+    for (let s of lay) s.z === "front" && layerDraw(a, e, s);
     for (let h of e.vines)
       h.y2 >= h.y1 && ca(a, h.x1, h.y1, h.x2, h.y2, h.ext, e.tick);
     for (let h of e.players) {
@@ -37062,7 +37198,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 11,
+  var NETV = 12,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,

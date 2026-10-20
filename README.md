@@ -284,6 +284,8 @@ F2 (or tap the readout) for a diagnostics panel.
 | `assets/sprites.js` | Sprite sheets and portraits as data URIs (`window.__ASSETS__`) |
 | `assets/vfx.js` | Arena event effects made with PixelLab's VFX tool (`window.__VFX__`); sheets in `assets/vfx/` |
 | `assets/fxpack.js` | Hit, element, status, item and arena effects from two pixel VFX packs (`window.__FXPACK__`), built by `tools/fxpack.py` from the extracted packs |
+| `assets/layouts.js` | Arena layouts (`window.__LAYOUTS__`): solid cover, water pools and layers drawn over fighters, per arena; made with `editor.html` |
+| `editor.html` | The arena editor (built from `tools/editor.html` with `assets/editor/` backdrops): draw solid, water and layer shapes, test them in the game (`index.html?layouts=local`), export JSON |
 | `assets/fonts/` | Lilita One and Fredoka (embedded in `src/page.html`) |
 | `assets/tiles.js` | Arena floor tilesets as data URIs (`window.__TILES__`); source PNGs in `assets/tiles/` |
 | `tools/build.py` | Assembles `index.html` and `dist/artifact.html` |

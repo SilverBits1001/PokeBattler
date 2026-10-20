@@ -14,12 +14,13 @@ sprites = (ROOT / "assets/sprites.js").read_text(encoding="utf-8").rstrip("\n")
 tiles = (ROOT / "assets/tiles.js").read_text(encoding="utf-8").rstrip("\n")
 vfx = (ROOT / "assets/vfx.js").read_text(encoding="utf-8").rstrip("\n")
 fxpack = (ROOT / "assets/fxpack.js").read_text(encoding="utf-8").rstrip("\n")
+layouts = (ROOT / "assets/layouts.js").read_text(encoding="utf-8").rstrip("\n")
 arenas = (ROOT / "assets/arenas.js").read_text(encoding="utf-8").rstrip("\n")
 music = (ROOT / "assets/music.js").read_text(encoding="utf-8").rstrip("\n")
 peerjs = (ROOT / "assets/vendor/peerjs.min.js").read_text(encoding="utf-8").rstrip("\n")
 game = (ROOT / "src/game.js").read_text(encoding="utf-8").rstrip("\n")
 
-body = f"{page}\n<script>{sprites}</script>\n<script>{tiles}</script>\n<script>{vfx}</script>\n<script>{fxpack}</script>\n<script>{music}</script>\n<script>{arenas}</script>\n<script>/* PeerJS 1.5.4, MIT licence (assets/vendor/peerjs-LICENSE.txt) */\n{peerjs}</script>\n<script>\n{game}\n</script>\n"
+body = f"{page}\n<script>{sprites}</script>\n<script>{tiles}</script>\n<script>{vfx}</script>\n<script>{fxpack}</script>\n<script>{layouts}</script>\n<script>{music}</script>\n<script>{arenas}</script>\n<script>/* PeerJS 1.5.4, MIT licence (assets/vendor/peerjs-LICENSE.txt) */\n{peerjs}</script>\n<script>\n{game}\n</script>\n"
 
 skeleton_head = (
     "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
@@ -30,3 +31,16 @@ skeleton_head = (
 (ROOT / "dist").mkdir(exist_ok=True)
 (ROOT / "dist/artifact.html").write_text(body, encoding="utf-8")
 print("built index.html and dist/artifact.html")
+
+# The arena editor (tools/editor.html): the arena backdrops (assets/editor/,
+# rendered from the game with no fighters), the shipped layouts and the arena
+# names, inlined so it is one file next to index.html.
+import base64, json, re
+bgs = {}
+for p in sorted((ROOT / "assets/editor").glob("arena-*.png")):
+    bgs[p.stem.split("-")[1]] = "data:image/png;base64," + base64.b64encode(p.read_bytes()).decode()
+names = re.findall(r'\{ id: "\w+", name: "([^"]+)"', game.split("ARENAS = [", 1)[1].split("]", 1)[0])
+data = f"window.__BG__={json.dumps(bgs)};window.__ARENA_NAMES__={json.dumps(names)};\n{layouts}"
+editor = (ROOT / "tools/editor.html").read_text(encoding="utf-8").replace("/*EDITOR_DATA*/", data)
+(ROOT / "editor.html").write_text(editor, encoding="utf-8")
+print("built editor.html")
