@@ -17369,7 +17369,7 @@
     // The PixelLab boulder (plain or mossy); the old generated one until
     // it has loaded.
     bs
-      ? a.drawImage(bs, Math.round(e.x - 20 + s), Math.round(e.y - 31))
+      ? a.drawImage(bs, Math.round(e.x - 20 + s), Math.round(e.y - 27))
       : (Rk || (Rk = Fk()), a.drawImage(Rk[e.id % 2], i, r));
     let o = 1 - e.hp / e.max;
     if (o > 0.2) {
@@ -19346,6 +19346,19 @@
   }
   function rockGround(a, e, t) {
     if (e.state === "solid") {
+      // No shadow under the PixelLab sprites.
+      if (
+        propOf(
+          e.pylon
+            ? "pylon"
+            : e.exPillar
+              ? "rockTomb"
+              : e.column
+                ? "column"
+                : "boulder",
+        )
+      )
+        return;
       (a.fillStyle = "rgba(8,10,14,0.42)"),
         a.beginPath(),
         a.ellipse(
@@ -19503,13 +19516,14 @@
       a.beginPath(),
       a.ellipse(e.x, e.y, 13, 5.5, 0, 0, Math.PI * 2),
       a.stroke(),
-      (a.globalAlpha = 1),
-      (a.fillStyle = L.shadow),
+      (a.globalAlpha = 1);
+    let spr = propOf("s_" + e.kind);
+    spr ||
+      ((a.fillStyle = L.shadow),
       a.beginPath(),
       a.ellipse(e.x, e.y + 1, 5, 2, 0, 0, Math.PI * 2),
-      a.fill();
+      a.fill());
     // The PixelLab item sprite, standing where the hand-drawn one did.
-    let spr = propOf("s_" + e.kind);
     if (spr) {
       a.drawImage(spr, i - Math.floor(spr.width / 2), r + 4 - spr.height);
       return;
@@ -20143,10 +20157,11 @@
     for (let h of e.mines) {
       let c = h.age > 10,
         y = c && (e.tick + h.id * 7) % 40 < 6;
-      (a.fillStyle = L.shadow),
+      propOf("seedS") ||
+        ((a.fillStyle = L.shadow),
         a.beginPath(),
         a.ellipse(h.x, h.y + 1, 4, 1.6, 0, 0, Math.PI * 2),
-        a.fill(),
+        a.fill()),
         propOf("seedS")
           ? (a.drawImage(
               propOf("seedS"),
@@ -20313,7 +20328,9 @@
     }
     a.globalAlpha = 1;
     for (let h of e.projectiles)
-      (a.fillStyle = L.shadow),
+      (h.kind === "shuriken" && propOf("shurikenS")) ||
+        (h.kind === "boulder" && propOf("rockSmall")) ||
+        ((a.fillStyle = L.shadow),
         a.beginPath(),
         a.ellipse(
           Math.round(o(h.px, h.x)),
@@ -20324,7 +20341,7 @@
           0,
           Math.PI * 2,
         ),
-        a.fill();
+        a.fill());
     ua(a, t, !0);
     sheetsDraw(a, t, !0);
     for (let h of t.ghosts) {
@@ -22807,21 +22824,17 @@
     for (let d of e.dolls) {
       let id = propOf("iceDoll");
       if (id) {
-        (a.globalAlpha = 0.35),
-          (a.fillStyle = L.shadow),
-          a.beginPath(),
-          a.ellipse(d.x, d.y, 8, 2.8, 0, 0, Math.PI * 2),
-          a.fill(),
-          (a.globalAlpha = d.life < 24 && t % 4 < 2 ? 0.5 : 0.92);
+        // Sized to match Froslass herself.
+        a.globalAlpha = d.life < 24 && t % 4 < 2 ? 0.5 : 0.92;
         let bob = Math.round(Math.sin(t * 0.08 + d.id) * 1.5);
-        a.drawImage(id, Math.round(d.x - 20), Math.round(d.y - 44 + bob)),
+        a.drawImage(id, Math.round(d.x - 10), Math.round(d.y - 26 + bob)),
           (a.globalAlpha = 0.6),
           (a.fillStyle = "#ffffff");
         for (let s = 0; s < 3; s++) {
           let g = t * 0.07 + s * 2.1 + d.id;
           a.fillRect(
-            Math.round(d.x + Math.cos(g) * 11),
-            Math.round(d.y - 20 + Math.sin(g * 1.3) * 10),
+            Math.round(d.x + Math.cos(g) * 9),
+            Math.round(d.y - 14 + Math.sin(g * 1.3) * 8),
             1,
             1,
           );
