@@ -15274,8 +15274,8 @@
   //   Stadium: clay pitch (upper) on a grass surround.
   //   Ruins: flagstone plazas round the boulders and a cross path, moss between.
   //   Crater: basalt (its lava is drawn live, see tilePat).
-  //   Frostfall Peak: granite with wind-blown snowfields (upper) drifting
-  //   across it; the rinks' ice is its own tile (TILESET[6]).
+  //   Frostfall Peak: granite (true) broken by wind-blown snowfields; the
+  //   rinks' ice is its own tile (TILESET[6]).
   //   Power Plant: steel deck with coolant channels linking the pylons.
   function floorUpper(kind, x, y) {
     let r = B;
@@ -15327,10 +15327,12 @@
           c = r.x0 + f * 16,
           y = r.y0 + l * 16;
         // Plain cells are mirrored at random so the repeat is less obvious.
+        // (Frostfall's granite also flips upside down.)
         (u === "0000" || u === "1111") && t() < 0.5
           ? (e.save(),
-            e.translate(c + 16, y),
-            e.scale(-1, 1),
+            kind === 3 && t() < 0.5
+              ? (e.translate(c + 16, y + 16), e.scale(-1, -1))
+              : (e.translate(c + 16, y), e.scale(-1, 1)),
             e.drawImage(a, (h % 4) * 16, (h >> 2) * 16, 16, 16, 0, 0, 16, 16),
             e.restore())
           : e.drawImage(a, (h % 4) * 16, (h >> 2) * 16, 16, 16, c, y, 16, 16);
