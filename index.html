@@ -26479,7 +26479,9 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         bg: xe[k].color,
         frame: !1,
         slash: !0,
-      });
+        fill: !0,
+      }),
+        teamRim(x, y0, sz, side);
       d.restore();
     } else
       te(x, y0, sz, sz, side ? "#3a1020" : "#0c2140", sz * ke),
@@ -26499,7 +26501,12 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
         (d.translate(m(px + ps / 2), 0),
         d.scale(-1, 1),
         d.translate(-m(px + ps / 2), 0));
-      Oe(e[p], "Determined", px, py, ps, { bg: xe[p].color, slash: !0 });
+      Oe(e[p], "Determined", px, py, ps, {
+        bg: xe[p].color,
+        slash: !0,
+        fill: !0,
+      }),
+        teamRim(px, py, ps, side);
       d.restore();
     });
     let py = y0 + sz + 6,
@@ -27129,8 +27136,28 @@ window.__VFX__={"eruption":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
       bg: xe[k]?.color ?? LG_INFO[k]?.color,
       frame: !1,
       slash: !0,
-    });
+      fill: !0,
+    }),
+      xe[k] && teamRim(x, y, sz, flip);
     d.restore();
+  }
+  // The team's colour around a face-off portrait: a glowing blue or red rim.
+  function teamRim(x, y, sz, side) {
+    let col = side ? g.cpu : g.p1,
+      lw = Math.max(1, sz * 0.012);
+    d.save(),
+      ze(x, y, sz, sz, sz * ke),
+      (d.lineJoin = "round"),
+      (d.shadowColor = col),
+      (d.shadowBlur = m(sz * 0.06)),
+      (d.strokeStyle = col),
+      (d.lineWidth = m(lw)),
+      d.stroke(),
+      (d.shadowBlur = 0),
+      (d.strokeStyle = "rgba(255,255,255,0.55)"),
+      (d.lineWidth = m(lw * 0.35)),
+      d.stroke(),
+      d.restore();
   }
   // One side of the ready screen: the lead's portrait large, the rest of
   // the side smaller at its inner foot, a name plate, and the legendary
