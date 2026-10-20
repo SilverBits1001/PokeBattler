@@ -16012,7 +16012,10 @@
       // The big screen: both leads with their health, and a flash on big hits.
       let P = e.players.slice(0, 2),
         flash = LIVE.hype > 0.6 && t % 8 < 4;
-      R(274, 4, 92, 36, flash ? "#2a3350" : "#0b1424");
+      // (Over a painted stadium, wide enough to cover its painted screen.)
+      painted
+        ? R(264, 3, 112, 40, flash ? "#2a3350" : "#0b1424")
+        : R(274, 4, 92, 36, flash ? "#2a3350" : "#0b1424");
       P.forEach((p, n) => {
         let img = p.kit && e.mons[p.kit.id]?.portraits?.Normal,
           x = n ? 326 : 278;
