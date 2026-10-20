@@ -5221,6 +5221,25 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       wallDmg: 10,
       every: 30,
     },
+    // Dialga's Roar of Time: time stops for every foe near the aim point,
+    // then the roar tears through them. Time also rewinds for its caller,
+    // giving back part of the HP lost in the last five seconds.
+    DIALGA = { r: 110, stop: 72, dmg: 36, kb: 7.6, rewind: 0.4 },
+    // Palkia's Spacial Rend: three rifts tear across the arena through the
+    // aim point, a beat apart; each pulls whoever it cuts onto its line.
+    PALKIA = { n: 3, warn: 18, gap: 12, r: 20, len: 560, dmg: 30, kb: 6.4 },
+    // Giratina's Shadow Force: it sinks into the Distortion World, hunts the
+    // foe nearest the aim from below, then erupts through any defence.
+    GIRATINA = {
+      sink: 14,
+      hunt: 72,
+      lock: 12,
+      speed: 4.6,
+      r: 34,
+      dmg: 42,
+      kb: 8.2,
+      range: 320,
+    },
     // Final Smash beats. Calling freezes the battle for `intro` ticks of
     // spectacle. A summon whose opening hit lands freezes it again and plays
     // a scene on everyone it caught: small hits on the `hits` beats, then the
@@ -5293,9 +5312,43 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         finDmg: 66,
         finKb: 10,
       },
+      dialga: {
+        len: 128,
+        hits: [24, 40, 56, 72],
+        dmg: 12,
+        fin: 100,
+        finDmg: 72,
+        finKb: 11,
+      },
+      palkia: {
+        len: 124,
+        hits: [20, 34, 48, 62],
+        dmg: 12,
+        fin: 96,
+        finDmg: 74,
+        finKb: 11,
+      },
+      giratina: {
+        len: 130,
+        hits: [26, 42, 58, 74],
+        dmg: 12,
+        fin: 102,
+        finDmg: 72,
+        finKb: 11,
+      },
     },
     cineKey = (a) => (a.kind === "deoxys" ? (a.form ?? "normal") : a.kind),
-    LEGENDS = ["zekrom", "darkrai", "deoxys", "groudon", "rayquaza", "hooh"],
+    LEGENDS = [
+      "zekrom",
+      "darkrai",
+      "deoxys",
+      "groudon",
+      "rayquaza",
+      "hooh",
+      "dialga",
+      "palkia",
+      "giratina",
+    ],
     // The saved legendary choice indexes this list (new ones are appended,
     // so an older save keeps its pick).
     LG_PICKS = [
@@ -5306,6 +5359,9 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       "groudon",
       "rayquaza",
       "hooh",
+      "dialga",
+      "palkia",
+      "giratina",
     ],
     lgRoll = () => LEGENDS[Math.floor(Math.random() * LEGENDS.length)],
     // An unbiased shuffle (Fisher-Yates). Sorting with a random comparator
@@ -12435,7 +12491,9 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       }
       resolveHits() {
         for (let e of this.hitboxes) {
-          for (let t of this.victimsFor(e.team)) {
+          for (let t of e.shadow
+            ? this.shadowFoes(e.team)
+            : this.victimsFor(e.team)) {
             if (!this.shapeHits(e.shape, t.x, t.y, t.hurtR)) continue;
             if (
               t.kind === "player" &&
@@ -13187,6 +13245,13 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           (e.state !== "stunned" ? (e.frozenT = 0) : e.frozenT--);
         e.frostImmT > 0 && e.frostImmT--;
         e.tombT > 0 && e.tombT--;
+        e.timeStopT > 0 &&
+          (e.timeStopT--,
+          e.state !== "faint" &&
+            ((e.state = "stunned"),
+            (e.hitstun = Math.max(e.hitstun ?? 0, e.t + 2)),
+            (e.mvx = e.mvy = e.kvx = e.kvy = 0),
+            (e.z = 0)));
         e.state !== "ex"
           ? (e.exHidden && (e.alpha = 1),
             e.exZ && ((e.z = 0), (e.exZ = !1)),
@@ -14693,6 +14758,239 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           (best.flameEnd = 0),
           this.emit({ type: "mindPull", who: e, v: best });
       }
+      // ---- Dialga, Palkia and Giratina --------------------------------------
+      r3Fire(e) {
+        let t = e.owner;
+        if (e.kind === "dialga") {
+          let D = DIALGA,
+            l = this.victimsFor(e.team).filter(
+              (v) => Math.hypot(v.x - e.ax, v.y - e.ay) < D.r + v.hurtR,
+            );
+          for (let v of l) v.kind === "player" && (v.timeStopT = D.stop + 2);
+          // Time rewinds for the caller.
+          let h = t.slot.hpHist?.[0] ?? t.slot.hp,
+            back = Math.round(Math.max(0, h - t.slot.hp) * D.rewind);
+          back > 0 &&
+            ((t.slot.hp = Math.min(t.slot.maxHp, t.slot.hp + back)),
+            this.emit({ type: "rewind", who: t, n: back }));
+          Object.assign(e, {
+            phase: "stop",
+            t: 0,
+            x: e.ax,
+            y: e.ay,
+            px: t.x,
+            py: t.y,
+            list: l,
+            alpha: 1,
+          }),
+            this.emit({ type: "dialgaStop", who: t, x: e.ax, y: e.ay, r: D.r });
+          return !0;
+        }
+        if (e.kind === "palkia") {
+          let P = PALKIA,
+            a0 = Math.atan2(e.ay - t.y, e.ax - t.x);
+          Object.assign(e, {
+            phase: "rend",
+            t: 0,
+            x: e.ax,
+            y: e.ay,
+            px: e.ax,
+            py: e.ay,
+            rifts: [0, 1, 2].map((k) => ({
+              a: a0 + [0, Math.PI / 3, -Math.PI / 3][k],
+              at: k * P.gap,
+            })),
+            alpha: 1,
+          }),
+            this.emit({ type: "palkiaRend", who: t, x: e.ax, y: e.ay });
+          return !0;
+        }
+        if (e.kind === "giratina") {
+          let G = GIRATINA,
+            tg = this.victimsFor(e.team)
+              .concat(
+                this.players.filter(
+                  (v) =>
+                    v.team !== e.team && v.invincible && v.state !== "faint",
+                ),
+              )
+              .filter(
+                (v) =>
+                  v.kind === "player" &&
+                  Math.hypot(v.x - e.ax, v.y - e.ay) < G.range,
+              )
+              .sort(
+                (a, b) =>
+                  Math.hypot(a.x - e.ax, a.y - e.ay) -
+                  Math.hypot(b.x - e.ax, b.y - e.ay),
+              )[0];
+          Object.assign(e, {
+            phase: "sink",
+            t: 0,
+            x: t.x,
+            y: t.y,
+            px: t.x,
+            py: t.y,
+            tg: tg ?? null,
+            tx: tg ? tg.x : e.ax,
+            ty: tg ? tg.y : e.ay,
+            alpha: 1,
+          }),
+            this.emit({ type: "giratinaSink", who: t, x: t.x, y: t.y });
+          return !0;
+        }
+        return !1;
+      }
+      r3Legend(e) {
+        let w = e.owner;
+        if (e.kind === "dialga") {
+          let D = DIALGA;
+          if (e.phase === "stop") {
+            e.t % 12 === 0 &&
+              this.emit({ type: "clockTick", who: w, k: e.t / 12 });
+            if (e.t >= D.stop) {
+              (e.phase = "roar"), (e.t = 0);
+              let hl = new Set();
+              for (let v of [...e.list, ...this.victimsFor(e.team)]) {
+                if (hl.has(v) || v.state === "faint") continue;
+                if (
+                  !e.list.includes(v) &&
+                  Math.hypot(v.x - e.x, v.y - e.y) > D.r + v.hurtR
+                )
+                  continue;
+                hl.add(v), v.kind === "player" && (v.timeStopT = 0);
+                let dx = v.x - e.px,
+                  dy = v.y - e.py,
+                  d = Math.hypot(dx, dy) || 1;
+                this.hitboxes.push(
+                  this.lgBox(
+                    { ...e, id: e.id * 8 + 1, dx: dx / d, dy: dy / d },
+                    { kind: "circle", x: v.x, y: v.y, r: v.hurtR + 6 },
+                    {
+                      dmg: D.dmg,
+                      kb: D.kb,
+                      hitstun: 26,
+                      hitstop: 10,
+                      color: "#bfe0ff",
+                    },
+                  ),
+                );
+              }
+              this.emit({ type: "dialgaRoar", who: w, x: e.x, y: e.y, r: D.r });
+            }
+          } else if (e.phase === "roar")
+            e.t >= 26 && ((e.phase = "leave"), (e.t = 0));
+          else
+            (e.alpha = Math.max(0, 1 - e.t / 30)), e.t >= 30 && (e.done = !0);
+          return !0;
+        }
+        if (e.kind === "palkia") {
+          let P = PALKIA;
+          if (e.phase === "rend") {
+            e.rifts.forEach((q, k) => {
+              if (e.t !== q.at + P.warn) return;
+              let o = Math.cos(q.a),
+                l = Math.sin(q.a);
+              for (let v of this.victimsFor(e.team)) {
+                let rx = v.x - e.x,
+                  ry = v.y - e.y,
+                  along = rx * o + ry * l,
+                  px = rx - along * o,
+                  py = ry - along * l,
+                  d = Math.hypot(px, py);
+                if (d > P.r + v.hurtR || Math.abs(along) > P.len / 2) continue;
+                // Space folds: the cut drags them onto the rift's line.
+                v.kind === "player" &&
+                  !v.heldBy &&
+                  ((v.x = me(v.x - px * 0.7, B.x0 + v.r, B.x1 - v.r)),
+                  (v.y = me(v.y - py * 0.7, B.y0 + v.r, B.y1 - v.r)));
+                let s = along >= 0 ? 1 : -1;
+                this.hitboxes.push(
+                  this.lgBox(
+                    { ...e, id: e.id * 8 + k, dx: o * s, dy: l * s },
+                    { kind: "circle", x: v.x, y: v.y, r: v.hurtR + 6 },
+                    {
+                      dmg: P.dmg,
+                      kb: P.kb,
+                      hitstun: 26,
+                      hitstop: 9,
+                      color: "#ffc8ea",
+                    },
+                  ),
+                );
+              }
+              this.emit({
+                type: "palkiaRift",
+                who: w,
+                x1: e.x - o * P.len * 0.5,
+                y1: e.y - l * P.len * 0.5,
+                x2: e.x + o * P.len * 0.5,
+                y2: e.y + l * P.len * 0.5,
+                k,
+              });
+            });
+            e.t >= P.gap * (P.n - 1) + P.warn + 16 &&
+              ((e.phase = "leave"), (e.t = 0));
+          } else
+            (e.alpha = Math.max(0, 1 - e.t / 30)), e.t >= 30 && (e.done = !0);
+          return !0;
+        }
+        if (e.kind === "giratina") {
+          let G = GIRATINA;
+          if (e.phase === "sink")
+            (e.alpha = Math.max(0, 1 - e.t / G.sink)),
+              e.t >= G.sink && ((e.phase = "hunt"), (e.t = 0), (e.alpha = 0));
+          else if (e.phase === "hunt") {
+            let v = e.tg;
+            v && v.state !== "faint" && ((e.tx = v.x), (e.ty = v.y));
+            let dx = e.tx - e.x,
+              dy = e.ty - e.y,
+              d = Math.hypot(dx, dy);
+            d > 1 &&
+              ((e.x += (dx / d) * Math.min(d, G.speed)),
+              (e.y += (dy / d) * Math.min(d, G.speed))),
+              e.t % 6 === 0 &&
+                this.emit({ type: "shadowTrail", who: w, x: e.x, y: e.y });
+            ((d < 6 && e.t > 18) || e.t >= G.hunt) &&
+              ((e.phase = "erupt"),
+              (e.t = 0),
+              this.emit({ type: "giratinaRise", who: w, x: e.x, y: e.y }));
+          } else if (e.phase === "erupt") {
+            e.t < G.lock &&
+              e.tg &&
+              e.tg.state !== "faint" &&
+              ((e.x += (e.tg.x - e.x) * 0.2), (e.y += (e.tg.y - e.y) * 0.2));
+            e.alpha = Math.min(1, e.t / G.lock);
+            e.t === G.lock &&
+              (this.hitboxes.push(
+                this.lgBox(
+                  { ...e, id: e.id * 8 + 1, dx: 0, dy: -1 },
+                  { kind: "circle", x: e.x, y: e.y, r: G.r },
+                  {
+                    dmg: G.dmg,
+                    kb: G.kb,
+                    kbMode: "away",
+                    hitstun: 28,
+                    hitstop: 12,
+                    color: "#c9a6ff",
+                    shadow: !0,
+                  },
+                ),
+              ),
+              this.emit({
+                type: "giratinaErupt",
+                who: w,
+                x: e.x,
+                y: e.y,
+                r: G.r,
+              }));
+            e.t >= G.lock + 26 && ((e.phase = "leave"), (e.t = 0));
+          } else
+            (e.alpha = Math.max(0, 1 - e.t / 30)), e.t >= 30 && (e.done = !0);
+          return !0;
+        }
+        return !1;
+      }
       // ---- Roster 3 -------------------------------------------------------
       // Smash charge: Solar Blade fills at once in Lurantis's sunlight.
       r3Charge(e, t) {
@@ -14709,6 +15007,10 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         s.fcT > 0 && --s.fcT === 0 && (s.fcN = 0);
         s.waT > 0 && s.waT--;
         s.steadyT > 0 && s.steadyT--;
+        s === e.slot &&
+          this.tick % 30 === 0 &&
+          ((s.hpHist ??= []).push(s.hp),
+          s.hpHist.length > 10 && s.hpHist.shift());
         // Illusion: Zoroark starts each round disguised.
         e.kit.illusion &&
           s === e.slot &&
@@ -14798,6 +15100,13 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
             e.kit.id === "lurantis" &&
             Math.hypot(e.x - f.x, (e.y - f.y) * 1.4) < f.r,
         );
+      }
+      // Every foe, untouchable or not: Shadow Force reaches them all.
+      shadowFoes(team) {
+        return [
+          ...this.players.filter((s) => s.team !== team && s.state !== "faint"),
+          ...this.dummies.filter((s) => s.team !== team && this.canBeHit(s)),
+        ];
       }
       // Statuses that cannot land right now.
       statusImmune(v) {
@@ -15965,6 +16274,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       // Tag Team partner and rings you in sacred fire).
       exFireLegend(e) {
         let t = e.owner;
+        if (this.r3Fire(e)) return;
         if (e.kind === "groudon")
           Object.assign(e, {
             phase: "warn",
@@ -16014,6 +16324,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       }
       exLegend(e) {
         let w = e.owner;
+        if (this.r3Legend(e)) return;
         if (e.kind === "groudon") {
           let G = GROUDON;
           if (e.phase === "warn")
@@ -16300,12 +16611,18 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           e.t >= 2 &&
           e.t <= LUCA.detectWin &&
           t &&
-          t.team !== e.team
+          t.team !== e.team &&
+          !String(k).includes("legend-giratina")
         ) {
           this.counter(e, t, s);
           return;
         }
-        if (t && t.team !== e.team && this.ksBlocks(e, t)) {
+        if (
+          t &&
+          t.team !== e.team &&
+          !String(k).includes("legend-giratina") &&
+          this.ksBlocks(e, t)
+        ) {
           let by = t.kind === "assist" ? t.summoner : t;
           M && by?.kind === "player" && (by.atkDownT = EXK.aegislash.ksDownT);
           (e.hitstop = 4), (t.hitstop = Math.max(t.hitstop ?? 0, 8));
@@ -20417,6 +20734,24 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       color: "#4fd18b",
       rgb: "79,209,139",
     },
+    dialga: {
+      name: "DIALGA",
+      move: "ROAR OF TIME",
+      color: "#6fa8ff",
+      rgb: "111,168,255",
+    },
+    palkia: {
+      name: "PALKIA",
+      move: "SPACIAL REND",
+      color: "#ff8fd0",
+      rgb: "255,143,208",
+    },
+    giratina: {
+      name: "GIRATINA",
+      move: "SHADOW FORCE",
+      color: "#a05cff",
+      rgb: "160,92,255",
+    },
     hooh: {
       name: "HO-OH",
       move: "SACRED FIRE",
@@ -24488,7 +24823,14 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
   // Projectiles for Snorlax, Noivern and Lucario.
   // ---- Groudon, Rayquaza and Ho-Oh: drawing --------------------------
   // How large each legendary is drawn, against Zekrom's 1.1.
-  var LG_SCALE = { groudon: 1, rayquaza: 0.72, hooh: 0.88 };
+  var LG_SCALE = {
+    groudon: 1,
+    rayquaza: 0.72,
+    hooh: 0.88,
+    dialga: 0.74,
+    palkia: 0.7,
+    giratina: 0.78,
+  };
   // A blade of stone jutting from the ground with a molten edge.
   function lgBlade(a, x, y, h, w, hot) {
     (a.fillStyle = "#3a2418"),
@@ -24565,6 +24907,101 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
   // Aim previews. Returns true when it drew one.
   function exLgAim(a, e, s, i, t) {
     let o = s.alpha;
+    if (s.kind === "dialga") {
+      // A clock face where time will stop.
+      let D = DIALGA;
+      (a.globalAlpha = 0.14 * o),
+        (a.fillStyle = i.color),
+        a.beginPath(),
+        a.arc(s.ax, s.ay, D.r, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 0.85 * o),
+        a.setLineDash([6, 5]),
+        (a.lineDashOffset = -t * 0.5),
+        lgRing(a, s.ax, s.ay, D.r, i.color, 1.4),
+        a.setLineDash([]);
+      for (let k = 0; k < 12; k++) {
+        let g = (k / 12) * Math.PI * 2;
+        (a.strokeStyle = k % 3 ? i.color : "#ffffff"),
+          (a.lineWidth = k % 3 ? 1 : 2),
+          a.beginPath(),
+          a.moveTo(
+            s.ax + Math.cos(g) * (D.r - 8),
+            s.ay + Math.sin(g) * (D.r - 8),
+          ),
+          a.lineTo(s.ax + Math.cos(g) * D.r, s.ay + Math.sin(g) * D.r),
+          a.stroke();
+      }
+      let g = t * 0.08 - Math.PI / 2;
+      return (
+        (a.strokeStyle = "#ffffff"),
+        (a.lineWidth = 1.6),
+        a.beginPath(),
+        a.moveTo(s.ax, s.ay),
+        a.lineTo(
+          s.ax + Math.cos(g) * D.r * 0.8,
+          s.ay + Math.sin(g) * D.r * 0.8,
+        ),
+        a.stroke(),
+        lgReticle(a, s.ax, s.ay, t),
+        !0
+      );
+    }
+    if (s.kind === "palkia") {
+      // The three rifts it will tear, through the aim point.
+      let P = PALKIA,
+        a0 = Math.atan2(s.ay - s.owner.y, s.ax - s.owner.x);
+      for (let k = 0; k < 3; k++) {
+        let q = a0 + [0, Math.PI / 3, -Math.PI / 3][k],
+          dx = Math.cos(q) * P.len * 0.5,
+          dy = Math.sin(q) * P.len * 0.5;
+        (a.globalAlpha = 0.14 * o),
+          summonBand(
+            a,
+            s.ax - dx,
+            s.ay - dy,
+            s.ax + dx,
+            s.ay + dy,
+            P.r * 2,
+            i.color,
+          ),
+          (a.globalAlpha = 0.85 * o),
+          a.setLineDash([7, 5]),
+          (a.lineDashOffset = -t * 0.8 - k * 4),
+          summonBand(
+            a,
+            s.ax - dx,
+            s.ay - dy,
+            s.ax + dx,
+            s.ay + dy,
+            1.2,
+            i.color,
+          ),
+          a.setLineDash([]);
+      }
+      return (a.globalAlpha = o), lgReticle(a, s.ax, s.ay, t), !0;
+    }
+    if (s.kind === "giratina") {
+      // Its quarry: the foe nearest the aim, marked through any cover.
+      let G = GIRATINA,
+        v = e.players
+          .filter(
+            (p) =>
+              p.team !== s.team &&
+              p.state !== "faint" &&
+              Math.hypot(p.x - s.ax, p.y - s.ay) < G.range,
+          )
+          .sort(
+            (p, q) =>
+              Math.hypot(p.x - s.ax, p.y - s.ay) -
+              Math.hypot(q.x - s.ax, q.y - s.ay),
+          )[0];
+      v &&
+        ((a.globalAlpha = 0.9 * o),
+        lgRing(a, v.x, v.y - 8, 16 + Math.sin(t * 0.3) * 2, i.color, 1.6),
+        lgRing(a, v.x, v.y, 22, "#2a0a40", 3));
+      return (a.globalAlpha = o), lgReticle(a, s.ax, s.ay, t), !0;
+    }
     if (s.kind === "groudon") {
       let G = GROUDON;
       for (let k of [G.r1, G.r2, G.r3])
@@ -24657,7 +25094,236 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       (a.textAlign = "start");
   }
   // The attack itself on the ground. Returns true when it drew.
+  // While Dialga, Palkia or Giratina act, their world bleeds over the arena
+  // floor: stopped time, open space, the Distortion World.
+  function lgWorld(a, e, s, i, t) {
+    let k = s.phase === "leave" ? s.alpha : 1;
+    a.globalCompositeOperation = "source-over";
+    if (s.kind === "dialga") {
+      let D = DIALGA,
+        p = s.phase === "stop" ? Math.min(1, s.t / 10) : 1;
+      // Time drains out of the whole arena.
+      (a.globalAlpha = 0.42 * p * k),
+        (a.fillStyle = "#283850"),
+        a.fillRect(-20, -20, Y + 40, _ + 40),
+        (a.globalCompositeOperation = "saturation"),
+        (a.globalAlpha = 0.85 * p * k),
+        (a.fillStyle = "#808080"),
+        a.fillRect(-20, -20, Y + 40, _ + 40),
+        (a.globalCompositeOperation = "source-over");
+      // The clock face on the floor.
+      let R = D.r,
+        hand = s.phase === "stop" ? Math.min(1, s.t / 30) : 1;
+      (a.globalAlpha = 0.22 * k),
+        (a.fillStyle = "#6fa8ff"),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, R, R * 0.55, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 0.9 * k),
+        (a.strokeStyle = "#bfe0ff"),
+        (a.lineWidth = 2),
+        a.beginPath(),
+        a.ellipse(s.x, s.y, R, R * 0.55, 0, 0, Math.PI * 2),
+        a.stroke();
+      for (let n = 0; n < 12; n++) {
+        let g = (n / 12) * Math.PI * 2;
+        (a.fillStyle = n % 3 ? "#6fa8ff" : "#ffffff"),
+          a.fillRect(
+            Math.round(s.x + Math.cos(g) * (R - 6)) - 1,
+            Math.round(s.y + Math.sin(g) * (R - 6) * 0.55) - 1,
+            n % 3 ? 2 : 4,
+            2,
+          );
+      }
+      // The hands spin back, then freeze.
+      let g1 = -Math.PI / 2 - (1 - hand) * 9,
+        g2 = -Math.PI / 2 + (1 - hand) * 24;
+      (a.strokeStyle = "#ffffff"),
+        (a.lineWidth = 2.4),
+        a.beginPath(),
+        a.moveTo(s.x, s.y),
+        a.lineTo(
+          s.x + Math.cos(g1) * R * 0.55,
+          s.y + Math.sin(g1) * R * 0.55 * 0.55,
+        ),
+        a.stroke(),
+        (a.lineWidth = 1.4),
+        a.beginPath(),
+        a.moveTo(s.x, s.y),
+        a.lineTo(
+          s.x + Math.cos(g2) * R * 0.85,
+          s.y + Math.sin(g2) * R * 0.85 * 0.55,
+        ),
+        a.stroke();
+      if (s.phase === "roar") {
+        let q = Math.min(1, s.t / 14);
+        a.globalCompositeOperation = "lighter";
+        glowAt(a, s.x, s.y - 10, R * (0.6 + q), "160,210,255", 0.8 * (1 - q)),
+          (a.globalAlpha = 1 - q),
+          lgRing(a, s.x, s.y, R * (0.4 + q * 0.8), "#ffffff", 3),
+          (a.globalCompositeOperation = "source-over");
+      }
+      a.globalAlpha = 1;
+      return;
+    }
+    if (s.kind === "palkia") {
+      let P = PALKIA,
+        p = s.phase === "rend" ? Math.min(1, s.t / 10) : 1;
+      // Space opens: the arena darkens into a starfield.
+      (a.globalAlpha = 0.8 * p * k),
+        (a.fillStyle = "#08031a"),
+        a.fillRect(-20, -20, Y + 40, _ + 40),
+        (a.globalCompositeOperation = "lighter");
+      for (let n = 0; n < 4; n++)
+        glowAt(
+          a,
+          [Y * 0.2, Y * 0.75, Y * 0.5, Y * 0.9][n],
+          [_ * 0.25, _ * 0.3, _ * 0.75, _ * 0.8][n],
+          110,
+          n % 2 ? "150,110,255" : "255,143,208",
+          0.22 * p * k,
+        );
+      a.globalCompositeOperation = "source-over";
+      let g = rt(s.id * 13 + 5);
+      for (let n = 0; n < 110; n++) {
+        let x = g() * Y,
+          y = g() * _,
+          tw = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.05 + n));
+        (a.globalAlpha = tw * p * k * (0.4 + g() * 0.6)),
+          (a.fillStyle = n % 7 ? "#ffffff" : "#ffc8ea"),
+          a.fillRect(Math.round(x), Math.round(y), n % 11 ? 1 : 2, 1);
+      }
+      glowAt(a, s.x, s.y - 20, 140, "255,143,208", 0.25 * p * k);
+      // The rifts: a warning line, then a tear that splits apart.
+      for (let [n, q] of (s.rifts ?? []).entries()) {
+        let o = Math.cos(q.a),
+          l = Math.sin(q.a),
+          x1 = s.x - o * P.len * 0.5,
+          y1 = s.y - l * P.len * 0.5,
+          x2 = s.x + o * P.len * 0.5,
+          y2 = s.y + l * P.len * 0.5,
+          w = s.t - q.at;
+        if (w < 0) continue;
+        if (w < P.warn) lgWarnBand(a, x1, y1, x2, y2, P.r, w / P.warn, t);
+        else if (w < P.warn + 24) {
+          let z = (w - P.warn) / 24,
+            sp = 2 + z * 8;
+          (a.globalCompositeOperation = "lighter"),
+            (a.globalAlpha = 0.7 * (1 - z) * k),
+            summonBand(a, x1, y1, x2, y2, P.r * 2.4 * (1 - z * 0.5), "#ff8fd0"),
+            (a.globalAlpha = (1 - z) * k),
+            summonBand(
+              a,
+              x1 - l * sp,
+              y1 + o * sp,
+              x2 - l * sp,
+              y2 + o * sp,
+              2,
+              "#ffffff",
+            ),
+            summonBand(
+              a,
+              x1 + l * sp,
+              y1 - o * sp,
+              x2 + l * sp,
+              y2 - o * sp,
+              2,
+              "#ffe0f4",
+            ),
+            (a.globalAlpha = 0.9 * (1 - z) * k),
+            summonBand(a, x1, y1, x2, y2, 3, "#2a0636"),
+            (a.globalCompositeOperation = "source-over");
+        } else {
+          // A scar in space, healing.
+          let z = Math.min(1, (w - P.warn - 24) / 30);
+          (a.globalAlpha = 0.35 * (1 - z) * k),
+            summonBand(a, x1, y1, x2, y2, 1.2, "#ff8fd0");
+        }
+      }
+      a.globalAlpha = 1;
+      return;
+    }
+    if (s.kind === "giratina") {
+      let G = GIRATINA,
+        p = Math.min(1, (s.phase === "sink" ? s.t : 20) / 12);
+      // The Distortion World seeps in at the edges.
+      let v = a.createRadialGradient(
+        Y / 2,
+        _ / 2,
+        _ * 0.3,
+        Y / 2,
+        _ / 2,
+        Y * 0.7,
+      );
+      v.addColorStop(0, "rgba(20,4,40,0)"),
+        v.addColorStop(1, `rgba(20,4,40,${0.9 * p * k})`),
+        (a.globalAlpha = 1),
+        (a.fillStyle = v),
+        a.fillRect(-20, -20, Y + 40, _ + 40),
+        (a.globalAlpha = 0.55 * p * k),
+        (a.fillStyle = "#2a0848"),
+        a.fillRect(-20, -20, Y + 40, _ + 40);
+      for (let n = 0; n < 4; n++) {
+        let yy = _ * (0.15 + n * 0.25);
+        (a.globalAlpha = 0.18 * p * k),
+          (a.strokeStyle = n % 2 ? "#a05cff" : "#5a1a8a"),
+          (a.lineWidth = 2),
+          a.beginPath();
+        for (let x = -20; x <= Y + 20; x += 12) {
+          let y = yy + Math.sin(x * 0.03 + t * 0.06 + n) * 6;
+          x === -20 ? a.moveTo(x, y) : a.lineTo(x, y);
+        }
+        a.stroke();
+      }
+      // The shadow pool: where Giratina moves beneath the floor.
+      let R =
+          s.phase === "erupt"
+            ? G.r * (1 + Math.min(1, s.t / G.lock) * 0.3)
+            : 28,
+        x = s.x,
+        y = s.y,
+        q = a.createRadialGradient(x, y, 0, x, y, R);
+      q.addColorStop(0, `rgba(4,0,10,${0.95 * k})`),
+        q.addColorStop(0.7, `rgba(40,8,70,${0.8 * k})`),
+        q.addColorStop(1, "rgba(80,30,140,0)"),
+        (a.fillStyle = q),
+        a.beginPath(),
+        a.ellipse(x, y, R, R * 0.55, 0, 0, Math.PI * 2),
+        a.fill();
+      for (let n = 0; n < 6; n++) {
+        let g = (n / 6) * Math.PI * 2 + t * 0.07,
+          rr = R * (0.8 + 0.25 * Math.sin(t * 0.2 + n));
+        (a.globalAlpha = 0.7 * k),
+          (a.strokeStyle = n % 2 ? "#a05cff" : "#d24a5a"),
+          (a.lineWidth = 1.5),
+          a.beginPath(),
+          a.moveTo(x + Math.cos(g) * R * 0.3, y + Math.sin(g) * R * 0.3 * 0.55),
+          a.quadraticCurveTo(
+            x + Math.cos(g + 0.6) * rr * 0.8,
+            y + Math.sin(g + 0.6) * rr * 0.45 - 4,
+            x + Math.cos(g + 1) * rr,
+            y + Math.sin(g + 1) * rr * 0.55,
+          ),
+          a.stroke();
+      }
+      s.phase === "erupt" &&
+        s.t < G.lock &&
+        t % 4 < 2 &&
+        ((a.globalAlpha = 0.9), lgRing(a, x, y, G.r, "#ff5a8a", 1.6));
+      if (s.phase === "erupt" && s.t >= G.lock && s.t < G.lock + 16) {
+        let z = (s.t - G.lock) / 16;
+        (a.globalCompositeOperation = "lighter"),
+          (a.globalAlpha = 0.8 * (1 - z)),
+          summonBand(a, x, y, x, y - 150, 40 * (1 - z * 0.5), "#5a1a8a"),
+          summonBand(a, x, y, x, y - 150, 12, "#c9a6ff"),
+          (a.globalCompositeOperation = "source-over");
+      }
+      a.globalAlpha = 1;
+    }
+  }
   function exLgGround(a, e, s, i, t) {
+    if (s.kind === "dialga" || s.kind === "palkia" || s.kind === "giratina")
+      return lgWorld(a, e, s, i, t), !0;
     if (s.kind === "groudon") {
       let G = GROUDON,
         rs = [G.r1, G.r2, G.r3];
@@ -24824,6 +25490,32 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
   }
   // Where the legendary itself is drawn, and how.
   function exLgAir(s, i, t, f, l) {
+    if (s.kind === "dialga") {
+      let g = Math.atan2(s.y - s.py, s.x - s.px);
+      return {
+        x: s.px - Math.cos(g) * 46,
+        y: s.py - 30,
+        f: s.phase === "roar" ? (i.anims.Shoot ?? f) : (i.anims.RearUp ?? f),
+        l: g,
+      };
+    }
+    if (s.kind === "palkia")
+      return {
+        x: s.x,
+        y: s.y - 64 - Math.sin(t * 0.08) * 3,
+        f: s.phase === "rend" ? (i.anims.Attack ?? f) : f,
+        l: Math.PI / 2,
+      };
+    if (s.kind === "giratina")
+      return {
+        x: s.x,
+        y:
+          s.phase === "erupt"
+            ? s.y - 10 - Math.min(1, s.t / (GIRATINA.lock + 6)) * 26
+            : s.y - 10,
+        f: s.phase === "erupt" ? (i.anims.Attack ?? f) : (i.anims.Charge ?? f),
+        l: Math.PI / 2,
+      };
     if (s.kind === "groudon")
       return {
         x: s.x,
@@ -24855,6 +25547,243 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
   }
   // The scene backdrop for Groudon and Rayquaza.
   function exLgSky(a, s, i, l, t) {
+    if (s.kind === "dialga") {
+      // Temporal Tower: a vast clock, its hands racing backwards then
+      // stopping dead, gears turning in the dark and time streaming past.
+      let o = a.createLinearGradient(0, 0, 0, _);
+      o.addColorStop(0, "#03060f"),
+        o.addColorStop(0.55, "#0e2242"),
+        o.addColorStop(1, "#050b18"),
+        (a.globalAlpha = 0.94 * i),
+        (a.fillStyle = o),
+        a.fillRect(-60, -60, Y + 120, _ + 120);
+      let cx = s.cx ?? Y / 2,
+        cy = (s.cy ?? _ / 2) - 40,
+        R = 150,
+        c = CINE.dialga,
+        stop = Math.min(1, s.t / c.fin);
+      glowAt(a, cx, cy, R * 1.3, "111,168,255", 0.25 * i),
+        (a.globalAlpha = 0.55 * i),
+        (a.strokeStyle = "#6fa8ff"),
+        (a.lineWidth = 6),
+        a.beginPath(),
+        a.arc(cx, cy, R, 0, Math.PI * 2),
+        a.stroke(),
+        (a.lineWidth = 1.5),
+        (a.strokeStyle = "#bfe0ff"),
+        a.beginPath(),
+        a.arc(cx, cy, R - 12, 0, Math.PI * 2),
+        a.stroke();
+      for (let n = 0; n < 12; n++) {
+        let g = (n / 12) * Math.PI * 2,
+          x = cx + Math.cos(g) * (R - 24),
+          y = cy + Math.sin(g) * (R - 24);
+        (a.globalAlpha = 0.8 * i),
+          (a.fillStyle = n % 3 ? "#6fa8ff" : "#ffffff"),
+          a.beginPath(),
+          a.moveTo(x, y - 6),
+          a.lineTo(x + 4, y),
+          a.lineTo(x, y + 6),
+          a.lineTo(x - 4, y),
+          a.closePath(),
+          a.fill();
+      }
+      let h1 = -Math.PI / 2 - (1 - stop) * 30,
+        h2 = -Math.PI / 2 - (1 - stop) * 4;
+      (a.globalAlpha = 0.9 * i),
+        (a.strokeStyle = "#ffffff"),
+        (a.lineWidth = 3),
+        a.beginPath(),
+        a.moveTo(cx, cy),
+        a.lineTo(cx + Math.cos(h1) * R * 0.85, cy + Math.sin(h1) * R * 0.85),
+        a.stroke(),
+        (a.lineWidth = 5),
+        a.beginPath(),
+        a.moveTo(cx, cy),
+        a.lineTo(cx + Math.cos(h2) * R * 0.55, cy + Math.sin(h2) * R * 0.55),
+        a.stroke();
+      // Gears turning at the edges.
+      for (let n = 0; n < 4; n++) {
+        let gx = [40, Y - 50, 70, Y - 80][n],
+          gy = [60, 70, _ - 60, _ - 50][n],
+          gr = [34, 26, 22, 30][n],
+          rot = t * (n % 2 ? -0.02 : 0.025) * (1 - stop * 0.9);
+        (a.globalAlpha = 0.35 * i), (a.fillStyle = "#3a5a8a"), a.beginPath();
+        for (let m = 0; m < 24; m++) {
+          let g = (m / 24) * Math.PI * 2 + rot,
+            rr = m % 2 ? gr : gr + 6;
+          m === 0
+            ? a.moveTo(gx + Math.cos(g) * rr, gy + Math.sin(g) * rr)
+            : a.lineTo(gx + Math.cos(g) * rr, gy + Math.sin(g) * rr);
+        }
+        a.closePath(),
+          a.fill(),
+          (a.fillStyle = "#050b18"),
+          a.beginPath(),
+          a.arc(gx, gy, gr * 0.4, 0, Math.PI * 2),
+          a.fill();
+      }
+      // Time streaming past, slowing to a stop.
+      for (let n = 0; n < 40; n++) {
+        let x =
+            ((((l() * (Y + 200) - t * (8 * (1 - stop) + 0.4)) % (Y + 200)) +
+              Y +
+              200) %
+              (Y + 200)) -
+            100,
+          y = l() * _;
+        (a.globalAlpha = (0.12 + 0.2 * l()) * i),
+          (a.fillStyle = n % 4 ? "#6fa8ff" : "#ffffff"),
+          a.fillRect(Math.round(x), Math.round(y), 20 + (n % 5) * 10, 1);
+      }
+      return (a.globalAlpha = 1), !0;
+    }
+    if (s.kind === "palkia") {
+      // Open space: stars, a pearl-pink nebula, a far galaxy and shards of
+      // broken space drifting past.
+      let o = a.createLinearGradient(0, 0, 0, _);
+      o.addColorStop(0, "#02010a"),
+        o.addColorStop(0.5, "#120526"),
+        o.addColorStop(1, "#04010c"),
+        (a.globalAlpha = 0.96 * i),
+        (a.fillStyle = o),
+        a.fillRect(-60, -60, Y + 120, _ + 120),
+        (a.globalCompositeOperation = "lighter");
+      for (let n = 0; n < 5; n++) {
+        let x = l() * Y,
+          y = l() * _ * 0.8,
+          r = 60 + l() * 90;
+        glowAt(a, x, y, r, n % 2 ? "255,143,208" : "150,110,255", 0.18 * i);
+      }
+      // A spiral galaxy.
+      let gx = Y * 0.78,
+        gy = _ * 0.22;
+      for (let n = 0; n < 90; n++) {
+        let q = n / 90,
+          g = q * Math.PI * 5 + t * 0.004 + (n % 2) * Math.PI,
+          r = q * 46;
+        (a.globalAlpha = (1 - q) * 0.7 * i),
+          (a.fillStyle = n % 3 ? "#ffd8f0" : "#ffffff"),
+          a.fillRect(
+            Math.round(gx + Math.cos(g) * r),
+            Math.round(gy + Math.sin(g) * r * 0.45),
+            1,
+            1,
+          );
+      }
+      glowAt(a, gx, gy, 20, "255,220,240", 0.6 * i),
+        (a.globalCompositeOperation = "source-over");
+      for (let n = 0; n < 120; n++) {
+        let x = l() * Y,
+          y = l() * _,
+          tw = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.04 + n * 1.7));
+        (a.globalAlpha = tw * i * (0.4 + l() * 0.6)),
+          (a.fillStyle = n % 9 ? "#ffffff" : "#ffc8ea"),
+          a.fillRect(
+            Math.round(x),
+            Math.round(y),
+            n % 13 ? 1 : 2,
+            n % 13 ? 1 : 2,
+          );
+      }
+      // Shards of torn space.
+      for (let n = 0; n < 7; n++) {
+        let x =
+            ((l() * (Y + 100) + t * (0.5 + (n % 3) * 0.3)) % (Y + 100)) - 50,
+          y = l() * _,
+          sz = 8 + l() * 14,
+          g = t * 0.01 + n;
+        (a.globalAlpha = 0.5 * i),
+          (a.fillStyle = "rgba(255,200,236,0.25)"),
+          (a.strokeStyle = "#ff8fd0"),
+          (a.lineWidth = 1),
+          a.beginPath(),
+          a.moveTo(x + Math.cos(g) * sz, y + Math.sin(g) * sz),
+          a.lineTo(
+            x + Math.cos(g + 2.1) * sz * 0.7,
+            y + Math.sin(g + 2.1) * sz * 0.7,
+          ),
+          a.lineTo(
+            x + Math.cos(g + 4.2) * sz * 0.9,
+            y + Math.sin(g + 4.2) * sz * 0.9,
+          ),
+          a.closePath(),
+          a.fill(),
+          a.stroke();
+      }
+      return (a.globalAlpha = 1), !0;
+    }
+    if (s.kind === "giratina") {
+      // The Distortion World: purple-black, islands hanging upside down,
+      // gravity twisted and the air rippling.
+      let o = a.createLinearGradient(0, 0, 0, _);
+      o.addColorStop(0, "#0a0214"),
+        o.addColorStop(0.5, "#22073a"),
+        o.addColorStop(1, "#06010c"),
+        (a.globalAlpha = 0.96 * i),
+        (a.fillStyle = o),
+        a.fillRect(-60, -60, Y + 120, _ + 120);
+      for (let n = 0; n < 6; n++) {
+        let yy = _ * (0.1 + n * 0.16);
+        (a.globalAlpha = 0.16 * i),
+          (a.strokeStyle = n % 2 ? "#a05cff" : "#5a1a8a"),
+          (a.lineWidth = 3),
+          a.beginPath();
+        for (let x = -40; x <= Y + 40; x += 10) {
+          let y = yy + Math.sin(x * 0.02 + t * 0.04 + n * 1.3) * 10;
+          x === -40 ? a.moveTo(x, y) : a.lineTo(x, y);
+        }
+        a.stroke();
+      }
+      // Floating islands, upside down, drifting.
+      for (let n = 0; n < 6; n++) {
+        let w = 40 + l() * 70,
+          x = ((l() * (Y + 160) + t * (0.15 + (n % 3) * 0.1)) % (Y + 160)) - 80,
+          y = 20 + l() * (_ * 0.55) + Math.sin(t * 0.02 + n) * 4,
+          h = w * 0.45;
+        (a.globalAlpha = 0.85 * i),
+          (a.fillStyle = "#14061f"),
+          a.beginPath(),
+          a.moveTo(x - w / 2, y);
+        a.lineTo(x + w / 2, y),
+          a.lineTo(x + w * 0.22, y - h),
+          a.lineTo(x - w * 0.1, y - h * 0.7),
+          a.closePath(),
+          a.fill();
+        (a.globalAlpha = 0.9 * i),
+          (a.fillStyle = "#3a1a5a"),
+          a.fillRect(Math.round(x - w / 2), Math.round(y), Math.round(w), 3),
+          (a.globalAlpha = 0.5 * i),
+          (a.fillStyle = "#6a3aa0"),
+          a.fillRect(
+            Math.round(x - w / 2 + 4),
+            Math.round(y + 3),
+            Math.round(w - 8),
+            2,
+          );
+        // Waterfalls that fall upward.
+        for (let m = 0; m < 2; m++) {
+          let fx = x - w * 0.2 + m * w * 0.35,
+            ph = (t * 0.8 + m * 13 + n * 7) % 30;
+          (a.globalAlpha = 0.35 * i),
+            (a.fillStyle = "#8a6ad0"),
+            a.fillRect(Math.round(fx), Math.round(y - h * 0.5 - ph), 2, 6);
+        }
+      }
+      // Tendrils reaching in from the bottom.
+      for (let n = 0; n < 5; n++) {
+        let x = (n + 0.5) * (Y / 5),
+          sw = Math.sin(t * 0.03 + n) * 30;
+        (a.globalAlpha = 0.55 * i),
+          (a.strokeStyle = n % 2 ? "#1a0428" : "#300a48"),
+          (a.lineWidth = 7),
+          a.beginPath(),
+          a.moveTo(x, _ + 20),
+          a.quadraticCurveTo(x + sw, _ * 0.7, x - sw * 0.6, _ * 0.5),
+          a.stroke();
+      }
+      return (a.globalAlpha = 1), !0;
+    }
     if (s.kind === "groudon") {
       // Drought: a blinding sun, a red sky and rising embers.
       glowAt(a, s.cx - 120, s.cy - 170, 120, "255,200,120", 0.5 * i),
@@ -24923,6 +25852,183 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
   }
   // The scene: the legendary at work on everyone it caught.
   function exLgCineAir(a, e, t, s, i, r, o, sd, fc, l, f, u, h, c, y) {
+    if (t.kind === "dialga") {
+      // Dialga beside them; every beat a clock hand slashes through time,
+      // then the Roar of Time pours from its mouth.
+      let b = t.cx + sd * 74,
+        p = t.cy - 22 + Math.sin(o * 0.05) * 2,
+        k = o >= h - 18 ? "Shoot" : o % 30 < 14 ? "RearUp" : "Idle";
+      o < 14 && (p -= (1 - Ee(o / 14)) * 40);
+      a.globalCompositeOperation = "lighter";
+      for (let M of u)
+        if (o >= M && o < M + 10)
+          for (let P of t.caught) {
+            let q = (o - M) / 10,
+              g = -Math.PI / 2 + q * Math.PI * 1.4;
+            (a.globalAlpha = 1 - q),
+              (a.strokeStyle = "#bfe0ff"),
+              (a.lineWidth = 3),
+              a.beginPath(),
+              a.arc(P.x, P.y - 12, 26, g - 0.9, g),
+              a.stroke(),
+              glowAt(a, P.x, P.y - 12, 24, r.rgb, 0.5 * (1 - q));
+          }
+      if (o >= h - 6 && o < h + 26) {
+        let q = Math.max(0, (o - h) / 26);
+        for (let P of t.caught)
+          (a.globalAlpha = 0.6 * (1 - q)),
+            summonBand(
+              a,
+              b - sd * 10,
+              p - 36,
+              P.x,
+              P.y - 12,
+              34 * (1 - q * 0.5),
+              "#3f78e0",
+            ),
+            (a.globalAlpha = 0.9 * (1 - q)),
+            summonBand(a, b - sd * 10, p - 36, P.x, P.y - 12, 12, "#bfe0ff"),
+            summonBand(a, b - sd * 10, p - 36, P.x, P.y - 12, 4, "#ffffff"),
+            glowAt(a, P.x, P.y - 12, 60, "160,210,255", 0.8 * (1 - q));
+      }
+      return (
+        (a.globalCompositeOperation = "source-over"),
+        glowAt(a, b, p - 30, 70, r.rgb, 0.4 * f),
+        lgBig(a, s, k, i, fc, b, p, 1.5, f, y),
+        !0
+      );
+    }
+    if (t.kind === "palkia") {
+      // Palkia cuts the void around them on each beat, then space snaps
+      // shut on them.
+      let b = t.cx + sd * 72,
+        p = t.cy - 26 + Math.sin(o * 0.06) * 3,
+        k =
+          o >= h - 14
+            ? "Shoot"
+            : u.some((M) => o >= M - 4 && o < M + 8)
+              ? "Attack"
+              : "Idle";
+      o < 14 && (p -= (1 - Ee(o / 14)) * 40);
+      a.globalCompositeOperation = "lighter";
+      for (let [n, M] of u.entries())
+        if (o >= M && o < M + 12)
+          for (let P of t.caught) {
+            let q = (o - M) / 12,
+              g = [0.7, -0.7, 0.2, -0.2][n % 4],
+              dx = Math.cos(g) * 46,
+              dy = Math.sin(g) * 46;
+            (a.globalAlpha = 1 - q),
+              summonBand(
+                a,
+                P.x - dx,
+                P.y - 12 - dy,
+                P.x + dx,
+                P.y - 12 + dy,
+                10 * (1 - q),
+                "#ff8fd0",
+              ),
+              summonBand(
+                a,
+                P.x - dx,
+                P.y - 12 - dy,
+                P.x + dx,
+                P.y - 12 + dy,
+                2,
+                "#ffffff",
+              );
+          }
+      if (o >= h - 10 && o < h + 24) {
+        let q = (o - (h - 10)) / 34;
+        for (let P of t.caught) {
+          let R = q < 0.3 ? 70 * (1 - q / 0.3) + 6 : 6 + (q - 0.3) * 120;
+          (a.globalAlpha = q < 0.3 ? 0.9 : 0.9 * (1 - q)),
+            lgRing(a, P.x, P.y - 12, R, "#ff8fd0", 4),
+            lgRing(a, P.x, P.y - 12, R * 0.8, "#ffffff", 1.5),
+            q > 0.28 &&
+              q < 0.4 &&
+              glowAt(a, P.x, P.y - 12, 80, "255,220,240", 1);
+        }
+      }
+      return (
+        (a.globalCompositeOperation = "source-over"),
+        glowAt(a, b, p - 30, 70, r.rgb, 0.4 * f),
+        lgBig(a, s, k, i, fc, b, p, 1.5, f, y),
+        !0
+      );
+    }
+    if (t.kind === "giratina") {
+      // Giratina looms behind them; shadow claws burst up on each beat,
+      // then it erupts through a portal beneath them.
+      let b = t.cx + sd * 64,
+        p = t.cy - 34 + Math.sin(o * 0.04) * 4,
+        k = "Idle";
+      o < 16 && (p += (1 - Ee(o / 16)) * 60);
+      for (let M of u)
+        if (o >= M && o < M + 12)
+          for (let P of t.caught) {
+            let q = (o - M) / 12,
+              hh = (q < 0.3 ? q / 0.3 : 1 - (q - 0.3) / 0.7) * 34;
+            for (let n = -1; n <= 1; n++)
+              (a.globalAlpha = 0.95),
+                (a.fillStyle = n ? "#2a0a40" : "#5a1a8a"),
+                a.beginPath(),
+                a.moveTo(P.x + n * 10 - 5, P.y + 2),
+                a.lineTo(P.x + n * 10 + n * 4, P.y + 2 - hh * (n ? 0.8 : 1)),
+                a.lineTo(P.x + n * 10 + 5, P.y + 2),
+                a.closePath(),
+                a.fill();
+            glowAt(a, P.x, P.y - 8, 26, r.rgb, 0.5 * (1 - q));
+          }
+      if (o >= h - 20) {
+        let q = me((o - (h - 20)) / 20, 0, 1),
+          z = me((o - h) / 18, 0, 1);
+        for (let P of t.caught) {
+          let g = a.createRadialGradient(P.x, P.y, 0, P.x, P.y, 46);
+          g.addColorStop(0, `rgba(0,0,0,${0.95 * (1 - z)})`),
+            g.addColorStop(1, "rgba(60,10,100,0)"),
+            (a.fillStyle = g),
+            (a.globalAlpha = q),
+            a.beginPath(),
+            a.ellipse(P.x, P.y, 46, 22, 0, 0, Math.PI * 2),
+            a.fill();
+        }
+        if (o >= h) {
+          let P = t.caught[0] ?? { x: t.cx, y: t.cy };
+          (a.globalCompositeOperation = "lighter"),
+            (a.globalAlpha = 0.8 * (1 - z)),
+            summonBand(
+              a,
+              P.x,
+              P.y,
+              P.x,
+              P.y - 200,
+              50 * (1 - z * 0.5),
+              "#5a1a8a",
+            ),
+            summonBand(a, P.x, P.y, P.x, P.y - 200, 14, "#c9a6ff"),
+            (a.globalCompositeOperation = "source-over"),
+            lgBig(
+              a,
+              s,
+              "Attack",
+              i,
+              Math.PI / 2,
+              P.x,
+              P.y - 30 - Ee(z) * 60,
+              1.7,
+              f,
+              o < h + 3 ? 0.9 : 0,
+            );
+          return !0;
+        }
+      }
+      return (
+        glowAt(a, b, p - 30, 80, r.rgb, 0.4 * f),
+        lgBig(a, s, k, i, fc, b, p, 1.6, f, y),
+        !0
+      );
+    }
     if (t.kind === "groudon") {
       // Groudon towers beside them; stone blades erupt on each beat, then a
       // geyser of magma on the finisher.
@@ -25027,6 +26133,15 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
   function exLgCineGround(a, e, t, s) {
     let o = t.t,
       k = cineK(t);
+    if (t.kind === "dialga" || t.kind === "palkia" || t.kind === "giratina") {
+      let col = LG_INFO[t.kind].color;
+      for (let n = 0; n < 2; n++) {
+        let q = ((o * 1.5 + n * 30) % 60) / 60;
+        (a.globalAlpha = (1 - q) * 0.6 * k),
+          lgRing(a, t.cx, t.cy, 18 + q * 70, n ? "#ffffff" : col, 1.4);
+      }
+      return (a.globalAlpha = 1), !0;
+    }
     if (t.kind === "groudon") {
       (a.globalAlpha = 0.8 * k),
         (a.fillStyle = "#2a0a04"),
@@ -25667,6 +26782,28 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     (p.slot.arT ?? 0) > 0 && overAquaRing(a, p, t);
     p.kit.id === "inteleon" && overInteleon(a, e, p, t);
     p.kit.id === "zoroark" && p.slot.disguise && overDisguise(a, e, p, t);
+    (p.timeStopT ?? 0) > 0 && overTimeStop(a, p, t);
+  }
+  function overTimeStop(a, p, t) {
+    let hgt = p.kit.tall * Bz(p),
+      x = p.x,
+      y = p.y - p.z;
+    (a.globalAlpha = 0.4),
+      (a.fillStyle = "#9fb8d8"),
+      a.beginPath(),
+      a.ellipse(x, y - hgt * 0.5, 13, hgt * 0.62, 0, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalAlpha = 0.9),
+      (a.strokeStyle = "#e6f0ff"),
+      (a.lineWidth = 1),
+      a.beginPath(),
+      a.arc(x, y - hgt - 8, 5, 0, Math.PI * 2),
+      a.moveTo(x, y - hgt - 8),
+      a.lineTo(x, y - hgt - 12),
+      a.moveTo(x, y - hgt - 8),
+      a.lineTo(x + 3, y - hgt - 8),
+      a.stroke(),
+      (a.globalAlpha = 1);
   }
   // A faint red flicker at the feet gives a disguised Zoroark away to
   // anyone watching closely.
@@ -30426,7 +31563,10 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     ["groudon", "Precipice Blades", "Rings of blades,", "then scorched earth"],
     ["rayquaza", "Dragon Ascent", "Dives on up to", "three foes in turn"],
     ["hooh", "Sacred Fire", "Heals your side,", "rings you in fire"],
-    ["random", "Any of the six", "Rolled fresh for", "every battle"],
+    ["dialga", "Roar of Time", "Stops time round", "the target, then roars"],
+    ["palkia", "Spacial Rend", "Three rifts tear", "space across the arena"],
+    ["giratina", "Shadow Force", "Hunts from below,", "through any defence"],
+    ["random", "Any of the nine", "Rolled fresh for", "every battle"],
     ["off", "No legendaries", "Battle without", "summons"],
   ];
   // ---- Ready screen and Training briefing --------------------------------
@@ -31204,17 +32344,22 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         { align: "center" },
       );
     let i = 96,
-      r = 66,
+      r = 56,
       o = 8,
       l = (H - (i * 4 + o * 3)) / 2;
     LG_CARDS.forEach(([f, u, h, c], y) => {
       let b = a.lgCursor === y,
         p = LG_INFO[f],
         k = p?.color ?? (f === "random" ? g.gold : g.dim),
-        M = l + (y % 4) * (i + o),
+        M =
+          l +
+          (y % 4) * (i + o) +
+          ((4 - Math.min(4, LG_CARDS.length - Math.floor(y / 4) * 4)) *
+            (i + o)) /
+            2,
         P =
           54 +
-          Math.floor(y / 4) * (r + 8) +
+          Math.floor(y / 4) * (r + 6) +
           (1 - s) * 20 +
           (b ? -3 + Math.sin(t * 0.12) * 1.2 : 0);
       tapRect(M, P, i, r, () => {
@@ -31259,7 +32404,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         G(h, M + 49, P + 34, 4.8, g.haze),
         G(c, M + 49, P + 41, 4.8, g.haze);
     });
-    let f = 214;
+    let f = 244;
     G(
       cpuSide()
         ? "The CPU brings a random legendary."
@@ -34118,532 +35263,629 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       },
       cry(a, e = 0) {
         O() &&
-          (a === "zoroark"
-            ? (I("saw", 440, 330, 0.25, 0.09, e, { vib: 30 }),
-              I("p25", 660, 880, 0.2, 0.06, e + 0.08),
-              X(0.2, "bandpass", 1400, 2, 0.06, 900, e + 0.05))
-            : a === "inteleon"
-              ? (I("p25", 880, 1175, 0.15, 0.07, e, { vib: 20 }),
-                I("p25", 1175, 990, 0.2, 0.06, e + 0.12),
-                X(0.1, "highpass", 5e3, 1, 0.05, 8e3, e + 0.05))
-              : a === "milotic"
-                ? (I("tri", 587, 880, 0.5, 0.08, e, { vib: 8 }),
-                  I("tri", 880, 740, 0.45, 0.05, e + 0.18, { vib: 6 }),
-                  X(0.4, "lowpass", 2400, 1, 0.05, 900, e))
-                : a === "volcarona"
-                  ? (I("tri", 523, 784, 0.3, 0.08, e, { vib: 40 }),
-                    I("tri", 784, 1046, 0.35, 0.05, e + 0.1, { vib: 30 }),
-                    X(0.3, "bandpass", 3000, 1, 0.05, 1500, e))
-                  : a === "ceruledge"
-                    ? (I("saw", 330, 220, 0.3, 0.08, e, { vib: 25 }),
-                      I("p25", 660, 440, 0.25, 0.06, e + 0.06),
-                      X(0.25, "bandpass", 1800, 1.5, 0.08, 700, e, !0))
-                    : a === "chandelure"
-                      ? (I("tri", 660, 440, 0.45, 0.08, e, { vib: 10 }),
-                        I("p25", 330, 220, 0.5, 0.05, e + 0.06, { vib: 6 }),
-                        X(0.4, "bandpass", 1200, 2, 0.06, 500, e, !0))
-                      : a === "lurantis"
-                        ? (I("tri", 990, 1320, 0.18, 0.08, e, { vib: 30 }),
-                          I("p25", 1320, 1100, 0.22, 0.06, e + 0.12),
-                          X(0.18, "highpass", 4e3, 1, 0.06, 6e3, e + 0.04))
-                        : a === "aegislash"
-                          ? (I("saw", 220, 180, 0.3, 0.08, e, { vib: 30 }),
-                            I("tri", 880, 660, 0.35, 0.06, e + 0.05),
-                            X(0.3, "highpass", 3000, 1, 0.06, 6000, e, !0))
-                          : a === "greninja"
-                            ? (I("p25", 660, 990, 0.12, 0.08, e),
-                              I("p25", 990, 740, 0.22, 0.07, e + 0.1, {
-                                vib: 20,
+          (a === "dialga"
+            ? (I("saw", 140, 90, 0.9, 0.2, e, { vib: 12 }),
+              I("sq", 280, 180, 0.8, 0.1, e + 0.06, { vib: 8 }),
+              X(0.8, "bandpass", 1200, 1, 0.14, 500, e, !0))
+            : a === "palkia"
+              ? (I("saw", 330, 180, 0.8, 0.18, e, { vib: 20 }),
+                I("tri", 660, 990, 0.6, 0.08, e + 0.1, { vib: 30 }),
+                X(0.7, "bandpass", 3000, 1.5, 0.12, 1000, e, !0))
+              : a === "giratina"
+                ? (I("saw", 110, 70, 1, 0.22, e, { vib: 6 }),
+                  I("p25", 220, 140, 0.9, 0.1, e + 0.08, { vib: 4 }),
+                  X(0.9, "lowpass", 600, 2, 0.16, 200, e, !0))
+                : a === "zoroark"
+                  ? (I("saw", 440, 330, 0.25, 0.09, e, { vib: 30 }),
+                    I("p25", 660, 880, 0.2, 0.06, e + 0.08),
+                    X(0.2, "bandpass", 1400, 2, 0.06, 900, e + 0.05))
+                  : a === "inteleon"
+                    ? (I("p25", 880, 1175, 0.15, 0.07, e, { vib: 20 }),
+                      I("p25", 1175, 990, 0.2, 0.06, e + 0.12),
+                      X(0.1, "highpass", 5e3, 1, 0.05, 8e3, e + 0.05))
+                    : a === "milotic"
+                      ? (I("tri", 587, 880, 0.5, 0.08, e, { vib: 8 }),
+                        I("tri", 880, 740, 0.45, 0.05, e + 0.18, { vib: 6 }),
+                        X(0.4, "lowpass", 2400, 1, 0.05, 900, e))
+                      : a === "volcarona"
+                        ? (I("tri", 523, 784, 0.3, 0.08, e, { vib: 40 }),
+                          I("tri", 784, 1046, 0.35, 0.05, e + 0.1, { vib: 30 }),
+                          X(0.3, "bandpass", 3000, 1, 0.05, 1500, e))
+                        : a === "ceruledge"
+                          ? (I("saw", 330, 220, 0.3, 0.08, e, { vib: 25 }),
+                            I("p25", 660, 440, 0.25, 0.06, e + 0.06),
+                            X(0.25, "bandpass", 1800, 1.5, 0.08, 700, e, !0))
+                          : a === "chandelure"
+                            ? (I("tri", 660, 440, 0.45, 0.08, e, { vib: 10 }),
+                              I("p25", 330, 220, 0.5, 0.05, e + 0.06, {
+                                vib: 6,
                               }),
-                              X(0.25, "bandpass", 2400, 2, 0.08, 1200, e))
-                            : a === "charizard"
-                              ? (I("saw", 520, 260, 0.32, 0.12, e, {
-                                  vib: 60,
-                                  vibDelay: 0.02,
+                              X(0.4, "bandpass", 1200, 2, 0.06, 500, e, !0))
+                            : a === "lurantis"
+                              ? (I("tri", 990, 1320, 0.18, 0.08, e, {
+                                  vib: 30,
                                 }),
-                                I("p25", 780, 300, 0.36, 0.08, e + 0.03),
-                                X(0.32, "bandpass", 1800, 1, 0.18, 700, e, !0))
-                              : a === "venusaur"
-                                ? (I("p50", 180, 150, 0.45, 0.16, e, {
-                                    vib: 40,
-                                    vibDelay: 0.05,
+                                I("p25", 1320, 1100, 0.22, 0.06, e + 0.12),
+                                X(
+                                  0.18,
+                                  "highpass",
+                                  4e3,
+                                  1,
+                                  0.06,
+                                  6e3,
+                                  e + 0.04,
+                                ))
+                              : a === "aegislash"
+                                ? (I("saw", 220, 180, 0.3, 0.08, e, {
+                                    vib: 30,
                                   }),
-                                  I("tri", 360, 240, 0.4, 0.14, e + 0.05),
+                                  I("tri", 880, 660, 0.35, 0.06, e + 0.05),
                                   X(
-                                    0.2,
-                                    "bandpass",
-                                    600,
-                                    2,
-                                    0.12,
-                                    300,
-                                    e + 0.1,
+                                    0.3,
+                                    "highpass",
+                                    3000,
+                                    1,
+                                    0.06,
+                                    6000,
+                                    e,
+                                    !0,
                                   ))
-                                : a === "blastoise"
-                                  ? (I("p50", 140, 110, 0.4, 0.18, e),
-                                    I("saw", 280, 200, 0.35, 0.06, e + 0.02, {
-                                      vib: 30,
+                                : a === "greninja"
+                                  ? (I("p25", 660, 990, 0.12, 0.08, e),
+                                    I("p25", 990, 740, 0.22, 0.07, e + 0.1, {
+                                      vib: 20,
                                     }),
-                                    X(
-                                      0.35,
-                                      "bandpass",
-                                      2400,
-                                      0.8,
-                                      0.22,
-                                      500,
-                                      e + 0.05,
-                                    ))
-                                  : a === "snorlax"
-                                    ? (I("p50", 110, 80, 0.55, 0.2, e, {
-                                        vib: 20,
+                                    X(0.25, "bandpass", 2400, 2, 0.08, 1200, e))
+                                  : a === "charizard"
+                                    ? (I("saw", 520, 260, 0.32, 0.12, e, {
+                                        vib: 60,
+                                        vibDelay: 0.02,
                                       }),
-                                      I("tri", 220, 150, 0.5, 0.16, e + 0.04),
+                                      I("p25", 780, 300, 0.36, 0.08, e + 0.03),
                                       X(
-                                        0.3,
-                                        "lowpass",
-                                        500,
+                                        0.32,
+                                        "bandpass",
+                                        1800,
                                         1,
-                                        0.16,
-                                        300,
-                                        e + 0.1,
+                                        0.18,
+                                        700,
+                                        e,
+                                        !0,
                                       ))
-                                    : a === "noivern"
-                                      ? (I("saw", 900, 1500, 0.18, 0.09, e, {
-                                          vib: 80,
+                                    : a === "venusaur"
+                                      ? (I("p50", 180, 150, 0.45, 0.16, e, {
+                                          vib: 40,
+                                          vibDelay: 0.05,
                                         }),
-                                        I(
-                                          "p25",
-                                          1400,
-                                          700,
-                                          0.22,
-                                          0.08,
-                                          e + 0.1,
-                                        ),
+                                        I("tri", 360, 240, 0.4, 0.14, e + 0.05),
                                         X(
-                                          0.25,
+                                          0.2,
                                           "bandpass",
-                                          3200,
+                                          600,
                                           2,
-                                          0.14,
-                                          1200,
-                                          e + 0.05,
+                                          0.12,
+                                          300,
+                                          e + 0.1,
                                         ))
-                                      : a === "darkrai"
-                                        ? (I("tri", 220, 110, 0.7, 0.16, e, {
-                                            vib: 8,
-                                          }),
+                                      : a === "blastoise"
+                                        ? (I("p50", 140, 110, 0.4, 0.18, e),
                                           I(
-                                            "p25",
-                                            330,
-                                            160,
-                                            0.6,
-                                            0.08,
-                                            e + 0.08,
+                                            "saw",
+                                            280,
+                                            200,
+                                            0.35,
+                                            0.06,
+                                            e + 0.02,
                                             {
-                                              vib: 6,
+                                              vib: 30,
                                             },
                                           ),
                                           X(
-                                            0.6,
-                                            "lowpass",
-                                            700,
-                                            2,
-                                            0.1,
-                                            300,
-                                            e,
-                                            !0,
+                                            0.35,
+                                            "bandpass",
+                                            2400,
+                                            0.8,
+                                            0.22,
+                                            500,
+                                            e + 0.05,
                                           ))
-                                        : a === "deoxys"
-                                          ? (I("sq", 900, 1300, 0.12, 0.08, e),
-                                            I(
-                                              "sq",
-                                              1300,
-                                              600,
-                                              0.18,
-                                              0.08,
-                                              e + 0.12,
-                                              {
-                                                vib: 50,
-                                              },
-                                            ),
+                                        : a === "snorlax"
+                                          ? (I("p50", 110, 80, 0.55, 0.2, e, {
+                                              vib: 20,
+                                            }),
                                             I(
                                               "tri",
-                                              400,
-                                              900,
+                                              220,
+                                              150,
+                                              0.5,
+                                              0.16,
+                                              e + 0.04,
+                                            ),
+                                            X(
                                               0.3,
-                                              0.1,
-                                              e + 0.05,
+                                              "lowpass",
+                                              500,
+                                              1,
+                                              0.16,
+                                              300,
+                                              e + 0.1,
                                             ))
-                                          : a === "zekrom"
+                                          : a === "noivern"
                                             ? (I(
                                                 "saw",
-                                                170,
-                                                80,
-                                                0.75,
-                                                0.22,
+                                                900,
+                                                1500,
+                                                0.18,
+                                                0.09,
                                                 e,
                                                 {
-                                                  vib: 30,
+                                                  vib: 80,
                                                 },
                                               ),
                                               I(
-                                                "p50",
-                                                340,
-                                                150,
-                                                0.6,
-                                                0.12,
-                                                e + 0.05,
+                                                "p25",
+                                                1400,
+                                                700,
+                                                0.22,
+                                                0.08,
+                                                e + 0.1,
                                               ),
                                               X(
-                                                0.5,
+                                                0.25,
                                                 "bandpass",
-                                                2600,
-                                                1.5,
-                                                0.16,
-                                                900,
-                                                e,
-                                                !0,
+                                                3200,
+                                                2,
+                                                0.14,
+                                                1200,
+                                                e + 0.05,
                                               ))
-                                            : a === "garchomp"
+                                            : a === "darkrai"
                                               ? (I(
-                                                  "saw",
-                                                  260,
-                                                  140,
-                                                  0.45,
-                                                  0.14,
+                                                  "tri",
+                                                  220,
+                                                  110,
+                                                  0.7,
+                                                  0.16,
                                                   e,
                                                   {
-                                                    vib: 40,
+                                                    vib: 8,
                                                   },
                                                 ),
                                                 I(
                                                   "p25",
-                                                  520,
-                                                  300,
-                                                  0.3,
+                                                  330,
+                                                  160,
+                                                  0.6,
                                                   0.08,
-                                                  e + 0.04,
+                                                  e + 0.08,
+                                                  {
+                                                    vib: 6,
+                                                  },
                                                 ),
                                                 X(
-                                                  0.35,
-                                                  "bandpass",
-                                                  900,
-                                                  1,
-                                                  0.16,
-                                                  400,
+                                                  0.6,
+                                                  "lowpass",
+                                                  700,
+                                                  2,
+                                                  0.1,
+                                                  300,
                                                   e,
                                                   !0,
                                                 ))
-                                              : a === "scizor"
+                                              : a === "deoxys"
                                                 ? (I(
                                                     "sq",
-                                                    1200,
-                                                    1600,
-                                                    0.08,
+                                                    900,
+                                                    1300,
+                                                    0.12,
                                                     0.08,
                                                     e,
                                                   ),
                                                   I(
                                                     "sq",
-                                                    1600,
-                                                    900,
-                                                    0.14,
-                                                    0.07,
-                                                    e + 0.1,
+                                                    1300,
+                                                    600,
+                                                    0.18,
+                                                    0.08,
+                                                    e + 0.12,
                                                     {
-                                                      vib: 40,
+                                                      vib: 50,
                                                     },
                                                   ),
-                                                  X(
-                                                    0.12,
-                                                    "highpass",
-                                                    4e3,
-                                                    1,
-                                                    0.08,
-                                                    2e3,
-                                                    e + 0.02,
+                                                  I(
+                                                    "tri",
+                                                    400,
+                                                    900,
+                                                    0.3,
+                                                    0.1,
+                                                    e + 0.05,
                                                   ))
-                                                : a === "tyrantrum"
+                                                : a === "zekrom"
                                                   ? (I(
                                                       "saw",
-                                                      150,
-                                                      70,
-                                                      0.7,
-                                                      0.2,
+                                                      170,
+                                                      80,
+                                                      0.75,
+                                                      0.22,
                                                       e,
                                                       {
-                                                        vib: 25,
+                                                        vib: 30,
                                                       },
                                                     ),
                                                     I(
                                                       "p50",
-                                                      300,
-                                                      140,
-                                                      0.5,
+                                                      340,
+                                                      150,
+                                                      0.6,
                                                       0.12,
                                                       e + 0.05,
                                                     ),
                                                     X(
-                                                      0.6,
-                                                      "lowpass",
-                                                      800,
-                                                      1,
-                                                      0.2,
-                                                      300,
+                                                      0.5,
+                                                      "bandpass",
+                                                      2600,
+                                                      1.5,
+                                                      0.16,
+                                                      900,
                                                       e,
                                                       !0,
                                                     ))
-                                                  : a === "golurk"
+                                                  : a === "garchomp"
                                                     ? (I(
-                                                        "sq",
-                                                        110,
-                                                        110,
-                                                        0.5,
-                                                        0.12,
+                                                        "saw",
+                                                        260,
+                                                        140,
+                                                        0.45,
+                                                        0.14,
                                                         e,
                                                         {
-                                                          vib: 6,
+                                                          vib: 40,
                                                         },
                                                       ),
                                                       I(
-                                                        "tri",
-                                                        220,
-                                                        180,
-                                                        0.45,
-                                                        0.1,
-                                                        e + 0.1,
-                                                      ),
-                                                      I(
                                                         "p25",
-                                                        440,
-                                                        330,
-                                                        0.2,
-                                                        0.05,
-                                                        e + 0.25,
+                                                        520,
+                                                        300,
+                                                        0.3,
+                                                        0.08,
+                                                        e + 0.04,
+                                                      ),
+                                                      X(
+                                                        0.35,
+                                                        "bandpass",
+                                                        900,
+                                                        1,
+                                                        0.16,
+                                                        400,
+                                                        e,
+                                                        !0,
                                                       ))
-                                                    : a === "rhyperior"
+                                                    : a === "scizor"
                                                       ? (I(
-                                                          "saw",
-                                                          120,
-                                                          90,
-                                                          0.6,
-                                                          0.18,
+                                                          "sq",
+                                                          1200,
+                                                          1600,
+                                                          0.08,
+                                                          0.08,
                                                           e,
-                                                          {
-                                                            vib: 20,
-                                                          },
                                                         ),
                                                         I(
-                                                          "p50",
-                                                          240,
-                                                          200,
-                                                          0.4,
-                                                          0.1,
-                                                          e + 0.08,
+                                                          "sq",
+                                                          1600,
+                                                          900,
+                                                          0.14,
+                                                          0.07,
+                                                          e + 0.1,
+                                                          {
+                                                            vib: 40,
+                                                          },
                                                         ),
                                                         X(
-                                                          0.4,
-                                                          "lowpass",
-                                                          600,
+                                                          0.12,
+                                                          "highpass",
+                                                          4e3,
                                                           1,
-                                                          0.18,
-                                                          300,
-                                                          e + 0.05,
+                                                          0.08,
+                                                          2e3,
+                                                          e + 0.02,
                                                         ))
-                                                      : a === "froslass"
+                                                      : a === "tyrantrum"
                                                         ? (I(
-                                                            "tri",
-                                                            880,
-                                                            1320,
-                                                            0.4,
-                                                            0.09,
+                                                            "saw",
+                                                            150,
+                                                            70,
+                                                            0.7,
+                                                            0.2,
                                                             e,
                                                             {
-                                                              vib: 12,
+                                                              vib: 25,
                                                             },
                                                           ),
                                                           I(
-                                                            "tri",
-                                                            1320,
-                                                            990,
-                                                            0.45,
-                                                            0.07,
-                                                            e + 0.2,
-                                                            { vib: 10 },
+                                                            "p50",
+                                                            300,
+                                                            140,
+                                                            0.5,
+                                                            0.12,
+                                                            e + 0.05,
+                                                          ),
+                                                          X(
+                                                            0.6,
+                                                            "lowpass",
+                                                            800,
+                                                            1,
+                                                            0.2,
+                                                            300,
+                                                            e,
+                                                            !0,
                                                           ))
-                                                        : a === "gardevoir"
+                                                        : a === "golurk"
                                                           ? (I(
-                                                              "tri",
-                                                              660,
-                                                              990,
-                                                              0.25,
-                                                              0.1,
+                                                              "sq",
+                                                              110,
+                                                              110,
+                                                              0.5,
+                                                              0.12,
                                                               e,
+                                                              {
+                                                                vib: 6,
+                                                              },
+                                                            ),
+                                                            I(
+                                                              "tri",
+                                                              220,
+                                                              180,
+                                                              0.45,
+                                                              0.1,
+                                                              e + 0.1,
                                                             ),
                                                             I(
                                                               "p25",
-                                                              990,
-                                                              1180,
-                                                              0.3,
-                                                              0.07,
-                                                              e + 0.12,
-                                                              { vib: 20 },
+                                                              440,
+                                                              330,
+                                                              0.2,
+                                                              0.05,
+                                                              e + 0.25,
                                                             ))
-                                                          : a === "metagross"
+                                                          : a === "rhyperior"
                                                             ? (I(
-                                                                "sq",
-                                                                220,
-                                                                330,
-                                                                0.18,
-                                                                0.1,
-                                                                e,
-                                                              ),
-                                                              I(
-                                                                "sq",
-                                                                330,
-                                                                220,
-                                                                0.25,
-                                                                0.1,
-                                                                e + 0.15,
-                                                              ),
-                                                              I(
                                                                 "saw",
-                                                                110,
+                                                                120,
                                                                 90,
+                                                                0.6,
+                                                                0.18,
+                                                                e,
+                                                                {
+                                                                  vib: 20,
+                                                                },
+                                                              ),
+                                                              I(
+                                                                "p50",
+                                                                240,
+                                                                200,
                                                                 0.4,
                                                                 0.1,
+                                                                e + 0.08,
+                                                              ),
+                                                              X(
+                                                                0.4,
+                                                                "lowpass",
+                                                                600,
+                                                                1,
+                                                                0.18,
+                                                                300,
                                                                 e + 0.05,
-                                                                { vib: 30 },
                                                               ))
-                                                            : a === "groudon"
+                                                            : a === "froslass"
                                                               ? (I(
-                                                                  "saw",
-                                                                  120,
-                                                                  60,
-                                                                  0.9,
-                                                                  0.22,
+                                                                  "tri",
+                                                                  880,
+                                                                  1320,
+                                                                  0.4,
+                                                                  0.09,
                                                                   e,
                                                                   {
-                                                                    vib: 20,
+                                                                    vib: 12,
                                                                   },
                                                                 ),
                                                                 I(
-                                                                  "p50",
-                                                                  240,
-                                                                  120,
-                                                                  0.7,
-                                                                  0.12,
-                                                                  e + 0.05,
-                                                                ),
-                                                                X(
-                                                                  0.7,
-                                                                  "lowpass",
-                                                                  600,
-                                                                  1,
-                                                                  0.22,
-                                                                  200,
-                                                                  e,
-                                                                  !0,
+                                                                  "tri",
+                                                                  1320,
+                                                                  990,
+                                                                  0.45,
+                                                                  0.07,
+                                                                  e + 0.2,
+                                                                  { vib: 10 },
                                                                 ))
-                                                              : a === "rayquaza"
+                                                              : a ===
+                                                                  "gardevoir"
                                                                 ? (I(
-                                                                    "saw",
-                                                                    600,
-                                                                    300,
-                                                                    0.6,
-                                                                    0.14,
+                                                                    "tri",
+                                                                    660,
+                                                                    990,
+                                                                    0.25,
+                                                                    0.1,
                                                                     e,
-                                                                    { vib: 50 },
                                                                   ),
                                                                   I(
                                                                     "p25",
-                                                                    900,
-                                                                    450,
-                                                                    0.5,
-                                                                    0.08,
-                                                                    e + 0.05,
-                                                                    { vib: 40 },
-                                                                  ),
-                                                                  X(
-                                                                    0.5,
-                                                                    "bandpass",
-                                                                    2400,
-                                                                    1.5,
-                                                                    0.14,
-                                                                    800,
-                                                                    e,
-                                                                    !0,
+                                                                    990,
+                                                                    1180,
+                                                                    0.3,
+                                                                    0.07,
+                                                                    e + 0.12,
+                                                                    { vib: 20 },
                                                                   ))
-                                                                : a === "hooh"
+                                                                : a ===
+                                                                    "metagross"
                                                                   ? (I(
-                                                                      "tri",
-                                                                      900,
-                                                                      1400,
-                                                                      0.4,
-                                                                      0.12,
+                                                                      "sq",
+                                                                      220,
+                                                                      330,
+                                                                      0.18,
+                                                                      0.1,
                                                                       e,
+                                                                    ),
+                                                                    I(
+                                                                      "sq",
+                                                                      330,
+                                                                      220,
+                                                                      0.25,
+                                                                      0.1,
+                                                                      e + 0.15,
+                                                                    ),
+                                                                    I(
+                                                                      "saw",
+                                                                      110,
+                                                                      90,
+                                                                      0.4,
+                                                                      0.1,
+                                                                      e + 0.05,
                                                                       {
                                                                         vib: 30,
                                                                       },
-                                                                    ),
-                                                                    I(
-                                                                      "p25",
-                                                                      1400,
-                                                                      1e3,
-                                                                      0.5,
-                                                                      0.08,
-                                                                      e + 0.15,
-                                                                      {
-                                                                        vib: 20,
-                                                                      },
-                                                                    ),
-                                                                    X(
-                                                                      0.3,
-                                                                      "bandpass",
-                                                                      3e3,
-                                                                      1.5,
-                                                                      0.1,
-                                                                      1500,
-                                                                      e + 0.05,
                                                                     ))
                                                                   : a ===
-                                                                      "lucario"
+                                                                      "groudon"
                                                                     ? (I(
-                                                                        "p25",
-                                                                        520,
-                                                                        640,
-                                                                        0.14,
-                                                                        0.11,
-                                                                        e,
-                                                                      ),
-                                                                      I(
-                                                                        "p25",
-                                                                        780,
-                                                                        420,
+                                                                        "saw",
+                                                                        120,
+                                                                        60,
+                                                                        0.9,
                                                                         0.22,
-                                                                        0.1,
-                                                                        e +
-                                                                          0.12,
-                                                                        {
-                                                                          vib: 30,
-                                                                        },
-                                                                      ))
-                                                                    : (I(
-                                                                        "p25",
-                                                                        600,
-                                                                        900,
-                                                                        0.12,
-                                                                        0.1,
                                                                         e,
+                                                                        {
+                                                                          vib: 20,
+                                                                        },
                                                                       ),
                                                                       I(
-                                                                        "p25",
-                                                                        900,
-                                                                        500,
-                                                                        0.18,
-                                                                        0.1,
+                                                                        "p50",
+                                                                        240,
+                                                                        120,
+                                                                        0.7,
+                                                                        0.12,
                                                                         e +
-                                                                          0.12,
-                                                                      )));
+                                                                          0.05,
+                                                                      ),
+                                                                      X(
+                                                                        0.7,
+                                                                        "lowpass",
+                                                                        600,
+                                                                        1,
+                                                                        0.22,
+                                                                        200,
+                                                                        e,
+                                                                        !0,
+                                                                      ))
+                                                                    : a ===
+                                                                        "rayquaza"
+                                                                      ? (I(
+                                                                          "saw",
+                                                                          600,
+                                                                          300,
+                                                                          0.6,
+                                                                          0.14,
+                                                                          e,
+                                                                          {
+                                                                            vib: 50,
+                                                                          },
+                                                                        ),
+                                                                        I(
+                                                                          "p25",
+                                                                          900,
+                                                                          450,
+                                                                          0.5,
+                                                                          0.08,
+                                                                          e +
+                                                                            0.05,
+                                                                          {
+                                                                            vib: 40,
+                                                                          },
+                                                                        ),
+                                                                        X(
+                                                                          0.5,
+                                                                          "bandpass",
+                                                                          2400,
+                                                                          1.5,
+                                                                          0.14,
+                                                                          800,
+                                                                          e,
+                                                                          !0,
+                                                                        ))
+                                                                      : a ===
+                                                                          "hooh"
+                                                                        ? (I(
+                                                                            "tri",
+                                                                            900,
+                                                                            1400,
+                                                                            0.4,
+                                                                            0.12,
+                                                                            e,
+                                                                            {
+                                                                              vib: 30,
+                                                                            },
+                                                                          ),
+                                                                          I(
+                                                                            "p25",
+                                                                            1400,
+                                                                            1e3,
+                                                                            0.5,
+                                                                            0.08,
+                                                                            e +
+                                                                              0.15,
+                                                                            {
+                                                                              vib: 20,
+                                                                            },
+                                                                          ),
+                                                                          X(
+                                                                            0.3,
+                                                                            "bandpass",
+                                                                            3e3,
+                                                                            1.5,
+                                                                            0.1,
+                                                                            1500,
+                                                                            e +
+                                                                              0.05,
+                                                                          ))
+                                                                        : a ===
+                                                                            "lucario"
+                                                                          ? (I(
+                                                                              "p25",
+                                                                              520,
+                                                                              640,
+                                                                              0.14,
+                                                                              0.11,
+                                                                              e,
+                                                                            ),
+                                                                            I(
+                                                                              "p25",
+                                                                              780,
+                                                                              420,
+                                                                              0.22,
+                                                                              0.1,
+                                                                              e +
+                                                                                0.12,
+                                                                              {
+                                                                                vib: 30,
+                                                                              },
+                                                                            ))
+                                                                          : (I(
+                                                                              "p25",
+                                                                              600,
+                                                                              900,
+                                                                              0.12,
+                                                                              0.1,
+                                                                              e,
+                                                                            ),
+                                                                            I(
+                                                                              "p25",
+                                                                              900,
+                                                                              500,
+                                                                              0.18,
+                                                                              0.1,
+                                                                              e +
+                                                                                0.12,
+                                                                            )));
       },
       ready() {
         O() &&
@@ -35408,7 +36650,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 8,
+  var NETV = 9,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -40739,6 +41981,64 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
             (t.screenFlashColor = "#ffffff");
           break;
         }
+        case "dialgaStop":
+          S.boltHum(),
+            S.cry("dialga", 0.05),
+            t.ring(n.x, n.y, 8, n.r / 6, 22, "#bfe0ff", !0),
+            (t.screenFlash = 3),
+            (t.screenFlashColor = "#bfe0ff");
+          break;
+        case "clockTick":
+          I("sq", F(n.k % 2 ? 88 : 93), F(n.k % 2 ? 88 : 93), 0.03, 0.05);
+          break;
+        case "dialgaRoar":
+          S.thunder(),
+            S.boom(),
+            t.shake(0, 1, 12),
+            (t.impact = 3),
+            t.ring(n.x, n.y, 10, n.r / 5, 24, "#ffffff", !0),
+            t.sheet("ultBoom", n.x, n.y - 10, 1.3);
+          break;
+        case "rewind":
+          S.heal?.(),
+            t.popup(
+              n.who.x,
+              n.who.y - 50,
+              `TIME REWIND +${n.n}`,
+              "#bfe0ff",
+              !0,
+            ),
+            t.ring(n.who.x, n.who.y - 12, 6, 3, 18, "#6fa8ff", !0);
+          break;
+        case "palkiaRend":
+          S.charge(), S.cry("palkia", 0.04);
+          break;
+        case "palkiaRift":
+          S.swing(!0),
+            X(0.3, "highpass", 2e3, 1, 0.14, 7e3),
+            t.shake(n.x2 - n.x1, n.y2 - n.y1, 7),
+            (t.impact = 2),
+            (t.screenFlash = 2),
+            (t.screenFlashColor = "#ffc8ea");
+          break;
+        case "giratinaSink":
+          S.phantom(), S.cry("giratina", 0.06), t.smoke(n.x, n.y - 8, 14, 10);
+          break;
+        case "shadowTrail":
+          t.wisps(n.x, n.y, 3, 6, "#5a1a8a", 4);
+          break;
+        case "giratinaRise":
+          S.boltHum(), t.shake(0, 1, 4);
+          break;
+        case "giratinaErupt":
+          S.boom(),
+            S.slam(),
+            t.shake(0, 1, 12),
+            (t.impact = 3),
+            t.sheet("ultPulse", n.x, n.y - 10, 1.3),
+            t.ring(n.x, n.y, 8, n.r / 5, 20, "#a05cff", !0),
+            t.debris(n.x, n.y, 14, 0, -1);
+          break;
         case "groudonWarn":
           S.slam(), t.shake(0, 1, 5), t.cracks(n.x, n.y, 8, 40, "#3a1004");
           break;
