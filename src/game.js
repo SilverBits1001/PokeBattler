@@ -17296,9 +17296,9 @@
           q = c.getContext("2d");
         q.drawImage(im, 0, 0),
           (q.globalCompositeOperation = "destination-out"),
-          q.fillRect(12, 3, 5, 4),
-          q.fillRect(31, 4, 5, 5),
-          q.fillRect(20, 2, 3, 2),
+          q.fillRect(12, 5, 5, 3),
+          q.fillRect(31, 5, 5, 4),
+          q.fillRect(21, 5, 3, 2),
           (PROP.chipped = c);
       }
       im = PROP.chipped;
