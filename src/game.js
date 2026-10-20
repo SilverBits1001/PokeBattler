@@ -4651,14 +4651,18 @@
       r: 12,
       dmg: 16,
     },
-    // Power Plant: two conveyors running opposite ways (they flip on a
-    // cycle) and Voltorb that roll in and blow up when someone gets close.
+    // Power Plant: four conveyors wall to wall, neighbours running opposite
+    // ways (they all flip on a cycle), point-symmetric about the centre.
+    // Fast enough that walking against one is a slog and riding one is a
+    // quick getaway. Voltorb roll in and blow up when someone gets close.
     BELT = {
       belts: [
-        { x0: Se - 230, x1: Se - 40, y: Te - 96, h: 20, dir: 1 },
-        { x0: Se + 40, x1: Se + 230, y: Te + 96, h: 20, dir: -1 },
+        { x0: 60, x1: 580, y: 92, h: 20, dir: 1 },
+        { x0: 34, x1: 606, y: 180, h: 20, dir: -1 },
+        { x0: 34, x1: 606, y: 236, h: 20, dir: 1 },
+        { x0: 60, x1: 580, y: 324, h: 20, dir: -1 },
       ],
-      speed: 0.9,
+      speed: 1.6,
       flip: 900,
       warn: 60,
     },
@@ -37597,7 +37601,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 16,
+  var NETV = 17,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
