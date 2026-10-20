@@ -105,8 +105,8 @@ floodlit night. Each arena also gained a mechanic:
 - **Cinder Crater:** the lava pools swell and recede.
 - **Frostfall Peak:** a night summit above the clouds; heavy blows crack the centre rink until it breaks into
   slowing icy water, then it refreezes; Spheal roll down the lanes.
-- **Power Plant:** two conveyors running opposite ways (they flip), and Voltorb
-  that roll in and blow up when someone comes close or shoots them.
+- **Power Plant:** a green-lit lab (a full-resolution painting) with two conveyors running opposite
+  ways (they flip), and Voltorb that roll in and blow up when someone comes close or shoots them.
 - **Magma Isle:** a walled obsidian platform in a lava cavern (a full-resolution painting). Cinder
   Crater's eruptions and hot spots; two lava pockets walled into the floor burn anyone who walks in
   (the rock pillars in them are safe footing, and they hold steady instead of rising and falling); a

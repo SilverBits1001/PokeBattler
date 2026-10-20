@@ -19263,7 +19263,9 @@
       }
     } else if (k === 4) {
       // Turbines turn; panel lights blink; cables light when the pylons arc.
-      for (let x of [110, Y - 110]) {
+      // (The painted lab has its own machinery: only the steam is drawn.)
+      let art = !!arenaArt(4);
+      for (let x of art ? [] : [110, Y - 110]) {
         a.strokeStyle = "#7d8899";
         a.lineWidth = 2;
         for (let n = 0; n < 4; n++) {
@@ -19274,7 +19276,7 @@
             a.stroke();
         }
       }
-      for (let n = 0; n < 24; n++) {
+      for (let n = 0; n < (art ? 0 : 24); n++) {
         let on = Math.sin(t * 0.07 * (1 + (n % 5) * 0.3) + n * 2) > 0.2;
         R(
           258 + (n % 6) * 22,
@@ -19284,7 +19286,7 @@
           on ? ["#4df08a", "#ffc93c", "#ef5a4f", "#33d6ff"][n % 4] : "#22303a",
         );
       }
-      for (let x = 256; x < 384; x += 22) {
+      for (let x = 256; !art && x < 384; x += 22) {
         let h = 2 + Math.abs(Math.sin(t * 0.05 + x)) * 6;
         R(x + 2, 19 - h, 2, h, "#33d6ff");
       }
@@ -19302,7 +19304,10 @@
           R(p.x - (50 - p.life) / 8, p.y, 3 + (50 - p.life) / 4, 2, "#cfd6e0");
       }
       (a.globalAlpha = 1), (LIVE.steam = LIVE.steam.filter((p) => p.life > 0));
-      live && t % 4 < 2 && R(0, top - 25, Y, 1, "rgba(127,227,255,0.6)");
+      live &&
+        !art &&
+        t % 4 < 2 &&
+        R(0, top - 25, Y, 1, "rgba(127,227,255,0.6)");
     }
     // Footprints in the snow, and skids where fighters dodge.
     for (let [idx, p] of e.players.entries()) {
@@ -19564,6 +19569,8 @@
       ][k];
     // The painted ruins are an overgrown courtyard in daylight: only a little dim.
     e.stage === 1 && arenaArt(1) && (amb = "rgba(30,16,40,0.14)");
+    // The painted lab is lit: only a little dim, tinted green.
+    k === 4 && arenaArt(4) && (amb = "rgba(6,22,14,0.2)");
     // The Shrine: deep blue water light.
     e.stage === SHRINE.stage && (amb = "rgba(4,22,52,0.30)");
     LIGHT.on = !!amb;
@@ -19639,9 +19646,17 @@
       for (let [x, y, w] of FROST.rinks)
         glow.push([x, y, w, "160,220,255", 0.12]);
     } else if (k === 4) {
-      for (let x of [100, 220, 420, 540])
+      // Under the lights (on the painted lab, the green tanks' spill).
+      let lab = !!arenaArt(4);
+      for (let x of lab ? [112, 232, 410, 510] : [100, 220, 420, 540])
         hole(x, B.y0 + 30, 170, 0.9),
-          glow.push([x, B.y0 + 4, 26, "120,230,255", 0.3]);
+          glow.push([
+            x,
+            B.y0 + 4,
+            26,
+            lab ? "150,255,110" : "120,230,255",
+            0.3,
+          ]);
       for (let p of e.rocks)
         p.pylon &&
           p.off <= 0 &&
@@ -20132,7 +20147,7 @@
             (a.fillRect((x | 0) - 1, y | 0, 3, 1),
             a.fillRect(x | 0, (y | 0) - 1, 1, 3));
       }
-    } else if (k === 4) {
+    } else if (k === 4 && !arenaArt(4)) {
       let live = e.rocks.filter((p) => p.pylon && p.off <= 0).length;
       for (let [x0, y0, x1, y1] of FLOOR_FX.cables)
         for (let n = 0; n < 3; n++) {
@@ -37373,7 +37388,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 14,
+  var NETV = 15,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
