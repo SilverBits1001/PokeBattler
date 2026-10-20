@@ -4651,21 +4651,19 @@
       r: 12,
       dmg: 16,
     },
-    // Power Plant: one conveyor loop round the deck, a rectangle (clockwise,
-    // reversing on a cycle), point-symmetric about the centre. Fast enough
-    // that walking against it is a slog and riding it is a quick getaway.
-    // Each side belt (v: along y, at x) also pushes over the length `reach`
-    // past its ends, across the corners, so a rider turns the corner
-    // instead of piling up there. Voltorb roll in and blow up when someone
+    // Power Plant: two square conveyor loops, one in each half of the deck,
+    // both clockwise (they reverse on a cycle): point-symmetric about the
+    // centre. Each loop is the band of width h round its rectangle's edge.
+    // A corner always hands a rider on to the next side, so standing still
+    // on a loop rides it round forever. Fast: walking against it is a slog,
+    // riding it a quick getaway. Voltorb roll in and blow up when someone
     // gets close.
     BELT = {
-      belts: [
-        { x0: 60, x1: 580, y: 92, h: 20, dir: 1 },
-        { v: 1, x: 570, y0: 106, y1: 308, h: 20, dir: 1, reach: 24 },
-        { x0: 60, x1: 580, y: 324, h: 20, dir: -1 },
-        { v: 1, x: 70, y0: 106, y1: 308, h: 20, dir: -1, reach: 24 },
+      loops: [
+        { x0: 70, y0: 92, x1: 280, y1: 324, h: 20, dir: 1 },
+        { x0: 360, y0: 92, x1: 570, y1: 324, h: 20, dir: 1 },
       ],
-      speed: 1.6,
+      speed: 2.4,
       flip: 900,
       warn: 60,
     },
@@ -5116,8 +5114,8 @@
       // [dx, dy, r]; the middle one carries the art, so the vat sorts with
       // fighters by its base line and hides anyone standing behind it.
       vats: [
-        [520, 118],
-        [120, 298],
+        [520, 130],
+        [120, 286],
       ],
       vatFoot: [
         [0, -8, 12],
@@ -6319,7 +6317,7 @@
           (this.spheal = null),
           (this.sphealT = SPHEAL.first),
           (this.sphealN = 0),
-          (this.belts = A.arena === 4 ? BELT.belts.map((b) => ({ ...b })) : []),
+          (this.belts = A.arena === 4 ? BELT.loops.map((b) => ({ ...b })) : []),
           (this.beltT = BELT.flip),
           (this.voltorbs = []),
           (this.voltT = VOLT.first),
@@ -11501,17 +11499,10 @@
             this.emit({ type: "beltFlip" });
           }
           for (let b of this.belts)
-            for (let o of bodies)
-              grounded(o) &&
-                (b.v
-                  ? o.y > b.y0 - b.reach &&
-                    o.y < b.y1 + b.reach &&
-                    Math.abs(o.x - b.x) < b.h / 2 &&
-                    this.moveBody(o, 0, b.dir * BELT.speed)
-                  : o.x > b.x0 &&
-                    o.x < b.x1 &&
-                    Math.abs(o.y - b.y) < b.h / 2 &&
-                    this.moveBody(o, b.dir * BELT.speed, 0));
+            for (let o of bodies) {
+              let m = grounded(o) && beltPush(b, o.x, o.y);
+              m && this.moveBody(o, m[0] * BELT.speed, m[1] * BELT.speed);
+            }
           if (live && --this.voltT <= 0) {
             this.voltT = VOLT.every;
             for (let [x, y] of VOLT.spots)
@@ -20630,6 +20621,45 @@
         ((a.fillStyle = "rgba(90,90,100,0.6)"),
         a.fillRect(s - 3, i - 48 - ((t / 3) % 6), 3, 3));
   }
+  // Where a conveyor loop pushes at (x, y), as a unit step [dx, dy], or
+  // null off it. Clockwise (dir 1) runs right along the top, down the
+  // right, left along the bottom and up the left. In a corner the side
+  // leading away from the corner wins and draws the rider onto its line,
+  // so nobody piles up there.
+  function beltPush(b, x, y) {
+    let w = b.h / 2,
+      d = b.dir,
+      inX = x > b.x0 - w && x < b.x1 + w,
+      inY = y > b.y0 - w && y < b.y1 + w,
+      T = inX && Math.abs(y - b.y0) < w,
+      Bm = inX && Math.abs(y - b.y1) < w,
+      L = inY && Math.abs(x - b.x0) < w,
+      R = inY && Math.abs(x - b.x1) < w,
+      pull = (v, line) => me((line - v) * 0.25, -1, 1);
+    if ((T || Bm) && (L || R)) {
+      // Corner: the outgoing side is the one whose motion leaves it.
+      let top = T,
+        right = R,
+        hx = top ? d : -d, // the horizontal side's motion along x
+        vy = right ? d : -d; // the vertical side's motion along y
+      return (right ? hx < 0 : hx > 0)
+        ? [hx, pull(y, top ? b.y0 : b.y1)]
+        : [pull(x, right ? b.x1 : b.x0), vy];
+    }
+    if (T) return [d, 0];
+    if (Bm) return [-d, 0];
+    if (R) return [0, d];
+    if (L) return [0, -d];
+    return null;
+  }
+  // The straight runs of a loop, as the belt art draws them: the top and
+  // bottom across the full width (corners included), the sides between.
+  var beltRuns = (b) => [
+    { x0: b.x0 - 10, x1: b.x1 + 10, y: b.y0, dir: b.dir },
+    { x0: b.x0 - 10, x1: b.x1 + 10, y: b.y1, dir: -b.dir },
+    { v: 1, x: b.x1, y0: b.y0 + 14, y1: b.y1 - 16, dir: b.dir },
+    { v: 1, x: b.x0, y0: b.y0 + 14, y1: b.y1 - 16, dir: -b.dir },
+  ];
   // The PixelLab conveyor (160x30), cut into an end cap each side, a
   // repeating middle, and one chevron period (22px) of its band that
   // scrolls. Built once per belt width and direction.
@@ -23283,7 +23313,7 @@
         a.fill());
     // Conveyors: chevrons that run the way the belt goes, flashing before it flips.
     let belt = beltArt();
-    for (let b0 of belt ? (e.belts ?? []) : []) {
+    for (let b0 of belt ? (e.belts ?? []).flatMap(beltRuns) : []) {
       // A vertical belt is drawn as a horizontal one turned a quarter turn
       // (its +x running down the screen).
       let b = b0.v ? { x0: 0, x1: b0.y1 - b0.y0, y: 0, dir: b0.dir } : b0;
@@ -23305,7 +23335,9 @@
       a.restore();
       b0.v && a.restore();
     }
-    for (let b of belt ? [] : (e.belts ?? []).filter((b) => !b.v)) {
+    for (let b of belt
+      ? []
+      : (e.belts ?? []).flatMap(beltRuns).filter((b) => !b.v)) {
       let warn = e.beltT < BELT.warn && t % 8 < 4;
       R(b.x0, b.y - b.h / 2, b.x1 - b.x0, b.h, "#1b2028"),
         R(b.x0, b.y - b.h / 2, b.x1 - b.x0, 2, "#e0b81e"),
@@ -37614,7 +37646,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 19,
+  var NETV = 20,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
