@@ -30241,7 +30241,7 @@
   // ---- Team select ----
   // A versus layout: your side's card on the left, the opponent's on the right,
   // the roster in three columns in the middle, and a VS emblem below it.
-  var RG = { x: H / 2 - 99, y: 34, tile: 26, gap: 2.5, pitch: 43, cols: 7 },
+  var RG = { x: H / 2 - 92, y: 33, tile: 24, gap: 2.5, pitch: 36.5, cols: 7 },
     // Roster tiles lean only slightly, so the square portraits keep their
     // corners.
     RG_SK = 0.09;
