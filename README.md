@@ -109,7 +109,7 @@ floodlit night. Each arena also gained a mechanic:
   of the deck (they reverse on a cycle; stand on one and it carries you round forever): a slog to walk against, a quick getaway to ride, Voltorb that roll in and blow up when someone comes close or shoots them, and two
   chemical vats as solid cover that hide anyone standing behind them. Hits make a vat flash; enough
   of them blow it up, hurting everyone close and leaving a cloud of green gas that poisons, and it is
-  rebuilt in place after fifteen seconds (it fills back in from the base up). The three pylons stand
+  rebuilt in place after fifteen seconds (it flashes back in). The three pylons stand
   one under the scoreboard and one in the middle of each conveyor loop.
 - **Magma Isle:** a walled obsidian platform in a lava cavern (a full-resolution painting). Cinder
   Crater's eruptions and hot spots; two lava pockets walled into the floor burn anyone who walks in
