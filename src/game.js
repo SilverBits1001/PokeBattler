@@ -25910,9 +25910,9 @@
   // The logo: a small spaced "POKÉMON" over POCKET in chrome and BRAWL in
   // gold, both lines set to one width so they lock up as a block, on a
   // blade split blue and red like the screen behind it.
-  function pocketLogo(cx, bob, t) {
-    let W = 150,
-      LF = (sz) => `italic 900 ${(sz * Fe).toFixed(2)}px "Pocket Logo", ${He}`,
+  function pocketLogo(cx, cy, bob, t, W = 150) {
+    let LF = (sz) =>
+        `italic 900 ${(sz * Fe).toFixed(2)}px "Pocket Logo", ${He}`,
       fit = (txt) => {
         d.save(), (d.font = LF(10));
         let w = d.measureText(txt).width / Fe;
@@ -25956,25 +25956,38 @@
           d.restore();
         return sz;
       };
+    // The block is centred on cy: POKÉMON, the two lines, the blade.
+    let q = W / 150,
+      top = cy - (14 * q + fit("POCKET") * 0.74 + fit("BRAWL") * 0.8 + 11) / 2;
     // POKÉMON, small and spaced, between two fine rules.
     d.save(),
-      (d.font = fontOf(8 * Fe, je, 700)),
-      "letterSpacing" in d && (d.letterSpacing = `${m(3.2).toFixed(1)}px`),
+      (d.font = fontOf(8 * q * Fe, je, 700)),
+      "letterSpacing" in d && (d.letterSpacing = `${m(3.2 * q).toFixed(1)}px`),
       (d.textAlign = "center"),
       (d.fillStyle = "#f3d88a"),
       (d.shadowColor = "rgba(0,0,0,0.7)"),
       (d.shadowBlur = m(3)),
-      d.fillText("POK\xC9MON", m(cx + 1.6), m(33 + bob)),
+      d.fillText("POK\xC9MON", m(cx + 1.6 * q), m(top + 7 * q + bob)),
       (d.shadowColor = "transparent");
     for (let sd of [-1, 1]) {
-      let gr = d.createLinearGradient(m(cx + sd * 30), 0, m(cx + sd * 72), 0);
+      let gr = d.createLinearGradient(
+        m(cx + sd * 30 * q),
+        0,
+        m(cx + sd * 72 * q),
+        0,
+      );
       gr.addColorStop(0, "rgba(243,216,138,0.9)"),
         gr.addColorStop(1, "rgba(243,216,138,0)"),
         (d.fillStyle = gr),
-        d.fillRect(m(sd > 0 ? cx + 30 : cx - 72), m(30 + bob), m(42), m(0.7));
+        d.fillRect(
+          m(sd > 0 ? cx + 30 * q : cx - 72 * q),
+          m(top + 4 * q + bob),
+          m(42 * q),
+          m(0.7),
+        );
     }
     d.restore();
-    let y1 = 40 + fit("POCKET") * 0.74,
+    let y1 = top + 14 * q + fit("POCKET") * 0.74,
       y2 = y1 + fit("BRAWL") * 0.8 + 3;
     line("POCKET", y1, [
       [0, "#ffffff"],
@@ -26160,8 +26173,8 @@
     faceSeam();
     // A turning Poké Ball behind the logo.
     let bx = H / 2,
-      by = 78,
-      br = 58;
+      by = 104,
+      br = 76;
     d.save(),
       d.translate(m(bx), m(by)),
       d.rotate(t * 0.004),
@@ -26182,12 +26195,7 @@
     d.restore();
     // The logo.
     let bob = Math.sin(t * 0.04) * 1.2;
-    pocketLogo(H / 2, bob, t),
-      V("VS", H / 2, 150, 26, "rgba(255,255,255,0.85)", {
-        align: "center",
-        skew: !0,
-        outline: 3,
-      });
+    pocketLogo(H / 2, 104, bob, t, 196);
     // The roster, running by along the bottom.
     let pitch = 30,
       run = ge.length * pitch,
