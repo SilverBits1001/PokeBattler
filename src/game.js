@@ -27948,6 +27948,8 @@
       rouletteShow: [],
       selectT: 0,
       pickBump: 0,
+      pickFlash: 0,
+      readyCue: 0,
       resultIndex: 0,
       resultsT: 0,
     };
@@ -31452,25 +31454,63 @@
     );
   }
   // The last tile picks a random Pokémon you haven't picked yet.
+  // "READY?" slams in across the roster once your team is complete.
+  function readyCue(a) {
+    let t = (a.readyCue ?? 0) - 10,
+      k = Ee(Math.min(1, t / 8)),
+      y = 108,
+      bw = H * k;
+    if (t < 0) return;
+    d.save(),
+      (d.globalAlpha = 0.9 * k),
+      (d.fillStyle = "rgba(5,4,14,0.9)"),
+      d.fillRect(m(H / 2 - bw / 2), m(y - 17), m(bw), m(30)),
+      (d.globalAlpha = k),
+      (d.fillStyle = g.p1),
+      d.fillRect(m(H / 2 - bw / 2), m(y - 17), m(bw), m(1.2)),
+      d.fillRect(m(H / 2 - bw / 2), m(y + 11.8), m(bw), m(1.2)),
+      (d.shadowColor = g.p1),
+      (d.shadowBlur = m(12)),
+      V(
+        "READY?",
+        H / 2 + (1 - k) * 60,
+        y + 7,
+        26 + (t < 6 ? (6 - t) * 2 : 0),
+        "#ffffff",
+        {
+          align: "center",
+          skew: !0,
+          outline: 3,
+        },
+      ),
+      d.restore();
+  }
   function rndTile(a) {
     let { x: t, y: s, s: i } = rs(ge.length),
-      r = a.cursor === ge.length;
+      r = a.cursor === ge.length && a.picks.length < teamSize();
     tapRect(t - 2, s - 2, i + 4, i + 12, () => {
       (a.cursor = ge.length), Ue.add("confirm");
     }),
       r &&
         (d.save(),
         (d.globalCompositeOperation = "lighter"),
-        (d.shadowColor = g.p1),
+        (d.shadowColor = "#ffffff"),
         (d.shadowBlur = m(10)),
-        te(t - 2, s - 2, i + 4, i + 4, "rgba(51,214,255,0.6)", (i + 4) * RG_SK),
+        te(
+          t - 2,
+          s - 2,
+          i + 4,
+          i + 4,
+          "rgba(255,255,255,0.55)",
+          (i + 4) * RG_SK,
+        ),
         d.restore()),
       te(
         t - 1.4,
         s - 1.4,
         i + 2.8,
         i + 2.8,
-        r ? g.p1 : "rgba(10,8,22,0.95)",
+        r ? "#ffffff" : "rgba(10,8,22,0.95)",
         (i + 2.8) * RG_SK,
       ),
       te(t, s, i, i, "#191530", i * RG_SK),
@@ -31478,7 +31518,7 @@
         align: "center",
         outline: 2,
       }),
-      V("RANDOM", t + i / 2 - 1, s + i + 6.5, 4.6, r ? g.p1 : g.chalk, {
+      V("RANDOM", t + i / 2 - 1, s + i + 6.5, 4.6, r ? "#ffffff" : g.chalk, {
         align: "center",
         outline: 1.2,
       });
@@ -32640,7 +32680,10 @@
   }
   function ns(a, e) {
     let t = a.frame;
-    a.selectT++, (a.pickBump *= 0.85), neonBg(t);
+    a.selectT++,
+      (a.pickBump *= 0.85),
+      (a.pickFlash = Math.max(0, (a.pickFlash ?? 0) - 0.06)),
+      neonBg(t);
     let s = cpuSide();
     // Team-coloured glows on either side.
     for (let [M, P] of [
@@ -32784,22 +32827,24 @@
         E = xe[M],
         Q = a.picks.indexOf(M),
         ie = a.cpuPicks.includes(M),
-        K = P === a.cursor,
-        $ = K ? a.pickBump * 3 : 0;
+        full = a.picks.length >= teamSize(),
+        K = P === a.cursor && Q < 0 && !full,
+        $ = P === a.cursor ? a.pickBump * 3 : 0,
+        fl = M === a.pickFlashKit ? (a.pickFlash ?? 0) : 0;
       tapRect(C - 2, x - 2, v + 4, v + 12, () => {
         (a.cursor = P), Ue.add("confirm");
       });
       K &&
         (d.save(),
         (d.globalCompositeOperation = "lighter"),
-        (d.shadowColor = g.p1),
+        (d.shadowColor = "#ffffff"),
         (d.shadowBlur = m(10)),
         te(
           C - 2 - $,
           x - 2 - $,
           v + 4 + $ * 2,
           v + 4 + $ * 2,
-          "rgba(51,214,255,0.6)",
+          "rgba(255,255,255,0.55)",
           (v + 4 + $ * 2) * RG_SK,
         ),
         d.restore()),
@@ -32808,12 +32853,20 @@
           x - 1.4 - $,
           v + 2.8 + $ * 2,
           v + 2.8 + $ * 2,
-          K ? g.p1 : Q >= 0 ? "#1f6f8a" : ie ? "#7a1f30" : "rgba(10,8,22,0.95)",
+          fl > 0.55
+            ? "#ffffff"
+            : Q >= 0
+              ? g.p1
+              : K
+                ? "#ffffff"
+                : ie
+                  ? "#7a1f30"
+                  : "rgba(10,8,22,0.95)",
           (v + 2.8 + $ * 2) * RG_SK,
         ),
         Oe(
           e[M],
-          K ? "Angry" : Q >= 0 || ie ? "Determined" : "Normal",
+          K || fl > 0 ? "Angry" : Q >= 0 || ie ? "Determined" : "Normal",
           C - $,
           x - $,
           v + $ * 2,
@@ -32827,12 +32880,37 @@
             Q >= 0 ? "rgba(51,214,255,0.18)" : "rgba(255,74,99,0.18)"),
           d.fillRect(m(C), m(x), m(v), m(v)),
           d.restore()),
+        // The pick flash: the tile whites out, then settles to blue, with a
+        // ring bursting off it.
+        fl > 0 &&
+          (d.save(),
+          ze(C - $, x - $, v + $ * 2, v + $ * 2, (v + $ * 2) * RG_SK),
+          d.clip(),
+          (d.globalAlpha = Math.min(1, fl * 1.4)),
+          (d.fillStyle = "#ffffff"),
+          d.fillRect(m(C - $), m(x - $), m(v + $ * 2), m(v + $ * 2)),
+          d.restore(),
+          d.save(),
+          (d.globalAlpha = fl),
+          (d.strokeStyle = fl > 0.5 ? "#ffffff" : g.p1),
+          (d.lineWidth = m(1.6)),
+          (d.shadowColor = g.p1),
+          (d.shadowBlur = m(8)),
+          ze(
+            C - 2 - (1 - fl) * 9,
+            x - 2 - (1 - fl) * 9,
+            v + 4 + (1 - fl) * 18,
+            v + 4 + (1 - fl) * 18,
+            (v + 4 + (1 - fl) * 18) * RG_SK,
+          ),
+          d.stroke(),
+          d.restore()),
         V(
           E.name,
           C + v / 2 - 1,
           x + v + 6.5,
           4.6,
-          K ? g.p1 : Q >= 0 ? "#9fe6f2" : g.chalk,
+          Q >= 0 ? g.p1 : K ? "#ffffff" : g.chalk,
           { align: "center", outline: 1.2 },
         ),
         Q >= 0 &&
@@ -32926,6 +33004,7 @@
       G(P, k + x + 1.5, oe - 4.6, 6.2, C, { weight: 600 }),
         (k += x + ye(P, 6.2) + 10);
     }
+    a.picks.length >= teamSize() && !a.lgPhase && !a.readyPhase && readyCue(a);
     a.lgPhase && lgRoster(a, e);
     a.readyPhase && readyScreen(a, e);
   }
@@ -39764,10 +39843,16 @@
           (s.cpuPicks = []),
           (s.roulette = s.picks.length === teamSize() ? 48 : -1),
           S.ui(!0));
+      s.readyCue = s.picks.length === teamSize() ? (s.readyCue ?? 0) + 1 : 0;
       let R =
         s.picks.length === teamSize() &&
         (!cpuSide() || s.cpuPicks.length === cpuNeed());
-      if (R && s.roulette <= 0) return lgOpen();
+      if (
+        R &&
+        s.roulette <= 0 &&
+        (s.readyCue > 64 || (s.readyCue > 14 && n.pressed.has("confirm")))
+      )
+        return lgOpen();
       if (n.pressed.has("confirm")) {
         // The last tile picks a random Pokémon you haven't picked yet.
         let W =
@@ -39775,12 +39860,13 @@
         s.picks.length < teamSize() && !s.picks.includes(W)
           ? (s.picks.push(W),
             (s.pickBump = 1),
+            (s.pickFlash = 1),
+            (s.pickFlashKit = W),
             S.select(),
             S.cry(W, 0.05),
             s.picks.length === teamSize() && s.arcade
               ? ((s.cpuPicks = [arcRival()]),
-                (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]),
-                lgOpen())
+                (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]))
               : s.picks.length === teamSize() && cpuSide()
                 ? (s.roulette = 48)
                 : s.picks.length === 1 &&
@@ -39881,8 +39967,7 @@
           (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]),
           (s.roulette = -1),
           S.select(),
-          S.cry(s.cpuPicks[0], 0.08),
-          lgOpen()));
+          S.cry(s.cpuPicks[0], 0.08)));
     }
     let se = (n) => Re[n] && Re[n].kind !== "header";
     function N(n) {
