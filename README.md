@@ -281,6 +281,7 @@ F2 (or tap the readout) for a diagnostics panel.
 | `src/page.html` | Page markup, styles and embedded fonts |
 | `assets/sprites.js` | Sprite sheets and portraits as data URIs (`window.__ASSETS__`) |
 | `assets/vfx.js` | Arena event effects made with PixelLab's VFX tool (`window.__VFX__`); sheets in `assets/vfx/` |
+| `assets/fxpack.js` | Hit, element, status, item and arena effects from two pixel VFX packs (`window.__FXPACK__`), built by `tools/fxpack.py` from the extracted packs |
 | `assets/fonts/` | Lilita One and Fredoka (embedded in `src/page.html`) |
 | `assets/tiles.js` | Arena floor tilesets as data URIs (`window.__TILES__`); source PNGs in `assets/tiles/` |
 | `tools/build.py` | Assembles `index.html` and `dist/artifact.html` |
@@ -290,3 +291,6 @@ After editing anything in `src/` or `assets/`, run `python3 tools/build.py`.
 Sprites and portraits: PMD Sprite Repository (sprites.pmdcollab.org).
 Arena floor tiles: generated with PixelLab (16px top-down Wang tilesets, recoloured).
 Fonts: Lilita One (Juan Montoreano) and Fredoka (Milena Brandao, Hafontia), SIL Open Font License.
+Effects: Super Pixel Effects Gigapack (free version) - Will Tice / unTied Games (used in the game with credit;
+the pack itself is not redistributed, only the frames the game uses are packed into `assets/fxpack.js`), and
+PVFX Foundry by Pixel VFX Studio (CC0).

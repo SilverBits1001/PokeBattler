@@ -16958,7 +16958,10 @@
       };
     }
     for (let e of window.__TILES__ ?? []) TILESET.push(await Qt(e));
-    for (let [e, t] of Object.entries(window.__VFX__ ?? {}))
+    for (let [e, t] of Object.entries({
+      ...(window.__VFX__ ?? {}),
+      ...(window.__FXPACK__ ?? {}),
+    }))
       VFX[e] = { ...t, img: await Qt(t.src) };
     return a;
   }
@@ -17728,6 +17731,36 @@
       sheet(e, t, s, i = 1, r = !1) {
         VFX[e] && this.sheets.push({ n: e, x: t, y: s, k: i, under: r, t: 0 });
       }
+      // A pack effect (assets/fxpack.js). o.r turns it, o.tint recolours it,
+      // o.follow keeps it on a fighter (o.dy above the feet), o.life is how
+      // long a loop plays, o.a its opacity, and o.key keeps one per key (a
+      // repeat only extends it). Past the cap the oldest one-shot gives way.
+      pfx(n, x, y, k = 1, o = {}) {
+        if (!VFX[n]) return;
+        if (o.key) {
+          let q = this.sheets.find((s) => s.key === o.key);
+          if (q) return void (q.life = Math.max(q.life ?? 0, o.life ?? 0));
+        }
+        if (this.sheets.length >= 56) {
+          let i = this.sheets.findIndex((s) => !s.key);
+          this.sheets.splice(i < 0 ? 0 : i, 1);
+        }
+        this.sheets.push({
+          n,
+          x,
+          y,
+          k,
+          under: !!o.under,
+          t: 0,
+          r: o.r ?? 0,
+          tint: o.tint,
+          follow: o.follow,
+          dy: o.dy ?? 0,
+          life: o.life,
+          a: o.a ?? 1,
+          key: o.key,
+        });
+      }
       // Round flow (READY?, GO!, the result) takes the middle of the screen;
       // everything that happens mid-fight is a compact pill under the HUD, so
       // it never covers the fighters. One of each at a time: a new one cuts
@@ -17830,9 +17863,11 @@
               break;
           }
         this.parts = this.parts.filter((e) => e.life > 0);
-        for (let e of this.sheets) e.t++;
-        this.sheets = this.sheets.filter(
-          (e) => vfxFrame(e.n, e.t) < VFX[e.n].n,
+        for (let e of this.sheets) e.t++, e.life !== void 0 && e.life--;
+        this.sheets = this.sheets.filter((e) =>
+          e.life !== void 0
+            ? e.life > 0 && e.follow?.state !== "faint"
+            : vfxFrame(e.n, e.t) < VFX[e.n].n,
         );
         for (let e of this.ghosts) e.life--;
         this.ghosts = this.ghosts.filter((e) => e.life > 0);
@@ -17919,9 +17954,10 @@
   // ---- PixelLab effect sheets (assets/vfx.js) ----
   var VFX = {};
   // Draws frame f of an effect, anchored at (x, y); loops wrap, one-shots hold.
-  function vfxDraw(a, n, f, x, y, k = 1, l = 1, r = 0) {
+  function vfxDraw(a, n, f, x, y, k = 1, l = 1, r = 0, tint) {
     let e = VFX[n];
     if (!e) return !1;
+    let img = tint ? vfxTint(n, tint) : e.img;
     f = e.loop ? ((f % e.n) + e.n) % e.n : Math.max(0, Math.min(e.n - 1, f));
     return (
       a.save(),
@@ -17930,7 +17966,7 @@
       r && a.rotate(r),
       a.scale(k, k),
       a.drawImage(
-        e.img,
+        img,
         (f % 4) * e.fw,
         (f >> 2) * e.fh,
         e.fw,
@@ -17945,9 +17981,42 @@
     );
   }
   var vfxFrame = (n, t) => Math.floor((t * (VFX[n]?.fps ?? 12)) / 60);
+  // A recoloured copy of a sheet, made once: greyed, then multiplied by the
+  // colour, so any effect takes the new colour and keeps its shading.
+  var VFXT = {};
+  function vfxTint(n, c) {
+    let k = n + c;
+    if (VFXT[k]) return VFXT[k];
+    let s = VFX[n].img,
+      cv = Zt(s.width, s.height),
+      g = cv.getContext("2d");
+    g.drawImage(s, 0, 0),
+      (g.globalCompositeOperation = "saturation"),
+      (g.fillStyle = "#808080"),
+      g.fillRect(0, 0, cv.width, cv.height),
+      (g.globalCompositeOperation = "multiply"),
+      (g.fillStyle = c),
+      g.fillRect(0, 0, cv.width, cv.height),
+      (g.globalCompositeOperation = "destination-in"),
+      g.drawImage(s, 0, 0);
+    return (VFXT[k] = cv);
+  }
   function sheetsDraw(a, e, t) {
-    for (let s of e.sheets)
-      !!s.under === t && vfxDraw(a, s.n, vfxFrame(s.n, s.t), s.x, s.y, s.k);
+    for (let s of e.sheets) {
+      if (!!s.under !== t) continue;
+      let w = s.follow;
+      vfxDraw(
+        a,
+        s.n,
+        vfxFrame(s.n, s.t),
+        w ? w.x : s.x,
+        w ? w.y - (w.z ?? 0) + s.dy : s.y,
+        s.k,
+        (s.a ?? 1) * (s.life !== void 0 ? Math.min(1, s.life / 10) : 1),
+        s.r,
+        s.tint,
+      );
+    }
   }
   // ---- PixelLab tile floors ----
   // Each arena has a 16px top-down Wang tileset: a 4x4 sheet whose cells are
@@ -39145,6 +39214,8 @@
         "Dragapult: EZERART, Emmuffin \xB7 Dreepy: Deeshura, Emboarger, Top_Kec, G~, NOLASMOR",
         "Wobbuffet: CHUNSOFT",
         "Fonts: Lilita One (Juan Montoreano), Fredoka (Milena Brandao, Hafontia)",
+        "Effects: Super Pixel Effects Gigapack - Will Tice / unTied Games",
+        "PVFX Foundry by Pixel VFX Studio \xB7 arena effects made with PixelLab",
         "Pok\xE9mon is \xA9 Nintendo / Creatures / GAME FREAK.",
         "Fan project for personal use. Not for sale.",
       ]);
@@ -40264,9 +40335,287 @@
       for (let n of Le.values()) n();
       Le.clear();
     }
+    // Effects from the VFX packs (assets/fxpack.js), layered on the game's own
+    // sparks and rings. Reduced effects keeps the hits and the big moments.
+    var HIT_EL = null;
+    function packFx(n) {
+      if (!HIT_EL) {
+        HIT_EL = {};
+        for (let [k, v] of Object.entries(Rt)) HIT_EL[v] = k;
+        Object.assign(HIT_EL, {
+          [L.flame]: "FIRE",
+          [L.water]: "WATER",
+          [L.leaf]: "GRASS",
+          "#9be36b": "GRASS",
+          [L.cool]: "ICE",
+          [be]: "GHOST",
+        });
+      }
+      let P = (k, x, y, sc, o) => t.pfx(k, x, y, sc, o),
+        red = !!A.fx,
+        w = n.who,
+        id = w ? e.players.indexOf(w) : -1;
+      switch (n.type) {
+        case "hit": {
+          let ang = Math.atan2(n.dy || 0, n.dx || 1),
+            x = n.x,
+            y = n.y - 8,
+            el = HIT_EL[n.color] ?? n.attacker?.kit?.type ?? null,
+            slashy = /slash|scissor|claw|blade|sword|cut|edge|leaf/i.test(
+              n.src ?? "",
+            );
+          n.ko
+            ? (P("hitKo", x, y, 0.75), P("boomKo", x, y, 0.7))
+            : n.heavy
+              ? slashy
+                ? P("slash", x, y, 0.5, { r: ang })
+                : P(n.combo % 2 ? "hitHeavy" : "hitHeavy2", x, y, 0.65, {
+                    tint: el && el !== "NORMAL" ? Rt[el] : void 0,
+                  })
+              : P(
+                  slashy ? "hitSlash" : "hitLight",
+                  x,
+                  y,
+                  n.multi ? 0.55 : 0.7,
+                  {
+                    r: slashy ? ang : ang + Math.PI,
+                  },
+                );
+          // Multi-hit moves (Flamethrower and the like) show it every 4th tick.
+          if (red || !el || (n.multi && !n.heavy && n.combo % 4)) break;
+          let E = {
+            FIRE: ["fireHit", 0.55],
+            ELECTRIC: n.heavy ? ["zap", 0.6] : ["zapBurst", 0.9],
+            WATER: n.heavy ? ["water", 0.6] : ["waterSplat", 0.7, "#8fc3ff"],
+            GRASS: ["leaf", 0.6, void 0, 1],
+            BUG: ["leaf", 0.5, "#c8d860", 1],
+            ICE: ["ice", 0.5],
+            POISON: ["acid", 0.55],
+            GHOST: ["void", 0.5],
+            DARK: ["void", 0.5, "#b0a0c0"],
+            PSYCHIC: ["psychic", 0.5],
+            FAIRY: ["psychic", 0.5, "#ffc8d8"],
+            ROCK: n.heavy ? ["rock", 0.5] : ["dustBrown", 0.8],
+            GROUND: n.heavy ? ["rock", 0.5] : ["dustBrown", 0.8],
+            DRAGON: ["ghostBoom", 0.7, "#b49cff"],
+            STEEL: ["sparks", 0.55, "#dfe6f2"],
+            FIGHTING: ["hitMid2", 0.6, "#ff9a70", 2],
+            FLYING: ["smokeDash", 0.8, void 0, 1],
+          }[el];
+          E &&
+            P(E[0], x, y, E[1] * (n.heavy ? 1 : 0.8), {
+              tint: E[2],
+              r: E[3] === 1 ? ang : E[3] === 2 ? ang + Math.PI / 2 : 0,
+            });
+          break;
+        }
+        case "crit":
+          w && P("hitCrit", w.x, w.y - 14, 0.7);
+          break;
+        case "splat":
+          P("hitWall", n.x, n.y - 8, 0.6), red || P("landDust", n.x, n.y, 0.5);
+          break;
+        case "wall":
+          n.speed > 3.5 && P("hitWall", n.x, n.y - 6, 0.5);
+          break;
+        case "lavaBurn":
+          red || P("fireHit", n.x, n.y - 6, 0.35);
+          break;
+        case "dodge":
+          red ||
+            P("smokeDash", w.x, w.y - 4, 0.7, {
+              r: Math.atan2(-n.dy, -n.dx),
+            });
+          break;
+        case "parry":
+          P("parry", n.x, n.y - 12, 0.55), P("lightBurst", n.x, n.y - 12, 0.5);
+          break;
+        case "perfectGuard":
+          P("parry", n.x, n.y - 12, 0.6);
+          break;
+        case "guardHit":
+          red || P("parry", n.x, n.y - 10, 0.3, { a: 0.8 });
+          break;
+        case "guardBreak":
+          P("boomSmall2", w.x, w.y - 14, 1, { tint: "#ffe7a0" });
+          break;
+        case "heal":
+          !red && n.amount > 0 && P("heal", n.x, n.y, 0.5, { follow: w });
+          break;
+        case "itemGet": {
+          let K = {
+            sitrus: "healSpell",
+            xatk: "atkUp",
+            helmet: "defUp",
+            scarf: "haste",
+            quickclaw: "haste",
+            focusband: "sparkleLoop",
+            smokeball: "smoke",
+            leftovers: "heal",
+            pokeball: "sparkle2",
+          }[n.kind];
+          K &&
+            P(K, n.x, n.y, K === "heal" ? 0.5 : 0.7, {
+              follow: w,
+              dy: K === "heal" ? 0 : -12,
+              life: K === "sparkleLoop" ? 150 : K === "smoke" ? 60 : void 0,
+            });
+          break;
+        }
+        case "itemSpawn":
+          P("sparkle", n.x, n.y - 8, 1);
+          break;
+        case "focusBand":
+          P("lightBurst", n.x, n.y - 12, 0.7),
+            P("sparkle3", n.x, n.y - 14, 1.2);
+          break;
+        case "burned":
+        case "burnTick":
+          red ||
+            P("fireLoop", 0, 0, 0.45, {
+              follow: w,
+              dy: -4,
+              life: 70,
+              key: "burn" + id,
+            });
+          break;
+        case "paralyzed":
+          P("zapAura", 0, 0, 0.7, {
+            follow: w,
+            dy: -12,
+            life: 90,
+            key: "para" + id,
+          });
+          break;
+        case "poisoned":
+        case "poisonTick":
+          red ||
+            P("poisonLoop", 0, 0, 0.6, {
+              follow: w,
+              dy: -12,
+              life: 80,
+              key: "psn" + id,
+            });
+          break;
+        case "frozen":
+          P("ice", w.x, w.y, 0.6);
+          break;
+        case "freeze":
+          P("ice", n.x, n.y, 0.45);
+          break;
+        case "confused":
+          P("question", 0, 0, 0.45, {
+            follow: w,
+            dy: -46,
+            life: 90,
+            key: "conf" + id,
+          });
+          break;
+        case "charging":
+        case "smashStart":
+        case "solarStart":
+        case "sphereStart":
+        case "zapCharge":
+          red ||
+            P("charge", 0, 0, 0.7, {
+              follow: w,
+              dy: -12,
+              life: 36,
+              key: "chg" + id,
+            });
+          break;
+        case "snipeShot":
+          P("muzzleLong", w.x, w.y - 12, 0.8, {
+            r: Math.atan2(n.y - w.y, n.x - w.x),
+          });
+          break;
+        case "sphereFire":
+        case "boomFire":
+          P("muzzle", w.x + n.dx * 10, w.y - 12 + n.dy * 10, 0.8, {
+            r: Math.atan2(n.dy, n.dx),
+          });
+          break;
+        case "faint":
+          P("boomKo2", w.x, w.y - 12, 0.8);
+          break;
+        case "erupt":
+          P("boomEpic", n.x, n.y - 10, 0.9);
+          break;
+        case "ventWarn":
+          P("warn", n.x, n.y - 26, 0.7, { life: 90 });
+          break;
+        case "voltBoom":
+          P("boom", n.x, n.y - 8, 1), P("sparks", n.x, n.y - 8, 0.8);
+          break;
+        case "collapse":
+          P("rock", n.x, n.y, 0.7), P("dustBrown", n.x, n.y - 6, 1);
+          break;
+        case "iceBreak":
+          P("ice", n.x, n.y, 1.1);
+          break;
+        case "icicle":
+          P("ice", n.x, n.y, 0.45);
+          break;
+        case "discharge":
+          P("zapBurst3", n.x, n.y - 14, 1);
+          break;
+        case "summon":
+          w &&
+            (P("lightBurst", w.x, w.y - 20, 1.1),
+            P("sparkle3", w.x, w.y - 20, 1.6));
+          break;
+        case "palkiaRift":
+          P("rift", (n.x1 + n.x2) / 2, (n.y1 + n.y2) / 2, 0.8, { life: 50 });
+          break;
+        case "palkiaRend":
+          P("resonant", n.x, n.y - 10, 0.9);
+          break;
+        case "dialgaStop":
+          P("hourglass", n.x, n.y - 16, 0.9);
+          break;
+        case "dialgaRoar":
+          P("resonant", n.x, n.y - 10, 1.2);
+          break;
+        case "giratinaRise":
+          P("warpRed", n.x, n.y - 10, 1.2);
+          break;
+        case "giratinaErupt":
+          P("void", n.x, n.y - 8, 1.1);
+          break;
+        case "subStart":
+          P("smokePuff", w.x, w.y - 8, 0.6);
+          break;
+        case "decoyPop":
+          P("smokePuff", n.x, n.y - 8, 0.6);
+          break;
+        case "illusionBreak":
+          P("warpRed", w.x, w.y - 12, 0.8);
+          break;
+        case "pfReappear":
+          P("warp", n.x, n.y - 12, 0.8, { tint: "#c8b0ff" });
+          break;
+        case "land":
+        case "tech":
+          red || P("landDust", w.x, w.y, 0.45);
+          break;
+        case "switch":
+          P("warpBlue", n.x, n.y - 12, 0.8);
+          break;
+        case "legendReady":
+          P("sparkle3", w.x, w.y - 18, 1.2);
+          break;
+        case "absorb":
+        case "nightmare":
+          P("absorb", n.x, n.y - 10, 0.6);
+          break;
+        case "bitterHeal":
+          P("absorb", w.x, w.y - 10, 0.5, { tint: "#d8e880" });
+          break;
+      }
+    }
     function Ne(n) {
       let D = e.player;
-      scarEvent(e, n);
+      scarEvent(e, n), packFx(n);
       switch (n.type) {
         case "hit": {
           hitFlourish(n);
