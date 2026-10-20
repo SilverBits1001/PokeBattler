@@ -125,7 +125,7 @@
       kind: "choice",
       key: "theme",
       label: "Battle music",
-      options: ["Random", "Trainer Battle", "Champion Battle"],
+      options: ["Ruby/Sapphire", "Chiptune Trainer", "Chiptune Champion"],
     },
     { kind: "header", label: "Match" },
     {
@@ -30945,6 +30945,8 @@
             (this.bus = e.createGain()),
             (this.bus.gain.value = A.music),
             this.bus.connect(this.lp).connect(Ea()),
+            // Decode the recorded tracks now, so a battle starts on the beat.
+            Object.keys(window.__MUSIC__ ?? {}).forEach((k) => this.load(k)),
             !0);
       }
       play(e) {
@@ -30955,6 +30957,7 @@
         }
         let t = _e();
         this.stop(0.15);
+        if (window.__MUSIC__?.[e]) return this.playTrack(e);
         let s = ws[e];
         (this.song = s),
           (this.name = e),
@@ -30982,6 +30985,37 @@
           clearInterval(this.timer),
           (this.timer = window.setInterval(() => this.pump(), 25));
       }
+      // A recorded track (assets/music.js): from the top, then looping between
+      // its loop points for as long as it plays. Decoded once, on first use.
+      playTrack(e) {
+        let t = _e(),
+          T = window.__MUSIC__[e];
+        (this.name = e), (this.song = { track: e });
+        let go = (buf) => {
+          if (this.name !== e || this.song?.track !== e || !this.bus) return;
+          let src = t.createBufferSource();
+          (src.buffer = buf),
+            (src.loop = !0),
+            (src.loopStart = T.loopStart / T.rate),
+            (src.loopEnd = T.loopEnd / T.rate),
+            src.connect(this.bus),
+            this.bus.gain.cancelScheduledValues(t.currentTime),
+            this.bus.gain.setValueAtTime(A.music, t.currentTime),
+            src.start(t.currentTime + 0.05, 0),
+            (this.src = src);
+        };
+        T.buf ? go(T.buf) : this.load(e).then(go, () => {});
+      }
+      load(e) {
+        let T = window.__MUSIC__[e];
+        return (T.loading ??= (async () => {
+          let b64 = T.src.slice(T.src.indexOf(",") + 1),
+            bin = atob(b64),
+            u8 = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          return (T.buf = await _e().decodeAudioData(u8.buffer));
+        })());
+      }
       resume() {
         if (this.name && !this.song) {
           let e = this.name;
@@ -30991,6 +31025,9 @@
       stop(e = 0.3) {
         clearInterval(this.timer), (this.timer = 0);
         let t = _e();
+        this.src &&
+          t &&
+          (this.src.stop(t.currentTime + e + 0.05), (this.src = null));
         if (t && this.bus && this.song) {
           let s = this.bus;
           s.gain.cancelScheduledValues(t.currentTime),
@@ -31124,13 +31161,7 @@
     Me = new Wt(),
     // Which battle theme to use for the next match.
     battleSong = () =>
-      A.theme === 1
-        ? "battle"
-        : A.theme === 2
-          ? "champion"
-          : Math.random() < 0.5
-            ? "battle"
-            : "champion";
+      A.theme === 1 ? "battle" : A.theme === 2 ? "champion" : "rse";
   // ---- Online play ----------------------------------------------------------
   // Players find each other through the claude.ai room: everyone who has this
   // page open right now. A match is deterministic lockstep. Each side sends only
