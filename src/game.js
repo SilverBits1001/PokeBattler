@@ -23469,9 +23469,7 @@
     if (u) {
       d.imageSmoothingEnabled = !1;
       let h = i * Fe,
-        // Whole-number steps keep small portraits crisp; big ones fill the
-        // frame exactly so no strip of background shows above them.
-        c = h >= 40 && h < 160 ? Math.floor(h / 40) : h / 40,
+        c = h >= 40 ? Math.floor(h / 40) : h / 40,
         y = 40 * c,
         b = m(t) + (h - y) / 2,
         p = m(s) + (h - y);
@@ -27537,11 +27535,9 @@
     k = (x, v, E, Q, ie) => {
       let K = e[x];
       if (!K) return;
-      // Big enough to fill the card: a single pick covers it edge to edge
-      // (the card clips it); a pair stands on its floor.
-      let sz = E >= 2.4 ? 152 : Q ? 76 : 126,
+      let sz = E >= 2.4 ? 116 : Q ? 66 : 96,
         px = t + v - sz / 2,
-        py = E >= 2.4 ? y - 8 : y + c + 2 - sz;
+        py = y + 122 - sz;
       d.save(), (d.globalAlpha = ie);
       s &&
         (d.translate(m(t + v), 0), d.scale(-1, 1), d.translate(-m(t + v), 0));
