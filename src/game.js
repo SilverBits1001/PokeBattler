@@ -4661,6 +4661,12 @@
         { x0: 34, x1: 606, y: 180, h: 20, dir: -1 },
         { x0: 34, x1: 606, y: 236, h: 20, dir: 1 },
         { x0: 60, x1: 580, y: 324, h: 20, dir: -1 },
+        // Vertical links in the gaps between them (v: along y, at x): down
+        // on the left, up on the right, so the lanes form loops.
+        { v: 1, x: 220, y0: 106, y1: 164, h: 20, dir: 1 },
+        { v: 1, x: 420, y0: 106, y1: 164, h: 20, dir: -1 },
+        { v: 1, x: 220, y0: 250, y1: 308, h: 20, dir: 1 },
+        { v: 1, x: 420, y0: 250, y1: 308, h: 20, dir: -1 },
       ],
       speed: 1.6,
       flip: 900,
@@ -11500,10 +11506,15 @@
           for (let b of this.belts)
             for (let o of bodies)
               grounded(o) &&
-                o.x > b.x0 &&
-                o.x < b.x1 &&
-                Math.abs(o.y - b.y) < b.h / 2 &&
-                this.moveBody(o, b.dir * BELT.speed, 0);
+                (b.v
+                  ? o.y > b.y0 &&
+                    o.y < b.y1 &&
+                    Math.abs(o.x - b.x) < b.h / 2 &&
+                    this.moveBody(o, 0, b.dir * BELT.speed)
+                  : o.x > b.x0 &&
+                    o.x < b.x1 &&
+                    Math.abs(o.y - b.y) < b.h / 2 &&
+                    this.moveBody(o, b.dir * BELT.speed, 0));
           if (live && --this.voltT <= 0) {
             this.voltT = VOLT.every;
             for (let [x, y] of VOLT.spots)
@@ -23275,7 +23286,11 @@
         a.fill());
     // Conveyors: chevrons that run the way the belt goes, flashing before it flips.
     let belt = beltArt();
-    for (let b of belt ? (e.belts ?? []) : []) {
+    for (let b0 of belt ? (e.belts ?? []) : []) {
+      // A vertical belt is drawn as a horizontal one turned a quarter turn
+      // (its +x running down the screen).
+      let b = b0.v ? { x0: 0, x1: b0.y1 - b0.y0, y: 0, dir: b0.dir } : b0;
+      b0.v && (a.save(), a.translate(b0.x, b0.y0), a.rotate(Math.PI / 2));
       let w = b.x1 - b.x0,
         y = Math.round(b.y - 16),
         base = belt.base(w, b.dir),
@@ -23291,8 +23306,9 @@
         a.fillRect(b.x0 + 12, y + 9, w - 24, 15),
         (a.globalAlpha = 1));
       a.restore();
+      b0.v && a.restore();
     }
-    for (let b of belt ? [] : (e.belts ?? [])) {
+    for (let b of belt ? [] : (e.belts ?? []).filter((b) => !b.v)) {
       let warn = e.beltT < BELT.warn && t % 8 < 4;
       R(b.x0, b.y - b.h / 2, b.x1 - b.x0, b.h, "#1b2028"),
         R(b.x0, b.y - b.h / 2, b.x1 - b.x0, 2, "#e0b81e"),
@@ -37601,7 +37617,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 17,
+  var NETV = 18,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,

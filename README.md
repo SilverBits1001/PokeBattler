@@ -106,7 +106,7 @@ floodlit night. Each arena also gained a mechanic:
 - **Frostfall Peak:** a night summit above the clouds; heavy blows crack the centre rink until it breaks into
   slowing icy water, then it refreezes; Spheal roll down the lanes.
 - **Power Plant:** a green-lit lab (a full-resolution painting) with four fast wall-to-wall conveyors,
-  neighbours running opposite ways (they flip): a slog to walk against, a quick getaway to ride, Voltorb that roll in and blow up when someone comes close or shoots them, and two
+  neighbours running opposite ways, linked into loops by four short vertical ones (they all flip): a slog to walk against, a quick getaway to ride, Voltorb that roll in and blow up when someone comes close or shoots them, and two
   chemical vats as solid cover that hide anyone standing behind them. Hits make a vat flash; enough
   of them blow it up, hurting everyone close and leaving a cloud of green gas that poisons, and it is
   rebuilt after fifteen seconds.
