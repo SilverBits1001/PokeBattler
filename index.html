@@ -5255,6 +5255,15 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
         [-15, -7, 10],
         [15, -7, 10],
       ],
+      // Hits wear a vat down (it flashes white); at zero it blows up,
+      // hurting everyone close, and leaves a cloud of green gas that
+      // poisons whoever stands in it. It is rebuilt after a while.
+      vatHp: 70,
+      vatBoomR: 52,
+      vatBoomDmg: 20,
+      vatGasR: 40,
+      vatGas: 300,
+      vatRespawn: 900,
     },
     // Arena surges: one big set-piece per arena, announced a few seconds ahead.
     // Each one hits every fighter alike, so none of them favours a side.
@@ -6338,14 +6347,15 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
                       charge: 0,
                     }))
                     .concat(
-                      PLANT.vats.flatMap(([x, y]) =>
+                      PLANT.vats.flatMap(([x, y], v) =>
                         PLANT.vatFoot.map(([dx, dy, r], n) => ({
                           id: this.nextId++,
                           x: x + dx,
                           y: y + dy,
                           r,
-                          hp: 1 / 0,
-                          max: 1 / 0,
+                          vat: v,
+                          hp: PLANT.vatHp,
+                          max: PLANT.vatHp,
                           state: "solid",
                           t: 0,
                           hitT: 0,
@@ -6445,6 +6455,7 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
           (this.voltorbs = []),
           (this.voltT = VOLT.first),
           (this.smokes = []),
+          (this.gas = []),
           (this.summons = []),
           (this.exq = []),
           (this.exDone = []),
@@ -11463,6 +11474,17 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
       // ---- Arena mechanics: field shifts, dart traps, lava tide, thin ice,
       // Spheal, conveyors and Voltorb. All seeded and symmetric. ----
       arenaX(e) {
+        for (let g of this.gas)
+          if (--g.life % 20 === 0)
+            for (let p of this.match.phase === "fight" ? this.players : [])
+              p.state !== "faint" &&
+                !p.out &&
+                !p.hidden &&
+                !p.airborne &&
+                !this.floating(p) &&
+                Math.hypot(p.x - g.x, (p.y - g.y) * 1.3) < PLANT.vatGasR &&
+                this.poison(p);
+        this.gas = this.gas.filter((g) => g.life > 0);
         for (let m of this.smokes) m.life--;
         this.smokes = this.smokes.filter((m) => m.life > 0);
         let live = this.match.phase === "fight" && this.intro <= 0,
@@ -12286,6 +12308,7 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
           (this.itemT = SITRUS.every));
       }
       hitRock(e, t, s, i, r) {
+        if (e.vat !== void 0) return this.hitVat(e.vat, t, s, i);
         // Layout cover is painted scenery: it stops you but never breaks.
         if (e.ghost) return;
         if (e.pylon) {
@@ -12326,6 +12349,41 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
                 y: i ?? e.y,
                 rock: e,
               }));
+      }
+      // A Power Plant vat takes the hit on its art circle; at zero all of
+      // its circles fall, it explodes and leaves its gas.
+      hitVat(n, t, s, i) {
+        let parts = this.rocks.filter((r) => r.vat === n),
+          c = parts.find((r) => r.art);
+        if (!c || c.state !== "solid") return;
+        (c.hp -= t * ae.dmg), (c.hitT = 6);
+        if (c.hp > 0) {
+          this.emit({ type: "rockHit", x: s ?? c.x, y: i ?? c.y });
+          return;
+        }
+        for (let r of parts)
+          (r.state = "broken"), (r.t = PLANT.vatRespawn), (r.hp = r.max);
+        let x = c.ax,
+          y = c.ay - 8;
+        for (let b of this.bodies()) {
+          let dx = b.x - x,
+            dy = b.y - y,
+            d = Math.hypot(dx, dy * 1.3);
+          d < PLANT.vatBoomR &&
+            this.envHit(
+              b,
+              PLANT.vatBoomDmg,
+              6.5,
+              dx / (d || 1),
+              dy / (d || 1),
+              !0,
+              10,
+              26,
+              !1,
+            );
+        }
+        this.gas.push({ x, y, life: PLANT.vatGas });
+        this.emit({ type: "vatBoom", x, y: c.ay, n });
       }
       // Distance a ray travels from (e,t) along angle s before meeting a standing rock.
       rayLen(e, t, s, i) {
@@ -19832,9 +19890,20 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
           (hole(p.x, p.y, 120, 1),
           glow.push([p.x, p.y - 20, 36, "127,227,255", 0.35]));
       for (let v of e.voltorbs ?? []) v.fuse > 0 && hole(v.x, v.y, 70, 1);
-      for (let [x, y] of PLANT.vats)
-        hole(x, y - 28, 100, 0.9),
-          glow.push([x, y - 30, 24, "130,255,90", 0.3]);
+      for (let r of e.rocks)
+        r.art === "vat" &&
+          r.state === "solid" &&
+          (hole(r.ax, r.ay - 28, 100, 0.9),
+          glow.push([r.ax, r.ay - 30, 24, "130,255,90", 0.3]));
+      for (let g of e.gas ?? [])
+        hole(g.x, g.y, 90, 0.7),
+          glow.push([
+            g.x,
+            g.y - 6,
+            34,
+            "120,255,80",
+            0.25 * Math.min(1, g.life / 60),
+          ]);
     }
     g.globalAlpha = 1;
     // The light layer is on the arena's own pixel grid (640x360), stamped
@@ -20738,10 +20807,25 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
   // bubbles rising through the green glass.
   function vatArt(a, e, t) {
     let im = propOf("vat"),
-      x = Math.round(e.ax - 26),
+      j = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
+      x = Math.round(e.ax - 26 + j),
       y = Math.round(e.ay - 55);
     if (!im) return;
     a.drawImage(im, x, y);
+    if (e.hitT > 0) {
+      if (!PROP.vatWhite) {
+        let c = Zt(im.width, im.height),
+          q = c.getContext("2d");
+        q.drawImage(im, 0, 0),
+          (q.globalCompositeOperation = "source-in"),
+          (q.fillStyle = "#ffffff"),
+          q.fillRect(0, 0, c.width, c.height),
+          (PROP.vatWhite = c);
+      }
+      (a.globalAlpha = Math.min(1, e.hitT / 4) * 0.85),
+        a.drawImage(PROP.vatWhite, x, y),
+        (a.globalAlpha = 1);
+    }
     for (let n = 0; n < 5; n++) {
       let p = (t * 0.25 + n * 7.3 + e.ax) % 15,
         bx = x + 18 + ((n * 7 + ((t / 40) | 0)) % 19);
@@ -23318,6 +23402,7 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
     // Contact shadows under the vats, on the floor beneath everyone.
     for (let r of e.rocks)
       r.art === "vat" &&
+        r.state === "solid" &&
         ((a.fillStyle = "rgba(8,16,10,0.35)"),
         a.beginPath(),
         a.ellipse(r.ax, r.ay - 3, 29, 7, 0, 0, Math.PI * 2),
@@ -41438,6 +41523,27 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
         case "voltBoom":
           P("boom", n.x, n.y - 8, 1), P("sparks", n.x, n.y - 8, 0.8);
           break;
+        case "vatBoom":
+          P("waterSplat", n.x, n.y - 4, 1.9, {
+            under: !0,
+            ramp: ["#1f5a12", "#c8ff6a", 0.8],
+          }),
+            P("boomKo2", n.x, n.y - 28, 1.6);
+          // The gas: green smoke puffs that hang over the spot as long as
+          // the cloud lasts, fading out at the end.
+          for (let [dx, dy, d] of [
+            [0, -10, 8],
+            [-16, -4, 14],
+            [16, -6, 20],
+            [-4, 4, 26],
+          ])
+            P("smoke", n.x + dx, n.y + dy - 8, 1.7, {
+              ramp: ["#2a6b1c", "#b8ff70", 0.9],
+              a: 0.6,
+              life: PLANT.vatGas - d,
+              delay: d,
+            });
+          break;
         case "collapse":
           P("rock", n.x, n.y, 0.7), P("dustBrown", n.x, n.y - 6, 1);
           break;
@@ -44094,6 +44200,15 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
           break;
         case "voltFuse":
           cueSound("bolt");
+          break;
+        case "vatBoom":
+          S.boom(),
+            S.slam(),
+            t.shake(0, 1, 9),
+            (t.screenFlash = 2),
+            (t.screenFlashColor = "#e8ffd0"),
+            liveHype(e, 0.6),
+            buzz(0.9, 0.9, 240);
           break;
         case "voltBoom":
           S.boom(),

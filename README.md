@@ -107,7 +107,9 @@ floodlit night. Each arena also gained a mechanic:
   slowing icy water, then it refreezes; Spheal roll down the lanes.
 - **Power Plant:** a green-lit lab (a full-resolution painting) with two conveyors running opposite
   ways (they flip), Voltorb that roll in and blow up when someone comes close or shoots them, and two
-  chemical vats as solid cover that hide anyone standing behind them.
+  chemical vats as solid cover that hide anyone standing behind them. Hits make a vat flash; enough
+  of them blow it up, hurting everyone close and leaving a cloud of green gas that poisons, and it is
+  rebuilt after fifteen seconds.
 - **Magma Isle:** a walled obsidian platform in a lava cavern (a full-resolution painting). Cinder
   Crater's eruptions and hot spots; two lava pockets walled into the floor burn anyone who walks in
   (the rock pillars in them are safe footing, and they hold steady instead of rising and falling); a
