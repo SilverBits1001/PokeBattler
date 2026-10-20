@@ -15274,8 +15274,9 @@
   //   Stadium: clay pitch (upper) on a grass surround.
   //   Ruins: flagstone plazas round the boulders and a cross path, moss between.
   //   Crater: basalt (its lava is drawn live, see tilePat).
-  //   Frostfall Peak: granite (true) broken by wind-blown snowfields; the
-  //   rinks' ice is its own tile (TILESET[6]).
+  //   Frostfall Peak: granite outcrops (true) on frosted snow-ice; the
+  //   rinks' clear ice and the broken rink's water are their own tiles
+  //   (TILESET[6] and [7]), made to match.
   //   Power Plant: steel deck with coolant channels linking the pylons.
   function floorUpper(kind, x, y) {
     let r = B;
@@ -15347,6 +15348,9 @@
       return a.createPattern(TILESET[5], "repeat");
     if (kind === 3 && !up && TILESET[6])
       return a.createPattern(TILESET[6], "repeat");
+    // Frostfall's open water.
+    if (kind === "water")
+      return TILESET[7] ? a.createPattern(TILESET[7], "repeat") : null;
     if (!tilePats[e]) {
       let t = TILESET[kind];
       if (!t) return null;
@@ -17609,7 +17613,8 @@
         a.fill());
       (a.globalAlpha = i ? 0.55 : 1),
         (a.fillStyle =
-          (!i && tilePat(a, 3, !1)) || (i ? "#6d9fc4" : "#a9d6f2")),
+          (i ? tilePat(a, "water") : tilePat(a, 3, !1)) ||
+          (i ? "#6d9fc4" : "#a9d6f2")),
         a.beginPath(),
         a.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2),
         a.fill(),
@@ -19607,7 +19612,15 @@
           a.beginPath(),
           a.ellipse(Se, Te, rx - 2, ry - 2, 0, 0, Math.PI * 2),
           a.clip();
-        R(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0, `rgba(20,60,110,${0.85 * k})`);
+        (a.globalAlpha = k),
+          R(
+            B.x0,
+            B.y0,
+            B.x1 - B.x0,
+            B.y1 - B.y0,
+            tilePat(a, "water") || "rgba(20,60,110,0.85)",
+          ),
+          (a.globalAlpha = 1);
         let q = rt(7);
         for (let n = 0; n < 9; n++) {
           let x = Se + (q() - 0.5) * rx * 1.6 + Math.sin(t * 0.02 + n) * 2,
