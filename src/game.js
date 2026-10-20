@@ -26044,21 +26044,73 @@
         }
       }
     c.putImageData(img, 0, 0);
-    return (logoCache = { W, ready, cv, pw, ph });
+    // The letters alone, for the shine to run through.
+    let mk = document.createElement("canvas"),
+      mc = mk.getContext("2d"),
+      mi = mc.createImageData(pw, ph);
+    (mk.width = pw), (mk.height = ph);
+    for (let q = 0; q < n; q++)
+      inside[q] &&
+        ((mi.data[q * 4] = mi.data[q * 4 + 1] = mi.data[q * 4 + 2] = 255),
+        (mi.data[q * 4 + 3] = 255));
+    mc.putImageData(mi, 0, 0);
+    let sh = document.createElement("canvas");
+    (sh.width = pw), (sh.height = ph);
+    return (logoCache = {
+      W,
+      ready,
+      cv,
+      mk,
+      sh,
+      pw,
+      ph,
+      // POCKET above this row, BRAWL below.
+      split: Math.round(base[0] + 3),
+    });
   }
   function pocketLogo(cx, cy, bob, t, W = 150) {
     let P = LOGO_PX,
       L = logoPixels(W),
       w = L.pw * P,
       h = L.ph * P,
-      bb = Math.round(bob),
       top = Math.round((cy - (h + 18) / 2 + 12) / P) * P,
       x0 = Math.round((cx - w / 2) / P) * P,
-      y0 = top + 6 + bb,
+      y0 = top + 6,
       q = W / 150,
-      py = top - 3 + bb;
+      // The entrance: POCKET slams in from the left, BRAWL from the right,
+      // a flash as they land, then POKÉMON and the blade fade up.
+      inA = Ee(Math.min(1, t / 22)),
+      inB = Ee(Math.min(1, Math.max(0, t - 8) / 22)),
+      land = Math.max(0, 1 - Math.abs(t - 30) / 14),
+      fadeUp = Ee(Math.min(1, Math.max(0, t - 30) / 24)),
+      // Each word floats on its own slow swell, in whole pixels.
+      fa = Math.round(Math.sin(t * 0.045) * 1.3) * P,
+      fb = Math.round(Math.sin(t * 0.045 - 0.9) * 1.3) * P,
+      offA = (1 - inA) * -(H / 2 + w),
+      offB = (1 - inB) * (H / 2 + w),
+      py = top - 3 + Math.round(bob);
+    // A slow coloured glow behind, blue on the left and red on the right.
+    let pulse = 0.5 + 0.5 * Math.sin(t * 0.05);
+    for (let [sd, rgb] of [
+      [-1, "51,214,255"],
+      [1, "255,74,99"],
+    ]) {
+      let gx = cx + sd * w * 0.24,
+        gy = y0 + h * 0.5,
+        gr = d.createRadialGradient(m(gx), m(gy), 0, m(gx), m(gy), m(w * 0.42));
+      gr.addColorStop(0, `rgba(${rgb},${(0.16 + 0.12 * pulse) * fadeUp})`),
+        gr.addColorStop(1, `rgba(${rgb},0)`),
+        (d.fillStyle = gr),
+        d.fillRect(
+          m(gx - w * 0.42),
+          m(gy - w * 0.42),
+          m(w * 0.84),
+          m(w * 0.84),
+        );
+    }
     // POKÉMON, smooth.
     d.save(),
+      (d.globalAlpha = fadeUp),
       (d.font = fontOf(8 * q * Fe, je, 700)),
       "letterSpacing" in d && (d.letterSpacing = `${m(3.2 * q).toFixed(1)}px`),
       (d.textAlign = "center"),
@@ -26085,43 +26137,114 @@
         );
     }
     d.restore();
-    // The words, scaled up hard-edged.
-    d.save(),
-      (d.imageSmoothingEnabled = !1),
-      d.drawImage(L.cv, m(x0), m(y0), m(w), m(h)),
-      d.restore();
-    // A pixel blade under it, blue into white into red, fading at the ends.
+    // The shine: a slanted band of light crossing left to right every few
+    // seconds, cut to the letters on a small canvas so it stays pixel art.
+    let cyc = 210,
+      ph = (t + 120) % cyc,
+      sx = -24 + (ph / 52) * (L.pw + 48),
+      sc = L.sh.getContext("2d");
+    sc.clearRect(0, 0, L.pw, L.ph);
+    if (ph < 52) {
+      for (let [o, wd, al] of [
+        [0, 4, 0.9],
+        [6, 2, 0.5],
+        [-4, 2, 0.35],
+      ])
+        (sc.fillStyle = `rgba(255,255,255,${al})`),
+          sc.beginPath(),
+          sc.moveTo(sx + o, 0),
+          sc.lineTo(sx + o + wd, 0),
+          sc.lineTo(sx + o + wd - L.ph * 0.5, L.ph),
+          sc.lineTo(sx + o - L.ph * 0.5, L.ph),
+          sc.closePath(),
+          sc.fill();
+      // Keep only what falls on the letters.
+      (sc.globalCompositeOperation = "destination-in"),
+        sc.drawImage(L.mk, 0, 0),
+        (sc.globalCompositeOperation = "source-over");
+    }
+    // Draw a word: rows of the cached canvas at an offset.
+    let part = (src, r0, r1, dx, dy) =>
+      d.drawImage(
+        src,
+        0,
+        r0,
+        L.pw,
+        r1 - r0,
+        m(x0 + dx),
+        m(y0 + r0 * P + dy),
+        m(w),
+        m((r1 - r0) * P),
+      );
+    d.save(), (d.imageSmoothingEnabled = !1);
+    for (let src of [L.cv, L.sh])
+      part(src, L.split, L.ph, offB, fb), part(src, 0, L.split, offA, fa);
+    // The landing flash.
+    land > 0 &&
+      ((d.globalCompositeOperation = "lighter"),
+      (d.globalAlpha = land * 0.6),
+      part(L.mk, 0, L.ph, 0, 0));
+    d.restore();
+    // A pixel blade under it, blue into white into red, with a spark
+    // running along it.
     let by = y0 + h + 2,
-      cols = Math.floor(W / P);
+      cols = Math.floor(W / P),
+      run = ((t * 1.4) % (cols + 40)) - 20;
     for (let k = 0; k < cols; k++) {
       let u = k / (cols - 1),
-        a = 1 - Math.abs(u - 0.5) * 2;
-      if (a < 0.08) continue;
-      (d.fillStyle = u < 0.45 ? "#33d6ff" : u > 0.55 ? "#ff4a63" : "#ffffff"),
-        (d.globalAlpha = Math.min(1, a * 1.6)),
+        a = 1 - Math.abs(u - 0.5) * 2,
+        sp = Math.max(0, 1 - Math.abs(k - run) / 5);
+      if (a < 0.08 && sp < 0.1) continue;
+      (d.fillStyle =
+        sp > 0.3
+          ? "#ffffff"
+          : u < 0.45
+            ? "#33d6ff"
+            : u > 0.55
+              ? "#ff4a63"
+              : "#ffffff"),
+        (d.globalAlpha = Math.min(1, Math.max(a * 1.6, sp)) * fadeUp),
         d.fillRect(
           m(cx - W / 2 + k * P),
-          m(by),
+          m(by - (sp > 0.5 ? P * 0.5 : 0)),
           m(P),
-          m(a > 0.7 ? P * 1.5 : P),
+          m(a > 0.7 || sp > 0.5 ? P * 1.5 : P),
+        );
+    }
+    // Embers drifting up around the words: gold, with blue on the left
+    // and red on the right.
+    for (let k = 0; k < 16; k++) {
+      let rr = rt(k * 31 + 7),
+        life = 120 + rr() * 80,
+        e = ((t + rr() * 400) % life) / life,
+        ex = cx + (rr() - 0.5) * w * 1.05,
+        ey = y0 + h - e * (h * 0.9 + 20) + Math.sin(t * 0.05 + k) * 2,
+        col = rr() < 0.5 ? "#ffd24a" : ex < cx ? "#33d6ff" : "#ff4a63";
+      (d.globalAlpha = Math.sin(e * Math.PI) * 0.85 * fadeUp),
+        (d.fillStyle = col),
+        d.fillRect(
+          m(Math.round(ex / P) * P),
+          m(Math.round(ey / P) * P),
+          m(P),
+          m(P),
         );
     }
     d.globalAlpha = 1;
     // Four-point pixel twinkles on the letters, one at a time.
-    for (let k = 0; k < 5; k++) {
-      let ph = (t * 0.02 + k * 1.7) % 6;
-      if (ph > 1.2) continue;
-      let r = ph < 0.6 ? 1 : 2,
-        rr = rt(k * 13 + 5),
-        sx = x0 + Math.floor(rr() * L.pw) * P,
-        sy = y0 + Math.floor(rr() * (L.ph - 10)) * P;
+    for (let k = 0; k < 6; k++) {
+      let tw = (t * 0.02 + k * 1.3) % 5;
+      if (tw > 1.2 || fadeUp < 1) continue;
+      let r = tw < 0.4 || tw > 0.9 ? 1 : 2,
+        rr = rt(k * 13 + 5 + Math.floor((t * 0.02 + k * 1.3) / 5) * 7),
+        sx2 = x0 + Math.floor(rr() * L.pw) * P,
+        sy2 = y0 + Math.floor(rr() * (L.ph - 10)) * P;
       d.fillStyle = "#ffffff";
-      d.fillRect(m(sx), m(sy), m(P), m(P));
+      d.fillRect(m(sx2), m(sy2), m(P), m(P));
       for (let j = 1; j <= r; j++)
-        d.fillRect(m(sx + j * P), m(sy), m(P), m(P)),
-          d.fillRect(m(sx - j * P), m(sy), m(P), m(P)),
-          d.fillRect(m(sx), m(sy + j * P), m(P), m(P)),
-          d.fillRect(m(sx), m(sy - j * P), m(P), m(P));
+        d.fillRect(m(sx2 + j * P), m(sy2), m(P), m(P)),
+          d.fillRect(m(sx2 - j * P), m(sy2), m(P), m(P)),
+          d.fillRect(m(sx2), m(sy2 + j * P), m(P), m(P)),
+          d.fillRect(m(sx2), m(sy2 - j * P), m(P), m(P));
     }
   }
   // Face-off pieces shared by the start screen and the ready screen.
