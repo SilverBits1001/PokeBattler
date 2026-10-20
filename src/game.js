@@ -5092,10 +5092,13 @@
     // Power Plant: three pylons; arcs jump between pairs. Electric hits overcharge a
     // pylon into a discharge; water shorts it out for a while.
     PLANT = {
+      // One against the back wall under the scoreboard, in the corridor
+      // between the conveyor loops, and one standing in the middle of each
+      // loop (its base a little low, so the tower is centred in the square).
       pylons: [
-        [Se, Te - 70],
-        [Se - 150, Te + 62],
-        [Se + 150, Te + 62],
+        [Se, 100],
+        [175, 236],
+        [465, 236],
       ],
       r: 12,
       cycle: 330,
@@ -5114,8 +5117,8 @@
       // [dx, dy, r]; the middle one carries the art, so the vat sorts with
       // fighters by its base line and hides anyone standing behind it.
       vats: [
-        [520, 166],
-        [120, 250],
+        [120, 182],
+        [520, 234],
       ],
       vatFoot: [
         [0, -8, 12],
@@ -5125,12 +5128,15 @@
       // Hits wear a vat down (it flashes white); at zero it blows up,
       // hurting everyone close, and leaves a cloud of green gas that
       // poisons whoever stands in it. It is rebuilt after a while.
-      vatHp: 70,
+      vatHp: 150,
       vatBoomR: 52,
       vatBoomDmg: 20,
       vatGasR: 40,
       vatGas: 300,
       vatRespawn: 900,
+      // The last stretch before a vat is back: it is rebuilt in place, a
+      // flickering green outline filling in from the base up.
+      vatBuild: 120,
     },
     // Arena surges: one big set-piece per arena, announced a few seconds ahead.
     // Each one hits every fighter alike, so none of them favours a side.
@@ -12070,8 +12076,26 @@
       }
       updateArena() {
         this.updateHazards();
+        for (let c of this.rocks) {
+          if (!c.art || c.state !== "broken" || --c.t > 0) continue;
+          let parts = this.rocks.filter((r) => r.vat === c.vat);
+          this.bodies().some(
+            (b) =>
+              b.state !== "faint" &&
+              !b.hidden &&
+              parts.some(
+                (r) => Math.hypot(b.x - r.x, b.y - r.y) < r.r + b.r + 2,
+              ),
+          )
+            ? (c.t = 1)
+            : (parts.forEach((r) => ((r.state = "solid"), (r.hp = r.max))),
+              this.emit({ type: "vatRise", x: c.ax, y: c.ay }));
+        }
         for (let e of this.rocks)
-          if ((e.hitT > 0 && e.hitT--, e.state === "broken" && --e.t <= 0)) {
+          if (
+            (e.hitT > 0 && e.hitT--,
+            e.vat === void 0 && e.state === "broken" && --e.t <= 0)
+          ) {
             // A rock never re-forms on top of someone; it waits for the spot to clear.
             this.bodies().some(
               (t) =>
@@ -12228,6 +12252,7 @@
         }
         for (let r of parts)
           (r.state = "broken"), (r.t = PLANT.vatRespawn), (r.hp = r.max);
+        c.hitT = 0;
         let x = c.ax,
           y = c.ay - 8;
         for (let b of this.bodies()) {
@@ -20715,6 +20740,44 @@
       x = Math.round(e.ax - 26 + j),
       y = Math.round(e.ay - 55);
     if (!im) return;
+    if (e.state === "broken") {
+      // Being rebuilt: a green outline of the vat flickers in, solid from
+      // the base up as the build runs, with sparks at the rising edge.
+      let p = 1 - Math.max(0, e.t) / PLANT.vatBuild,
+        h = Math.round(im.height * p);
+      if (!PROP.vatHolo) {
+        let c = Zt(im.width, im.height),
+          q = c.getContext("2d");
+        q.drawImage(im, 0, 0),
+          (q.globalCompositeOperation = "source-in"),
+          (q.fillStyle = "#8dff6a"),
+          q.fillRect(0, 0, c.width, c.height),
+          (PROP.vatHolo = c);
+      }
+      (a.globalAlpha = (0.18 + 0.12 * Math.sin(t * 0.5)) * Math.min(1, p * 3)),
+        a.drawImage(PROP.vatHolo, x, y),
+        (a.globalAlpha = 0.9),
+        h > 0 &&
+          a.drawImage(
+            im,
+            0,
+            im.height - h,
+            im.width,
+            h,
+            x,
+            y + im.height - h,
+            im.width,
+            h,
+          ),
+        (a.globalAlpha = 1);
+      if (h > 0 && h < im.height && t % 3 === 0) {
+        let sy = y + im.height - h;
+        (a.fillStyle = t % 6 ? "#eaffd0" : "#8dff6a"),
+          a.fillRect(x + 6 + ((t * 7) % (im.width - 12)), sy, 2, 1),
+          a.fillRect(x + 6 + ((t * 13 + 20) % (im.width - 12)), sy, 1, 1);
+      }
+      return;
+    }
     a.drawImage(im, x, y);
     if (e.hitT > 0) {
       if (!PROP.vatWhite) {
@@ -23303,6 +23366,18 @@
         R(x - 6 * d.dir * (d.dir > 0), y, 7, 1, "#d8c8a0"),
           R(x + (d.dir > 0 ? 0 : -2), y - 1, 2, 3, "#5a4a3a");
       }
+    // Scorch where a vat blew, until it is rebuilt.
+    for (let r of e.rocks)
+      r.art === "vat" &&
+        r.state === "broken" &&
+        ((a.fillStyle = "rgba(20,30,12,0.45)"),
+        a.beginPath(),
+        a.ellipse(r.ax, r.ay - 6, 30, 10, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "rgba(110,200,70,0.18)"),
+        a.beginPath(),
+        a.ellipse(r.ax + 4, r.ay - 4, 16, 5, 0, 0, Math.PI * 2),
+        a.fill());
     // Contact shadows under the vats, on the floor beneath everyone.
     for (let r of e.rocks)
       r.art === "vat" &&
@@ -23869,7 +23944,11 @@
     let lay = layoutOf(e.stage ?? e.arena).filter((s) => s.kind === "layer"),
       f = [
         ...e.bodies().filter((h) => !h.hidden),
-        ...e.rocks.filter((h) => h.state === "solid" && (!h.ghost || h.art)),
+        ...e.rocks.filter(
+          (h) =>
+            (h.state === "solid" && (!h.ghost || h.art)) ||
+            (h.art && h.t <= PLANT.vatBuild),
+        ),
         ...lay
           .filter((s) => s.z !== "front")
           .map((s) => ({ layer: s, y: s.base ?? shapeBox(s)[3] })),
@@ -37646,7 +37725,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 21,
+  var NETV = 22,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -41434,6 +41513,13 @@
         case "voltBoom":
           P("boom", n.x, n.y - 8, 1), P("sparks", n.x, n.y - 8, 0.8);
           break;
+        case "vatRise":
+          P("warp", n.x, n.y - 28, 1.1, { ramp: ["#1f6b1a", "#d8ffb0", 1] }),
+            P("smokePuff", n.x, n.y - 6, 1.4, {
+              ramp: ["#5a6a70", "#e8f0f0", 1],
+              a: 0.7,
+            });
+          break;
         case "vatBoom":
           P("waterSplat", n.x, n.y - 4, 1.9, {
             under: !0,
@@ -44111,6 +44197,9 @@
           break;
         case "voltFuse":
           cueSound("bolt");
+          break;
+        case "vatRise":
+          S.land(), t.dust(n.x, n.y, 8, 0, 0, 1.2);
           break;
         case "vatBoom":
           S.boom(),
