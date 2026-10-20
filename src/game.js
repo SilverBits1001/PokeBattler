@@ -23469,7 +23469,12 @@
     if (u) {
       d.imageSmoothingEnabled = !1;
       let h = i * Fe,
-        c = h >= 40 ? Math.floor(h / 40) : h / 40,
+        // Whole-number steps keep pixels even, unless that would leave the
+        // portrait well short of its frame (small tiles on a phone).
+        c =
+          h >= 40 && Math.floor(h / 40) * 40 >= h * 0.9
+            ? Math.floor(h / 40)
+            : h / 40,
         y = 40 * c,
         b = m(t) + (h - y) / 2,
         p = m(s) + (h - y);
