@@ -4781,22 +4781,19 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
       r: 12,
       dmg: 16,
     },
-    // Power Plant: four conveyors wall to wall, neighbours running opposite
-    // ways (they all flip on a cycle), point-symmetric about the centre.
-    // Fast enough that walking against one is a slog and riding one is a
-    // quick getaway. Voltorb roll in and blow up when someone gets close.
+    // Power Plant: one conveyor loop round the deck, a rectangle (clockwise,
+    // reversing on a cycle), point-symmetric about the centre. Fast enough
+    // that walking against it is a slog and riding it is a quick getaway.
+    // Each side belt (v: along y, at x) also pushes over the length `reach`
+    // past its ends, across the corners, so a rider turns the corner
+    // instead of piling up there. Voltorb roll in and blow up when someone
+    // gets close.
     BELT = {
       belts: [
         { x0: 60, x1: 580, y: 92, h: 20, dir: 1 },
-        { x0: 34, x1: 606, y: 180, h: 20, dir: -1 },
-        { x0: 34, x1: 606, y: 236, h: 20, dir: 1 },
+        { v: 1, x: 570, y0: 106, y1: 308, h: 20, dir: 1, reach: 24 },
         { x0: 60, x1: 580, y: 324, h: 20, dir: -1 },
-        // Vertical links in the gaps between them (v: along y, at x): down
-        // on the left, up on the right, so the lanes form loops.
-        { v: 1, x: 220, y0: 106, y1: 164, h: 20, dir: 1 },
-        { v: 1, x: 420, y0: 106, y1: 164, h: 20, dir: -1 },
-        { v: 1, x: 220, y0: 250, y1: 308, h: 20, dir: 1 },
-        { v: 1, x: 420, y0: 250, y1: 308, h: 20, dir: -1 },
+        { v: 1, x: 70, y0: 106, y1: 308, h: 20, dir: -1, reach: 24 },
       ],
       speed: 1.6,
       flip: 900,
@@ -11637,8 +11634,8 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
             for (let o of bodies)
               grounded(o) &&
                 (b.v
-                  ? o.y > b.y0 &&
-                    o.y < b.y1 &&
+                  ? o.y > b.y0 - b.reach &&
+                    o.y < b.y1 + b.reach &&
                     Math.abs(o.x - b.x) < b.h / 2 &&
                     this.moveBody(o, 0, b.dir * BELT.speed)
                   : o.x > b.x0 &&
@@ -37747,7 +37744,7 @@ window.__PROPS__={vat:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA4CAY
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 18,
+  var NETV = 19,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
