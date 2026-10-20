@@ -4695,7 +4695,7 @@
       "Erupted vents run hot: +25% damage",
       "Dodge on ice to slide further",
       "Stand by a live pylon to recharge",
-      "Slammed into the edge? The magma burns",
+      "Skirt the lava pockets, and the edge: magma burns",
       "The pools slow you, and carry Electric shocks",
       "Mind the pools, and the edge: the lava lake burns",
     ],
@@ -4896,6 +4896,15 @@
       weakTo: ["FIGHTING", "STEEL", "WATER", "GRASS"],
       respawn: 720,
       warn: 120,
+      // The painting's wall torches [x, flicker seed] and cave crystals.
+      torches: [
+        [240, 0],
+        [384, 1],
+      ],
+      crystals: [
+        [13, 182],
+        [22, 235],
+      ],
       spots: [
         [Se - 72, Te - 60],
         [Se + 72, Te - 60],
@@ -4912,8 +4921,9 @@
       { id: "crater", name: "Cinder Crater" },
       { id: "frost", name: "Frostfall Peak" },
       { id: "plant", name: "Power Plant" },
-      // An obsidian island in a magma sea: Cinder Crater's eruptions and hot
-      // spots without the pools, and a hard splat into the edge dunks you.
+      // A walled obsidian platform in a lava cavern: Cinder Crater's eruptions
+      // and hot spots, two lava pockets in the floor (MAGMA.pools), and a hard
+      // splat into the edge dunks you.
       { id: "magma", name: "Magma Isle", kind: 2 },
       // A flooded temple: the Ruins' rules (field shifts, tremors) without
       // its columns, with four standing pools that slow and conduct.
@@ -4944,8 +4954,89 @@
       ventR: 34,
       ventDmg: 34,
     },
-    // Magma Isle: extra damage for a splat into the edge (on top of the splat).
-    MAGMA = { stage: 5, dunk: 12 },
+    // Magma Isle: extra damage for a splat into the edge (on top of the splat),
+    // and the two lava pockets walled into the painted floor, traced as
+    // polygons. The rock pillars standing in them [x, y, r] are safe footing.
+    // The pockets are walled in, so they hold steady (no tide).
+    MAGMA = {
+      stage: 5,
+      dunk: 12,
+      pools: [
+        {
+          pts: [
+            [72, 98],
+            [88, 108],
+            [118, 108],
+            [118, 130],
+            [108, 140],
+            [92, 148],
+            [86, 160],
+            [78, 176],
+            [90, 186],
+            [110, 196],
+            [122, 204],
+            [118, 214],
+            [106, 222],
+            [98, 232],
+            [94, 250],
+            [92, 262],
+            [82, 268],
+            [70, 275],
+            [52, 276],
+            [40, 265],
+            [36, 245],
+            [30, 232],
+            [22, 226],
+            [23, 193],
+            [38, 180],
+            [38, 138],
+            [60, 135],
+            [70, 122],
+            [70, 100],
+          ],
+          safe: [
+            [50, 197, 9],
+            [52, 232, 7],
+            [80, 250, 9],
+          ],
+        },
+        {
+          pts: [
+            [540, 150],
+            [560, 147],
+            [568, 155],
+            [600, 158],
+            [603, 190],
+            [597, 198],
+            [598, 210],
+            [600, 280],
+            [580, 282],
+            [573, 295],
+            [568, 304],
+            [540, 304],
+            [528, 292],
+            [513, 290],
+            [503, 282],
+            [505, 270],
+            [515, 260],
+            [535, 250],
+            [543, 248],
+            [545, 230],
+            [537, 220],
+            [532, 212],
+            [530, 195],
+            [540, 182],
+            [545, 170],
+            [545, 155],
+          ],
+          safe: [
+            [562, 170, 8],
+            [577, 220, 12],
+            [550, 265, 8],
+          ],
+        },
+      ],
+    },
     // Ember Caldera: its painted lava pools [x, y, rx, ry]. The first two
     // swell while the others ebb, as in Cinder Crater.
     CALDERA = {
@@ -6125,7 +6216,25 @@
                     cool: 0,
                   }),
                 )
-              : []),
+              : A.arena === MAGMA.stage
+                ? MAGMA.pools.map(({ pts, safe }) => {
+                    let xs = pts.map((p) => p[0]),
+                      ys = pts.map((p) => p[1]),
+                      x0 = Math.min(...xs),
+                      x1 = Math.max(...xs),
+                      y0 = Math.min(...ys),
+                      y1 = Math.max(...ys);
+                    return {
+                      x: (x0 + x1) / 2,
+                      y: (y0 + y1) / 2,
+                      rx: (x1 - x0) / 2,
+                      ry: (y1 - y0) / 2,
+                      shape: { shape: "poly", pts },
+                      safe,
+                      cool: 0,
+                    };
+                  })
+                : []),
           (this.ice =
             A.arena === 3
               ? FROST.rinks.map(([o, l, f, u]) => ({
@@ -11030,6 +11139,11 @@
         this.mines = this.mines.filter((e) => e.age >= 0);
       }
       inZone(e, t, s) {
+        if (s.shape)
+          return (
+            inShape(s.shape, e, t) &&
+            !s.safe.some(([x, y, r]) => Math.hypot(e - x, t - y) < r)
+          );
         let i = (e - s.x) / s.rx,
           r = (t - s.y) / s.ry;
         return i * i + r * r < 1;
@@ -11276,6 +11390,7 @@
         if (this.lava.length) {
           let q = Math.sin((this.tick * Math.PI * 2) / TIDE.period);
           this.lava.forEach((l, n) => {
+            if (l.shape) return;
             let k = 1 + TIDE.amp * q * (n < 2 ? 1 : -1);
             (l.rx = l.rx0 * k), (l.ry = l.ry0 * k);
           });
@@ -11704,7 +11819,7 @@
               );
         this.updateSurge(e);
         this.arenaX(e);
-        // Cinder Crater (and Magma Isle, which has no pools)
+        // Cinder Crater (and Magma Isle, whose pockets are traced shapes)
         if (this.lava.length || this.stage === MAGMA.stage) {
           // Water shots and jets crust over any pool they pass across.
           let w = [];
@@ -19080,8 +19195,8 @@
           R(x - 1, y + 0.5, 4, 1, "rgba(255,255,255,0.6)"));
       }
     } else if (k === 1 && e.stage !== SHRINE.stage) {
-      // Brazier flames on the pillars.
-      for (let x of [60, 180, 460, 580]) {
+      // Brazier flames on the pillars (the painted ruins has its own torches).
+      for (let x of arenaArt(1) ? [] : [60, 180, 460, 580]) {
         for (let n = 0; n < 6; n++) {
           let h = 3 + Math.abs(Math.sin(t * 0.3 + n * 1.3 + x)) * 6;
           R(x - 5 + n * 2, top - 22 - h, 2, h, n % 2 ? "#ff8a3d" : "#ffc93c");
@@ -19447,6 +19562,8 @@
         "rgba(10,26,64,0.22)",
         "rgba(6,10,20,0.36)",
       ][k];
+    // The painted ruins are an overgrown courtyard in daylight: only a little dim.
+    e.stage === 1 && arenaArt(1) && (amb = "rgba(30,16,40,0.14)");
     // The Shrine: deep blue water light.
     e.stage === SHRINE.stage && (amb = "rgba(4,22,52,0.30)");
     LIGHT.on = !!amb;
@@ -19490,6 +19607,14 @@
             glow.push([x, y, r * 1.3, "90,210,255", 0.18]);
         }
       hole(Se, Te, Y * 0.9, 0.35);
+    } else if (k === 1 && arenaArt(1)) {
+      // The painted ruins: its two wall torches and the cave crystals.
+      for (let [x, n] of RUINS.torches)
+        hole(x, 34, 130 * flick(n), 1),
+          glow.push([x, 34, 34 * flick(n), "255,150,60", 0.5]);
+      for (let [x, y] of RUINS.crystals)
+        hole(x, y, 60, 0.8), glow.push([x, y, 22, "90,230,255", 0.35]);
+      for (let x of [240, 400]) hole(x, Te, 140, 0.55);
     } else if (k === 1) {
       for (let [x, n] of [
         [60, 0],
@@ -20730,6 +20855,22 @@
     let t = e.tick;
     for (let s of e.lava) {
       let i = s.cool > 0;
+      if (s.shape) {
+        let p = 0.5 + 0.5 * Math.sin(t * 0.06 + s.x * 0.05);
+        a.save(), a.beginPath();
+        for (let [x, y] of s.shape.pts) a.lineTo(x, y);
+        a.closePath();
+        i
+          ? ((a.globalAlpha = s.cool < 90 && t % 10 < 5 ? 0.6 : 0.85),
+            (a.fillStyle = "#2a2321"),
+            a.fill())
+          : ((a.globalCompositeOperation = "lighter"),
+            (a.globalAlpha = 0.08 + 0.08 * p),
+            (a.fillStyle = "#ff9a3c"),
+            a.fill());
+        a.restore();
+        continue;
+      }
       // On a painted crater the pool is in the painting: only the tide's
       // overflow past its resting size, a breathing glow, and a cooled
       // crust are drawn over it.
@@ -34042,7 +34183,7 @@
     ],
     [
       "Ring out",
-      "Eruptions; splatting into the edge dunks you in magma",
+      "Eruptions and two lava pockets; splatting into the edge dunks you",
       "Erupted vents run hot: +25% damage",
     ],
     [
@@ -37232,7 +37373,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 13,
+  var NETV = 14,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,

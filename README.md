@@ -100,16 +100,17 @@ floodlit night. Each arena also gained a mechanic:
 - **Stadium:** field shifts. Every so often the pitch becomes a Grass (healing
   tall grass), Water (puddles that slow and conduct), Fire (hot spots that power
   you up) or Rock (cover) field for twenty seconds.
-- **Ruins:** pressure plates. Step on one and darts fly down its lane after a
-  short warning, hitting anyone in it.
+- **Ruins:** an overgrown temple courtyard (a full-resolution painting) with breakable columns and
+  pressure plates. Step on one and darts fly down its lane after a short warning, hitting anyone in it.
 - **Cinder Crater:** the lava pools swell and recede.
 - **Frostfall Peak:** a night summit above the clouds; heavy blows crack the centre rink until it breaks into
   slowing icy water, then it refreezes; Spheal roll down the lanes.
 - **Power Plant:** two conveyors running opposite ways (they flip), and Voltorb
   that roll in and blow up when someone comes close or shoots them.
-- **Magma Isle:** a cracked obsidian island in a sea of magma (a painted arena). Cinder
-  Crater's eruptions and hot spots without its pools; a hard splat into the edge dunks you in
-  the magma for extra damage and a burn.
+- **Magma Isle:** a walled obsidian platform in a lava cavern (a full-resolution painting). Cinder
+  Crater's eruptions and hot spots; two lava pockets walled into the floor burn anyone who walks in
+  (the rock pillars in them are safe footing, and they hold steady instead of rising and falling); a
+  hard splat into the edge dunks you in the magma for extra damage and a burn.
 - **Sunken Shrine:** a flooded temple lit by shell lamps (a painted arena). The Ruins' field shifts and
   tremors without its columns; its four pools slow everyone, and Electric damage in them shocks the water.
 - **Ember Caldera:** a basalt plateau in a lava lake (a full-resolution painting). Cinder Crater's rules
