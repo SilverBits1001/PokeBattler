@@ -20,6 +20,44 @@ select. The overlay hides again when a keyboard or controller is used.
 
 ## What's new
 
+**Roster 3: seven new fighters, three new legendaries.** Each new fighter is built
+around one idea from its lore and typing, with a payoff that a commitment buys
+(see [docs/plan-roster-3.md](docs/plan-roster-3.md)):
+
+- **Lurantis** (Grass, duelist) plants **Sunny Day** and fights inside it: there,
+  **Solar Blade** (the longest blade in the game) needs no charge, Synthesis heals
+  and Leaf Guard blocks status. Leaf Blade can crit; X-Scissor cuts straight through.
+- **Chandelure** (Ghost/Fire, zoner) floats, burns foes with homing **Will-O-Wisp**
+  and cashes the burns in with **Hex** (double damage). **Overheat** is a huge
+  soul-fire blast that drains it afterwards. Flash Fire turns fire into fuel.
+- **Ceruledge** (Fire/Ghost, berserker) heals with **Bitter Blade**, gets faster with
+  each **Flame Charge** hit and throws its blades as a **Poltergeist** boomerang,
+  fighting bare-handed until they return. Weak Armor speeds it up when hit hard.
+- **Volcarona** (Bug/Fire, set-up) **Quiver Dances** up to three stacks of damage
+  and speed, shedding burning scales at full power. Hard hits knock stacks off.
+  **Fiery Dance** rings it in flame; **Bug Buzz** holds foes off.
+- **Milotic** (Water, controller) drags foes into a **Whirlpool**, burns them with
+  **Scald** and out-lasts them with **Aqua Ring**. Marvel Scale toughens it while it
+  has a status.
+- **Inteleon** (Water, sniper) lines up **Snipe Shot** with a laser sight: an instant
+  shot across the arena, a critical at full charge. **Acrobatics** glides away and
+  steadies the next shot. **Water Gun** fires a three-round burst.
+- **Zoroark** (Dark, illusionist) starts every round **disguised** as another
+  Pokémon; its first strike from a disguise is an ambush. **Illusion** leaves a decoy
+  running while it re-disguises; **Night Daze** dazes all round it; **Foul Play**
+  hits strong Pokémon harder.
+
+Legendaries **Dialga** (Roar of Time stops time round the target, then roars, and
+rewinds some of your lost HP), **Palkia** (Spacial Rend tears three rifts across the
+arena) and **Giratina** (Shadow Force hunts from below and erupts through any
+defence) each take over the arena while they act, then take the scene to their own
+world: a vast clock in a dark sky, deep space, and the Distortion World.
+
+**Rebalance.** Metagross now plays Steel and Psychic: **Meteor Mash** (landing it
+powers you up) and **Psychic** (a telekinetic pull into fist range) replace Hammer Arm
+and Magnet Rise. Snorlax keeps armour only on its Stomp finisher. Froslass chills only
+with her finisher, freezes for less and has a lower damage scale.
+
 See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
 callouts, five arenas, each with its own hazard and benefit (Stadium spotlights, Ruins
 collapse and Ancient Power, Cinder Crater heat vents, Frostfall slides, Power Plant recharge), items (Sitrus Berry, X Attack, Poké Ball, Rocky Helmet, Choice Scarf, Focus Band, Quick Claw, Smoke Ball, Leftovers), Smash-style
@@ -101,9 +139,10 @@ the fallen Pokémon's face. Statuses each have their own short sound, and big
 moments flash the screen edge in their colour. Options → Accessibility →
 Battle callouts → "Icons + words" brings the words back.
 
-Roster (18): Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern,
+Roster (25): Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern,
 Lucario, Garchomp, Scizor, Tyrantrum, Golurk, Rhyperior, Froslass, Gardevoir,
-Metagross, Greninja and Aegislash. Each has a class from [the design document](docs/design-doc.md) (speedster,
+Metagross, Greninja, Aegislash, Lurantis, Chandelure, Ceruledge, Volcarona, Milotic,
+Inteleon and Zoroark. Each has a class from [the design document](docs/design-doc.md) (speedster,
 heavyweight, trickster, controller, artillery or skirmisher), a signature gimmick, a
 real weakness, an answer to ranged attacks and a way to escape:
 
@@ -119,9 +158,13 @@ real weakness, an answer to ranged attacks and a way to escape:
   doll behind.
 - **Gardevoir** lifts and throws foes with Psychic, reflects shots, and sets Future
   Sight traps.
-- **Metagross** floats on Magnet Rise and is never slowed (Clear Body).
+- **Metagross** drags foes in with Psychic, then crushes them with Meteor Mash; it is
+  never slowed (Clear Body).
 
-The whole roster was rebalanced together. With eighteen Pokémon every one averages
+With twenty-five Pokémon every one averages 40–61% across three arenas in CPU duels
+(roster 3, 2 games per pairing per arena). The setup and mind-game kits (Volcarona,
+Zoroark) sit at the low end against the CPU, which plays them less well than a person
+does. The earlier eighteen-Pokémon balance pass had every one averaging
 45–55% across all five arenas in CPU duels, and no pairing reaches 80% over 300
 games. Crowd control is kept short: getting up is fully invincible and followed by a
 moment of safety, and no move chain locks a fighter for more than about 2.6 seconds.
@@ -165,6 +208,18 @@ launches them:
   point first, and dives on each in turn. Each mark locks just before the dive, so
   a late dodge escapes. Everyone it hit shares one scene in the sky. Made for
   Free-for-All.
+- **Dialga, Roar of Time** (time). Every foe inside a clock face round the aim point
+  stops in time while the arena drains of colour, then the roar tears through them.
+  Time also rewinds for you: you get back 40% of the HP you lost in the last five
+  seconds. Its scene is a vast clock in a dark sky, gears turning and time streaming
+  to a halt.
+- **Palkia, Spacial Rend** (space). The arena opens into a starfield and three rifts
+  tear across it through the aim point, a beat apart, dragging anyone they cut onto
+  their line. Its scene is deep space, and the finisher snaps space shut.
+- **Giratina, Shadow Force** (Distortion World). It sinks into the floor, hunts the foe
+  nearest the aim as a moving shadow, then erupts beneath them through guard,
+  counters, shields and invulnerability. Its scene is the Distortion World, with
+  upside-down islands and waterfalls that fall upward.
 - **Ho-Oh, Sacred Fire** (support). It cleanses burn, poison, paralysis, chill,
   sleep and freeze, and heals a lone Pokémon 10%. In Tag Team, Rebirth revives a
   fainted partner at 15% instead, once per match. Then a ring of fire rolls out and stays around you, burning foes
@@ -173,7 +228,7 @@ launches them:
 **Team select** asks for as many Pokémon as the mode needs: one in Standard and the
 party modes, two in Tag Team. The last tile picks a random Pokémon you haven't
 picked, and the CPU never copies yours. Once every fighter is chosen, the legendary
-roster opens: choose one of the six legendaries, Random or Off, and the battle starts.
+roster opens: choose one of the nine legendaries, Random or Off, and the battle starts.
 Each CPU gets a random legendary. Online, both players must have legendaries on for
 them to appear.
 

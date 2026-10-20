@@ -265,3 +265,40 @@ as the finisher.
 5. Balance: full round-robin sims on all arenas, plus risk/reward review per
    kit.
 6. Ship.
+
+---
+
+## What testing changed
+
+These results come from CPU round robins with every pairing, 2 games per pairing on
+each of three arenas (Stadium, Ruins, Frostfall), plus Free-for-All and 2v2 samples.
+
+- **Duels:** every one of the 25 fighters averages 40–61%.
+  - The new ones: Chandelure 0.53, Milotic 0.51, Volcarona 0.49, Inteleon 0.48,
+    Lurantis 0.45, Ceruledge 0.44, Zoroark 0.41.
+  - Volcarona and Zoroark sit low against the CPU. Their payoffs (set-up, mind
+    games) reward a person more than the CPU, so they were not pushed higher.
+- **Froslass** ended at damage scale 1.5, not 1.38: the chill and freeze changes
+  alone took her from about 0.50 to 0.40. She now sits just under average.
+- **Snorlax** without jab armour dropped to 0.36, so its damage scale went
+  0.82 → 0.92. It is back to about 0.48.
+- **Metagross** with Psychic and Meteor Mash rose to about 0.57. Its damage scale went
+  0.9 → 0.82, and Psychic's stun is 20 ticks.
+- **Weak Armor** lost its damage-taken penalty: heavy hits are so common that the
+  penalty made Ceruledge a free kill. It is now a speed boost only.
+- **Volcarona**'s second combo hit is Fire, not Bug. Bug is resisted widely and
+  Volcarona takes 4× from Rock. A Quiver stack is lost only to a hit of 40+ damage.
+  The dance is 0.5 s and each stack gives +18% damage.
+- **Milotic**'s Whirlpool pull and damage were trimmed (it won 11 of 12 at first).
+- **Free-for-All and 2v2** have per-Pokémon tables for the new fighters.
+  - Zoners are scaled down in Free-for-All.
+  - Chandelure and Milotic take more damage there, since floating and Aqua Ring
+    outlast a crowd.
+  - Ceruledge, Inteleon and Zoroark get a little more in 2v2.
+- **Online:** a rollback replay of every new kit and legendary on all five arenas
+  reproduces the simulation exactly (snapshot, play, restore, replay, compare). The
+  online version is 9.
+- **Engine fixes found on the way:**
+  - Beams (Ice Beam, Overheat and the rest) no longer vanish while their user is
+    in hitstop.
+  - Fire as a second type now blocks burns.

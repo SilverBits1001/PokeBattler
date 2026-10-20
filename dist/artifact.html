@@ -1317,7 +1317,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         color: "#3f7fd6",
         typeInk: "#0a1a33",
         hp: 900,
-        power: 0.82,
+        power: 1.08,
         speed: 3.25,
         weight: 0.9,
         r: 8,
@@ -1876,7 +1876,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         color: "#9ad8f0",
         typeInk: "#0c2a36",
         hp: 950,
-        power: 1.45,
+        power: 1.5,
         speed: 3.1,
         weight: 1.25,
         r: 8,
@@ -2059,7 +2059,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         color: "#5a8fd0",
         typeInk: "#0d1d33",
         hp: 1140,
-        power: 0.85,
+        power: 0.82,
         speed: 2.3,
         weight: 0.5,
         r: 11,
@@ -2352,7 +2352,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         color: "#5b4bd0",
         typeInk: "#120c33",
         hp: 1000,
-        power: 1.2,
+        power: 1.35,
         speed: 2.95,
         weight: 0.9,
         r: 9,
@@ -2447,8 +2447,8 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         type2: "FIRE",
         color: "#ff8a2a",
         typeInk: "#2a1200",
-        hp: 960,
-        power: 1.05,
+        hp: 1000,
+        power: 1.5,
         speed: 2.45,
         weight: 1,
         r: 10,
@@ -2487,7 +2487,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
             shape: "circle",
             reach: 20,
             radius: 14,
-            mtype: "BUG",
+            mtype: "FIRE",
           },
           {
             anim: "Swing",
@@ -2546,7 +2546,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         color: "#4aa8e0",
         typeInk: "#0a2236",
         hp: 1040,
-        power: 0.9,
+        power: 0.86,
         speed: 2.35,
         weight: 0.7,
         r: 11,
@@ -2641,8 +2641,8 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         type: "WATER",
         color: "#2f7fd0",
         typeInk: "#08203a",
-        hp: 880,
-        power: 1.05,
+        hp: 900,
+        power: 1.2,
         speed: 3,
         weight: 1.05,
         r: 9,
@@ -2738,7 +2738,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         color: "#b03050",
         typeInk: "#200810",
         hp: 980,
-        power: 1.3,
+        power: 1.5,
         speed: 3.05,
         weight: 1,
         r: 9,
@@ -3093,9 +3093,9 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         bbKb: 4.2,
         bbRec: 12,
         // Quiver Dance: a dance that adds a stack, up to three.
-        qdTime: 36,
+        qdTime: 30,
         qdMax: 3,
-        qdDmg: 0.15,
+        qdDmg: 0.18,
         // A hit this hard knocks a stack off.
         qdLoseAt: 40,
         qdSpeed: 0.08,
@@ -4178,7 +4178,8 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
               (["attack", "smash", "bodySlam"].includes(op.state) ||
                 (op.state === "ex" && op.exDanger)),
             strong = op && (op.kit.power ?? 1) > 1.1;
-          u.cdY === 0 && (hot || hp < 0.4) && r() < 0.45
+          u.cdY === 0 &&
+          ((hot && r() < 0.45) || (!u.disguise && y > 80 && r() < 0.4))
             ? i.pressed.add("special2")
             : u.cdX === 0 &&
                 y < 48 &&
@@ -4223,7 +4224,7 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
           // Dance when there is room, then take over. Bug Buzz at range,
           // Fiery Dance when they crowd in.
           let q = u.qd ?? 0;
-          q < 3 && u.cdY === 0 && y > 110 && r() < 0.6
+          q < 3 && u.cdY === 0 && y > 90 && r() < 0.7
             ? i.pressed.add("special2")
             : y < 32 || (N && y < 46)
               ? y < 30 && r() < 0.18
@@ -4785,6 +4786,16 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     // range and escapes far more than a duel does, so each kit's damage is
     // tuned for this mode on its own (duels and team modes use 1).
     FFA_POW = {
+      // The roster-3 zoners rack up damage from safety in a crowd; the
+      // melee fighters among them get caught in the middle.
+      greninja: 0.8,
+      chandelure: 0.6,
+      volcarona: 0.55,
+      milotic: 0.68,
+      inteleon: 0.55,
+      zoroark: 0.95,
+      lurantis: 1.15,
+      ceruledge: 1.35,
       // Shield Forme and King's Shield shine in a crowd.
       aegislash: 0.74,
       gardevoir: 0.6,
@@ -4807,6 +4818,10 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     // ... and, where damage alone can't do it, how much it takes there.
     // Gardevoir outlasts crowds by staying out of reach, so she takes more.
     FFA_TAKEN = {
+      // Chandelure floats clear of a crowd's ground attacks.
+      chandelure: 1.35,
+      // Aqua Ring outlasts a crowd.
+      milotic: 1.15,
       gardevoir: 1.49,
       blastoise: 0.94,
       metagross: 0.94,
@@ -4815,6 +4830,13 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
     // Team 2v2 gets its own scale for the same reason: partners change what
     // each kit is worth (a shooter behind a brawler, say).
     TEAM_POW = {
+      // Roster 3: a zoner behind a partner is safer still; a berserker or
+      // sniper alone in the middle needs a little more.
+      chandelure: 0.8,
+      volcarona: 0.88,
+      ceruledge: 1.25,
+      inteleon: 1.25,
+      zoroark: 1.1,
       // Focused by two foes, the new pair need a little more in 2v2.
       aegislash: 1.15,
       greninja: 1.12,
@@ -31611,23 +31633,23 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
       },
       zoroark: {
         A: "21 · 22 · 37",
-        RS: "35–74 \xD7 foe power",
-        X: "~29 + daze",
+        RS: "35–74",
+        X: "~29",
         Y: "decoy",
       },
       inteleon: { A: "17 · 18 · 29", RS: "32–112", X: "3 × ~9", Y: "~19" },
-      milotic: { A: "20 · 22 · 33", RS: "6 × ~8", X: "~22", Y: "+9.6% HP" },
+      milotic: { A: "20 · 22 · 33", RS: "6 × ~8", X: "~22", Y: "+10% HP" },
       volcarona: { A: "18 · 19 · 32", RS: "29–46", X: "~23", Y: "+12% dmg" },
       ceruledge: {
         A: "23 · 25 · 41",
-        RS: "41–65 + heal",
-        X: "~28 + speed",
+        RS: "41–65",
+        X: "~28",
         Y: "2 × ~22",
       },
       chandelure: {
         A: "17 · 18 · 29",
         RS: "38–61",
-        X: "3 × ~8 + burn",
+        X: "3 × ~8",
         Y: "25 / 50",
       },
       lurantis: { A: "28 · 31 · 51", RS: "40–64", X: "~43", Y: "zone" },
@@ -31803,6 +31825,33 @@ window.__PROPS__={s_sitrus:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAA
         "Holds a foe; only the grabber can hurt them until released.",
       ],
       pierce: ["Guard break", "#ef5a4f", "Hits straight through a guard."],
+      zone: [
+        "Zone",
+        "#ffd25e",
+        "Leaves an area on the floor that works for you while it lasts.",
+      ],
+      lifesteal: [
+        "Lifesteal",
+        "#7fe0a0",
+        "Heals you for part of the damage it deals.",
+      ],
+      speed: ["Speed up", "#ff8a3d", "Moves you faster for a few seconds."],
+      buff: [
+        "Power up",
+        "#ffb347",
+        "Stacks that raise your damage and speed; hard hits take them away.",
+      ],
+      heal: ["Heal", "#7fd0ff", "Restores health over a few seconds."],
+      sniper: [
+        "Sniper",
+        "#9fe0ff",
+        "A long, telegraphed charge for the biggest hit in the game.",
+      ],
+      ambush: [
+        "Ambush",
+        "#ff5a7a",
+        "Striking from a disguise hits harder and breaks the disguise.",
+      ],
       flinch: ["Flinch", "#eef2e6", "A chance to add extra stun on hit."],
       rooted: [
         "Rooted",
