@@ -17750,13 +17750,15 @@
           x,
           y,
           k,
+          k1: o.k1,
           under: !!o.under,
-          t: 0,
+          t: -(o.delay ?? 0),
           r: o.r ?? 0,
-          tint: o.tint,
+          tint: o.ramp ?? o.tint,
           follow: o.follow,
           dy: o.dy ?? 0,
           life: o.life,
+          life0: o.life,
           a: o.a ?? 1,
           key: o.key,
         });
@@ -17958,6 +17960,8 @@
     let e = VFX[n];
     if (!e) return !1;
     let img = tint ? vfxTint(n, tint) : e.img;
+    // A delayed effect has not started yet.
+    if (f < 0) return !1;
     f = e.loop ? ((f % e.n) + e.n) % e.n : Math.max(0, Math.min(e.n - 1, f));
     return (
       a.save(),
@@ -17990,6 +17994,25 @@
     let s = VFX[n].img,
       cv = Zt(s.width, s.height),
       g = cv.getContext("2d");
+    // A pair of colours is a palette swap: dark parts take the first, bright
+    // parts the second, by brightness.
+    if (Array.isArray(c)) {
+      g.drawImage(s, 0, 0);
+      let px = g.getImageData(0, 0, cv.width, cv.height),
+        q = px.data,
+        [a, b] = c.map((h) =>
+          [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)),
+        );
+      for (let i = 0; i < q.length; i += 4) {
+        if (!q[i + 3]) continue;
+        let l = Math.min(
+          1,
+          (q[i] * 0.3 + q[i + 1] * 0.59 + q[i + 2] * 0.11) / 220,
+        );
+        for (let j = 0; j < 3; j++) q[i + j] = a[j] + (b[j] - a[j]) * l;
+      }
+      return g.putImageData(px, 0, 0), (VFXT[k] = cv);
+    }
     g.drawImage(s, 0, 0),
       (g.globalCompositeOperation = "saturation"),
       (g.fillStyle = "#808080"),
@@ -18011,7 +18034,8 @@
         vfxFrame(s.n, s.t),
         w ? w.x : s.x,
         w ? w.y - (w.z ?? 0) + s.dy : s.y,
-        s.k,
+        // A growing effect swells from k to k1 over its life.
+        s.k1 && s.life0 ? s.k + (s.k1 - s.k) * Math.min(1, s.t / s.life0) : s.k,
         (s.a ?? 1) * (s.life !== void 0 ? Math.min(1, s.life / 10) : 1),
         s.r,
         s.tint,
@@ -18998,7 +19022,16 @@
         a.beginPath(),
         a.ellipse(c.x, c.y + 40, 6, 2, 0, 0, Math.PI * 2),
         a.fill());
-      critterDraw(a, e, c.kind, c.x, c.y, row, t + c.ph * 30, "Walk");
+      critterDraw(
+        a,
+        e,
+        c.kind,
+        c.x,
+        c.y,
+        row,
+        t + c.ph * 30,
+        c.kind === "pidgey" ? "FlapAround" : "Walk",
+      );
     } else {
       // Sitters: idle, hop when scared.
       let hop = c.flee > 0 ? Math.abs(Math.sin((90 - c.flee) * 0.25)) * 4 : 0;
@@ -19054,8 +19087,8 @@
             x,
             y,
             F.dir > 0 ? 2 : 6,
-            t * 2 + dx,
-            "Walk",
+            t + dx,
+            "FlapAround",
           );
         }
         (F.x < -100 || F.x > Y + 100) &&
@@ -26230,10 +26263,12 @@
           a.beginPath(),
           a.ellipse(x, y, q.r, q.r * 0.45, 0, 0, Math.PI * 2),
           a.stroke();
-        // The boulder itself, falling.
+        // The boulder itself, falling. (With the Stone Edge sprite, a spike
+        // rises from the warning instead: see the landed rocks below.)
         let z = (1 - p) * (1 - p) * 120,
           rr = q.r * 0.7,
           rs = propOf("rockSmall");
+        if (propOf("stoneEdge")) continue;
         if (rs) {
           (a.globalAlpha = Math.min(1, p * 3)),
             a.drawImage(rs, Math.round(x - 16), Math.round(y - 22 - z)),
@@ -26381,6 +26416,17 @@
             a.fill();
         }
       } else if (q.kind === "rock") {
+        // One Stone Edge spike shoots up, holds, then sinks back.
+        let se = propOf("stoneEdge");
+        if (se) {
+          let h = k < 4 ? k / 4 : k > 18 ? Math.max(0, 1 - (k - 18) / 9) : 1;
+          a.save(),
+            a.beginPath(),
+            a.rect(q.x - 20, q.y - 40, 40, 42),
+            a.clip(),
+            a.drawImage(se, Math.round(q.x - 16), Math.round(q.y + 2 - h * 31)),
+            a.restore();
+        }
         (a.globalAlpha = Math.max(0, 1 - k / 28)), (a.fillStyle = "#7a6a55");
         for (let n = 0; n < 5; n++) {
           let g = (n / 5) * Math.PI * 2 + q.id;
@@ -26401,8 +26447,7 @@
       if (id) {
         // Sized to match Froslass herself.
         a.globalAlpha = d.life < 24 && t % 4 < 2 ? 0.5 : 0.92;
-        let bob = Math.round(Math.sin(t * 0.08 + d.id) * 1.5);
-        a.drawImage(id, Math.round(d.x - 10), Math.round(d.y - 26 + bob)),
+        a.drawImage(id, Math.round(d.x - 10), Math.round(d.y - 26)),
           (a.globalAlpha = 0.6),
           (a.fillStyle = "#ffffff");
         for (let s = 0; s < 3; s++) {
@@ -27530,10 +27575,22 @@
       x = Math.round(e.x + s),
       y = Math.round(e.y),
       k = e.life < 90 && t % 8 < 4 ? 0.7 : 1,
-      tomb = propOf("rockTomb");
-    // The PixelLab Rock Tomb spire, with cracks as it takes damage.
+      tomb = propOf("stoneEdge") ?? propOf("rockTomb");
+    // A single Stone Edge spike (the same sprite as Garchomp's), risen out of
+    // the ground, with cracks as it takes damage.
     if (tomb) {
-      (a.globalAlpha = k), a.drawImage(tomb, x - 16, y - 44);
+      let rise = Math.min(
+          1,
+          ((EXK.rhyperior?.rtLife ?? e.life) - e.life + 1) / 5,
+        ),
+        sz = 44;
+      (a.globalAlpha = k),
+        a.save(),
+        a.beginPath(),
+        a.rect(x - 26, y - 48, 52, 50),
+        a.clip(),
+        a.drawImage(tomb, x - sz / 2, y + 2 - sz * rise, sz, sz),
+        a.restore();
       let o2 = 1 - e.hp / e.max;
       o2 > 0.25 &&
         ((a.fillStyle = "#231f1b"),
@@ -33892,12 +33949,39 @@
         g.haze,
       );
     let o = (i - 32 - 5 * 5) / 6,
-      l = 47;
+      l = 47,
+      // Three rows fit: the grid scrolls to keep the cursor's row in view.
+      rows = Math.ceil(ge.length / 6),
+      vis = 3,
+      cr = e.inContent ? Math.floor((e.swapCursor ?? 0) / 6) : 0,
+      top = Math.max(0, Math.min(rows - vis, cr - 1));
+    e.swapScroll = (e.swapScroll ?? top) + (top - (e.swapScroll ?? top)) * 0.3;
+    let sc = e.swapScroll;
+    d.save(),
+      d.beginPath(),
+      d.rect(m(t + 10), m(s + 31), m(i - 20), m(vis * (l + 5) + 8)),
+      d.clip();
+    for (let [show, y, dir] of [
+      [sc > 0.05, s + 36, -1],
+      [sc < rows - vis - 0.05, s + 38 + vis * (l + 5) - 2, 1],
+    ])
+      show &&
+        (tapRect(t + i / 2 - 20, y - 6, 40, 10, () => {
+          (e.inContent = !0),
+            (e.swapCursor = Math.max(
+              0,
+              Math.min(ge.length - 1, (e.swapCursor ?? 0) + dir * 6),
+            ));
+        }),
+        V(dir < 0 ? "\u25B2" : "\u25BC", t + i / 2, y + 2, 7, g.gold, {
+          align: "center",
+        }));
     ge.forEach((f, u) => {
       let h = xe[f],
         c = t + 16 + (u % 6) * (o + 5),
-        y = s + 40 + Math.floor(u / 6) * (l + 5),
-        b = e.inContent && u === e.swapCursor,
+        y = s + 40 + (Math.floor(u / 6) - sc) * (l + 5);
+      if (y > s + 40 + vis * (l + 5) || y + l < s + 38) return;
+      let b = e.inContent && u === e.swapCursor,
         p = e.swapPicks?.indexOf(f) ?? -1,
         k = a.player.slots.some((C) => C.kit.id === f);
       te(c + 1.2, y + 1.6, o, l, "rgba(0,0,0,0.5)", 4),
@@ -33925,7 +34009,8 @@
           size: 5,
           text: g.night,
         });
-    });
+    }),
+      d.restore();
   }
   function cs(a, e, t, s, i) {
     let r = (s - 36) / 2,
@@ -40337,7 +40422,52 @@
     }
     // Effects from the VFX packs (assets/fxpack.js), layered on the game's own
     // sparks and rings. Reduced effects keeps the hits and the big moments.
-    var HIT_EL = null;
+    var HIT_EL = null,
+      BODY = {};
+    // How tall a fighter's sprite is in arena pixels (its first idle frame,
+    // measured once), so effects can be sized to whoever they play on.
+    function bodyH(w) {
+      let id = w?.kit?.id;
+      if (!id) return 34;
+      if (BODY[id]) return BODY[id];
+      let m = e.mons?.[id]?.anims?.Idle,
+        h = 34;
+      if (m?.img) {
+        let cv = Zt(m.fw, m.fh),
+          g = cv.getContext("2d", { willReadFrequently: !0 });
+        g.drawImage(m.img, 0, 0, m.fw, m.fh, 0, 0, m.fw, m.fh);
+        let q = g.getImageData(0, 0, m.fw, m.fh).data,
+          y0 = m.fh,
+          y1 = 0;
+        for (let y = 0; y < m.fh; y++)
+          for (let x = 0; x < m.fw; x++)
+            q[(y * m.fw + x) * 4 + 3] > 40 &&
+              ((y0 = Math.min(y0, y)), (y1 = Math.max(y1, y)));
+        y1 > y0 && (h = (y1 - y0 + 1) * (w.kit.size ?? 1));
+      }
+      return (BODY[id] = h);
+    }
+    // Effect scale that makes sheet n about `frac` of a fighter's height.
+    let fit = (n, w, frac) => (bodyH(w) * frac) / (VFX[n]?.fh || 40);
+    // Palette swaps per move type for charge-ups, and Ceruledge's own:
+    // deep purple shading to hot white, like his flames.
+    var RAMP = {
+        WATER: ["#1d4fa8", "#ffffff"],
+        FIRE: ["#a8300c", "#fff3c8"],
+        GRASS: ["#2a6e1c", "#efffd8"],
+        ICE: ["#3a7fb0", "#ffffff"],
+        PSYCHIC: ["#8a1c66", "#ffe6f6"],
+        FAIRY: ["#a83c78", "#fff0f8"],
+        GHOST: ["#3a1a6e", "#efe6ff"],
+        DARK: ["#2a1c3a", "#e6dcf0"],
+        DRAGON: ["#3a1c9a", "#efe6ff"],
+        POISON: ["#5a1a6e", "#f6dcff"],
+        FIGHTING: ["#8a2010", "#ffe6d0"],
+        STEEL: ["#4a5468", "#ffffff"],
+        GROUND: ["#6e4a1c", "#fff0d0"],
+        ROCK: ["#5e4a2a", "#fff0d8"],
+      },
+      CERULEDGE = ["#2a0858", "#fff6ff"];
     function packFx(n) {
       if (!HIT_EL) {
         HIT_EL = {};
@@ -40351,9 +40481,13 @@
           [be]: "GHOST",
         });
       }
-      let P = (k, x, y, sc, o) => t.pfx(k, x, y, sc, o),
+      let src = n.attacker ?? n.who,
+        cer = src?.kit?.id === "ceruledge",
+        P = (k, x, y, sc, o = {}) =>
+          t.pfx(k, x, y, sc, cer && !o.tint ? { ...o, ramp: CERULEDGE } : o),
         red = !!A.fx,
         w = n.who,
+        S2 = Math.max(0.75, Math.min(1.6, bodyH(n.victim ?? w) / 34)),
         id = w ? e.players.indexOf(w) : -1;
       switch (n.type) {
         case "hit": {
@@ -40365,21 +40499,19 @@
               n.src ?? "",
             );
           n.ko
-            ? (P("hitKo", x, y, 0.75), P("boomKo", x, y, 0.7))
+            ? (P("hitKo", x, y, 0.75 * S2), P("boomKo", x, y, 0.7 * S2))
             : n.heavy
               ? slashy
-                ? P("slash", x, y, 0.5, { r: ang })
-                : P(n.combo % 2 ? "hitHeavy" : "hitHeavy2", x, y, 0.65, {
-                    tint: el && el !== "NORMAL" ? Rt[el] : void 0,
+                ? P("slash", x, y, 0.5 * S2, { r: ang })
+                : P(n.combo % 2 ? "hitHeavy" : "hitHeavy2", x, y, 0.65 * S2, {
+                    tint: el && el !== "NORMAL" && !cer ? Rt[el] : void 0,
                   })
               : P(
                   slashy ? "hitSlash" : "hitLight",
                   x,
                   y,
-                  n.multi ? 0.55 : 0.7,
-                  {
-                    r: slashy ? ang : ang + Math.PI,
-                  },
+                  (n.multi ? 0.55 : 0.7) * S2,
+                  { r: slashy ? ang : ang + Math.PI },
                 );
           // Multi-hit moves (Flamethrower and the like) show it every 4th tick.
           if (red || !el || (n.multi && !n.heavy && n.combo % 4)) break;
@@ -40393,20 +40525,34 @@
             POISON: ["acid", 0.55],
             GHOST: ["void", 0.5],
             DARK: ["void", 0.5, "#b0a0c0"],
-            PSYCHIC: ["psychic", 0.5],
-            FAIRY: ["psychic", 0.5, "#ffc8d8"],
+            PSYCHIC: ["sparkle", 1, "#ff9ad8"],
+            FAIRY: ["sparkle3", 1, "#ffc8e8"],
             ROCK: n.heavy ? ["rock", 0.5] : ["dustBrown", 0.8],
             GROUND: n.heavy ? ["rock", 0.5] : ["dustBrown", 0.8],
-            DRAGON: ["ghostBoom", 0.7, "#b49cff"],
+            DRAGON: ["ghostBoom", 0, "#b49cff"],
             STEEL: ["sparks", 0.55, "#dfe6f2"],
             FIGHTING: ["hitMid2", 0.6, "#ff9a70", 2],
             FLYING: ["smokeDash", 0.8, void 0, 1],
           }[el];
-          E &&
-            P(E[0], x, y, E[1] * (n.heavy ? 1 : 0.8), {
-              tint: E[2],
-              r: E[3] === 1 ? ang : E[3] === 2 ? ang + Math.PI / 2 : 0,
-            });
+          // The dragon flare covers the one hit, a little larger than them.
+          E && E[0] === "ghostBoom" && n.victim
+            ? P(
+                "ghostBoom",
+                n.victim.x,
+                n.victim.y - bodyH(n.victim) / 2,
+                fit("ghostBoom", n.victim, 1.15),
+                {
+                  follow: n.victim,
+                  dy: -bodyH(n.victim) / 2,
+                  life: Math.ceil((VFX.ghostBoom?.n ?? 10) * 4),
+                  tint: cer ? void 0 : E[2],
+                },
+              )
+            : E &&
+              P(E[0], x, y, E[1] * (n.heavy ? 1 : 0.8) * S2, {
+                tint: cer ? void 0 : E[2],
+                r: E[3] === 1 ? ang : E[3] === 2 ? ang + Math.PI / 2 : 0,
+              });
           break;
         }
         case "crit":
@@ -40421,12 +40567,19 @@
         case "lavaBurn":
           red || P("fireHit", n.x, n.y - 6, 0.35);
           break;
-        case "dodge":
-          red ||
-            P("smokeDash", w.x, w.y - 4, 0.7, {
-              r: Math.atan2(-n.dy, -n.dx),
+        case "dodge": {
+          if (red) break;
+          let k = fit("smokeDash", w, 0.5),
+            r = Math.atan2(-n.dy, -n.dx),
+            b = bodyH(w) * 0.3;
+          P("smokeDash", w.x, w.y - 4, k, { r }),
+            P("smokeDash", w.x - n.dx * b, w.y - 4 - n.dy * b, k, {
+              r,
+              a: 0.5,
+              delay: 4,
             });
           break;
+        }
         case "parry":
           P("parry", n.x, n.y - 12, 0.55), P("lightBurst", n.x, n.y - 12, 0.5);
           break;
@@ -40454,12 +40607,23 @@
             leftovers: "heal",
             pokeball: "sparkle2",
           }[n.kind];
+          let icon = K === "atkUp" || K === "defUp" || K === "haste";
           K &&
-            P(K, n.x, n.y, K === "heal" ? 0.5 : 0.7, {
-              follow: w,
-              dy: K === "heal" ? 0 : -12,
-              life: K === "sparkleLoop" ? 150 : K === "smoke" ? 60 : void 0,
-            });
+            P(
+              K,
+              n.x,
+              n.y,
+              icon
+                ? 20 / (VFX[K]?.fh || 64)
+                : K === "heal"
+                  ? fit("heal", w, 1.1)
+                  : fit(K, w, 0.9),
+              {
+                follow: w,
+                dy: icon ? -bodyH(w) - 10 : K === "heal" ? 0 : -bodyH(w) / 2,
+                life: K === "sparkleLoop" ? 150 : K === "smoke" ? 60 : void 0,
+              },
+            );
           break;
         }
         case "itemSpawn":
@@ -40472,7 +40636,7 @@
         case "burned":
         case "burnTick":
           red ||
-            P("fireLoop", 0, 0, 0.45, {
+            P("fireLoop", 0, 0, fit("fireLoop", w, 0.55), {
               follow: w,
               dy: -4,
               life: 70,
@@ -40480,9 +40644,9 @@
             });
           break;
         case "paralyzed":
-          P("zapAura", 0, 0, 0.7, {
+          P("zapAura", 0, 0, fit("zapAura", w, 1.1), {
             follow: w,
-            dy: -12,
+            dy: -bodyH(w) / 2,
             life: 90,
             key: "para" + id,
           });
@@ -40490,9 +40654,9 @@
         case "poisoned":
         case "poisonTick":
           red ||
-            P("poisonLoop", 0, 0, 0.6, {
+            P("poisonLoop", 0, 0, fit("poisonLoop", w, 1), {
               follow: w,
-              dy: -12,
+              dy: -bodyH(w) / 2,
               life: 80,
               key: "psn" + id,
             });
@@ -40516,19 +40680,30 @@
         case "solarStart":
         case "sphereStart":
         case "zapCharge":
-          red ||
-            P("charge", 0, 0, 0.7, {
-              follow: w,
-              dy: -12,
-              life: 36,
-              key: "chg" + id,
-            });
-          break;
-        case "snipeShot":
-          P("muzzleLong", w.x, w.y - 12, 0.8, {
-            r: Math.atan2(n.y - w.y, n.x - w.x),
+          if (red) break;
+          P("charge", 0, 0, fit("charge", w, 0.75), {
+            k1: fit("charge", w, 1.25),
+            follow: w,
+            dy: -bodyH(w) / 2,
+            life: 40,
+            key: "chg" + id,
+            ramp: cer ? CERULEDGE : RAMP[w.kit?.type],
           });
           break;
+        case "snipeShot": {
+          let a = Math.atan2(n.y - w.y, n.x - w.x);
+          P(
+            "hitLight",
+            w.x + Math.cos(a) * 12,
+            w.y - bodyH(w) / 2 + Math.sin(a) * 12,
+            fit("hitLight", w, 0.75),
+            {
+              r: a + Math.PI,
+              tint: "#bfe6ff",
+            },
+          );
+          break;
+        }
         case "sphereFire":
         case "boomFire":
           P("muzzle", w.x + n.dx * 10, w.y - 12 + n.dy * 10, 0.8, {
@@ -40599,7 +40774,7 @@
           red || P("landDust", w.x, w.y, 0.45);
           break;
         case "switch":
-          P("warpBlue", n.x, n.y - 12, 0.8);
+          P("warpRed", n.x, n.y - bodyH(w) / 2, fit("warpRed", w, 1.3));
           break;
         case "legendReady":
           P("sparkle3", w.x, w.y - 18, 1.2);
@@ -40609,7 +40784,13 @@
           P("absorb", n.x, n.y - 10, 0.6);
           break;
         case "bitterHeal":
-          P("absorb", w.x, w.y - 10, 0.5, { tint: "#d8e880" });
+          t.pfx("sparkle2", 0, 0, fit("sparkle2", w, 1), {
+            follow: w,
+            dy: -bodyH(w) / 2,
+            life: 100,
+            a: 0.8,
+            key: "bitter" + id,
+          });
           break;
       }
     }
@@ -41115,9 +41296,6 @@
           S.switchOut(),
             S.switchIn(),
             S.cry(n.to.id, 0.14),
-            t.ring(n.x, n.y, 4, 2.6, 14, n.to.color, !0),
-            t.ring(n.x, n.y - 12, 16, -0.8, 12, n.from.color),
-            t.motes(n.x, n.y, 12, 16, n.to.color, 1.5),
             n.who === D &&
               ((t.screenFlash = 1), (t.screenFlashColor = n.to.color)),
             s.cards.push({
@@ -41896,9 +42074,7 @@
           I("sq", F(62), F(64), 0.08, 0.03), X(0.06, "bandpass", 900, 6, 0.03);
           break;
         case "bitterHeal":
-          S.heal?.(),
-            t.popup(n.who.x, n.who.y - 44, `+${n.n}`, "#7fe0a0", !1),
-            t.wisps(n.who.x, n.who.y, 8, 6, "#5a8cff", 8);
+          S.heal?.(), t.popup(n.who.x, n.who.y - 44, `+${n.n}`, "#7fe0a0", !1);
           break;
         case "flameStack":
           t.popup(n.who.x, n.who.y - 44, `SPEED \xD7${n.n}`, "#ff8a3d", !1);
