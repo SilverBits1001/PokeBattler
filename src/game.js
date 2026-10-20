@@ -19843,9 +19843,9 @@
         Math.round(r.oy * Ye),
       ),
       arenaArt(e.arena)
-        ? // Pixel art at the arena's own size stays unsmoothed; a larger
-          // painting is smoothed down.
-          ((a.imageSmoothingEnabled = arenaArt(e.arena).width > Y),
+        ? // Pixel art up to the canvas's own size (1280x720) stays
+          // unsmoothed; a larger painting is smoothed down.
+          ((a.imageSmoothingEnabled = arenaArt(e.arena).width > Y * Ye),
           (a.imageSmoothingQuality = "high"),
           a.drawImage(arenaArt(e.arena), 0, 0, Y, _),
           (a.imageSmoothingEnabled = !1))
