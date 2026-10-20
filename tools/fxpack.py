@@ -93,6 +93,7 @@ PICK = {
     "muzzleLong": (G, "Sci-fi/scifi_muzzle_flash_003", "small"),
     "sparks": (G, "Sci-fi/scifi_spark_burst_001", "small"),
     "beamEnd": (F, "beam-cutoff-burst", None),
+    "recall": (F, "lattice-beam", None),
     "rift": (F, "rift-portal", None),
     "hourglass": (F, "hourglass-splinter", None),
     "resonant": (F, "resonant-break", None),
@@ -118,7 +119,7 @@ PICK = {
 ANCHOR = {"muzzle": (0.1, 0.5), "muzzleLong": (0.05, 0.5), "fireJet": (0.12, 0.5),
           "hitMid": (0.5, 0.92), "hitMid2": (0.5, 0.92)}
 # Loops (status auras, fire) play until stopped; everything else plays once.
-LOOPS = {"zapAura", "fireLoop", "fireBig", "poisonLoop", "sparkleLoop", "smoke", "smokeSmall", "rift",
+LOOPS = {"recall", "zapAura", "fireLoop", "fireBig", "poisonLoop", "sparkleLoop", "smoke", "smokeSmall", "rift",
          "place1", "place2", "place3", "place4", "crown"}
 
 

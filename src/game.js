@@ -17761,6 +17761,7 @@
           life0: o.life,
           a: o.a ?? 1,
           key: o.key,
+          beam: o.beam,
         });
       }
       // Round flow (READY?, GO!, the result) takes the middle of the screen;
@@ -18024,9 +18025,59 @@
       g.drawImage(s, 0, 0);
     return (VFXT[k] = cv);
   }
+  // The Poke Ball recall beam for a Tag Team swap (lattice-beam, red and
+  // white): shot in from the edge of the screen to the fighter, held while
+  // they swap, then pulled back. Its collar stays at the edge; the body
+  // stretches to reach.
+  var RECALL = { ext: 8, hold: 16, back: 12, ramp: ["#b0101e", "#ffffff"] };
+  function recallDraw(a, fx, s) {
+    let e = VFX.recall,
+      w = s.beam.who,
+      v = fx.view;
+    if (!e || !w || !v) return;
+    let R = RECALL,
+      tt = s.t,
+      ex = s.beam.side < 0 ? -v.ox / v.z - 6 : (Y - v.ox) / v.z + 6,
+      ty = w.y - (w.z ?? 0) - s.beam.h / 2,
+      L = Math.abs(w.x - ex),
+      f =
+        tt < R.ext
+          ? Ee(tt / R.ext)
+          : tt < R.ext + R.hold
+            ? 1
+            : Math.max(0, 1 - (tt - R.ext - R.hold) / R.back),
+      len = L * f;
+    if (len < 2) return;
+    let img = vfxTint("recall", R.ramp),
+      fr = vfxFrame("recall", tt) % e.n,
+      sx = (fr % 4) * e.fw,
+      sy = (fr >> 2) * e.fh,
+      c = Math.min(20, e.fw - 4, len);
+    a.save(),
+      a.translate(Math.round(ex), Math.round(ty)),
+      s.beam.side > 0 && a.scale(-1, 1),
+      a.drawImage(img, sx, sy, c, e.fh, 0, -e.fh / 2, c, e.fh),
+      len > c &&
+        a.drawImage(
+          img,
+          sx + c,
+          sy,
+          e.fw - c,
+          e.fh,
+          c,
+          -e.fh / 2,
+          len - c,
+          e.fh,
+        ),
+      a.restore();
+  }
   function sheetsDraw(a, e, t) {
     for (let s of e.sheets) {
       if (!!s.under !== t) continue;
+      if (s.beam) {
+        recallDraw(a, e, s);
+        continue;
+      }
       let w = s.follow;
       vfxDraw(
         a,
@@ -18743,6 +18794,9 @@
       acc = (t | 0) % tot;
     for (; f < m.durations.length - 1 && acc >= m.durations[f]; f++)
       acc -= m.durations[f];
+    // FlapAround turns through every direction as it flaps; its first two
+    // frames are one flap facing the row's way, so a flier loops just those.
+    anim === "FlapAround" && (f = ((t / 5) | 0) % 2);
     (a.globalAlpha = alpha),
       a.drawImage(
         m.img,
@@ -40773,9 +40827,22 @@
         case "tech":
           red || P("landDust", w.x, w.y, 0.45);
           break;
-        case "switch":
-          P("warpRed", n.x, n.y - bodyH(w) / 2, fit("warpRed", w, 1.3));
+        case "switch": {
+          // Your own swap comes in from the left of your screen; anyone
+          // else's from the right. Always red and white (no Ceruledge swap).
+          let h = bodyH(w);
+          t.pfx("recall", 0, 0, 1, {
+            life: RECALL.ext + RECALL.hold + RECALL.back,
+            key: "recall" + id,
+            beam: { who: w, side: w === e.player ? -1 : 1, h },
+          }),
+            t.pfx("warpRed", 0, 0, fit("warpRed", w, 1.3), {
+              follow: w,
+              dy: -h / 2,
+              delay: RECALL.ext,
+            });
           break;
+        }
         case "legendReady":
           P("sparkle3", w.x, w.y - 18, 1.2);
           break;
