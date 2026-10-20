@@ -25907,59 +25907,157 @@
       d.restore(),
       d.drawImage(Ke, p, k);
   }
-  // The logo: a small spaced "POKÉMON" over POCKET in chrome and BRAWL in
-  // gold, both lines set to one width so they lock up as a block, on a
-  // blade split blue and red like the screen behind it.
-  function pocketLogo(cx, cy, bob, t, W = 150) {
-    let LF = (sz) =>
-        `italic 900 ${(sz * Fe).toFixed(2)}px "Pocket Logo", ${He}`,
-      fit = (txt) => {
-        d.save(), (d.font = LF(10));
-        let w = d.measureText(txt).width / Fe;
-        return d.restore(), (W * 10) / w;
+  // The logo, as pixel art to sit with the portraits. POCKET (chrome) and
+  // BRAWL (gold) are set in the logo face at one width on a small canvas,
+  // cut to a hard mask and shaded by hand: banded metal with a dithered
+  // seam, a lit top edge and a dark under edge per letter, a black rim, an
+  // outer rim blue on the left half and red on the right, and a hard drop.
+  // POKÉMON above stays smooth: spaced gold capitals between fine rules.
+  var LOGO_PX = 2,
+    LOGO_PAL = [
+      [
+        "#ffffff",
+        "#dfe6f2",
+        "#7c88a6",
+        "#b9c4da",
+        "#e9eefa",
+        "#ffffff",
+        "#5b6680",
+      ],
+      [
+        "#fff4c2",
+        "#ffd23f",
+        "#b86e08",
+        "#f0a823",
+        "#ffe28a",
+        "#fffbe6",
+        "#8a4a04",
+      ],
+    ],
+    logoCache = null;
+  function logoPixels(W) {
+    let P = LOGO_PX,
+      ready = document.fonts?.check?.('italic 900 10px "Pocket Logo"') ?? !0;
+    if (logoCache?.W === W && logoCache.ready) return logoCache;
+    let cv = document.createElement("canvas"),
+      c = cv.getContext("2d"),
+      words = ["POCKET", "BRAWL"],
+      font = (sz) => `italic 900 ${sz.toFixed(2)}px "Pocket Logo", ${He}`,
+      pw = Math.ceil(W / P) + 16;
+    c.font = font(10);
+    let sz = words.map((w) => ((W / P) * 10) / c.measureText(w).width),
+      base = [4 + sz[0] * 0.74];
+    base.push(base[0] + 4 + sz[1] * 0.74);
+    let ph = Math.ceil(base[1] + 6),
+      id = new Int8Array(pw * ph).fill(-1);
+    (cv.width = pw), (cv.height = ph);
+    words.forEach((w, i) => {
+      c.clearRect(0, 0, pw, ph),
+        (c.font = font(sz[i])),
+        (c.textAlign = "center"),
+        (c.fillStyle = "#fff"),
+        c.fillText(w, pw / 2, base[i]);
+      let px = c.getImageData(0, 0, pw, ph).data;
+      for (let q = 0; q < pw * ph; q++) px[q * 4 + 3] > 120 && (id[q] = i);
+    });
+    let n = pw * ph,
+      inside = new Uint8Array(n);
+    for (let q = 0; q < n; q++) inside[q] = id[q] >= 0 ? 1 : 0;
+    // The outside, filled from the border, so letter holes take only the
+    // black rim and not the coloured one.
+    let ext = new Uint8Array(n),
+      st = [0];
+    for (ext[0] = 1; st.length; ) {
+      let q = st.pop(),
+        x = q % pw,
+        y = (q / pw) | 0;
+      for (let [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]) {
+        let xx = x + dx,
+          yy = y + dy,
+          k = yy * pw + xx;
+        xx >= 0 &&
+          yy >= 0 &&
+          xx < pw &&
+          yy < ph &&
+          !ext[k] &&
+          !inside[k] &&
+          ((ext[k] = 1), st.push(k));
+      }
+    }
+    // One pixel grown around a set.
+    let grow = (set) => {
+        let out = new Uint8Array(n);
+        for (let y = 0; y < ph; y++)
+          for (let x = 0; x < pw; x++) {
+            let q = y * pw + x;
+            set[q] ||
+              (out[q] =
+                (x > 0 && set[q - 1]) ||
+                (x < pw - 1 && set[q + 1]) ||
+                (y > 0 && set[q - pw]) ||
+                (y < ph - 1 && set[q + pw])
+                  ? 1
+                  : 0);
+          }
+        return out;
       },
-      line = (txt, y, stops) => {
-        let sz = fit(txt);
-        d.save(),
-          (d.font = LF(sz)),
-          (d.textAlign = "center"),
-          (d.textBaseline = "alphabetic"),
-          (d.lineJoin = "round"),
-          d.translate(m(cx), m(y + bob)),
-          // A soft drop, then a dark rim, then the metal.
-          (d.shadowColor = "rgba(0,0,0,0.65)"),
-          (d.shadowBlur = m(6)),
-          (d.shadowOffsetY = m(3)),
-          (d.strokeStyle = "#0b0716"),
-          (d.lineWidth = m(sz * 0.14)),
-          d.strokeText(txt, 0, 0),
-          (d.shadowColor = "transparent");
-        let gr = d.createLinearGradient(0, -m(sz * 0.74), 0, m(sz * 0.02));
-        stops.forEach(([o, c]) => gr.addColorStop(o, c)),
-          (d.fillStyle = gr),
-          d.fillText(txt, 0, 0),
-          // A thin light edge along the top of each letter.
-          (d.strokeStyle = "rgba(255,255,255,0.35)"),
-          (d.lineWidth = m(0.5)),
-          d.strokeText(txt, 0, -m(0.4));
-        // A glint crossing now and then.
-        let gx = ((t * 2.2 + y * 3) % (W + 300)) - W / 2 - 60;
-        d.beginPath(),
-          d.moveTo(m(gx), -m(sz)),
-          d.lineTo(m(gx + sz * 0.16), -m(sz)),
-          d.lineTo(m(gx + sz * 0.02), m(sz * 0.1)),
-          d.lineTo(m(gx - sz * 0.14), m(sz * 0.1)),
-          d.closePath(),
-          d.clip(),
-          (d.fillStyle = "rgba(255,255,255,0.7)"),
-          d.fillText(txt, 0, 0),
-          d.restore();
-        return sz;
-      };
-    // The block is centred on cy: POKÉMON, the two lines, the blade.
-    let q = W / 150,
-      top = cy - (14 * q + fit("POCKET") * 0.74 + fit("BRAWL") * 0.8 + 11) / 2;
-    // POKÉMON, small and spaced, between two fine rules.
+      rim1 = grow(inside),
+      in1 = inside.map((v, q) => v | rim1[q]),
+      rim2 = grow(in1).map((v, q) => v & ext[q]),
+      all = in1.map((v, q) => v | rim2[q]),
+      img = c.createImageData(pw, ph),
+      o = img.data,
+      put = (q, hex) => {
+        (o[q * 4] = parseInt(hex.slice(1, 3), 16)),
+          (o[q * 4 + 1] = parseInt(hex.slice(3, 5), 16)),
+          (o[q * 4 + 2] = parseInt(hex.slice(5, 7), 16)),
+          (o[q * 4 + 3] = 255);
+      },
+      at = (x, y) =>
+        x < 0 || y < 0 || x >= pw || y >= ph ? -1 : id[y * pw + x];
+    // The drop: one right, two down.
+    for (let y = 0; y < ph - 2; y++)
+      for (let x = 0; x < pw - 1; x++) {
+        let q = (y + 2) * pw + x + 1;
+        all[y * pw + x] && !all[q] && put(q, "#05030c");
+      }
+    for (let y = 0; y < ph; y++)
+      for (let x = 0; x < pw; x++) {
+        let q = y * pw + x;
+        if (rim2[q]) put(q, x < pw / 2 ? "#2a8fe0" : "#e0364f");
+        else if (rim1[q]) put(q, "#0b0716");
+        else if (inside[q]) {
+          let i = id[q],
+            pal = LOGO_PAL[i],
+            f = (y - (base[i] - sz[i] * 0.72)) / (sz[i] * 0.72),
+            b = f < 0.22 ? 0 : f < 0.46 ? 1 : f < 0.56 ? 2 : f < 0.8 ? 3 : 4;
+          f >= 0.42 && f < 0.5 && (x + y) % 2 && (b = 2);
+          put(
+            q,
+            at(x, y - 1) < 0 ? pal[5] : at(x, y + 1) < 0 ? pal[6] : pal[b],
+          );
+        }
+      }
+    c.putImageData(img, 0, 0);
+    return (logoCache = { W, ready, cv, pw, ph });
+  }
+  function pocketLogo(cx, cy, bob, t, W = 150) {
+    let P = LOGO_PX,
+      L = logoPixels(W),
+      w = L.pw * P,
+      h = L.ph * P,
+      bb = Math.round(bob),
+      top = Math.round((cy - (h + 18) / 2 + 12) / P) * P,
+      x0 = Math.round((cx - w / 2) / P) * P,
+      y0 = top + 6 + bb,
+      q = W / 150,
+      py = top - 3 + bb;
+    // POKÉMON, smooth.
     d.save(),
       (d.font = fontOf(8 * q * Fe, je, 700)),
       "letterSpacing" in d && (d.letterSpacing = `${m(3.2 * q).toFixed(1)}px`),
@@ -25967,7 +26065,7 @@
       (d.fillStyle = "#f3d88a"),
       (d.shadowColor = "rgba(0,0,0,0.7)"),
       (d.shadowBlur = m(3)),
-      d.fillText("POK\xC9MON", m(cx + 1.6 * q), m(top + 7 * q + bob)),
+      d.fillText("POK\xC9MON", m(cx + 1.6 * q), m(py)),
       (d.shadowColor = "transparent");
     for (let sd of [-1, 1]) {
       let gr = d.createLinearGradient(
@@ -25981,48 +26079,50 @@
         (d.fillStyle = gr),
         d.fillRect(
           m(sd > 0 ? cx + 30 * q : cx - 72 * q),
-          m(top + 4 * q + bob),
+          m(py - 3 * q),
           m(42 * q),
           m(0.7),
         );
     }
     d.restore();
-    let y1 = top + 14 * q + fit("POCKET") * 0.74,
-      y2 = y1 + fit("BRAWL") * 0.8 + 3;
-    line("POCKET", y1, [
-      [0, "#ffffff"],
-      [0.45, "#dfe6f2"],
-      [0.5, "#8a96b0"],
-      [0.62, "#c3cde0"],
-      [1, "#f4f7ff"],
-    ]),
-      line("BRAWL", y2, [
-        [0, "#fff6cf"],
-        [0.44, "#ffd24a"],
-        [0.5, "#c07a0c"],
-        [0.66, "#f5b62a"],
-        [1, "#ffe9a0"],
-      ]);
-    // The blade under it: blue into red, tapering at both ends.
-    let by = y2 + 6 + bob,
-      bg = d.createLinearGradient(m(cx - W / 2), 0, m(cx + W / 2), 0);
-    bg.addColorStop(0, "rgba(51,214,255,0)"),
-      bg.addColorStop(0.2, "#33d6ff"),
-      bg.addColorStop(0.5, "#ffffff"),
-      bg.addColorStop(0.8, "#ff4a63"),
-      bg.addColorStop(1, "rgba(255,74,99,0)"),
-      d.save(),
-      (d.fillStyle = bg),
-      (d.shadowColor = "rgba(255,255,255,0.5)"),
-      (d.shadowBlur = m(6)),
-      d.beginPath(),
-      d.moveTo(m(cx - W / 2), m(by)),
-      d.lineTo(m(cx), m(by - 1.3)),
-      d.lineTo(m(cx + W / 2), m(by)),
-      d.lineTo(m(cx), m(by + 1.3)),
-      d.closePath(),
-      d.fill(),
+    // The words, scaled up hard-edged.
+    d.save(),
+      (d.imageSmoothingEnabled = !1),
+      d.drawImage(L.cv, m(x0), m(y0), m(w), m(h)),
       d.restore();
+    // A pixel blade under it, blue into white into red, fading at the ends.
+    let by = y0 + h + 2,
+      cols = Math.floor(W / P);
+    for (let k = 0; k < cols; k++) {
+      let u = k / (cols - 1),
+        a = 1 - Math.abs(u - 0.5) * 2;
+      if (a < 0.08) continue;
+      (d.fillStyle = u < 0.45 ? "#33d6ff" : u > 0.55 ? "#ff4a63" : "#ffffff"),
+        (d.globalAlpha = Math.min(1, a * 1.6)),
+        d.fillRect(
+          m(cx - W / 2 + k * P),
+          m(by),
+          m(P),
+          m(a > 0.7 ? P * 1.5 : P),
+        );
+    }
+    d.globalAlpha = 1;
+    // Four-point pixel twinkles on the letters, one at a time.
+    for (let k = 0; k < 5; k++) {
+      let ph = (t * 0.02 + k * 1.7) % 6;
+      if (ph > 1.2) continue;
+      let r = ph < 0.6 ? 1 : 2,
+        rr = rt(k * 13 + 5),
+        sx = x0 + Math.floor(rr() * L.pw) * P,
+        sy = y0 + Math.floor(rr() * (L.ph - 10)) * P;
+      d.fillStyle = "#ffffff";
+      d.fillRect(m(sx), m(sy), m(P), m(P));
+      for (let j = 1; j <= r; j++)
+        d.fillRect(m(sx + j * P), m(sy), m(P), m(P)),
+          d.fillRect(m(sx - j * P), m(sy), m(P), m(P)),
+          d.fillRect(m(sx), m(sy + j * P), m(P), m(P)),
+          d.fillRect(m(sx), m(sy - j * P), m(P), m(P));
+    }
   }
   // Face-off pieces shared by the start screen and the ready screen.
   var FACE_SEAM = (y) => H / 2 + 26 - y * 0.2;
