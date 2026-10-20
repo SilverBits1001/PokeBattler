@@ -5104,6 +5104,19 @@
       dischargeR: 56,
       dischargeDmg: 24,
       short: 480,
+      // Chemical vats standing on the deck as cover, point-symmetric (base
+      // centre [x, y]). Each is solid across its base: three circles
+      // [dx, dy, r]; the middle one carries the art, so the vat sorts with
+      // fighters by its base line and hides anyone standing behind it.
+      vats: [
+        [520, 118],
+        [120, 298],
+      ],
+      vatFoot: [
+        [0, -8, 12],
+        [-15, -7, 10],
+        [15, -7, 10],
+      ],
     },
     // Arena surges: one big set-piece per arena, announced a few seconds ahead.
     // Each one hits every fighter alike, so none of them favours a side.
@@ -6171,20 +6184,38 @@
                   hitT: 0,
                 }))
               : A.arena === 4
-                ? PLANT.pylons.map(([o, l]) => ({
-                    id: this.nextId++,
-                    x: o,
-                    y: l,
-                    r: PLANT.r,
-                    hp: 1 / 0,
-                    max: 1 / 0,
-                    state: "solid",
-                    t: 0,
-                    hitT: 0,
-                    pylon: !0,
-                    off: 0,
-                    charge: 0,
-                  }))
+                ? PLANT.pylons
+                    .map(([o, l]) => ({
+                      id: this.nextId++,
+                      x: o,
+                      y: l,
+                      r: PLANT.r,
+                      hp: 1 / 0,
+                      max: 1 / 0,
+                      state: "solid",
+                      t: 0,
+                      hitT: 0,
+                      pylon: !0,
+                      off: 0,
+                      charge: 0,
+                    }))
+                    .concat(
+                      PLANT.vats.flatMap(([x, y]) =>
+                        PLANT.vatFoot.map(([dx, dy, r], n) => ({
+                          id: this.nextId++,
+                          x: x + dx,
+                          y: y + dy,
+                          r,
+                          hp: 1 / 0,
+                          max: 1 / 0,
+                          state: "solid",
+                          t: 0,
+                          hitT: 0,
+                          ghost: !0,
+                          ...(n === 0 ? { art: "vat", ax: x, ay: y } : {}),
+                        })),
+                      ),
+                    )
                 : []),
           (this.rocks = this.rocks.concat(
             layoutOf(A.arena)
@@ -19663,6 +19694,9 @@
           (hole(p.x, p.y, 120, 1),
           glow.push([p.x, p.y - 20, 36, "127,227,255", 0.35]));
       for (let v of e.voltorbs ?? []) v.fuse > 0 && hole(v.x, v.y, 70, 1);
+      for (let [x, y] of PLANT.vats)
+        hole(x, y - 28, 100, 0.9),
+          glow.push([x, y - 30, 24, "130,255,90", 0.3]);
     }
     g.globalAlpha = 1;
     // The light layer is on the arena's own pixel grid (640x360), stamped
@@ -20470,9 +20504,9 @@
     // The PixelLab pylon; its lamp shows the state: dark and smoking when
     // shorted out, bright and blinking when overcharged.
     if (ps) {
-      let lx = s - 16 + 16,
-        ly = i - 60 + 7;
-      a.drawImage(ps, s - 16, i - 60);
+      let lx = s,
+        ly = i - 58;
+      a.drawImage(ps, s - 15, i - 60);
       if (r)
         (a.fillStyle = "#4a4f58"),
           a.beginPath(),
@@ -20514,6 +20548,70 @@
         t % 30 < 15 &&
         ((a.fillStyle = "rgba(90,90,100,0.6)"),
         a.fillRect(s - 3, i - 48 - ((t / 3) % 6), 3, 3));
+  }
+  // The PixelLab conveyor (160x30), cut into an end cap each side, a
+  // repeating middle, and one chevron period (22px) of its band that
+  // scrolls. Built once per belt width and direction.
+  var BELTART = null;
+  function beltArt() {
+    if (BELTART) return BELTART;
+    let im = propOf("belt");
+    if (!im) return null;
+    let cut = (sx, sy, w, h, flip) => {
+        let c = Zt(w, h),
+          g = c.getContext("2d");
+        flip && (g.translate(w, 0), g.scale(-1, 1));
+        g.drawImage(im, sx, sy, w, h, 0, 0, w, h);
+        return c;
+      },
+      cache = {};
+    return (BELTART = {
+      tile: cut(14, 9, 22, 15),
+      tileL: cut(14, 9, 22, 15, !0),
+      base(w, dir) {
+        let k = w + ":" + dir;
+        if (cache[k]) return cache[k];
+        let c = Zt(w, 30),
+          g = c.getContext("2d");
+        g.drawImage(im, 0, 0, 12, 30, 0, 0, 12, 30);
+        for (let x = 12; x < w - 12; x += 136)
+          g.drawImage(
+            im,
+            12,
+            0,
+            Math.min(136, w - 12 - x),
+            30,
+            x,
+            0,
+            Math.min(136, w - 12 - x),
+            30,
+          );
+        g.drawImage(im, 148, 0, 12, 30, w - 12, 0, 12, 30);
+        if (dir < 0) {
+          let f = Zt(w, 30),
+            q = f.getContext("2d");
+          q.translate(w, 0), q.scale(-1, 1), q.drawImage(c, 0, 0), (c = f);
+        }
+        return (cache[k] = c);
+      },
+    });
+  }
+  // A chemical vat: the PixelLab sprite (base centre at ax, ay) with
+  // bubbles rising through the green glass.
+  function vatArt(a, e, t) {
+    let im = propOf("vat"),
+      x = Math.round(e.ax - 26),
+      y = Math.round(e.ay - 55);
+    if (!im) return;
+    a.drawImage(im, x, y);
+    for (let n = 0; n < 5; n++) {
+      let p = (t * 0.25 + n * 7.3 + e.ax) % 15,
+        bx = x + 18 + ((n * 7 + ((t / 40) | 0)) % 19);
+      (a.globalAlpha = 0.85 * (1 - p / 15)),
+        (a.fillStyle = n % 2 ? "#eef280" : "#ffffff"),
+        a.fillRect(bx, y + 31 - Math.round(p), 1, 1);
+    }
+    a.globalAlpha = 1;
   }
   // Ruins columns (assets/arenas.js __PROPS__), decoded up front.
   var PROP = {};
@@ -20570,6 +20668,7 @@
   }
   function ht2(a, e, t) {
     if (e.pylon) return pylonArt(a, e, t);
+    if (e.art === "vat") return vatArt(a, e, t);
     if (e.exPillar) return exPillarArt(a, e, t);
     if (e.column && columnArt(a, e, t)) return;
     let s = e.hitT > 0 ? (e.hitT % 2 ? 1 : -1) : 0,
@@ -21090,9 +21189,9 @@
         (a.globalAlpha = 1);
     }
   }
-  // Pylon tops, where arcs run between (the pylon art is about 30px tall).
+  // Where arcs run between pylons: their upper crossarms (the art is 60px tall).
   var pylonTops = (e) =>
-    e.rocks.filter((t) => t.pylon).map((t) => [t.x, t.y - 30, t.off > 0]);
+    e.rocks.filter((t) => t.pylon).map((t) => [t.x, t.y - 46, t.off > 0]);
   // A jagged live bolt from (s, i) to (r, o): glow, body and a white core.
   function boltLine(a, s, i, r, o, f) {
     for (let [c, y, b] of [
@@ -23078,8 +23177,33 @@
         R(x - 6 * d.dir * (d.dir > 0), y, 7, 1, "#d8c8a0"),
           R(x + (d.dir > 0 ? 0 : -2), y - 1, 2, 3, "#5a4a3a");
       }
+    // Contact shadows under the vats, on the floor beneath everyone.
+    for (let r of e.rocks)
+      r.art === "vat" &&
+        ((a.fillStyle = "rgba(8,16,10,0.35)"),
+        a.beginPath(),
+        a.ellipse(r.ax, r.ay - 3, 29, 7, 0, 0, Math.PI * 2),
+        a.fill());
     // Conveyors: chevrons that run the way the belt goes, flashing before it flips.
-    for (let b of e.belts ?? []) {
+    let belt = beltArt();
+    for (let b of belt ? (e.belts ?? []) : []) {
+      let w = b.x1 - b.x0,
+        y = Math.round(b.y - 16),
+        base = belt.base(w, b.dir),
+        off = (((t * BELT.speed * b.dir) % 22) + 22) % 22;
+      a.drawImage(base, b.x0, y);
+      a.save(), a.beginPath(), a.rect(b.x0 + 12, y + 9, w - 24, 15), a.clip();
+      for (let x = b.x0 + 12 - 22 + off; x < b.x1; x += 22)
+        a.drawImage(b.dir > 0 ? belt.tile : belt.tileL, Math.round(x), y + 9);
+      e.beltT < BELT.warn &&
+        t % 8 < 4 &&
+        ((a.globalAlpha = 0.35),
+        (a.fillStyle = "#ff3a2a"),
+        a.fillRect(b.x0 + 12, y + 9, w - 24, 15),
+        (a.globalAlpha = 1));
+      a.restore();
+    }
+    for (let b of belt ? [] : (e.belts ?? [])) {
       let warn = e.beltT < BELT.warn && t % 8 < 4;
       R(b.x0, b.y - b.h / 2, b.x1 - b.x0, b.h, "#1b2028"),
         R(b.x0, b.y - b.h / 2, b.x1 - b.x0, 2, "#e0b81e"),
@@ -23611,7 +23735,7 @@
     let lay = layoutOf(e.stage ?? e.arena).filter((s) => s.kind === "layer"),
       f = [
         ...e.bodies().filter((h) => !h.hidden),
-        ...e.rocks.filter((h) => h.state === "solid" && !h.ghost),
+        ...e.rocks.filter((h) => h.state === "solid" && (!h.ghost || h.art)),
         ...lay
           .filter((s) => s.z !== "front")
           .map((s) => ({ layer: s, y: s.base ?? shapeBox(s)[3] })),
@@ -37388,7 +37512,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 15,
+  var NETV = 16,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
