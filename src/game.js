@@ -154,7 +154,7 @@
         "Stadium",
         "Ruins",
         "Cinder Crater",
-        "Frostfall Lake",
+        "Frostfall Peak",
         "Power Plant",
       ],
     },
@@ -3893,7 +3893,7 @@
       { id: "stadium", name: "Stadium" },
       { id: "ruins", name: "Ruins" },
       { id: "crater", name: "Cinder Crater" },
-      { id: "frost", name: "Frostfall Lake" },
+      { id: "frost", name: "Frostfall Peak" },
       { id: "plant", name: "Power Plant" },
     ],
     // Cinder Crater: lava pools, telegraphed eruptions; water cools lava to crust.
@@ -3916,7 +3916,7 @@
       ventR: 34,
       ventDmg: 34,
     },
-    // Frostfall Lake: ice rinks you slide on; fire melts them; icicles fall.
+    // Frostfall Peak: ice rinks you slide on; fire melts them; icicles fall.
     FROST = {
       rinks: [
         [Se, Te, 112, 46],
@@ -10610,7 +10610,7 @@
             }
           this.vents = this.vents.filter((t) => t.t < CRATER.ventWarn);
         }
-        // Frostfall Lake
+        // Frostfall Peak
         if (this.ice.length) {
           for (let t of this.ice)
             t.melt > 0 && t.melt--, t.life !== void 0 && t.life--;
@@ -15273,7 +15273,9 @@
   // Which terrain each arena paints at a corner: true = upper.
   //   Stadium: clay pitch (upper) on a grass surround.
   //   Ruins: flagstone plazas round the boulders and a cross path, moss between.
-  //   Crater: basalt; Frost: snow (lava and ice are drawn live, see tilePat).
+  //   Crater: basalt (its lava is drawn live, see tilePat).
+  //   Frostfall Peak: granite with wind-blown snowfields (upper) drifting
+  //   across it; the rinks' ice is its own tile (TILESET[6]).
   //   Power Plant: steel deck with coolant channels linking the pylons.
   function floorUpper(kind, x, y) {
     let r = B;
@@ -15286,6 +15288,13 @@
         ([s, i]) => Math.hypot((x - s) / 40, (y - i) / 28) < 1,
       );
     }
+    if (kind === 3)
+      return (
+        Math.sin(x * 0.021 + 1.3) * Math.cos(y * 0.027 - 0.4) +
+          0.6 * Math.sin((x + y) * 0.013 + 2) +
+          0.35 * Math.sin(x * 0.06 - y * 0.045) >
+        0.2
+      );
     if (kind === 4) {
       // A T of coolant: along the two lower pylons and up to the top one,
       // with a sump round each pylon base.
@@ -15334,6 +15343,8 @@
     // Crater lava uses its own larger texture so the pools do not show a grid.
     if (kind === 2 && !up && TILESET[5])
       return a.createPattern(TILESET[5], "repeat");
+    if (kind === 3 && !up && TILESET[6])
+      return a.createPattern(TILESET[6], "repeat");
     if (!tilePats[e]) {
       let t = TILESET[kind];
       if (!t) return null;
@@ -15545,57 +15556,108 @@
         t() < 0.3 && s(x, top - 10 + ((t() * 3) | 0), "#ffd27a");
       sides("#24171a", "#7a2a12", 500);
     } else if (kind === 3) {
-      // Frostfall Lake: night sky, mountains, pines, a frozen waterfall.
+      // Frostfall Peak: a night summit above the clouds. Far ranges fade into
+      // a sea of cloud, a jagged near ridge carries snowfields, prayer flags
+      // run to a cairn at the top, and wind-scoured rocks line the wall.
       let g = e.createLinearGradient(0, 0, 0, top);
-      g.addColorStop(0, "#081028"),
-        g.addColorStop(0.6, "#16264a"),
-        g.addColorStop(1, "#24406a"),
+      g.addColorStop(0, "#060c22"),
+        g.addColorStop(0.55, "#14234a"),
+        g.addColorStop(1, "#2a3f70"),
         R(0, 0, Y, top, g);
-      for (let k = 0; k < 70; k++)
-        s((t() * Y) | 0, (t() * 30) | 0, t() < 0.3 ? "#ffffff" : "#9fb8e8");
-      for (let x = 0; x < Y; x++) {
-        let h =
-          18 +
-          Math.round(
-            Math.abs(Math.sin(x * 0.012 + 1)) * 12 + Math.sin(x * 0.05) * 3,
-          );
-        R(x, h, 1, top - h, "#2a3d62");
-        h < 24 && s(x, h, "#c8d8f0"), h < 22 && s(x, h + 1, "#a8bcdc");
-      }
-      // The frozen waterfall.
-      for (let x = 296; x < 344; x++) {
-        let c = x % 5 === 0 ? "#e8f6ff" : x % 3 ? "#9cd0ee" : "#bfe6ff";
-        R(x, 12 + ((x * 7) % 5), 1, top - 26, c);
-      }
-      for (let x = 296; x < 344; x += 4)
-        R(x, top - 14, 2, 3 + ((x * 3) % 4), "#e8f6ff");
-      // Pines with snow on their boughs.
-      for (let k = 0; k < 26; k++) {
-        let x = (t() * Y) | 0;
-        if (x > 286 && x < 354) continue;
-        let h = 14 + ((t() * 14) | 0),
-          base = top - 10;
-        for (let y = 0; y < h; y++) {
-          let w = Math.round((y / h) * 6) + 1;
-          R(
-            x - w,
-            base - h + y,
-            w * 2 + 1,
-            1,
-            y % 4 === 0 ? "#dff0ff" : "#1d3a3a",
-          );
+      for (let k = 0; k < 90; k++)
+        s((t() * Y) | 0, (t() * 26) | 0, t() < 0.3 ? "#ffffff" : "#9fb8e8");
+      // Far ranges, paler as they recede, sinking into the cloud sea.
+      for (let [base, amp, f, ph, c, cap] of [
+        [26, 10, 0.021, 0.7, "#3b5486", "#8fa8d4"],
+        [30, 13, 0.016, 2.1, "#2e4473", "#b6c9e8"],
+      ])
+        for (let x = 0; x < Y; x++) {
+          let ridge =
+              Math.abs(Math.sin(x * f + ph)) * amp +
+              Math.abs(Math.sin(x * f * 2.7 + ph * 2)) * amp * 0.4,
+            h = Math.round(base - ridge);
+          R(x, h, 1, top - h, c);
+          for (let k = 0; (k < 2 + (ridge / amp) * 3) | 0; k++)
+            ridge > amp * 0.75 && s(x, h + k, cap);
         }
-        R(x, base, 1, 3, "#3a2a20");
+      // The cloud sea.
+      for (let k = 0; k < 140; k++) {
+        let x = (t() * Y) | 0,
+          y = 30 + ((t() * 6) | 0),
+          w = 10 + ((t() * 26) | 0);
+        R(x, y, w, 2, t() < 0.5 ? "#c9d6ee" : "#a9bbdd"),
+          R(x + 3, y - 1, w - 6, 1, "#e6eefb");
       }
-      // The snowbank along the wall.
+      R(0, 34, Y, 3, "#b7c7e4");
+      // The near ridge: jagged granite, lit on its left faces, with snowfields.
+      let ridgeH = (x) =>
+        Math.round(
+          top -
+            14 -
+            Math.abs(Math.sin(x * 0.034 + 0.4)) * 12 -
+            Math.abs(Math.sin(x * 0.11)) * 4 -
+            (Math.abs(x - Y / 2) < 60 ? (60 - Math.abs(x - Y / 2)) * 0.22 : 0),
+        );
+      for (let x = 0; x < Y; x++) {
+        let h = ridgeH(x),
+          lit = ridgeH(x + 1) > h,
+          c = lit ? "#5d6a85" : "#3e4862";
+        R(x, h, 1, top - h, c);
+        // Strata and cracks.
+        for (let y = h + 3; y < top - 8; y += 4)
+          (x + y * 3) % 11 === 0 && s(x, y, "#2c3449");
+        // Snow on the crest and caught in the gullies.
+        let snow = 2 + (Math.sin(x * 0.07) > 0.2 ? 3 : 0);
+        R(x, h, 1, snow, lit ? "#ffffff" : "#d4e2f5");
+        Math.sin(x * 0.19 + 1) > 0.75 &&
+          R(x, h + snow, 1, 4 + ((x * 7) % 5), "#c2d3ec");
+      }
+      // Prayer flags strung from both sides to the summit cairn.
+      let cx = Y / 2,
+        cy = ridgeH(cx);
+      for (let sd of [-1, 1]) {
+        let x0 = cx + sd * 150,
+          y0 = ridgeH(x0) - 10,
+          cols = ["#3d7be0", "#f2f2f2", "#e04848", "#3fbf6a", "#f2c63a"];
+        for (let k = 0; k <= 30; k++) {
+          let u = k / 30,
+            x = Math.round(x0 + (cx - x0) * u),
+            y = Math.round(y0 + (cy - 14 - y0) * u + Math.sin(u * Math.PI) * 6);
+          s(x, y, "#2a2230");
+          k % 2 === 0 &&
+            k > 0 &&
+            k < 30 &&
+            (R(x - 1, y + 1, 3, 4, cols[(k / 2) % 5]),
+            s(x - 1, y + 4, "rgba(0,0,0,0.25)"));
+        }
+        R(x0, y0, 1, ridgeH(x0) - y0, "#2a2230");
+      }
+      // The cairn and its pole.
+      for (let k = 0; k < 5; k++) {
+        let w = 12 - k * 2;
+        R(cx - w / 2, cy - 3 - k * 3, w, 3, k % 2 ? "#6c7894" : "#56617b"),
+          R(cx - w / 2, cy - 3 - k * 3, w, 1, "#eef4ff");
+      }
+      R(cx, cy - 26, 1, 12, "#2a2230");
+      // Wind-scoured boulders and the snowbank along the wall.
+      for (let k = 0; k < 22; k++) {
+        let x = (t() * Y) | 0;
+        if (Math.abs(x - cx) < 20) continue;
+        let w = 6 + ((t() * 10) | 0),
+          hh = 4 + ((t() * 5) | 0),
+          y = top - 10 - hh;
+        R(x, y, w, hh, "#4a5570"),
+          R(x, y, w, 2, "#f4f8ff"),
+          R(x + w - 2, y + 2, 2, hh - 2, "#36405a");
+      }
       for (let x = 0; x < Y; x++) {
         let h =
-          top - 14 + Math.round(Math.sin(x * 0.07) * 2 + Math.sin(x * 0.21));
+          top - 12 + Math.round(Math.sin(x * 0.07) * 2 + Math.sin(x * 0.21));
         R(x, h, 1, top - h, "#e8f2fa"),
           s(x, h, "#ffffff"),
           s(x, top - 2, "#b8cde6");
       }
-      sides("#dfeaf6", "#b8cde6", 900);
+      sides("#d7e2f0", "#8f9db8", 900);
     } else {
       // Power Plant: turbines, pipes, control panels, hazard stripes.
       R(0, 0, Y, top, "#1e232c");

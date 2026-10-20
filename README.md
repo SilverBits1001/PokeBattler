@@ -65,7 +65,7 @@ floodlit night. Each arena also gained a mechanic:
 - **Ruins:** pressure plates. Step on one and darts fly down its lane after a
   short warning, hitting anyone in it.
 - **Cinder Crater:** the lava pools swell and recede.
-- **Frostfall Lake:** heavy blows crack the centre rink until it breaks into
+- **Frostfall Peak:** a night summit above the clouds; heavy blows crack the centre rink until it breaks into
   slowing icy water, then it refreezes; Spheal roll down the lanes.
 - **Power Plant:** two conveyors running opposite ways (they flip), and Voltorb
   that roll in and blow up when someone comes close or shoots them.
