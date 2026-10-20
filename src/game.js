@@ -854,7 +854,7 @@
         color: "#3f8f9e",
         typeInk: "#1f1f12",
         hp: 1060,
-        power: 0.82,
+        power: 0.92,
         speed: 1.85,
         weight: 0.45,
         r: 13,
@@ -868,28 +868,26 @@
         basic: () => [
           {
             anim: "Attack",
-            startup: 6,
+            startup: 5,
             active: 3,
             recovery: 11,
             lunge: 6,
             dmg: 22,
             kb: 2.2,
             heavy: !1,
-            armor: !0,
             shape: "circle",
             reach: 18,
             radius: 16,
           },
           {
             anim: "Double",
-            startup: 6,
+            startup: 5,
             active: 3,
             recovery: 12,
             lunge: 6,
             dmg: 23,
             kb: 2.6,
             heavy: !1,
-            armor: !0,
             shape: "circle",
             reach: 18,
             radius: 17,
@@ -1784,7 +1782,7 @@
         color: "#9ad8f0",
         typeInk: "#0c2a36",
         hp: 950,
-        power: 1.53,
+        power: 1.45,
         speed: 3.1,
         weight: 1.25,
         r: 8,
@@ -1821,7 +1819,6 @@
             shape: "circle",
             reach: 16,
             radius: 13,
-            chill: 1,
           },
           {
             anim: "Twirl",
@@ -1864,7 +1861,7 @@
         },
         xName: "ICY WIND",
         yName: "DOUBLE TEAM",
-        xCd: 90,
+        xCd: 120,
         yCd: 220,
       },
       // The embrace Pokémon. Moonblast from range, Psychic to lift a foe and
@@ -1968,7 +1965,7 @@
         color: "#5a8fd0",
         typeInk: "#0d1d33",
         hp: 1140,
-        power: 0.9,
+        power: 0.85,
         speed: 2.3,
         weight: 0.5,
         r: 11,
@@ -1992,6 +1989,7 @@
             shape: "circle",
             reach: 17,
             radius: 15,
+            mtype: "STEEL",
           },
           {
             anim: "Double",
@@ -2005,6 +2003,7 @@
             shape: "circle",
             reach: 17,
             radius: 15,
+            mtype: "STEEL",
           },
           {
             anim: "Swing",
@@ -2018,6 +2017,7 @@
             shape: "circle",
             reach: 19,
             radius: 18,
+            mtype: "STEEL",
           },
         ],
         dodge: {
@@ -2029,7 +2029,7 @@
           anim: "Walk",
         },
         smash: {
-          name: "HAMMER ARM",
+          name: "METEOR MASH",
           anim: "Swing",
           windup: 12,
           maxCharge: 46,
@@ -2042,12 +2042,13 @@
           reach: 14,
           radius: 20,
           armor: !0,
-          hammer: !0,
+          mtype: "STEEL",
+          fx: "meteor",
         },
         xName: "ZEN HEADBUTT",
-        yName: "MAGNET RISE",
+        yName: "PSYCHIC",
         xCd: 170,
-        yCd: 460,
+        yCd: 300,
       },
     },
     ge = [
@@ -2249,8 +2250,8 @@
         chillMax: 3,
         chillDecay: 150,
         chillSlow: 0.12,
-        freeze: 42,
-        frostImm: 240,
+        freeze: 38,
+        frostImm: 300,
         // Icy Wind: a cone gust.
         iwWind: 10,
         iwActive: 10,
@@ -2267,7 +2268,7 @@
         dollR: 30,
         dollDmg: 26,
         // Cursed Body: chance to disable the attacker's specials.
-        curse: 0.3,
+        curse: 0.2,
         curseT: 90,
       },
       gardevoir: {
@@ -2300,13 +2301,18 @@
         zhKb: 6.2,
         zhFlinch: 0.3,
         zhRec: 18,
-        // Magnet Rise: hover over the ground, faster, but unable to guard.
-        mrLift: 8,
-        mrTime: 240,
-        mrSpeed: 1.3,
-        // Hammer Arm lowers Metagross's own speed for a while.
-        hammerT: 150,
-        hammerSpeed: 0.8,
+        // Psychic: a telekinetic pull that drags a foe into fist range.
+        mpWind: 12,
+        mpRange: 150,
+        mpCone: 0.7,
+        mpPull: 12,
+        mpDmg: 14,
+        mpStun: 20,
+        mpRec: 10,
+        mpWhiff: 26,
+        // Meteor Mash: landing it boosts Metagross's damage for a while.
+        mmT: 240,
+        mmBoost: 1.12,
       },
     },
     // The shared "ex" states a CPU should treat as an incoming strike.
@@ -3429,16 +3435,21 @@
                             Math.floor(r() * 4),
                         );
         } else if (f === "metagross") {
-          // Magnet Rise to get moving, Zen Headbutt in, brawl, Hammer Arm.
-          u.cdY === 0 && !(u.riseT > 0) && (y > 120 || r() < 0.06)
+          // Psychic drags them in, then fists and Meteor Mash; Zen
+          // Headbutt closes from mid range.
+          u.cdY === 0 && los && y > 60 && y < 150 && r() < 0.4
             ? i.pressed.add("special2")
-            : y < 30 || (N && y < 48)
-              ? i.pressed.add("attack")
-              : u.cdX === 0 && y > 40 && y < 110 && r() < 0.4
-                ? i.pressed.add("special1")
-                : y > 30 && y < 80 && r() < 0.12
-                  ? smash(6 + Math.floor(r() * 36))
-                  : y > 60 && y < 140 && r() < 0.2 && dash(b);
+            : op && op.heldBy === t
+              ? void 0
+              : op && op.state === "stunned" && y < 40 && r() < 0.35
+                ? smash(4 + Math.floor(r() * 8))
+                : y < 30 || (N && y < 48)
+                  ? i.pressed.add("attack")
+                  : u.cdX === 0 && y > 40 && y < 110 && r() < 0.4
+                    ? i.pressed.add("special1")
+                    : y > 30 && y < 80 && r() < 0.12
+                      ? smash(6 + Math.floor(r() * 36))
+                      : y > 60 && y < 140 && r() < 0.2 && dash(b);
         }
       }
       threat(e, t, s, i) {
@@ -5594,7 +5605,7 @@
               u("guard"), this.startWithdraw(e);
               break;
             }
-            if (t.held.has("guard") && e.state === "move" && !(i.riseT > 0)) {
+            if (t.held.has("guard") && e.state === "move") {
               u("guard"), this.startGuard(e);
               break;
             }
@@ -6648,6 +6659,7 @@
             burns: r.fang,
             chill: r.chill,
             mtype: r.mtype,
+            fx: r.fx,
           });
         }
         if (e.t > r.startup + r.active && e.swingHit) {
@@ -7184,6 +7196,7 @@
             chill: s.chill,
             daze: s.daze ? EXK.golurk.daze : 0,
             mtype: s.mtype,
+            fx: s.fx,
           });
         }
         e.t >= r + s.active + s.recovery + (e.swingHit ? 0 : ae.whiffLag) &&
@@ -9863,7 +9876,6 @@
           e.kind === "player" &&
           (e.airborne ||
             e.kit.flier ||
-            (e.slot.riseT ?? 0) > 0 ||
             e.state === "faint" ||
             (e.state === "dodge" &&
               (e.kit.dodge.kind === "air" || e.kit.dodge.kind === "rise")))
@@ -11455,6 +11467,8 @@
                 e.smash ?? 0,
               ),
               (e.mtype && (this.moveType = null),
+              e.fx &&
+                this.exFx(e, t, t.kind === "player" ? hp0 - t.slot.hp : 1),
               (e.chill || e.daze || e.flinch || e.exTag) &&
                 this.exOnHit(e, t, t.kind !== "player" || t.slot.hp < hp0),
               e.poison && this.poison(t),
@@ -11590,6 +11604,7 @@
               e.pierce ? e.hits.push(t) : (e.dead = !0);
               let s = Math.hypot(e.vx, e.vy) || 1;
               e.mtype && (this.moveType = e.mtype);
+              let fh = t.kind === "player" ? t.slot.hp : 0;
               this.applyHit(
                 t,
                 e.owner,
@@ -11608,6 +11623,11 @@
                 this.srcLabel(e.owner, e.reflected ? "reflect" : e.kind),
               ),
                 (this.moveType = null),
+                e.fx &&
+                  this.exFx(e, t, t.kind === "player" ? fh - t.slot.hp : 1),
+                e.burns &&
+                  (e.burns === !0 || this.rand() < e.burns) &&
+                  this.burn(t),
                 e.chill && this.exChill(t, e.chill, e.owner),
                 e.kind === "wisp" && this.burn(t),
                 e.kind === "pulse" && this.soak(t, e.team, e.owner),
@@ -11816,7 +11836,9 @@
             go("zen", "Charge"), (sl.cdX = e.kit.xCd);
             break;
           case "metagrossy":
-            go("rise", "Charge"), (sl.cdY = e.kit.yCd);
+            go("mpull", "Charge"),
+              (sl.cdY = e.kit.yCd),
+              this.emit({ type: "mindPullWind", who: e });
             break;
           default:
             no();
@@ -11869,6 +11891,12 @@
           (this.moveType = null);
         let ok = v.kind === "player" ? v.slot.hp < hp0 : !0;
         return (
+          q.fx &&
+            this.exFx(
+              { ...q, owner: o },
+              v,
+              v.kind === "player" ? hp0 - v.slot.hp : 1,
+            ),
           ok && q.chill && this.exChill(v, q.chill, o),
           ok &&
             q.slow &&
@@ -11985,11 +12013,7 @@
             ((s.confT = X.garchomp.confuse),
             s === e.slot && this.emit({ type: "confused", who: e }));
           s.confT > 0 && (s.confT--, (s.cdY = Math.max(s.cdY, s.confT)));
-          s.riseT > 0 &&
-            --s.riseT === 0 &&
-            s === e.slot &&
-            this.emit({ type: "riseEnd", who: e });
-          s.hammerT > 0 && s.hammerT--;
+          s.meteorT > 0 && s.meteorT--;
           if (s.kit.id === "scizor") {
             let n = this.exBp(s);
             n < X.scizor.bpMax &&
@@ -12023,6 +12047,7 @@
           : e.grab &&
             e.exMove !== "crunch" &&
             e.exMove !== "psychic" &&
+            e.exMove !== "mpull" &&
             this.exRelease(e);
         // Held by a grab that has ended: let go.
         e.heldBy &&
@@ -12049,8 +12074,6 @@
         return (
           s.rage > 0 && (m *= X.garchomp.rageSpeed),
           s.confT > 0 && (m *= X.garchomp.confSpeed),
-          s.riseT > 0 && (m *= X.metagross.mrSpeed),
-          s.hammerT > 0 && (m *= X.metagross.hammerSpeed),
           e.kit.stance &&
             (m *= s.blade ? X.aegislash.bladeSpeed : X.aegislash.shieldSpeed),
           e.kit.clearBody ||
@@ -12078,6 +12101,7 @@
             /:(basic\d|smash|shadowpunch)(-|$)/.test(String(k)) &&
             (m *= X.golurk.ironFist),
           t.slot.rage > 0 && (m *= X.garchomp.rageDmg),
+          t.slot.meteorT > 0 && (m *= X.metagross.mmBoost),
           m
         );
       }
@@ -12184,6 +12208,20 @@
           (this.syncing = !1),
           this.emit({ type: "synchronize", who: v, to: by });
       }
+      // A move's own effect once it lands: `dealt` is the damage done (or 1
+      // against a dummy). Kits hook in here by name.
+      exFx(h, v, dealt) {
+        let o = h.owner;
+        if (!o || o.kind !== "player" || dealt <= 0) return;
+        let sl = o.slot,
+          X = EXK;
+        switch (h.fx) {
+          case "meteor":
+            sl.meteorT = X.metagross.mmT;
+            this.emit({ type: "meteorBoost", who: o });
+            break;
+        }
+      }
       // Extra effects riding on a hitbox or projectile that connected.
       exOnHit(h, v, ok) {
         h.exTag && (h.exTag.exHit = !0);
@@ -12210,9 +12248,6 @@
         let s = e.kit.smash,
           o = Math.cos(e.atkDir),
           l = Math.sin(e.atkDir);
-        s.hammer &&
-          ((e.slot.hammerT = EXK.metagross.hammerT),
-          this.emit({ type: "hammerArm", who: e }));
         if (s.custom === "stoneEdge") {
           let c = EXK.garchomp,
             hl = [];
@@ -12297,6 +12332,10 @@
           accel: q.accel,
           vmax: q.vmax,
           chill: q.chill,
+          fx: q.fx,
+          burns: q.burns,
+          pierce: q.pierce,
+          hits: q.pierce ? [] : void 0,
         });
       }
       exProjTick(p) {
@@ -12394,8 +12433,8 @@
             return this.exPsychic(e, P, mag, ang);
           case "zen":
             return this.exZen(e, P);
-          case "rise":
-            return this.exRise(e);
+          case "mpull":
+            return this.exMindPull(e, P);
         }
         this.exEnd(e);
       }
@@ -13296,12 +13335,85 @@
           this.exFr(e, "Idle", 4, !0),
           e.t >= d + c.zhRec && this.exEnd(e);
       }
-      exRise(e) {
-        this.locomote(e, 0, 0), this.exFr(e, "Charge", 2, !0);
-        e.t >= EXK.metagross.mrLift &&
-          ((e.slot.riseT = EXK.metagross.mrTime),
-          this.emit({ type: "magnetRise", who: e }),
-          this.exEnd(e));
+      // Psychic: lock onto the nearest foe in front and drag them in, held
+      // for a beat in a telekinetic grip, then dropped stunned at your feet.
+      exMindPull(e, P) {
+        let c = EXK.metagross;
+        this.locomote(e, 0, 0);
+        if (e.exThrow) {
+          (e.exRec = !0),
+            this.exFr(e, "Idle", 4, !0),
+            e.t >= e.exThrow + (e.exHit ? c.mpRec : c.mpWhiff) && this.exEnd(e);
+          return;
+        }
+        if (e.grab) {
+          let v = e.grab,
+            q = e.t - e.grabT;
+          if (v.state === "faint" || v.heldBy !== e) {
+            this.exRelease(e), (e.exThrow = e.t);
+            return;
+          }
+          let o = Math.cos(e.dir2),
+            l = Math.sin(e.dir2),
+            d = e.r + v.r + 4,
+            k = Ee(Math.min(1, q / c.mpPull)),
+            tx = me(e.x + o * d, B.x0 + v.r, B.x1 - v.r),
+            ty = me(e.y + l * d, B.y0 + v.r, B.y1 - v.r);
+          (v.x = e.pullX + (tx - e.pullX) * k),
+            (v.y = e.pullY + (ty - e.pullY) * k),
+            (v.z = Math.sin(k * Math.PI) * 10),
+            (v.state = "stunned"),
+            (v.hitstun = Math.max(v.hitstun, v.t + 8)),
+            (v.mvx = v.mvy = v.kvx = v.kvy = 0),
+            this.exFr(e, "Charge", 2, !0);
+          if (q >= c.mpPull) {
+            (v.z = 0), (v.heldBy = null), (e.grab = null), (v.state = "move");
+            this.exHit(v, e, c.mpDmg, 0.3, -o, -l, {
+              src: "psychic",
+              mtype: "PSYCHIC",
+              pierceGuard: !0,
+              hitstun: c.mpStun,
+              hitstop: 6,
+              color: "#ff8fd8",
+            }),
+              (e.exHit = !0),
+              (e.exThrow = e.t),
+              this.emit({ type: "mindPullDrop", who: e, v });
+          }
+          return;
+        }
+        if (e.t <= c.mpWind) {
+          this.exAim(e, P, c.mpRange), this.exFr(e, "Charge", 2, !0);
+          return;
+        }
+        let best = null,
+          bs = 1 / 0;
+        for (let v of this.victimsFor(e.team)) {
+          if (v.kind !== "player" || v.heldBy || v.exInv) continue;
+          let d = Math.hypot(v.x - e.x, v.y - e.y);
+          if (d > c.mpRange + v.hurtR) continue;
+          let ad = Math.abs($e(Math.atan2(v.y - e.y, v.x - e.x), e.dir2));
+          if (v !== e.lock && ad > c.mpCone && d > 50) continue;
+          let sc = d + ad * 60;
+          sc < bs && ((bs = sc), (best = v));
+        }
+        if (!best) {
+          (e.exThrow = e.t), this.emit({ type: "mindPullMiss", who: e });
+          return;
+        }
+        (e.grab = best),
+          (e.grabT = e.t),
+          (e.pullX = best.x),
+          (e.pullY = best.y),
+          (e.dir2 = e.facing = Math.atan2(best.y - e.y, best.x - e.x)),
+          (best.heldBy = e),
+          (best.state = "stunned"),
+          (best.t = 0),
+          (best.hitstun = 999),
+          (best.mvx = best.mvy = best.kvx = best.kvy = 0),
+          (best.combo = 0),
+          (best.flameEnd = 0),
+          this.emit({ type: "mindPull", who: e, v: best });
       }
       // Tag Team assists for the second-generation kits.
       exAssist(e, t, s) {
@@ -22932,17 +23044,16 @@
           a.stroke(),
           (a.globalAlpha = 1);
       }
-      // Magnet Rise: a humming field under the hovering Metagross.
-      if ((p.slot.riseT ?? 0) > 0) {
-        let k = p.slot.riseT < 60 && t % 6 < 3 ? 0.4 : 1;
-        a.globalAlpha = 0.5 * k;
-        for (let n = 0; n < 2; n++) {
-          let rr = 10 + ((t * 0.6 + n * 7) % 14);
-          (a.strokeStyle = n ? "#f8d030" : "#9fc4ff"),
-            (a.lineWidth = 1),
-            a.beginPath(),
-            a.ellipse(p.x, p.y, rr, rr * 0.4, 0, 0, Math.PI * 2),
-            a.stroke();
+      // Meteor Mash's boost: steel-blue comet sparks streaming off it.
+      if ((p.slot.meteorT ?? 0) > 0) {
+        let k = p.slot.meteorT < 60 && t % 6 < 3 ? 0.4 : 1;
+        for (let n = 0; n < 5; n++) {
+          let g = ((t * 0.9 + n * 13) % 26) / 26,
+            x = p.x + Math.sin(n * 2.3 + t * 0.05) * 10,
+            y = p.y - 6 - g * 26;
+          (a.globalAlpha = (1 - g) * 0.8 * k),
+            (a.fillStyle = n % 2 ? "#9fc4ff" : "#ffffff"),
+            a.fillRect(Math.round(x), Math.round(y), 2, 2);
         }
         a.globalAlpha = 1;
       }
@@ -23274,9 +23385,9 @@
         ? ue("PSYCHIC", "#e070c0", v, E)
         : hint("Synchronize returns status");
     if (id === "metagross")
-      return l.riseT > 0
-        ? ue(`MAGNET RISE ${Math.ceil(l.riseT / 60)}`, "#6f9ce0", v, E)
-        : hint("Clear Body: no slows");
+      return l.meteorT > 0
+        ? ue(`METEOR ${Math.ceil(l.meteorT / 60)}`, "#9fc4ff", v, E)
+        : hint("Psychic, then Meteor Mash");
     return 0;
   }
   // Rhyperior's Rock Tomb pillar: a jagged stone spire.
@@ -26295,12 +26406,7 @@
                 ? [i.rage / EXK.garchomp.outrage, "RAGE"]
                 : l(i.cdX, s.xCd)),
       ],
-      sp2: [
-        tc(s.yName),
-        ...(i.riseT > 0
-          ? [i.riseT / EXK.metagross.mrTime, "Floating"]
-          : l(i.cdY, s.yCd)),
-      ],
+      sp2: [tc(s.yName), ...l(i.cdY, s.yCd)],
       dodge: ["Dodge", ...l(i.cdDodge, s.dodge.cooldown)],
       smash: [
         tc(s.smash.name ?? "Smash"),
@@ -27388,7 +27494,7 @@
         Y: "counter ~45",
       },
       gardevoir: { A: "58 · 62 · 90", RS: "~53", X: "~43", Y: "~77 throw" },
-      metagross: { A: "33 · 35 · 52", RS: "~70", X: "~45", Y: "speed" },
+      metagross: { A: "33 · 35 · 52", RS: "~70", X: "~45", Y: "pull 14" },
     },
     // How each one wants to be played, and the effects its moves use.
     BRIEF_STYLE = {
@@ -27461,7 +27567,7 @@
         ["grab", "reflect", "invuln"],
       ],
       metagross: [
-        "Heavyweight. Magnet Rise floats you and speeds you up; Zen Headbutt lunges in and can flinch. Hammer Arm is the heavy smash. Clear Body means you are never slowed.",
+        "Steel and mind. Psychic drags a foe to your fists; Zen Headbutt lunges in and can flinch. Meteor Mash is the armoured finisher, and landing it powers you up. Clear Body means you are never slowed.",
         ["flinch", "armor", "launch"],
       ],
     },
@@ -30035,11 +30141,11 @@
       ],
     ],
     metagross: [
-      ["A", "Meteor fist combo", "Heavy steel punches.", "COMBO"],
+      ["A", "Bullet fists", "Heavy steel punches.", "COMBO"],
       [
         "RS",
-        "Hammer Arm",
-        "A crushing slam with super armor. Slows you for a while.",
+        "Meteor Mash",
+        "An armoured comet punch. Landing it powers you up for four seconds.",
         "OPTIONAL CHARGE",
       ],
       [
@@ -30050,9 +30156,9 @@
       ],
       [
         "Y",
-        "Magnet Rise",
-        "Float for four seconds: faster, above ground attacks and hazards, but no guard.",
-        "BUFF",
+        "Psychic",
+        "Grip the nearest foe in front and drag them to your fists. A miss leaves you open.",
+        "GRAB",
       ],
       ["B", "Agility", "Fast dash.", "DODGE"],
       [
@@ -36478,16 +36584,24 @@
         case "dazed":
           t.popup(n.who.x, n.who.y - 36, "DAZED", "#ffe27a", !1);
           break;
-        case "magnetRise":
-          S.boltHum(),
-            t.ring(n.who.x, n.who.y, 6, 2.4, 14, "#9fc4ff", !0),
-            t.popup(n.who.x, n.who.y - 40, "MAGNET RISE", "#9fc4ff", !1);
+        case "mindPullWind":
+          S.charge();
           break;
-        case "riseEnd":
-          t.dust(n.who.x, n.who.y, 6, 0, 0, 1);
+        case "mindPull":
+          S.lock(1),
+            t.ring(n.v.x, n.v.y - 10, 6, 2.4, 16, "#ff8fd8"),
+            t.popup(n.v.x, n.v.y - 40, "PSYCHIC!", "#ff8fd8", !1);
           break;
-        case "hammerArm":
-          t.shake(0, 1, 5), t.cracks(n.who.x, n.who.y, 6, 20, "#2a2018");
+        case "mindPullDrop":
+          S.slam(), t.shake(0, 1, 3), t.dust(n.v.x, n.v.y, 8, 0, 0, 1.2);
+          break;
+        case "mindPullMiss":
+          t.ring(n.who.x, n.who.y - 10, 6, 3, 10, "#ff8fd8", !0);
+          break;
+        case "meteorBoost":
+          S.armor(),
+            t.ring(n.who.x, n.who.y - 10, 6, 3.4, 16, "#9fc4ff", !0),
+            t.popup(n.who.x, n.who.y - 44, "METEOR!", "#9fc4ff", !1);
           break;
         case "roughSkin":
           t.popup(n.who.x, n.who.y - 36, `-${n.dmg}`, "#c9a25a", !1);
