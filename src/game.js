@@ -25907,47 +25907,109 @@
       d.restore(),
       d.drawImage(Ke, p, k);
   }
-  // The logo, in the colours of the Pokémon wordmark: yellow letters in a
-  // blue rim with a navy drop, stacked so it sits between the portraits.
+  // The logo: a small spaced "POKÉMON" over POCKET in chrome and BRAWL in
+  // gold, both lines set to one width so they lock up as a block, on a
+  // blade split blue and red like the screen behind it.
   function pocketLogo(cx, bob, t) {
-    let line = (txt, y, sz, fill) => {
-      d.save(),
-        (d.font = fontOf(sz * Fe, He)),
-        (d.textAlign = "center"),
-        (d.textBaseline = "alphabetic"),
-        (d.lineJoin = "round"),
-        d.translate(m(cx), m(y + bob)),
-        d.transform(1, 0, -ke, 1, 0, 0),
-        (d.strokeStyle = "#141f4a"),
-        (d.lineWidth = m(sz * 0.36)),
-        d.strokeText(txt, m(sz * 0.03), m(sz * 0.08)),
-        (d.strokeStyle = "#2a75bb"),
-        (d.lineWidth = m(sz * 0.22)),
-        d.strokeText(txt, 0, 0);
-      let gr = d.createLinearGradient(0, -m(sz * 0.75), 0, 0);
-      fill
-        ? (gr.addColorStop(0, "#ffffff"), gr.addColorStop(1, "#dbe8ff"))
-        : (gr.addColorStop(0, "#fff38a"),
-          gr.addColorStop(0.5, "#ffcb05"),
-          gr.addColorStop(1, "#f5a300")),
-        (d.fillStyle = gr),
-        d.fillText(txt, 0, 0);
-      // A glint running through the letters now and then.
-      let w = ye(txt, sz, He),
-        gx = ((t * 3 + y * 7) % (w + 260)) - w / 2 - 40;
-      fill ||
-        (d.beginPath(),
-        d.rect(m(gx), -m(sz), m(sz * 0.18), m(sz * 1.2)),
+    let W = 150,
+      LF = (sz) => `italic 900 ${(sz * Fe).toFixed(2)}px "Pocket Logo", ${He}`,
+      fit = (txt) => {
+        d.save(), (d.font = LF(10));
+        let w = d.measureText(txt).width / Fe;
+        return d.restore(), (W * 10) / w;
+      },
+      line = (txt, y, stops) => {
+        let sz = fit(txt);
         d.save(),
-        d.clip(),
-        (d.fillStyle = "rgba(255,255,255,0.75)"),
-        d.fillText(txt, 0, 0),
-        d.restore());
+          (d.font = LF(sz)),
+          (d.textAlign = "center"),
+          (d.textBaseline = "alphabetic"),
+          (d.lineJoin = "round"),
+          d.translate(m(cx), m(y + bob)),
+          // A soft drop, then a dark rim, then the metal.
+          (d.shadowColor = "rgba(0,0,0,0.65)"),
+          (d.shadowBlur = m(6)),
+          (d.shadowOffsetY = m(3)),
+          (d.strokeStyle = "#0b0716"),
+          (d.lineWidth = m(sz * 0.14)),
+          d.strokeText(txt, 0, 0),
+          (d.shadowColor = "transparent");
+        let gr = d.createLinearGradient(0, -m(sz * 0.74), 0, m(sz * 0.02));
+        stops.forEach(([o, c]) => gr.addColorStop(o, c)),
+          (d.fillStyle = gr),
+          d.fillText(txt, 0, 0),
+          // A thin light edge along the top of each letter.
+          (d.strokeStyle = "rgba(255,255,255,0.35)"),
+          (d.lineWidth = m(0.5)),
+          d.strokeText(txt, 0, -m(0.4));
+        // A glint crossing now and then.
+        let gx = ((t * 2.2 + y * 3) % (W + 300)) - W / 2 - 60;
+        d.beginPath(),
+          d.moveTo(m(gx), -m(sz)),
+          d.lineTo(m(gx + sz * 0.16), -m(sz)),
+          d.lineTo(m(gx + sz * 0.02), m(sz * 0.1)),
+          d.lineTo(m(gx - sz * 0.14), m(sz * 0.1)),
+          d.closePath(),
+          d.clip(),
+          (d.fillStyle = "rgba(255,255,255,0.7)"),
+          d.fillText(txt, 0, 0),
+          d.restore();
+        return sz;
+      };
+    // POKÉMON, small and spaced, between two fine rules.
+    d.save(),
+      (d.font = fontOf(8 * Fe, je, 700)),
+      "letterSpacing" in d && (d.letterSpacing = `${m(3.2).toFixed(1)}px`),
+      (d.textAlign = "center"),
+      (d.fillStyle = "#f3d88a"),
+      (d.shadowColor = "rgba(0,0,0,0.7)"),
+      (d.shadowBlur = m(3)),
+      d.fillText("POK\xC9MON", m(cx + 1.6), m(33 + bob)),
+      (d.shadowColor = "transparent");
+    for (let sd of [-1, 1]) {
+      let gr = d.createLinearGradient(m(cx + sd * 30), 0, m(cx + sd * 72), 0);
+      gr.addColorStop(0, "rgba(243,216,138,0.9)"),
+        gr.addColorStop(1, "rgba(243,216,138,0)"),
+        (d.fillStyle = gr),
+        d.fillRect(m(sd > 0 ? cx + 30 : cx - 72), m(30 + bob), m(42), m(0.7));
+    }
+    d.restore();
+    let y1 = 40 + fit("POCKET") * 0.74,
+      y2 = y1 + fit("BRAWL") * 0.8 + 3;
+    line("POCKET", y1, [
+      [0, "#ffffff"],
+      [0.45, "#dfe6f2"],
+      [0.5, "#8a96b0"],
+      [0.62, "#c3cde0"],
+      [1, "#f4f7ff"],
+    ]),
+      line("BRAWL", y2, [
+        [0, "#fff6cf"],
+        [0.44, "#ffd24a"],
+        [0.5, "#c07a0c"],
+        [0.66, "#f5b62a"],
+        [1, "#ffe9a0"],
+      ]);
+    // The blade under it: blue into red, tapering at both ends.
+    let by = y2 + 6 + bob,
+      bg = d.createLinearGradient(m(cx - W / 2), 0, m(cx + W / 2), 0);
+    bg.addColorStop(0, "rgba(51,214,255,0)"),
+      bg.addColorStop(0.2, "#33d6ff"),
+      bg.addColorStop(0.5, "#ffffff"),
+      bg.addColorStop(0.8, "#ff4a63"),
+      bg.addColorStop(1, "rgba(255,74,99,0)"),
+      d.save(),
+      (d.fillStyle = bg),
+      (d.shadowColor = "rgba(255,255,255,0.5)"),
+      (d.shadowBlur = m(6)),
+      d.beginPath(),
+      d.moveTo(m(cx - W / 2), m(by)),
+      d.lineTo(m(cx), m(by - 1.3)),
+      d.lineTo(m(cx + W / 2), m(by)),
+      d.lineTo(m(cx), m(by + 1.3)),
+      d.closePath(),
+      d.fill(),
       d.restore();
-    };
-    line("Pok\xE9mon", 36, 15, !0),
-      line("POCKET", 76, 36),
-      line("BRAWL", 116, 42);
   }
   // Face-off pieces shared by the start screen and the ready screen.
   var FACE_SEAM = (y) => H / 2 + 26 - y * 0.2;
@@ -26655,80 +26717,49 @@
     }
     return a.teamExtra.list;
   }
-  // Official artwork standing on a floor line, turned inward on the right;
-  // the portrait when there is no artwork.
-  function artStand(e, k, cx, fy, bw, bh, flip, al = 1) {
-    let art = artOf(k);
-    d.save(), (d.globalAlpha *= al);
-    flip && (d.translate(m(cx), 0), d.scale(-1, 1), d.translate(-m(cx), 0));
-    if (art) {
-      let k2 = Math.min(bw / art.width, bh / art.height),
-        w = art.width * k2,
-        h = art.height * k2;
-      (d.imageSmoothingEnabled = !0),
-        (d.imageSmoothingQuality = "high"),
-        (d.shadowColor = "rgba(0,0,0,0.6)"),
-        (d.shadowBlur = m(8)),
-        (d.shadowOffsetY = m(3)),
-        d.drawImage(art, m(cx - w / 2), m(fy - h), m(w), m(h));
-    } else if (e[k]) {
-      let sz = Math.min(bw, bh);
-      Oe(e[k], xe[k] ? "Determined" : "Normal", cx - sz / 2, fy - sz, sz, {
-        bg: xe[k]?.color ?? LG_INFO[k]?.color,
-        frame: !1,
-        slash: !0,
-      });
-    }
+  // A portrait, turned to face inward on the right.
+  function portraitAt(e, k, x, y, sz, flip, mood = "Determined") {
+    if (!e[k]) return;
+    d.save();
+    flip &&
+      (d.translate(m(x + sz / 2), 0),
+      d.scale(-1, 1),
+      d.translate(-m(x + sz / 2), 0));
+    Oe(e[k], mood, x, y, sz, {
+      bg: xe[k]?.color ?? LG_INFO[k]?.color,
+      frame: !1,
+      slash: !0,
+    });
     d.restore();
   }
-  // One side of the ready screen: the lead's artwork large, the rest of
-  // the side beside it, a name plate, and the legendary they bring.
+  // One side of the ready screen: the lead's portrait large, the rest of
+  // the side smaller at its inner foot, a name plate, and the legendary
+  // they bring.
   function readySide(e, ks, side, sl, t, chip, lg) {
     let col = side ? g.cpu : g.p1,
       rgb = side ? "255,74,99" : "51,214,255",
-      dir = side ? -1 : 1,
-      cx = side ? H - 104 + sl : 104 - sl,
-      fy = 168,
-      k = ks[0],
-      bob = Math.sin(t * 0.05 + side * 2) * 1.5;
-    // A glow on the floor and a slow ring behind the lead.
-    let fl = d.createRadialGradient(m(cx), m(fy), 0, m(cx), m(fy), m(110));
-    fl.addColorStop(0, `rgba(${rgb},0.4)`),
-      fl.addColorStop(1, `rgba(${rgb},0)`),
-      d.save(),
-      d.translate(m(cx), m(fy)),
-      d.scale(1, 0.32),
-      d.translate(-m(cx), -m(fy)),
-      (d.fillStyle = fl),
-      d.fillRect(m(cx - 110), m(fy - 110), m(220), m(220)),
-      d.restore(),
-      d.save(),
-      (d.globalAlpha = 0.18),
-      (d.strokeStyle = col),
-      (d.lineWidth = m(1.4)),
-      d.translate(m(cx), m(fy - 70)),
-      d.rotate(t * 0.006 * dir);
-    for (let n = 0; n < 3; n++)
-      d.beginPath(), d.arc(0, 0, m(62), n * 2.09, n * 2.09 + 1.4), d.stroke();
-    d.restore();
-    // The rest of the side first, so the lead stands in front.
+      sz = 140,
+      y0 = 26,
+      x = side ? H - sz - 6 + sl : 6 - sl,
+      k = ks[0];
+    k && e[k]
+      ? portraitAt(e, k, x, y0, sz, side)
+      : (te(x, y0, sz, sz, side ? "#3a1020" : "#0c2140", sz * ke),
+        V("?", x + sz / 2, y0 + sz * 0.68, sz * 0.5, `rgba(${rgb},0.35)`, {
+          align: "center",
+        }));
     let rest = ks.slice(1).filter((p) => e[p]),
-      small = rest.length > 1;
+      ps = rest.length > 1 ? sz * 0.38 : sz * 0.46;
     rest.forEach((p, n) =>
-      artStand(
+      portraitAt(
         e,
         p,
-        cx + dir * (small ? 58 + n * 42 : 74),
-        fy - 2,
-        small ? 62 : 96,
-        small ? 62 : 92,
+        side ? x - ps * 0.5 - n * (ps + 3) : x + sz - ps * 0.5 + n * (ps + 3),
+        y0 + sz - ps - 4,
+        ps,
         side,
-        0.95,
       ),
     );
-    k && e[k]
-      ? artStand(e, k, cx, fy + bob, 176, 150, side)
-      : V("?", cx, fy - 40, 70, `rgba(${rgb},0.35)`, { align: "center" });
     // Name plate: name, types and role; the rest of the side under it.
     let pw = 162,
       px = side ? H - 10 - pw + sl : 10 - sl,
@@ -26788,7 +26819,7 @@
         (d.fillStyle = lc),
         d.fillRect(m(lx + 5), m(ly + 23), m(lw - 10), m(1.2));
       li
-        ? artStand(e, lg, ix, ly + 22, 30, 28, side)
+        ? portraitAt(e, lg, ix - 10, ly + 2, 20, side, "Normal")
         : V("?", ix, ly + 19, 16, lc, { align: "center" });
       let tx = side ? lx + lw - 34 : lx + 34,
         ta = side ? "right" : "left";
@@ -27194,17 +27225,6 @@
         { weight: 700 },
       );
   }
-  // Official artwork (assets/art.js), decoded once on first use.
-  var ART_IMG = {};
-  // Decode them all up front so a pick never shows a blank frame.
-  setTimeout(() => Object.keys(window.__ART__ ?? {}).forEach(artOf), 0);
-  function artOf(k) {
-    let src = window.__ART__?.[k];
-    if (!src) return null;
-    let im = ART_IMG[k];
-    im || ((im = ART_IMG[k] = new Image()), (im.src = src));
-    return im.complete && im.naturalWidth ? im : null;
-  }
   // One side's card: the lead large, the partner behind, on a team-coloured stage.
   function selCard(a, e, t, s, i, r, o) {
     let l = a.frame,
@@ -27281,38 +27301,18 @@
         });
     // Portraits, Pokkén style: the Determined face when there is one, the
     // CPU's turned to face yours. A partner stands smaller behind the lead.
-    // They are drawn after the card, free to spill past its edges; the
-    // roster, drawn later still, stays on top of them.
-    let later = [],
-      U0 = U;
-    U = (...x) => later.push(() => U0(...x));
-    let k0 = (x, v, E, Q, ie) => {
+    k = (x, v, E, Q, ie) => {
       let K = e[x];
       if (!K) return;
       let sz = E >= 2.4 ? 116 : Q ? 66 : 96,
         px = t + v - sz / 2,
-        py = y + 122 - sz,
-        art = artOf(x);
+        py = y + 122 - sz;
       d.save(), (d.globalAlpha = ie);
       s &&
         (d.translate(m(t + v), 0), d.scale(-1, 1), d.translate(-m(t + v), 0));
-      if (art) {
-        // Official artwork, smooth and full size, standing on the card's floor.
-        let bw = E >= 2.4 ? 160 : Q ? 92 : 124,
-          bh = E >= 2.4 ? 140 : Q ? 88 : 118,
-          k2 = Math.min(bw / art.width, bh / art.height),
-          w = art.width * k2,
-          h2 = art.height * k2;
-        (d.imageSmoothingEnabled = !0),
-          (d.imageSmoothingQuality = "high"),
-          (d.shadowColor = "rgba(0,0,0,0.55)"),
-          (d.shadowBlur = m(6)),
-          (d.shadowOffsetY = m(2)),
-          d.drawImage(art, m(t + v - w / 2), m(y + 128 - h2), m(w), m(h2));
-      } else Oe(K, "Determined", px, py, sz, { bg: xe[x]?.color, frame: !1 });
+      Oe(K, "Determined", px, py, sz, { bg: xe[x]?.color, frame: !1 });
       d.restore();
     };
-    k = (...x) => later.push(() => k0(...x));
     r[0] && r[1]
       ? ((x0) => (
           [...x0].reverse().forEach(([E, Q], ie) => k(E, Q, 1.9, 1 - ie, 1)),
@@ -27353,8 +27353,7 @@
       (d.strokeStyle = `rgba(${u},0.5)`),
       (d.lineWidth = m(0.8)),
       d.stroke(),
-      d.restore(),
-      later.forEach((x) => x());
+      d.restore();
   }
   // The plate under a card: who is playing and the team.
   function selPlate(a, e, t, s, i, r, o) {
@@ -32726,31 +32725,8 @@
       d.ellipse(m(f), m(u + 52), m(70), m(16), 0, 0, Math.PI * 2),
       d.fill();
     let c = e[s.mon],
-      y = c?.anims.Idle ?? c?.anims.Walk,
-      art = artOf(s.mon);
-    if (art) {
-      // The official artwork, sliding in when the choice changes.
-      let p = Ee((a.menuSwap ?? 99) / 12),
-        k2 = Math.min(170 / art.width, 158 / art.height),
-        w = art.width * k2,
-        h2 = art.height * k2,
-        bob = Math.sin(t * 0.05) * 2;
-      d.save(),
-        (d.globalAlpha = p),
-        (d.imageSmoothingEnabled = !0),
-        (d.imageSmoothingQuality = "high"),
-        (d.shadowColor = "rgba(0,0,0,0.6)"),
-        (d.shadowBlur = m(8)),
-        (d.shadowOffsetY = m(3)),
-        d.drawImage(
-          art,
-          m(f - w / 2 + (1 - p) * 30),
-          m(u + 56 - h2 + bob),
-          m(w),
-          m(h2),
-        ),
-        d.restore();
-    } else if (y) {
+      y = c?.anims.Idle ?? c?.anims.Walk;
+    if (y) {
       let p = Ee((a.menuSwap ?? 99) / 12);
       d.save(),
         (d.globalAlpha = p),
@@ -33155,6 +33131,7 @@
       await Promise.race([
         Promise.all([
           document.fonts.load('400 10px "Lilita One"'),
+          document.fonts.load('italic 900 10px "Pocket Logo"'),
           document.fonts.load('500 10px "Fredoka"'),
           document.fonts.load('600 10px "Fredoka"'),
           document.fonts.load('700 10px "Fredoka"'),
