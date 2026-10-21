@@ -41905,7 +41905,8 @@
         (l.hidden = !0),
         (k = !0),
         le(),
-        Me.play("title"),
+        // The main menu has its own song (the Pokémon Center theme).
+        Me.play("center"),
         Me.muffle(!1),
         S.select();
     }

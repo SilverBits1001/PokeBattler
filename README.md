@@ -73,7 +73,8 @@ callouts, eight arenas, each with its own hazard and benefit (Stadium spotlights
 collapse and Ancient Power, Cinder Crater heat vents, Frostfall slides, Power Plant recharge, Magma Isle edge dunks, Sunken Shrine pools, Ember Caldera lava pools), items (Sitrus Berry, X Attack, Poké Ball, Rocky Helmet, Choice Scarf, Focus Band, Quick Claw, Smoke Ball, Leftovers), Smash-style
 move types, Magnezone, battle music (Trainer Battle from Ruby/Sapphire/Emerald, © Nintendo /
 Creatures / GAME FREAK, looping seamlessly after its intro), the Opening Title from FireRed/LeafGreen on the title and
-menus, plus victory/defeat music, and five modes
+team select, the Pokémon Center theme from HeartGold/SoulSilver on the main menu
+(crossfaded into a seamless 34-second loop), plus victory/defeat music, and five modes
 (VS CPU, Training, Free-for-All, Team 2v2, Zone Control). Mode, arena and items can be
 switched in Options → Match, or with X / Select on team select. Accessibility options
 (reduced effects, high-contrast team colours, swapped specials) are in Options.
