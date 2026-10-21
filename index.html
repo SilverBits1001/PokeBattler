@@ -4850,10 +4850,10 @@ window.__PROPS__={roller:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAc
     },
     ARENA_TIPS = [
       "Spotlights recharge your specials",
-      "Break cover for Ancient Power \u2014 mind the collapse",
+      "Dodge the boulder; hold a lit rune for Ancient Power",
       "Erupted vents run hot: +25% damage",
       "Dodge on ice to slide further",
-      "Stand by a live pylon to recharge",
+      "Ride the conveyors; pylons recharge; vats explode",
       "Skirt the lava pockets, and the edge: magma burns",
       "The pools slow you, and carry Electric shocks",
       "Mind the pools, and the edge: the lava lake burns",
@@ -33582,6 +33582,136 @@ window.__PROPS__={roller:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAc
         });
     }
   }
+  // A stage's picture for the stage select: the painting itself, cropped
+  // to the arena floor and a little of the wall, at its own resolution
+  // (pixel-art paintings unsmoothed); the drawn arenas use their thumbnail.
+  function stagePic(c, x, y, w, h) {
+    let art = arenaArt(c),
+      sy = B.y0 - 30,
+      sh = B.y1 - sy;
+    if (art) {
+      let kx = art.width / Y,
+        ky = art.height / _;
+      (d.imageSmoothingEnabled = art.width >= Y * Ye),
+        (d.imageSmoothingQuality = "high"),
+        d.drawImage(
+          art,
+          B.x0 * kx,
+          sy * ky,
+          (B.x1 - B.x0) * kx,
+          sh * ky,
+          m(x),
+          m(y),
+          m(w),
+          m(h),
+        );
+    } else
+      arenaThumb(c),
+        (d.imageSmoothingEnabled = !1),
+        d.drawImage(
+          arenaThumbs[c],
+          B.x0,
+          sy,
+          B.x1 - B.x0,
+          sh,
+          m(x),
+          m(y),
+          m(w),
+          m(h),
+        );
+    d.imageSmoothingEnabled = !1;
+  }
+  // Stage select: every stage as a big picture in a 3x3 grid, Random last.
+  function stageScreen(a, e) {
+    let t = a.stageT ?? 0,
+      s = Ee(Math.min(1, t / 10)),
+      N = ARENAS.length,
+      cur = a.stageCursor ?? 0,
+      tw = 120,
+      th = 66,
+      gap = 7,
+      x0 = (H - (3 * tw + 2 * gap)) / 2,
+      y0 = 32;
+    (d.globalAlpha = s),
+      (d.fillStyle = "rgba(5,4,14,0.99)"),
+      d.fillRect(0, 0, m(H), m(oe)),
+      V("SELECT STAGE", x0, 22, 14, g.gold, { skew: !0, outline: 2.2 }),
+      G(
+        "◀ ▶ ▲ ▼  choose    A  fight here    B  back",
+        H - x0,
+        20,
+        5.8,
+        g.haze,
+        {
+          align: "right",
+          weight: 700,
+        },
+      );
+    for (let c = 0; c <= N; c++) {
+      let x = x0 + (c % 3) * (tw + gap),
+        y = y0 + ((c / 3) | 0) * (th + gap),
+        on = c === cur,
+        rnd = c === N;
+      tapRect(x, y, tw, th, () =>
+        a.stageCursor === c
+          ? Ue.add("confirm")
+          : ((a.stageCursor = c), S.ui(!0)),
+      );
+      on &&
+        (d.save(),
+        (d.globalCompositeOperation = "lighter"),
+        teHalo(
+          x - 3,
+          y - 3,
+          tw + 6,
+          th + 6,
+          "rgba(255,216,74,0.7)",
+          4,
+          g.gold,
+          9,
+          0.8,
+        ),
+        d.restore());
+      te(x - 1.5, y - 1.5, tw + 3, th + 3, on ? g.gold : "#1b1730", 3);
+      d.save(), te(x, y, tw, th, "#0c0a1a", 2.5), d.clip();
+      if (rnd) {
+        // Random: the stages flicking past, dimmed, under a big question mark.
+        (d.globalAlpha = s * 0.35), stagePic(((t / 9) | 0) % N, x, y, tw, th);
+        (d.globalAlpha = s),
+          V("?", x + tw / 2, y + th / 2 + 12, 34, g.gold, {
+            align: "center",
+            outline: 2.4,
+          });
+      } else
+        (d.globalAlpha = s * (on ? 1 : 0.72)),
+          stagePic(c, x, y, tw, th),
+          (d.globalAlpha = s);
+      // Name band along the bottom.
+      let gr = d.createLinearGradient(0, m(y + th - 16), 0, m(y + th));
+      gr.addColorStop(0, "rgba(5,4,14,0)"),
+        gr.addColorStop(1, "rgba(5,4,14,0.92)"),
+        (d.fillStyle = gr),
+        d.fillRect(m(x), m(y + th - 16), m(tw), m(16)),
+        V(
+          rnd ? "RANDOM" : ARENAS[c].name.toUpperCase(),
+          x + 5,
+          y + th - 4,
+          7.4,
+          on ? g.gold : g.chalk,
+          {
+            outline: 1.6,
+          },
+        ),
+        d.restore();
+    }
+    // What the stage under the cursor does.
+    let tip =
+      cur === N
+        ? "Any stage, picked when the battle starts"
+        : (ARENA_TIPS[cur] ?? "");
+    G(tip, H / 2, oe - 8, 6.4, g.chalk, { align: "center", weight: 600 }),
+      (d.globalAlpha = 1);
+  }
   function readyScreen(a, e) {
     let t = a.readyT ?? 0,
       s = Ee(Math.min(1, t / 10)),
@@ -34512,8 +34642,13 @@ window.__PROPS__={roller:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAc
       G(P, k + x + 1.5, oe - 4.6, 6.2, C, { weight: 600 }),
         (k += x + ye(P, 6.2) + 10);
     }
-    a.picks.length >= teamSize() && !a.lgPhase && !a.readyPhase && readyCue(a);
+    a.picks.length >= teamSize() &&
+      !a.lgPhase &&
+      !a.readyPhase &&
+      !a.stagePhase &&
+      readyCue(a);
     a.lgPhase && lgRoster(a, e);
+    a.stagePhase && stageScreen(a, e);
     a.readyPhase && readyScreen(a, e);
   }
   // Results backdrop: a triangle lattice that ripples out from the winner,
@@ -40709,6 +40844,7 @@ window.__PROPS__={roller:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAc
         (s.picks = []),
         (s.lgPhase = !1),
         (s.readyPhase = !1),
+        (s.stagePhase = !1),
         (s.cpuPicks = []),
         (k = !0),
         le(),
@@ -41388,6 +41524,7 @@ window.__PROPS__={roller:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAc
         n.pressed.has(W) && R !== W && D(W);
     }
     function U(n) {
+      if (s.stagePhase) return stageInput(n);
       if (s.readyPhase) return readyInput(n);
       if (s.lgPhase) return lgInput(n);
       let D = cpuSide();
@@ -41506,9 +41643,9 @@ window.__PROPS__={roller:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAc
             (A.legendPick = LG_PICKS.indexOf(LG_CARDS[s.lgCursor][0]))),
           Ze(),
           (s.lgPhase = !1),
-          (s.readyPhase = !0),
-          (s.readyT = 0),
-          (s.briefKit = 0),
+          stageFlow()
+            ? stageOpen()
+            : ((s.readyPhase = !0), (s.readyT = 0), (s.briefKit = 0)),
           S.select();
         return;
       }
@@ -41539,8 +41676,54 @@ window.__PROPS__={roller:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAc
       n.pressed.has("back") &&
         (s.arcade?.stage
           ? ((s.arcade = null), toMenu())
-          : ((s.readyPhase = !1), lgOpen()),
+          : ((s.readyPhase = !1), stageFlow() ? stageOpen() : lgOpen()),
         S.back());
+    }
+    // The stage select: after the fighters (and legendary) are set, pick
+    // where to fight, or Random. Not in the Arcade (its ladder sets the
+    // stages) or online (each player's pick goes to the arena roulette).
+    function stageFlow() {
+      return !s.arcade && A.gameMode !== 5;
+    }
+    function stageOpen() {
+      (s.stagePhase = !0),
+        (s.stageT = 0),
+        (s.stageCursor ??= A.arenaRandom ? ARENAS.length : A.arena);
+    }
+    function stageInput(n) {
+      s.stageT++;
+      let N = ARENAS.length + 1,
+        C = 3;
+      w(n, (D) => {
+        let c = s.stageCursor;
+        (s.stageCursor =
+          D === "left"
+            ? (c + N - 1) % N
+            : D === "right"
+              ? (c + 1) % N
+              : D === "up"
+                ? (c + N - C) % N
+                : (c + C) % N),
+          S.ui(D === "right" || D === "down");
+      });
+      if (
+        s.stageT > 8 &&
+        (n.pressed.has("confirm") || n.pressed.has("start"))
+      ) {
+        let r = s.stageCursor === ARENAS.length;
+        (A.arenaRandom = r ? 1 : 0),
+          (A.arena = r
+            ? Math.floor(Math.random() * ARENAS.length)
+            : s.stageCursor),
+          Ze(),
+          (s.stagePhase = !1),
+          (s.readyPhase = !0),
+          (s.readyT = 0),
+          (s.briefKit = 0),
+          S.select();
+        return;
+      }
+      n.pressed.has("back") && ((s.stagePhase = !1), lgOpen(), S.back());
     }
     function re() {
       s.roulette <= 0 ||
