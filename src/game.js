@@ -3240,7 +3240,18 @@
         this.punishedT = -1;
       }
       think(e, t) {
-        return this.adapt(e, t, this.decide(e, t));
+        let i = this.adapt(e, t, this.decide(e, t));
+        if (t.state === "move" && e.tick - t.lastKoTick === 40) {
+          let s = e.nearestTarget(t.team, t.x, t.y);
+          (!s || s.state === "faint" || Math.hypot(s.x - t.x, s.y - t.y) > 110) &&
+            this.rand() < 0.7 &&
+            ((i.pressed = new Set(i.pressed).add("taunt")),
+            ((k) =>
+              k
+                ? ((i.mx = [0, 0, 1, 0, -1][k]), (i.my = [0, -1, 0, 1, 0][k]))
+                : (i.mx = i.my = 0))(Math.floor(this.rand() * 5)));
+        }
+        return i;
       }
       // Arena awareness layered over the fighting brain: berries, cover and line of sight.
       adapt(e, t, i) {
@@ -4811,6 +4822,20 @@
     LG_FFA = { groudon: 0.9, deoxys: 0.82 },
     // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
     MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.05, aegislash: 0.88 } },
+    // Taunts: T (R3 on a pad) with the stick picking the emote. The fighter
+    // commits to it, so a taunt in a rival's face can be punished.
+    // [name, animation (Idle if missing), glyph, colour]
+    TAUNT = {
+      t: 60,
+      cd: 90,
+      emotes: [
+        ["Taunt", "Charge", "bang", "#ffcf3a"],
+        ["Cheer", "Hop", "heart", "#ff5a8a"],
+        ["Show off", "Rotate", "star", "#ffe27a"],
+        ["Yawn", "Sleep", "z", "#cfe3ff"],
+        ["Sing", "Hop", "note", "#8fd6ff"],
+      ],
+    },
     // Lives mode: the counts team select steps through, and the respawn
     // grace (ticks of invulnerability, lost on acting).
     LIVES = { steps: [1, 3, 5], grace: 120 },
@@ -6870,6 +6895,40 @@
         e.spawnT > 0 &&
           (e.wakeT > 0 ? e.spawnT-- : (e.spawnT = 0),
           (e.alpha = e.spawnT > 0 && e.spawnT % 8 < 4 ? 0.45 : 1));
+        // Taunts and emotes: neutral, or up/right/down/left on the stick.
+        e.tauntCd > 0 && e.tauntCd--;
+        if (
+          t.pressed.has("taunt") &&
+          e.state === "move" &&
+          this.intro <= 20 &&
+          !(e.tauntCd > 0) &&
+          !(e.z > 0)
+        ) {
+          let v =
+            p < 0.4
+              ? 0
+              : Math.abs(t.mx) > Math.abs(t.my)
+                ? t.mx > 0
+                  ? 2
+                  : 4
+                : t.my < 0
+                  ? 1
+                  : 3;
+          (e.state = "taunt"),
+            (e.t = 0),
+            (e.emote = v),
+            (e.mvx = e.mvy = 0),
+            (e.wakeT = 0),
+            (e.tauntCd = TAUNT.t + TAUNT.cd),
+            this.emit({ type: "taunt", who: e, emote: v });
+        }
+        if (e.state === "taunt") {
+          this.locomote(e, 0, 0),
+            (e.animName = TAUNT.emotes[e.emote ?? 0][1]),
+            (e.animFrame = -1),
+            e.t >= TAUNT.t && ((e.state = "move"), (e.t = 0));
+          return;
+        }
         if (s.id === "venusaur") {
           let v = p < 0.25 && e.state !== "dodge" && e.state !== "hurt";
           e.stillT = v ? e.stillT + 1 : 0;
@@ -17701,6 +17760,7 @@
       KeyR: ["legend"],
       KeyO: ["guard"],
       KeyF: ["guard"],
+      KeyT: ["taunt"],
       Backspace: ["back"],
       Enter: ["start", "confirm"],
       Escape: ["start", "back"],
@@ -17750,6 +17810,7 @@
       e(4) && t.add("switch"),
       e(6) && t.add("assist"),
       e(10) && t.add("legend"),
+      e(11) && t.add("taunt"),
       e(5) && t.add("lock"),
       (e(7) || (a.buttons[7]?.value ?? 0) > 0.35) && t.add("guard"),
       e(9) && t.add("start"),
@@ -24744,6 +24805,51 @@
               .forEach((q) => a.fillRect(P - 3 + q * 2.4, y + 5.2, 1.6, 1.6))));
       });
     }
+    // Emote bubbles: a speech bubble with the emote's icon that pops in over
+    // a taunting fighter and bobs until the taunt ends.
+    for (let h of e.players) {
+      if (h.state !== "taunt" || h.hidden) continue;
+      let em = TAUNT.emotes[h.emote ?? 0],
+        k = Math.min(1, h.t / 6, (TAUNT.t - h.t) / 8),
+        sc = k < 1 ? k * (1 + 0.35 * Math.sin(k * Math.PI)) : 1,
+        c = o(h.px, h.x) + 15,
+        y =
+          o(h.py, h.y) -
+          o(h.pz, h.z) -
+          h.kit.tall * Bz(h) -
+          24 +
+          Math.sin(h.t * 0.25) * 1.5;
+      if (sc <= 0) continue;
+      a.save(),
+        a.translate(c, y),
+        a.scale(sc, sc),
+        (a.fillStyle = "rgba(10,8,22,0.35)"),
+        a.beginPath(),
+        a.ellipse(0.8, 1, 9, 7.5, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#ffffff"),
+        (a.strokeStyle = "#1b1428"),
+        (a.lineWidth = 1),
+        a.beginPath(),
+        a.ellipse(0, 0, 9, 7.5, 0, 0, Math.PI * 2),
+        a.moveTo(-6, 4.5),
+        a.lineTo(-9, 10),
+        a.lineTo(-2.5, 6.6),
+        a.fill(),
+        a.stroke(),
+        a.beginPath(),
+        a.ellipse(0, 0, 8.4, 6.9, 0, 0, Math.PI * 2),
+        a.fill(),
+        cueGlyph(
+          a,
+          em[2],
+          0,
+          0,
+          4.6 * (1 + 0.12 * Math.sin(h.t * 0.5)),
+          em[3],
+        ),
+        a.restore();
+    }
     // Smash-style player tags: a coloured "P1" / "CPU" flag with a pointer over each fighter.
     for (let h of e.players) {
       if (h.state === "faint" || (h.vanished && h.isRival)) continue;
@@ -30566,6 +30672,40 @@
             c.lineTo(Math.cos(q) * 1, Math.sin(q) * 1);
         }
         line(0.2), c.beginPath(), c.arc(0, 0, 0.5, 0, Math.PI * 2), solid();
+        break;
+      case "heart":
+        c.beginPath(),
+          c.moveTo(0, 0.9),
+          c.bezierCurveTo(-1.3, 0, -0.85, -1.05, 0, -0.38),
+          c.bezierCurveTo(0.85, -1.05, 1.3, 0, 0, 0.9),
+          c.closePath(),
+          solid(),
+          c.beginPath(),
+          c.arc(-0.42, -0.3, 0.16, 0, Math.PI * 2),
+          (c.fillStyle = "rgba(255,255,255,0.7)"),
+          c.fill();
+        break;
+      case "note":
+        c.beginPath(),
+          c.ellipse(-0.36, 0.56, 0.36, 0.27, -0.4, 0, Math.PI * 2),
+          solid(),
+          c.beginPath(),
+          c.moveTo(-0.04, 0.5),
+          c.lineTo(-0.04, -0.86),
+          c.quadraticCurveTo(0.5, -0.66, 0.66, -0.2),
+          line(0.2);
+        break;
+      case "bang":
+        c.beginPath(),
+          c.moveTo(-0.22, -0.95),
+          c.lineTo(0.22, -0.95),
+          c.lineTo(0.12, 0.3),
+          c.lineTo(-0.12, 0.3),
+          c.closePath(),
+          solid(),
+          c.beginPath(),
+          c.arc(0, 0.72, 0.18, 0, Math.PI * 2),
+          solid();
         break;
       case "zone":
         c.beginPath(),
@@ -38543,7 +38683,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 27,
+  var NETV = 28,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -38559,6 +38699,7 @@
         "assist",
         "guard",
         "legend",
+        "taunt",
       ],
       held: [
         "attack",
@@ -40657,6 +40798,8 @@
               ]
             : []),
           ["start", "II", ["start"], H / 2, oe - 12, 8],
+          // Taunt: the stick picks the emote.
+          ["taunt", "EMOTE", ["taunt"], H / 2 + 30, oe - 12, 7.5],
         ];
   }
   function touchXY(a) {
@@ -43053,6 +43196,21 @@
         case "orb":
           S.orb(), t.motes(n.x, n.y, 10, 8, L.cool);
           break;
+        case "taunt": {
+          let w = n.who,
+            k = n.emote ?? 0;
+          k === 3
+            ? S.ui(!1)
+            : S.cry(w.kit.id, k === 4 ? 0.08 : 0.16),
+            k === 4 &&
+              [0, 1, 2].forEach((R) =>
+                setTimeout(() => t.motes(w.x + 8, w.y - 24, 2, 10, "#8fd6ff", 0.8), R * 220),
+              ),
+            k === 1 && t.motes(w.x, w.y - 16, 6, 12, "#ff5a8a", 1),
+            k === 2 && t.motes(w.x, w.y - 12, 8, 16, "#ffe27a", 1.4),
+            k === 0 && t.ring(w.x, w.y - 10, 4, 2, 14, "#ffcf3a", !0);
+          break;
+        }
         case "lifeBack":
           n.who.slot?.shiny && shinyBurst(n.who),
           S.respawn(),

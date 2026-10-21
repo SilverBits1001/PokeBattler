@@ -6,7 +6,13 @@ A top-down Pokémon arena brawler that runs in one HTML file.
 
 Open `index.html` in a browser. A gamepad is recommended; the keyboard works too
 (WASD move, J attack, K dodge, L and I specials, arrows smash, O guard, Shift lock,
-Q switch, E assist).
+Q switch, E assist, T taunt).
+
+**Taunts and emotes**: T (R3 on a pad, EMOTE on touch) taunts; the stick picks the
+emote: neutral Taunt, up Cheer, right Show off, down Yawn, left Sing. Each plays an
+animation and cry with a speech bubble over the fighter. It takes a second and
+can't be cancelled, so a taunt in a rival's face can be punished; CPUs taunt
+now and then after a K.O. Taunts go over the network like any other input.
 
 On a phone or tablet, touch controls appear as soon as you touch the screen: drag
 anywhere on the left half for a floating stick. On the right, a large Attack button
