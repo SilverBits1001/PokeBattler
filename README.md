@@ -149,6 +149,16 @@ roster, Easy to Hard, on a different arena each stage. Stage six is a boss
 with 1.5x HP and its legendary half charged. Lose and you can Continue (retry
 the stage); your clear time, continues and best are kept on this device.
 
+**Shinies**: clear the Arcade without a continue and your fighter's shiny
+unlocks (both of them in Tag Team) and switches on. On team select, an unlocked
+fighter's tile carries a sparkle; L2 (E) on it turns its shiny on or off. A
+shiny sparkles and twinkles as it comes in, and online your rival sees it too.
+The shiny looks are SpriteCollab's own shiny sheets: `tools/shiny.py` stores
+each one as a colour swap plus the few pixels a swap gets wrong
+(`assets/shiny.js`, about 650 KB), and the game rebuilds the exact sheet on first
+use. A few portraits SpriteCollab has no shiny of (Snorlax's and
+Aegislash's other faces) use the colour swap alone.
+
 **Vibration**: controllers rumble and phones vibrate on hits taken (harder
 for heavy hits and K.O.s), heavy hits landed, guard breaks, parries,
 Legend Ready, summons, arena surges and the result. Options → Accessibility →
@@ -205,6 +215,13 @@ Details and numbers are in the design review.
 **Standard** (the default) is one Pokémon a side. Press X on team select for
 **Tag Team**: two Pokémon each, with Switch and Assist. Party modes use one Pokémon
 each.
+
+**Lives**: L1 (Q) on team select sets 1, 3 or 5 lives each, in every mode but
+Training and Zone Control (and the Arcade). A K.O. with a life left brings the
+fighter (both of them, in Tag Team) back at full health at the spawn point
+furthest from its rivals, with two seconds' grace that ends when it acts; the
+last one standing wins. Hearts under the name (or a heart badge on the party
+cards) show what's left. Online, the host's setting is used.
 
 **Legendaries.** Dealing and taking damage fills a meter under your name. When it reads
 READY, call your legendary: E (L2 on a pad) in single-Pokémon modes, or R (L3) in any

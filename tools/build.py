@@ -18,11 +18,13 @@ layouts = (ROOT / "assets/layouts.js").read_text(encoding="utf-8").rstrip("\n")
 arenas = (ROOT / "assets/arenas.js").read_text(encoding="utf-8").rstrip("\n")
 stages_js = ROOT / "assets/stages.js"
 stages = stages_js.read_text(encoding="utf-8").rstrip("\n") if stages_js.exists() else ""
+shiny_js = ROOT / "assets/shiny.js"
+shiny = shiny_js.read_text(encoding="utf-8").rstrip("\n") if shiny_js.exists() else ""
 music = (ROOT / "assets/music.js").read_text(encoding="utf-8").rstrip("\n")
 peerjs = (ROOT / "assets/vendor/peerjs.min.js").read_text(encoding="utf-8").rstrip("\n")
 game = (ROOT / "src/game.js").read_text(encoding="utf-8").rstrip("\n")
 
-body = f"{page}\n<script>{sprites}</script>\n<script>{tiles}</script>\n<script>{vfx}</script>\n<script>{fxpack}</script>\n<script>{layouts}</script>\n<script>{music}</script>\n<script>{arenas}</script>\n<script>{stages}</script>\n<script>/* PeerJS 1.5.4, MIT licence (assets/vendor/peerjs-LICENSE.txt) */\n{peerjs}</script>\n<script>\n{game}\n</script>\n"
+body = f"{page}\n<script>{sprites}</script>\n<script>{tiles}</script>\n<script>{vfx}</script>\n<script>{fxpack}</script>\n<script>{layouts}</script>\n<script>{music}</script>\n<script>{arenas}</script>\n<script>{stages}</script>\n<script>{shiny}</script>\n<script>/* PeerJS 1.5.4, MIT licence (assets/vendor/peerjs-LICENSE.txt) */\n{peerjs}</script>\n<script>\n{game}\n</script>\n"
 
 skeleton_head = (
     "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"

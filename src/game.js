@@ -46,6 +46,8 @@
       dummyMode: 0,
       // Free-for-All: how many fighters, you included (3 or 4).
       ffaPlayers: 4,
+      // Lives per fighter (1 = a single KO ends it).
+      lives: 1,
       showHitboxes: 0,
       swapFace: 0,
       volume: 0.7,
@@ -64,6 +66,7 @@
       "dummyCount",
       "dummyMode",
       "ffaPlayers",
+      "lives",
       "showHitboxes",
       "swapFace",
       "slowmo",
@@ -4808,6 +4811,9 @@
     LG_FFA = { groudon: 0.9, deoxys: 0.82 },
     // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
     MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.05, aegislash: 0.88 } },
+    // Lives mode: the counts team select steps through, and the respawn
+    // grace (ticks of invulnerability, lost on acting).
+    LIVES = { steps: [1, 3, 5], grace: 120 },
     // In crowds a CPU turns on whoever hit it within t ticks and r pixels.
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
@@ -4829,6 +4835,8 @@
       A.gameMode === 6 || (A.gameMode === 5 && A.onlineTag) ? 2 : 1,
     // Modes with CPU opponents picked on the team select screen.
     cpuSide = () => A.gameMode !== 1 && A.gameMode !== 5,
+    // Lives apply to every mode but Training and Zone Control.
+    livesMode = () => A.gameMode !== 1 && A.gameMode !== 4,
     // How many fighters the CPU side rolls on team select: in Free-for-All
     // one per rival, otherwise a team like yours.
     cpuNeed = () =>
@@ -6470,6 +6478,15 @@
         } else (this.dummies = []), this.syncDummies();
         (this.zone = null), (this.zscore = [0, 0]);
         e === "zone" && this.placeZone(!0);
+        // Lives (stock): set on team select; Training and Zone Control play
+        // without them.
+        let lv = e === "practice" || e === "zone" ? 1 : (this.stockN ?? 1);
+        r.lives = lv;
+        for (let o of this.players) o.lives = lv;
+        // Shinies are looks only: [your side, the other side], per slot.
+        this.players.slice(0, 2).forEach((o, k) =>
+          o.slots.forEach((sl, j) => this.shinyTeams?.[k]?.[j] && (sl.shiny = !0)),
+        );
         // Everyone brings a legendary when they are on; Training starts full.
         for (let o of this.players)
           (o.legend = A.legends
@@ -6849,6 +6866,10 @@
         this.exTick(e);
         // Wake-up grace: a few safe ticks after getting up, lost on acting.
         e.wakeT > 0 && (e.state === "move" ? e.wakeT-- : (e.wakeT = 0));
+        // The respawn blink, over once the grace is.
+        e.spawnT > 0 &&
+          (e.wakeT > 0 ? e.spawnT-- : (e.spawnT = 0),
+          (e.alpha = e.spawnT > 0 && e.spawnT % 8 < 4 ? 0.45 : 1));
         if (s.id === "venusaur") {
           let v = p < 0.25 && e.state !== "dodge" && e.state !== "hurt";
           e.stillT = v ? e.stillT + 1 : 0;
@@ -7209,8 +7230,10 @@
           e.t === 60)
         ) {
           let t = e.aliveSlot(1);
+          if (this.match.mode !== "practice" && t === null && e.lives > 1)
+            return this.respawn(e);
           if (this.match.mode !== "practice" && t === null) {
-            e.out = !0;
+            (e.lives = 0), (e.out = !0);
             // Placing = how many were still standing when this one fell.
             e.place = this.players.filter((o) => !o.out).length + 1;
             let s = this.players[0].team,
@@ -7233,6 +7256,44 @@
           }
           t !== null && ((e.alpha = 1), this.doSwitch(e, t, !0));
         }
+      }
+      // Lives: a fighter with a stock left comes back whole, at the free
+      // spawn point furthest from the fighters still standing, and gets a
+      // short grace that ends when it acts. The object stays the same so
+      // locks, brains and the HUD keep pointing at it.
+      respawn(e) {
+        let keep = {
+            team: e.team,
+            brain: e.brain,
+            cpuIndex: e.cpuIndex,
+            legend: e.legend,
+            lgMeter: e.lgMeter,
+            stats: e.stats,
+            koCount: e.koCount,
+            lastKoTick: e.lastKoTick,
+            lives: e.lives - 1,
+          },
+          foes = this.players.filter(
+            (o) => o !== e && !o.out && o.team !== e.team,
+          ),
+          spots = [...QUAD, [Se - 120, Te], [Se + 120, Te], [Se, Te]],
+          best = spots[0],
+          bd = -1;
+        for (let [x, y] of spots) {
+          let d = Math.min(1e9, ...foes.map((o) => Math.hypot(o.x - x, o.y - y)));
+          d > bd && ((bd = d), (best = [x, y]));
+        }
+        let n = new bt(this.mons, best[0], best[1], e.team, e.slots.map((s) => s.kit.id)),
+          sh = e.slots.map((s) => s.shiny);
+        for (let k of Object.keys(e)) k in n || delete e[k];
+        Object.assign(e, n, keep),
+          (e.facing = best[0] > Se ? Math.PI : 0),
+          e.slots.forEach((s, k) => sh[k] && (s.shiny = !0)),
+          (e.wakeT = LIVES.grace),
+          (e.spawnT = LIVES.grace),
+          (e.sqx = 0.6),
+          (e.sqy = 1.5),
+          this.emit({ type: "lifeBack", who: e, lives: e.lives, x: e.x, y: e.y });
       }
       updateLock(e, t) {
         let s = t.held.has("lock"),
@@ -17468,6 +17529,16 @@
         portraits: i,
       };
     }
+    // Shiny overlays are tiny; decode them now so a shiny sheet can be
+    // rebuilt in one go the first time it is drawn (see shinyMon).
+    for (let [e, t] of Object.entries(window.__SHINY__ ?? {})) {
+      let s = { anims: {}, portraits: {} };
+      for (let [r, o] of Object.entries(t.anims))
+        o && (s.anims[r] = await Qt(o.full ?? o));
+      for (let [r, o] of Object.entries(t.portraits))
+        o && (s.portraits[r] = await Qt(o));
+      SHINY.img[e] = s;
+    }
     for (let e of window.__TILES__ ?? []) TILESET.push(await Qt(e));
     for (let [e, t] of Object.entries({
       ...(window.__VFX__ ?? {}),
@@ -17476,6 +17547,87 @@
       VFX[e] = { ...t, img: await Qt(t.src) };
     return a;
   }
+  // ---- Shinies ----
+  // A fighter's shiny look is rebuilt from its normal sheets: SpriteCollab's
+  // colour swap (assets/shiny.js, from tools/shiny.py) plus an overlay of the
+  // few pixels a straight swap gets wrong. Built on first draw and kept.
+  var SHINY = { img: {}, mons: new Map() };
+  function shinyRecolor(img, map, over, full) {
+    let c = Zt(img.width, img.height),
+      x = c.getContext("2d");
+    if (full) return x.drawImage(full, 0, 0), c;
+    x.drawImage(img, 0, 0);
+    let D = x.getImageData(0, 0, c.width, c.height),
+      p = D.data,
+      O = null;
+    if (over) {
+      let o = Zt(img.width, img.height).getContext("2d");
+      o.drawImage(over, 0, 0), (O = o.getImageData(0, 0, c.width, c.height).data);
+    }
+    for (let i = 0; i < p.length; i += 4) {
+      if (O && O[i + 3]) {
+        O[i + 3] === 1
+          ? (p[i + 3] = 0)
+          : ((p[i] = O[i]), (p[i + 1] = O[i + 1]), (p[i + 2] = O[i + 2]), (p[i + 3] = O[i + 3]));
+        continue;
+      }
+      if (!p[i + 3]) continue;
+      let v = map.get(((p[i] << 24) | (p[i + 1] << 16) | (p[i + 2] << 8) | p[i + 3]) >>> 0);
+      v !== void 0 &&
+        ((p[i] = v >>> 24), (p[i + 1] = (v >>> 16) & 255), (p[i + 2] = (v >>> 8) & 255), (p[i + 3] = v & 255));
+    }
+    return x.putImageData(D, 0, 0), c;
+  }
+  // The shiny version of a Pokemon's sprite set, or the set itself when there
+  // is none.
+  function shinyMon(a) {
+    let e = a && window.__SHINY__?.[a.name];
+    if (!e) return a;
+    let t = SHINY.mons.get(a.name);
+    if (t) return t;
+    let s = new Map(e.map),
+      i = new Map(e.pmap),
+      r = SHINY.img[a.name] ?? { anims: {}, portraits: {} },
+      o = {};
+    for (let [l, f] of Object.entries(a.anims)) {
+      let u = shinyRecolor(f.img, s, r.anims[l], e.anims[l]?.full && r.anims[l]),
+        h = `${a.name}~s.${l}`;
+      o[l] = {
+        ...f,
+        img: u,
+        get white() {
+          return tintOf(u, h, "#ffffff");
+        },
+        tints: { get: (c) => (c ? tintOf(u, h, c) : void 0) },
+      };
+    }
+    let p = {};
+    for (let [l, f] of Object.entries(a.portraits ?? {}))
+      p[l] = shinyRecolor(f, i, r.portraits[l]);
+    return (
+      (t = { ...a, name: a.name, anims: o, portraits: p, shiny: !0 }),
+      SHINY.mons.set(a.name, t),
+      t
+    );
+  }
+  // Unlocks (a flawless Arcade clear) and which unlocked fighters you want
+  // shiny, kept on this device.
+  var SHINY_KEY = "pocketbrawl-shiny-v1",
+    shinyStore = (() => {
+      try {
+        let a = JSON.parse(localStorage.getItem(SHINY_KEY) ?? "{}");
+        return { have: a.have ?? [], want: a.want ?? [] };
+      } catch {
+        return { have: [], want: [] };
+      }
+    })(),
+    shinySave = () => {
+      try {
+        localStorage.setItem(SHINY_KEY, JSON.stringify(shinyStore));
+      } catch {}
+    },
+    shinyHave = (a) => shinyStore.have.includes(a),
+    shinyWant = (a) => shinyHave(a) && shinyStore.want.includes(a);
   // Canvas memory is tight on phones and tablets, so tinted sprite sheets live in
   // a least-recently-used cache with a pixel budget; evicted canvases are freed.
   var TINT = { map: new Map(), px: 0, cap: 22e6 };
@@ -23541,8 +23693,12 @@
   function Bz(a) {
     return a.kind === "dummy" ? 0.93 : (a.disgSize ?? a.kit?.size ?? 1);
   }
+  // The sprite set a body is drawn with: shiny when its Pokemon is.
+  function skinOf(a) {
+    return a.kind === "player" && a.slot?.shiny ? shinyMon(a.mon) : a.mon;
+  }
   function Ht(a) {
-    let m = a.disg ?? a.mon;
+    let m = a.disg ?? skinOf(a);
     return m.anims[a.animName] ?? m.anims.Idle ?? m.anims.Walk;
   }
   function zt(a, e, t) {
@@ -29425,8 +29581,10 @@
   var ya = (a, e, t, s = !1) => ue(a, Rt[a] ?? "#888", e, t, { right: s });
   // A fighter's HUD portrait: its current form's (Aegislash in Blade Forme
   // shows the Blade Forme portrait).
-  var faceOf = (mons, sl) =>
-    (sl?.blade && mons.aegislashBlade) || mons[sl?.kit?.id];
+  var faceOf = (mons, sl) => {
+    let m = (sl?.blade && mons.aegislashBlade) || mons[sl?.kit?.id];
+    return sl?.shiny ? shinyMon(m) : m;
+  };
   function Oe(a, e, t, s, i, r = {}) {
     let o = i * 0.2,
       l = () => {
@@ -31025,6 +31183,14 @@
       t.slots.forEach((p, k) =>
         hudBall(s + y - 8 - k * 7, i + 7, 2.5, p.hp <= 0),
       );
+    // Lives left: a heart badge with the count on the portrait's corner.
+    (a.match.lives ?? 1) > 1 &&
+      (hudHeart(s + 26, i + 6.4, 4.4, !(t.lives > 0)),
+      G(`${t.lives ?? 0}`, s + 26, i + 8.6, 5.4, "#ffffff", {
+        align: "center",
+        weight: 800,
+        outline: 1.6,
+      }));
     let p = Qa(e, `${t.team}-${t.cpuIndex ?? 0}-${f.id}`, l.hp);
     energyBar(s + 33, i + 13.5, 62, 6.4, l.hp / l.maxHp, p / l.maxHp, !1, h);
     let k = Math.max(0, l.guard) / 100;
@@ -31406,6 +31572,29 @@
       d.fillRect(m(u), m(e), m(f), m(s * 0.35)),
       d.restore();
   }
+  // A life in Lives mode: a red heart, dark once it is spent.
+  function hudHeart(a, e, t, s) {
+    let p = () => {
+      d.beginPath(),
+        d.moveTo(m(a), m(e + t * 0.9)),
+        d.bezierCurveTo(m(a - t * 1.4), m(e), m(a - t * 0.9), m(e - t), m(a), m(e - t * 0.35)),
+        d.bezierCurveTo(m(a + t * 0.9), m(e - t), m(a + t * 1.4), m(e), m(a), m(e + t * 0.9)),
+        d.closePath();
+    };
+    d.save(),
+      p(),
+      (d.lineWidth = m(1.4)),
+      (d.strokeStyle = "#1b1428"),
+      d.stroke(),
+      (d.fillStyle = s ? "#4a4466" : "#ff4a63"),
+      d.fill(),
+      !s &&
+        ((d.fillStyle = "rgba(255,255,255,0.6)"),
+        d.beginPath(),
+        d.arc(m(a - t * 0.45), m(e - t * 0.3), m(t * 0.22), 0, Math.PI * 2),
+        d.fill()),
+      d.restore();
+  }
   // A Poke Ball team marker; grey once that Pokemon has fainted.
   function hudBall(a, e, t, s) {
     let i = s
@@ -31531,6 +31720,11 @@
       V(f.name, r ? b + 70 : b + 5, 51.3, 8.4, g.chalk, {
         align: r ? "right" : "left",
       });
+    // Lives left, under the name plate.
+    let lv = a.match.lives ?? 1;
+    if (lv > 1)
+      for (let C = 0; C < lv; C++)
+        hudHeart(X(7 + C * 10), 60, 3.4, C >= (t.lives ?? 0));
     // Types above the bar.
     let p = t.protean ? [t.protean] : f.type2 ? [f.type, f.type2] : [f.type],
       k = r ? H - 50 : 50;
@@ -34075,6 +34269,7 @@
     k = (x, v, E, Q, ie) => {
       let K = e[x];
       if (!K) return;
+      !s && shinyWant(x) && (K = shinyMon(K));
       // The portrait fills the card: a single pick is the card's full height,
       // a pair stands on its floor, the lead larger.
       let sz = E >= 2.4 ? c + 4 : Q ? 78 : 124,
@@ -34381,13 +34576,23 @@
           (v + 2.8 + $ * 2) * RG_SK,
         ),
         Oe(
-          e[M],
+          shinyWant(M) ? shinyMon(e[M]) : e[M],
           K || fl > 0 ? "Angry" : Q >= 0 || ie ? "Determined" : "Normal",
           C - $,
           x - $,
           v + $ * 2,
           { bg: E.color, frame: !1, slash: !0, sk: RG_SK },
         ),
+        // Shiny unlocked: a sparkle in the corner, lit while it's chosen.
+        shinyHave(M) &&
+          cueGlyph(
+            d,
+            "spark",
+            m(C + v - 5 + $),
+            m(x + 5 - $),
+            m(shinyWant(M) ? 4.4 : 3.4),
+            shinyWant(M) ? g.gold : "rgba(255,255,255,0.55)",
+          ),
         (Q >= 0 || ie) &&
           (d.save(),
           ze(C, x, v, v, v * RG_SK),
@@ -34513,6 +34718,18 @@
                 ]
               : []),
           ["SELECT", "Arena", y],
+          ...(shinyHave(ge[a.cursor])
+            ? [["L2", shinyWant(ge[a.cursor]) ? "Shiny: On" : "Shiny: Off", shinyWant(ge[a.cursor]) ? g.gold : "#cfcaea"]]
+            : []),
+          ...(livesMode()
+            ? [
+                [
+                  "L1",
+                  (A.lives ?? 1) > 1 ? `Lives: ${A.lives}` : "Lives: 1",
+                  (A.lives ?? 1) > 1 ? g.gold : "#cfcaea",
+                ],
+              ]
+            : []),
           ...(A.gameMode === 2
             ? [["RT", `Players: ${A.ffaPlayers ?? 4}`, g.gold]]
             : []),
@@ -34525,6 +34742,8 @@
           Y: "special2",
           SELECT: "select",
           RT: "guard",
+          L1: "switch",
+          L2: "assist",
         }[M];
       tapRect(k - 2, oe - 16, x + ye(P, 6.2) + 10, 16, () => Ue.add(v));
       G(P, k + x + 1.5, oe - 4.6, 6.2, C, { weight: 600 }),
@@ -34920,6 +35139,51 @@
           { weight: 700 },
         ),
         d.restore());
+      // Flawless: the shiny it unlocked, sparkling.
+      let sk = q.final.shiny,
+        k2 = Ee(Math.min(1, (s - 60) / 16));
+      if (sk?.length && k2 > 0) {
+        d.save(), (d.globalAlpha = k2);
+        let hy = 130,
+          hw = 200;
+        te(24, hy, hw, 34, "rgba(11,9,24,0.82)", 6),
+          (d.fillStyle = "#ffe066"),
+          d.fillRect(m(28), m(hy), m(hw - 8), m(1.4));
+        sk.forEach((R, W) => {
+          let M = shinyMon(a.mons?.[R] ?? null);
+          M &&
+            Oe(M, "Joyous", 30 + W * 30, hy + 3, 28, {
+              bg: xe[R]?.color,
+              slash: !0,
+            });
+          for (let j = 0; j < 3; j++) {
+            let ph = (s * 0.06 + j * 2.1 + W) % (Math.PI * 2);
+            cueGlyph(
+              d,
+              "spark",
+              m(34 + W * 30 + ((j * 9) % 22)),
+              m(hy + 6 + ((j * 13) % 20)),
+              m(2 + 2 * Math.max(0, Math.sin(ph))),
+              "#fff4b0",
+            );
+          }
+        });
+        let tx = 34 + sk.length * 30;
+        V("SHINY UNLOCKED!", tx, hy + 15, 11, "#ffe066", {
+          skew: !0,
+          outline: 2,
+          glow: ["#ffcf3a", 6],
+        }),
+          G(
+            `${sk.map((R) => xe[R]?.name ?? R).join(" & ")} \xB7 L2 on team select`,
+            tx,
+            hy + 26,
+            6,
+            g.chalk,
+            { weight: 700 },
+          ),
+          d.restore();
+      }
     }
     let Le = Ee((s - 40) / 12);
     Le <= 0 ||
@@ -36602,6 +36866,14 @@
       fizzle() {
         O() && X(0.08, "highpass", 4e3, 0.6, 0.12);
       },
+      // The shiny twinkle: a quick run of bright notes and a shimmer.
+      shiny() {
+        O() &&
+          ([93, 98, 101, 105, 110].forEach((a, e) =>
+            I("p12", F(a), F(a), 0.07, 0.05, e * 0.055),
+          ),
+          X(0.3, "highpass", 8e3, 0.5, 0.08, void 0, 0.1));
+      },
       respawn() {
         O() &&
           [72, 76, 79, 84].forEach((a, e) =>
@@ -38271,7 +38543,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 26,
+  var NETV = 27,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -38732,6 +39004,7 @@
         h: {
           nick: netShort(NET.nick, 20),
           team: r.myTeam,
+          sh: r.myTeam.map(shinyWant),
           lg: A.legends ? LG_PICKS[A.legendPick] : "off",
           ar: A.arena,
         },
@@ -38802,6 +39075,7 @@
       !e.oppTeam.length &&
       netTeam(i.h.team) &&
       ((e.oppTeam = i.h.team),
+      (e.oppShiny = Array.isArray(i.h.sh) ? i.h.sh.map((x) => x === !0) : []),
       (e.oppLg = i.h.lg),
       (e.oppArena =
         Number.isInteger(i.h.ar) && i.h.ar >= 0 && i.h.ar < ARENAS.length
@@ -40978,6 +41252,8 @@
                 : null,
             names: [netShort(NET.nick, 20), D.oppName],
             arenas: Ar,
+            lives: A.lives ?? 1,
+            shiny: [D.myTeam.map(shinyWant), D.oppShiny ?? []],
             tune: W,
           }),
           (D.phase = "ready"),
@@ -40998,6 +41274,8 @@
           (e.rand = rt(D.seed)),
           rbStatic(xe),
           rbStatic(e.mons),
+          (e.stockN = D.lives ?? 1),
+          (e.shinyTeams = D.shiny ?? null),
           e.startMatch("vs", D.teams[0], D.teams[1], D.e > 1),
           (e.tick = 0);
         let R = (W) => ({
@@ -41303,6 +41581,8 @@
         (e.match.extraPreset = s.cpuPicks.slice(1).map((R) => [R]));
       A.gameMode === 3 && (e.match.extraPreset = teamExtras(s));
       let Ar = A.arena;
+      e.stockN = s.arcade || !livesMode() ? 1 : (A.lives ?? 1);
+      e.shinyTeams = [s.picks.map(shinyWant), []];
       s.arcade &&
         (A.arena = (s.arcade.arena0 + s.arcade.stage) % ARENAS.length);
       e.startMatch(
@@ -41446,6 +41726,24 @@
         n.pressed.has("select") &&
           !s.arcade &&
           ((A.arena = (A.arena + 1) % ARENAS.length), Ze(), S.ui(!0)),
+        // Shiny: L2 on a fighter you've unlocked it for.
+        n.pressed.has("assist") &&
+          shinyHave(ge[s.cursor]) &&
+          ((shinyStore.want = shinyWant(ge[s.cursor])
+            ? shinyStore.want.filter((W) => W !== ge[s.cursor])
+            : [...shinyStore.want, ge[s.cursor]]),
+          shinySave(),
+          shinyWant(ge[s.cursor]) ? (S.select(), S.cry(ge[s.cursor], 0.05)) : S.ui(!1)),
+        // Lives: 1, 3 or 5 each.
+        n.pressed.has("switch") &&
+          !s.arcade &&
+          livesMode() &&
+          ((A.lives =
+            LIVES.steps[
+              (LIVES.steps.indexOf(A.lives ?? 1) + 1) % LIVES.steps.length
+            ] ?? 1),
+          Ze(),
+          S.ui(!0)),
         // Free-for-All: three or four fighters.
         n.pressed.has("guard") &&
           A.gameMode === 2 &&
@@ -42215,6 +42513,9 @@
         case "pfReappear":
           P("warp", n.x, n.y - 12, 0.8, { tint: "#c8b0ff" });
           break;
+        case "lifeBack":
+          P("warp", n.x, n.y - 12, 1, { tint: "#ffe9a0" });
+          break;
         case "land":
         case "tech":
           red || P("landDust", w.x, w.y, 0.45);
@@ -42252,6 +42553,16 @@
           });
           break;
       }
+    }
+    // Stars bursting off a shiny Pokemon, with the twinkle.
+    function shinyBurst(w) {
+      S.shiny();
+      for (let R = 0; R < 3; R++)
+        t.pfx("sparkle3", w.x + (R - 1) * 10, w.y - 16 - (R % 2) * 10, 0.7 + 0.25 * R, {
+          delay: R * 7,
+          tint: "#fff4b0",
+        });
+      t.motes(w.x, w.y - 12, 10, 16, "#fff4b0", 1.2);
     }
     function Ne(n) {
       let D = e.player;
@@ -42742,6 +43053,30 @@
         case "orb":
           S.orb(), t.motes(n.x, n.y, 10, 8, L.cool);
           break;
+        case "lifeBack":
+          n.who.slot?.shiny && shinyBurst(n.who),
+          S.respawn(),
+            S.cry(n.who.kit.id, 0.12),
+            t.motes(n.x, n.y, 12, 22, L.gold, 1.6),
+            t.ring(n.x, n.y, 4, 2.4, 18, L.gold, !0),
+            t.ring(n.x, n.y, 8, 3.2, 26, "#ffffff", !0),
+            n.who === D
+              ? t.banner(
+                  "BACK IN!",
+                  L.gold,
+                  60,
+                  n.lives === 1 ? "last life" : `${n.lives} lives left`,
+                  void 0,
+                  { kit: n.who.kit.id, icon: "up", num: `${n.lives}` },
+                )
+              : t.popup(
+                  n.x,
+                  n.y - 26,
+                  n.lives === 1 ? "LAST LIFE" : `${n.lives} LIVES`,
+                  L.gold,
+                  !1,
+                );
+          break;
         case "respawn":
           S.respawn(),
             S.cry("wobbuffet", 0.15),
@@ -42752,6 +43087,7 @@
           S.wall(), t.dust(n.who.x, n.who.y, 10, 0, 0, 2), t.shake(0, 1, 3);
           break;
         case "switch":
+          n.who?.slot?.shiny && setTimeout(() => shinyBurst(n.who), 200);
           S.switchOut(),
             S.switchIn(),
             S.cry(n.to.id, 0.14),
@@ -42861,7 +43197,13 @@
               `${n.kit.name} FAINTED`,
               "#ef5a4f",
               60,
-              D.aliveSlot(1) !== null ? "your partner is coming in" : void 0,
+              D.aliveSlot(1) !== null
+                ? "your partner is coming in"
+                : D.lives > 1
+                  ? D.lives === 2
+                    ? "one life left"
+                    : `${D.lives - 1} lives left`
+                  : void 0,
               void 0,
               { kit: n.kit.id, icon: "x" },
             ),
@@ -42905,6 +43247,16 @@
             try {
               localStorage.setItem(ARC.key, JSON.stringify(Z));
             } catch {}
+            // A clear without a continue unlocks your team's shinies, and
+            // turns them on.
+            if (a.continues === 0) {
+              let W = s.picks.filter((R) => window.__SHINY__?.[R] && !shinyHave(R));
+              W.length &&
+                ((shinyStore.have = [...shinyStore.have, ...W]),
+                (shinyStore.want = [...shinyStore.want, ...W]),
+                shinySave(),
+                (a.final.shiny = W));
+            }
           }
           n.result === "win"
             ? buzz(0.4, 0.8, 0, [70, 60, 70, 60, 160])
@@ -42925,6 +43277,11 @@
             (s.resultsT = 0);
           break;
         case "roundStart":
+          // Shinies sparkle as they come in (after the first frame, so
+          // the camera is on them).
+          setTimeout(() => {
+            for (let R of e.players) R.slot?.shiny && shinyBurst(R);
+          }, 450);
           break;
         case "zoneWarn":
           t.ring(n.x, n.y, 4, 3, 30, L.gold, !0),
