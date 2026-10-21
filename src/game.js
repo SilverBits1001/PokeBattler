@@ -4831,20 +4831,15 @@
     LG_FFA = { groudon: 0.9, deoxys: 0.82 },
     // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
     MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.05, aegislash: 0.88 } },
-    // You're It!: Free-for-All tag. A Pokemon sticks to whoever is "it" and
-    // drains their HP, slowly at first and faster the longer they hold it.
+    // You're It!: Free-for-All tag. A Slugma sticks to whoever is "it" and
+    // burns their HP, slowly at first and faster the longer they hold it.
     // Only a melee hit from the fighter you control passes it on (no ranged
     // attacks, assists, legendaries or hazards), never straight back to the
     // one who passed it. Whoever is it is a little faster, and hits between
     // fighters do less damage so the drain is the real threat.
-    // [sprite, colour] for each sticker; one is picked per match.
+    // [sprite, colour] of the sticker.
     IT = {
-      mons: [
-        ["gastly", "#b48cff"],
-        ["litwick", "#c9a4ff"],
-        ["slugma", "#ff7a3c"],
-        ["zubat", "#7fb2ff"],
-      ],
+      mons: [["slugma", "#ff7a3c"]],
       first: 60,
       // % of max HP per second, rising by ramp each second held, to cap.
       drain: 1.6,

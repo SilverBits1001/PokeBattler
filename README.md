@@ -156,8 +156,7 @@ with 1.5x HP and its legendary half charged. Lose and you can Continue (retry
 the stage); your clear time, continues and best are kept on this device.
 
 **You're It!** (Party, or X on team select): Free-for-All tag for 3 or 4
-fighters. A Pokémon (Gastly, Litwick, Slugma or Zubat, one per match) sits on top
-of whoever is "it" and drains their HP: about 1.6% a second, rising the longer
+fighters. A Slugma sits on top of whoever is "it" and burns their HP: about 1.6% a second, rising the longer
 they hold it. Only a melee hit from the fighter you control passes it on; ranged
 attacks, assists, legendaries and hazards never do, though ranged shots still push
 the chaser back. No tag-backs for two seconds, a moment's grace for the new "it",
