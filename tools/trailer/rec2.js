@@ -336,8 +336,8 @@ const marks = [];
     async end() {
       marks.push(['end', N]);
       await ev(() => { window.__ui.screen = 'title'; });
+      // No web address on screen: the game isn't public yet.
       await card('POKÉMON POCKET BRAWL', '25 fighters · play free in your browser', 75);
-      await card('PLAY NOW', 'silverbits1001.github.io/PokeBattler', 90);
     },
   };
   // The CPU brain class, borrowed from a throwaway duel.

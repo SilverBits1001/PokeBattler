@@ -310,7 +310,7 @@ and your legendary's meter.
 
 ## Trailer
 
-An 82-second trailer is at
+A 79-second trailer (no web address on screen) is at
 **https://silverbits1001.github.io/PokeBattler/trailer.mp4** (the first cut is
 kept as `trailer-v1.mp4`). It is recorded from the game itself:
 `tools/trailer/rec2.js` drives an instrumented build on a virtual clock (30 fps,
