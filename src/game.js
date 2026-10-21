@@ -33432,24 +33432,36 @@
         });
     }
   }
-  // A stage's picture for the stage select: the painting itself, cropped
-  // to the arena floor and a little of the wall, at its own resolution
-  // (pixel-art paintings unsmoothed); the drawn arenas use their thumbnail.
-  function stagePic(c, x, y, w, h) {
-    let art = arenaArt(c),
-      sy = B.y0 - 30,
-      sh = B.y1 - sy;
-    if (art) {
-      let kx = art.width / Y,
-        ky = art.height / _;
-      (d.imageSmoothingEnabled = art.width >= Y * Ye),
+  // The stage select's pictures: each stage as it looks in a match, props,
+  // conveyors and lighting included (assets/stages.js, baked by
+  // tools/stage-previews.js), 1920x1080 for the whole 640x360 arena.
+  var STAGEPIC = {};
+  for (let [k, src] of Object.entries(window.__STAGES__ ?? {})) {
+    let im = new Image();
+    (im.src = src), (STAGEPIC[k] = im);
+  }
+  // A stage's picture in a w x h box, showing the part of the arena centred
+  // on (cx, cy) at zoom z (1: the floor and a little of the wall). Falls
+  // back to the painting or the drawn thumbnail before the preview loads.
+  function stagePic(c, x, y, w, h, cx = 320, cy = 200, z = 1) {
+    let pv = STAGEPIC[c],
+      im = pv && pv.complete && pv.naturalWidth ? pv : arenaArt(c),
+      vw = 580 / z,
+      vh = (vw * h) / w;
+    (cx = me(cx, vw / 2, Y - vw / 2)), (cy = me(cy, vh / 2, _ - vh / 2));
+    let sx = cx - vw / 2,
+      sy = cy - vh / 2;
+    if (im) {
+      let kx = im.width / Y,
+        ky = im.height / _;
+      (d.imageSmoothingEnabled = im === pv || im.width >= Y * Ye),
         (d.imageSmoothingQuality = "high"),
         d.drawImage(
-          art,
-          B.x0 * kx,
+          im,
+          sx * kx,
           sy * ky,
-          (B.x1 - B.x0) * kx,
-          sh * ky,
+          vw * kx,
+          vh * ky,
           m(x),
           m(y),
           m(w),
@@ -33458,17 +33470,7 @@
     } else
       arenaThumb(c),
         (d.imageSmoothingEnabled = !1),
-        d.drawImage(
-          arenaThumbs[c],
-          B.x0,
-          sy,
-          B.x1 - B.x0,
-          sh,
-          m(x),
-          m(y),
-          m(w),
-          m(h),
-        );
+        d.drawImage(arenaThumbs[c], sx, sy, vw, vh, m(x), m(y), m(w), m(h));
     d.imageSmoothingEnabled = !1;
   }
   // Stage select: every stage as a big picture in a 3x3 grid, Random last.
@@ -33532,8 +33534,36 @@
             align: "center",
             outline: 2.4,
           });
+      } else if (on) {
+        // Zoom in over a moment, then pan slowly between random spots.
+        let P = a.stagePan,
+          Z = 1.75,
+          pick = () => {
+            let vw = 580 / Z,
+              vh = (vw * th) / tw;
+            return [
+              vw / 2 + Math.random() * (Y - vw),
+              vh / 2 + Math.random() * (_ - vh),
+            ];
+          };
+        (!P || P.c !== c) &&
+          (P = a.stagePan = { c, at: t, t0: t, a: [320, 200], b: pick() });
+        let u = (t - P.t0) / 170;
+        u >= 1 && ((P.a = P.b), (P.b = pick()), (P.t0 = t), (u = 0));
+        let k = u * u * (3 - 2 * u),
+          zin = Ee(Math.min(1, (t - P.at) / 45));
+        stagePic(
+          c,
+          x,
+          y,
+          tw,
+          th,
+          P.a[0] + (P.b[0] - P.a[0]) * k,
+          P.a[1] + (P.b[1] - P.a[1]) * k,
+          1 + (Z - 1) * zin,
+        );
       } else
-        (d.globalAlpha = s * (on ? 1 : 0.72)),
+        (d.globalAlpha = s * 0.72),
           stagePic(c, x, y, tw, th),
           (d.globalAlpha = s);
       // Name band along the bottom.

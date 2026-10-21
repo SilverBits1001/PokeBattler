@@ -71,7 +71,9 @@ switched in Options → Match, or with X / Select on team select. Accessibility 
 Match flow: in Free-for-All, pick 3 or 4 fighters on team select (RT, O or tap
 Players); the CPU rivals are shown there before the match. After choosing your
 Pokémon and legendary comes the stage select: every stage as a big picture in a
-3x3 grid, with Random last (it remembers your pick; not in the Arcade, whose ladder
+3x3 grid, shown as it looks in a match (props, conveyors and lighting, baked by
+`tools/stage-previews.js` into `assets/stages.js`); the highlighted stage zooms in
+and pans slowly round its map. Random is last (it remembers your pick; not in the Arcade, whose ladder
 sets the stages, or online, which has its own arena roulette). Then a ready screen
 sums up the match and waits for Start (Back returns to the stage select). In Training that screen is a briefing for each of your
 Pokémon: every move with its typical damage and what it does, what each effect
