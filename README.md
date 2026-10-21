@@ -155,6 +155,16 @@ roster, Easy to Hard, on a different arena each stage. Stage six is a boss
 with 1.5x HP and its legendary half charged. Lose and you can Continue (retry
 the stage); your clear time, continues and best are kept on this device.
 
+**Pidgey Sweep** (main menu, or X on team select): a one-minute bonus game on
+the Stadium. Pidgey land in waves, faster as the clock runs down; any hit clears
+one (1 point). They hop away when you get close and fly off if left for about
+eight seconds. A Pidgeotto (5 points) takes three hits and Gusts you back. A shiny
+Pidgey is rare, leaves after a couple of seconds and is worth 10. Bronze, silver
+and gold medals at 25, 50 and 75 points; your best is kept on this device. In the
+Arcade it is the bonus round after the third fight: silver charges your legendary
+halfway for the next fight, gold fully. Pidgeotto's sprites come from SpriteCollab
+(`tools/addmon.py`), and the shiny Pidgey from `tools/shiny.py`.
+
 **Shinies**: clear the Arcade without a continue and your fighter's shiny
 unlocks (both of them in Tag Team) and switches on. On team select, an unlocked
 fighter's tile carries a sparkle; L2 (E) on it turns its shiny on or off. A

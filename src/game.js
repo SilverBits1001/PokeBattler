@@ -4822,6 +4822,28 @@
     LG_FFA = { groudon: 0.9, deoxys: 0.82 },
     // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
     MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.05, aegislash: 0.88 } },
+    // Pidgey Sweep, the bonus game: Pidgey land on the Stadium in waves and
+    // you have a minute to clear as many as you can. A Pidgey hops away from
+    // you and flies off if left too long; a Pidgeotto takes three hits and
+    // Gusts you back; a shiny Pidgey is rare, leaves fast and is worth most.
+    SWEEP = {
+      t: 3600,
+      pts: { pidgey: 1, pidgeotto: 5, shiny: 10 },
+      life: { pidgey: 480, pidgeotto: 600, shiny: 150 },
+      hits: { pidgey: 1, pidgeotto: 3, shiny: 1 },
+      size: { pidgey: 1.1, pidgeotto: 1.3, shiny: 1.1 },
+      land: 36,
+      landZ: 110,
+      // Gap between landings, from the start to the last seconds.
+      every: [78, 24],
+      max: 16,
+      shiny: 1 / 40,
+      otto: { from: 900, chance: 0.2, gust: [150, 220], r: 80, warn: 30 },
+      flee: 46,
+      // Bronze, silver, gold.
+      medals: [25, 50, 75],
+      key: "pocketbrawl-sweep-v1",
+    },
     // Taunts: T (R3 on a pad) with the stick picking the emote. The fighter
     // commits to it, so a taunt in a rival's face can be punished.
     // [name, animation (Idle if missing), glyph, colour]
@@ -4843,7 +4865,7 @@
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
     // Tag Team (6) runs the "vs" match with two Pokemon a side.
-    MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag"],
+    MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag", "sweep"],
     MODE_NAMES = [
       "VS CPU",
       "TRAINING",
@@ -4852,16 +4874,17 @@
       "ZONE CONTROL",
       "ONLINE",
       "TAG TEAM",
+      "PIDGEY SWEEP",
     ],
     // The order X steps through modes on team select.
-    MODE_ORDER = [0, 6, 1, 2, 3, 4, 5],
+    MODE_ORDER = [0, 6, 1, 2, 3, 4, 7, 5],
     // Standard is one Pokemon; Tag Team (and Tag Team online) is two.
     teamSize = () =>
       A.gameMode === 6 || (A.gameMode === 5 && A.onlineTag) ? 2 : 1,
     // Modes with CPU opponents picked on the team select screen.
-    cpuSide = () => A.gameMode !== 1 && A.gameMode !== 5,
+    cpuSide = () => A.gameMode !== 1 && A.gameMode !== 5 && A.gameMode !== 7,
     // Lives apply to every mode but Training and Zone Control.
-    livesMode = () => A.gameMode !== 1 && A.gameMode !== 4,
+    livesMode = () => A.gameMode !== 1 && A.gameMode !== 4 && A.gameMode !== 7,
     // How many fighters the CPU side rolls on team select: in Free-for-All
     // one per rival, otherwise a team like yours.
     cpuNeed = () =>
@@ -6234,7 +6257,10 @@
         return this.players[(this.localIdx ?? 0) === 1 ? 0 : 1] ?? null;
       }
       startMatch(e, t, s, i = !1) {
-        let r = this.match;
+        let r = this.match,
+          // Pidgey Sweep is always on the Stadium.
+          ar0 = A.arena;
+        e === "sweep" && (A.arena = 0);
         if (
           ((r.mode = e),
           (r.you = [...t]),
@@ -6503,6 +6529,8 @@
         } else (this.dummies = []), this.syncDummies();
         (this.zone = null), (this.zscore = [0, 0]);
         e === "zone" && this.placeZone(!0);
+        this.sweep = null;
+        e === "sweep" && this.sweepStart();
         // Lives (stock): set on team select; Training and Zone Control play
         // without them.
         let lv = e === "practice" || e === "zone" ? 1 : (this.stockN ?? 1);
@@ -6514,7 +6542,8 @@
         );
         // Everyone brings a legendary when they are on; Training starts full.
         for (let o of this.players)
-          (o.legend = A.legends
+          (o.legend =
+            A.legends && e !== "sweep"
             ? ((o === this.players[0]
                 ? this.match.youLegend
                 : this.match.cpuLegends?.[o.cpuIndex ?? 0]) ?? "zekrom")
@@ -6523,6 +6552,7 @@
         // The first round's READY, SET, GO runs with the battle song: GO lands
         // on the frame its main theme comes in (INTRO_GO). Later rounds, and
         // Training, take the short count.
+        A.arena = ar0;
         (this.introLen = this.intro =
           r.round === 1 && e !== "practice" ? INTRO_GO + 20 : 70),
           (this.goTick = null),
@@ -6531,6 +6561,233 @@
             round: r.round,
             cpuKit: (this.cpu ?? this.players[0]).kit,
           });
+      }
+      // ---- Pidgey Sweep ----
+      sweepStart() {
+        (this.sweep = {
+          left: SWEEP.t,
+          score: 0,
+          n: { pidgey: 0, pidgeotto: 0, shiny: 0 },
+          missed: 0,
+          spawnT: 50,
+          otto: 0,
+        }),
+          (this.dummies = []),
+          (this.itemT = 1e9);
+      }
+      sweepTick() {
+        let w = this.sweep,
+          m = this.match;
+        this.dummies = this.dummies.filter((b) => !b.gone);
+        let p = this.players[0];
+        p.lock?.gone && (p.lock = null);
+        if (m.phase !== "fight" || this.intro > 0) return;
+        if (w.left === SWEEP.t) this.emit({ type: "sweepGo" });
+        if (--w.left <= 0) {
+          for (let b of this.dummies)
+            b.state !== "ko" && ((b.state = "leave"), (b.t = 0));
+          this.endRound("win");
+          return;
+        }
+        w.left % 60 === 0 &&
+          w.left <= 600 &&
+          this.emit({ type: "sweepTick", left: w.left / 60 });
+        if (--w.spawnT > 0) return;
+        let k = 1 - w.left / SWEEP.t,
+          [e0, e1] = SWEEP.every;
+        w.spawnT = Math.round(e0 + (e1 - e0) * k + this.rand() * 14);
+        // A small wave: more birds at a time as the clock runs down.
+        let n = 1 + (this.rand() < k * 0.9 ? 1 : 0) + (this.rand() < k * 0.45 ? 1 : 0);
+        for (let i = 0; i < n && this.dummies.length < SWEEP.max; i++) {
+          let o = SWEEP.otto,
+            kind =
+              SWEEP.t - w.left > o.from &&
+              !this.dummies.some((b) => b.bird === "pidgeotto") &&
+              this.rand() < o.chance
+                ? "pidgeotto"
+                : this.rand() < SWEEP.shiny
+                  ? "shiny"
+                  : "pidgey";
+          this.spawnBird(kind);
+        }
+      }
+      // Lands somewhere clear of the fighter and the other birds.
+      spawnBird(kind) {
+        let p = this.players[0],
+          x = Se,
+          y = Te;
+        for (let i = 0; i < 20; i++) {
+          (x = B.x0 + 24 + this.rand() * (B.x1 - B.x0 - 48)),
+            (y = B.y0 + 30 + this.rand() * (B.y1 - B.y0 - 50));
+          if (
+            Math.hypot(x - p.x, y - p.y) > 70 &&
+            !this.dummies.some((b) => Math.hypot(b.x - x, b.y - y) < 24) &&
+            !this.rocks.some((r) => Math.hypot(r.x - x, r.y - y) < r.r + 12)
+          )
+            break;
+        }
+        let b = new Et(
+          this.mons[kind === "pidgeotto" ? "pidgeotto" : "pidgey"],
+          x,
+          y,
+          this.nextId++,
+        );
+        Object.assign(b, {
+          bird: kind,
+          shinyBird: kind === "shiny",
+          team: Oa,
+          hp: SWEEP.hits[kind],
+          maxHp: SWEEP.hits[kind],
+          life: SWEEP.life[kind],
+          size: SWEEP.size[kind],
+          r: kind === "pidgeotto" ? 8 : 6,
+          hurtR: kind === "pidgeotto" ? 12 : 10,
+          state: "spawn",
+          t: 0,
+          z: SWEEP.landZ,
+          pz: SWEEP.landZ,
+          facing: x < Se ? 0 : Math.PI,
+          wanderT: 30,
+          hopT: 0,
+          mvx: 0,
+          mvy: 0,
+          gustT: SWEEP.otto.gust[0],
+          animName: "FlapAround",
+        });
+        this.dummies.push(b),
+          this.emit({ type: "birdIn", who: b, kind, x, y });
+      }
+      updateBird(b) {
+        if (b.hitstop > 0) {
+          b.hitstop--;
+          return;
+        }
+        b.t++;
+        let p = this.players[0],
+          dx = b.x - p.x,
+          dy = b.y - p.y,
+          dd = Math.hypot(dx, dy) || 1,
+          flap = () => ((b.animName = "FlapAround"), (b.animFrame = ((b.t / 5) | 0) % 2));
+        // Knocked about by hits that didn't clear it (Pidgeotto).
+        (b.x += b.kvx), (b.y += b.kvy), (b.kvx *= 0.8), (b.kvy *= 0.8);
+        switch (b.state) {
+          case "spawn":
+            flap(),
+              (b.z = Math.max(0, SWEEP.landZ * (1 - b.t / SWEEP.land) ** 1.4)),
+              b.t >= SWEEP.land &&
+                ((b.state = "idle"),
+                (b.t = 0),
+                (b.z = 0),
+                this.emit({ type: "birdLand", who: b, x: b.x, y: b.y }));
+            break;
+          case "gust":
+            (b.facing = Math.atan2(-dy, -dx)),
+              (b.animName = "Shoot"),
+              (b.animFrame = Math.min(6, (b.t / 5) | 0)),
+              b.t === SWEEP.otto.warn &&
+                (this.emit({ type: "gust", who: b, x: b.x, y: b.y }),
+                dd < SWEEP.otto.r + 14 &&
+                  p.state !== "faint" &&
+                  this.applyHit(
+                    p,
+                    b,
+                    2,
+                    5.5,
+                    -dx / dd,
+                    -dy / dd,
+                    !1,
+                    4,
+                    14,
+                    "#dfe9ff",
+                    p.x,
+                    p.y,
+                    !1,
+                    !1,
+                    "pidgeotto:gust",
+                  )),
+              b.t >= SWEEP.otto.warn + 18 &&
+                ((b.state = "idle"),
+                (b.t = 0),
+                (b.gustT =
+                  SWEEP.otto.gust[0] +
+                  this.rand() * (SWEEP.otto.gust[1] - SWEEP.otto.gust[0])));
+            break;
+          case "hurt":
+          case "idle":
+          case "walk":
+            if (--b.life <= 0) {
+              (b.state = "leave"),
+                (b.t = 0),
+                this.sweep && (this.sweep.missed++,
+                this.emit({ type: "birdAway", who: b, kind: b.bird, x: b.x, y: b.y }));
+              break;
+            }
+            if (b.state === "hurt") {
+              b.t >= b.hitstun && ((b.state = "idle"), (b.t = 0));
+              (b.animName = "Hurt"), (b.animFrame = -1);
+              break;
+            }
+            // A Pidgeotto stands its ground and Gusts you away.
+            if (
+              b.bird === "pidgeotto" &&
+              --b.gustT <= 0 &&
+              dd < SWEEP.otto.r &&
+              p.state !== "faint"
+            ) {
+              (b.state = "gust"),
+                (b.t = 0),
+                this.emit({ type: "gustWarn", who: b, x: b.x, y: b.y });
+              break;
+            }
+            if (b.bird !== "pidgeotto" && dd < SWEEP.flee && p.state !== "faint") {
+              // Hop away from you.
+              let a = Math.atan2(dy, dx) + (this.rand() - 0.5) * 0.8,
+                v = b.bird === "shiny" ? 1.9 : 1.5;
+              (b.mvx = Math.cos(a) * v), (b.mvy = Math.sin(a) * v), (b.hopT = 12);
+            } else if (--b.wanderT <= 0) {
+              let a = this.rand() * Math.PI * 2;
+              (b.mvx = Math.cos(a) * 0.55),
+                (b.mvy = Math.sin(a) * 0.55),
+                (b.hopT = 18 + ((this.rand() * 24) | 0)),
+                (b.wanderT = 60 + ((this.rand() * 90) | 0));
+            }
+            if (b.hopT > 0) {
+              b.hopT--,
+                (b.x += b.mvx),
+                (b.y += b.mvy),
+                (b.facing = Math.atan2(b.mvy, b.mvx)),
+                (b.state = "walk"),
+                (b.animName = "Walk"),
+                (b.animFrame = -1);
+              // Wings out on a hop.
+              b.z = b.mvx * b.mvx + b.mvy * b.mvy > 1 ? Math.sin((b.hopT / 12) * Math.PI) * 5 : 0;
+            } else (b.state = "idle"), (b.animName = "Idle"), (b.animFrame = -1), (b.z = 0);
+            (b.x = me(b.x, B.x0 + 12, B.x1 - 12)), (b.y = me(b.y, B.y0 + 20, B.y1 - 10));
+            break;
+          case "leave":
+            flap(),
+              (b.z += 2.4),
+              (b.x += (b.x < Se ? -1 : 1) * 1.4),
+              (b.facing = b.x < Se ? Math.PI : 0),
+              (b.alpha = Math.max(0, 1 - b.t / 50)),
+              b.t >= 50 && (b.gone = !0);
+            break;
+          case "ko":
+            flap(),
+              (b.z += 2.2),
+              (b.alpha = Math.max(0, 1 - b.t / 34)),
+              b.t >= 34 && (b.gone = !0);
+            break;
+        }
+      }
+      birdCleared(b, by) {
+        let w = this.sweep;
+        if (!w || b.cleared) return;
+        b.cleared = !0;
+        let k = SWEEP.pts[b.bird] ?? 1;
+        (w.score += k),
+          w.n[b.bird]++,
+          this.emit({ type: "birdClear", who: b, kind: b.bird, pts: k, x: b.x, y: b.y });
       }
       // Picks a fresh hill spot away from hazards, cover and the last one.
       placeZone(e) {
@@ -6729,6 +6986,7 @@
       updateMatch() {
         let e = this.match;
         this.updateZone();
+        this.sweep && this.sweepTick();
         e.mode === "practice" ||
           e.phase !== "end" ||
           (--e.endT <= 0 && (e.phase = "results"));
@@ -11154,6 +11412,7 @@
           e.t >= 60 && (e.done = !0);
       }
       updateDummy(e) {
+        if (e.bird) return this.updateBird(e);
         e.lockT > 0 && e.lockT--;
         let t = this.players[0];
         if (e.hitstop > 0) {
@@ -13399,7 +13658,12 @@
         this.emit({ type: "burned", who: e });
       }
       canBeHit(e) {
-        return !e.hidden && e.state !== "ko" && e.state !== "spawn";
+        return (
+          !e.hidden &&
+          e.state !== "ko" &&
+          e.state !== "spawn" &&
+          e.state !== "leave"
+        );
       }
       attackerType(e) {
         return e && (e.kind === "player" || e.kind === "assist")
@@ -17301,8 +17565,9 @@
             (w.combo = v),
             (w.comboDmg = v === 1 ? K : w.comboDmg + K),
             (w.bestCombo = Math.max(w.bestCombo, v)),
-            (w.hp -= K),
+            (w.hp -= w.bird ? 1 : K),
             w.hp <= 0 && ((w.hp = 0), (x = !0), (w.seededT = 0)),
+            x && w.bird && this.birdCleared(w, t),
             (w.state = x ? "ko" : "hurt"),
             (w.t = 0),
             (w.hitstun = u);
@@ -17499,7 +17764,7 @@
               analytic: an,
             });
         }
-        x && this.slow(28, 0.25),
+        x && !e.bird && this.slow(28, 0.25),
           t &&
             t.team === mt &&
             !p &&
@@ -17512,8 +17777,8 @@
             y,
             dx: r,
             dy: o,
-            heavy: l || x,
-            ko: x,
+            heavy: l || (x && !e.bird),
+            ko: x && !e.bird,
             dmg: K,
             victim: e,
             attacker: t,
@@ -23752,11 +24017,13 @@
   }
   // Drawn scale for a body: its Pokémon's true size relative to Charizard.
   function Bz(a) {
-    return a.kind === "dummy" ? 0.93 : (a.disgSize ?? a.kit?.size ?? 1);
+    return a.kind === "dummy" ? (a.size ?? 0.93) : (a.disgSize ?? a.kit?.size ?? 1);
   }
   // The sprite set a body is drawn with: shiny when its Pokemon is.
   function skinOf(a) {
-    return a.kind === "player" && a.slot?.shiny ? shinyMon(a.mon) : a.mon;
+    return (a.kind === "player" && a.slot?.shiny) || a.shinyBird
+      ? shinyMon(a.mon)
+      : a.mon;
   }
   function Ht(a) {
     let m = a.disg ?? skinOf(a);
@@ -30268,7 +30535,9 @@
   // Arcade results: what the buttons offer after each fight.
   function arcOpts(ui, match) {
     let a = ui.arcade;
-    return match.result !== "win"
+    return match.mode === "sweep"
+      ? ["Next fight", "Quit"]
+      : match.result !== "win"
       ? ["Continue", "Quit"]
       : a.stage >= ARC.stages - 1
         ? ["Play again", "Quit"]
@@ -30895,6 +31164,8 @@
       }
       for (let c of e.dummies) {
         if (c.hidden || c.state === "ko" || c.state === "spawn") continue;
+        // Birds: only a Pidgeotto shows how many hits it has left.
+        if (c.bird && (c.bird !== "pidgeotto" || c.state === "leave")) continue;
         let y = f(h(c.px, c.x)),
           b = u(h(c.py, c.y) - 36);
         ot(y - 11, b, 22, c.hp / c.maxHp, c.hp / c.maxHp, 2.6, !1);
@@ -31117,6 +31388,158 @@
   }
   var Pt = 204,
     ka = 46;
+  // Pidgey Sweep: the countdown, the score and the medal marks.
+  function sweepMedal(n) {
+    return n >= SWEEP.medals[2] ? 3 : n >= SWEEP.medals[1] ? 2 : n >= SWEEP.medals[0] ? 1 : 0;
+  }
+  var MEDAL = [
+    ["", "#8a84a8"],
+    ["BRONZE", "#d08a4a"],
+    ["SILVER", "#d8dff0"],
+    ["GOLD", "#ffd23f"],
+  ];
+  function sweepHud(a, e) {
+    let w = a.sweep,
+      t = H / 2,
+      secs = Math.ceil(w.left / 60),
+      hurry = secs <= 10 && a.match.phase === "fight",
+      pulse = hurry ? 1 + 0.12 * Math.max(0, Math.sin(((w.left % 60) / 60) * Math.PI)) : 1;
+    d.save(),
+      (d.fillStyle = "rgba(6,4,10,0.86)"),
+      d.beginPath(),
+      d.moveTo(m(t - 46), m(3)),
+      d.lineTo(m(t + 46), m(3)),
+      d.lineTo(m(t + 40), m(40)),
+      d.lineTo(m(t - 40), m(40)),
+      d.closePath(),
+      d.fill(),
+      (d.strokeStyle = "rgba(255,214,140,0.55)"),
+      (d.lineWidth = m(0.7)),
+      d.stroke(),
+      d.restore(),
+      V(Pa(Math.max(0, w.left)), t - 18, 25 + (pulse - 1) * 4, 17 * pulse, hurry ? "#ff6a5a" : "#fff1d6", {
+        align: "center",
+        outline: 2.6,
+        outlineColor: "#3a0d08",
+      }),
+      G("TIME", t - 18, 34, 4.8, "#ffcf7a", { align: "center", weight: 700 });
+    let bump = Math.max(0, (e.sweepBump ?? 0) - 1);
+    e.sweepBump = bump;
+    V(`${w.score}`, t + 21, 25 + bump * 0.15, 17 + bump * 0.6, g.gold, {
+      align: "center",
+      outline: 2.6,
+      outlineColor: "#3a0d08",
+    }),
+      G("SCORE", t + 21, 34, 4.8, "#ffcf7a", { align: "center", weight: 700 });
+    // The medal line under the box: where bronze, silver and gold sit.
+    let x0 = t - 38,
+      W = 76,
+      top = SWEEP.medals[2] * 1.15,
+      f = Math.min(1, w.score / top);
+    te(x0, 43, W, 3, "rgba(6,4,10,0.8)", 1.5), te(x0, 43, W * f, 3, g.gold, 1.5);
+    SWEEP.medals.forEach((n, i) => {
+      let x = x0 + (W * n) / top,
+        got = w.score >= n;
+      d.save(),
+        (d.fillStyle = got ? MEDAL[i + 1][1] : "#3a3550"),
+        (d.strokeStyle = "#1b1428"),
+        (d.lineWidth = m(0.8)),
+        d.beginPath(),
+        d.arc(m(x), m(44.5), m(got ? 4 : 3.2), 0, Math.PI * 2),
+        d.fill(),
+        d.stroke(),
+        d.restore();
+    });
+  }
+  // Pidgey Sweep's results: what you cleared, the score, the medal, best.
+  function sweepPanel(a, e, s, t) {
+    let w = a.sweep;
+    if (!w) return;
+    let $ = 252,
+      y0 = 18,
+      U = 220,
+      se = Ee((s - 18) / 14);
+    if (se <= 0) return;
+    let res = e.sweepRes ?? {},
+      md = sweepMedal(w.score);
+    d.save(),
+      (d.globalAlpha = se),
+      d.translate(m((1 - se) * 70), 0),
+      Ae($, y0, U, 196, MEDAL[md][1], { edge: "right", sk: 16 }),
+      V(e.arcade ? "BONUS ROUND" : "PIDGEY SWEEP", $ + 22, y0 + 22, 13, g.chalk, { skew: !0 });
+    let rows = [
+      ["pidgey", "Pidgey", w.n.pidgey, SWEEP.pts.pidgey, !1],
+      ["pidgeotto", "Pidgeotto", w.n.pidgeotto, SWEEP.pts.pidgeotto, !1],
+      ["pidgey", "Shiny Pidgey", w.n.shiny, SWEEP.pts.shiny, !0],
+    ];
+    rows.forEach(([id, name, n, pts, sh], i) => {
+      let k = Ee((s - 26 - i * 4) / 10);
+      if (k <= 0) return;
+      let y = y0 + 44 + i * 22,
+        x = $ + 16 - i * 3;
+      d.save(),
+        (d.globalAlpha = se * k),
+        te(x - 4, y - 10, U - 26, 19, i % 2 ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.06)", 3);
+      let M = sh ? shinyMon(t[id]) : t[id];
+      M && Oe(M, "Normal", x, y - 9, 17, { bg: sh ? "#ffe9a0" : "#8fb3e0", slash: !0 });
+      G(name, x + 22, y + 2, 7.2, sh ? "#ffe9a0" : "#d9d4f2", { weight: 700 }),
+        G(`\xD7${pts}`, x + 96, y + 2, 6.2, g.haze, { weight: 700 });
+      let it = Math.min(1, Math.max(0, (s - 30 - i * 4) / 20));
+      V(`${Math.round(n * it)}`, x + 140, y + 4, 12, g.chalk, { align: "center" }),
+        V(`${Math.round(n * pts * it)}`, x + 182, y + 4, 12, g.gold, { align: "center" }),
+        d.restore();
+    });
+    let k2 = Ee((s - 44) / 12);
+    if (k2 > 0) {
+      d.save(), (d.globalAlpha = se * k2);
+      let y = y0 + 124;
+      (d.fillStyle = "rgba(255,255,255,0.18)"),
+        d.fillRect(m($ + 14), m(y - 12), m(U - 30), m(0.8)),
+        G("SCORE", $ + 16, y + 4, 8, g.haze, { weight: 700 }),
+        V(`${w.score}`, $ + 158, y + 8, 22, g.gold, { align: "center", outline: 2.4 }),
+        G(`${w.missed} flew off`, $ + 16, y + 14, 5.6, g.haze, { italic: !0 });
+      // The medal.
+      let mx = $ + 60,
+        my = y + 40;
+      md &&
+        (d.save(),
+        (d.fillStyle = MEDAL[md][1]),
+        (d.strokeStyle = "#1b1428"),
+        (d.lineWidth = m(1.4)),
+        d.beginPath(),
+        d.arc(m(mx), m(my), m(12 + 1.5 * Math.sin(s * 0.12)), 0, Math.PI * 2),
+        d.fill(),
+        d.stroke(),
+        cueGlyph(d, "star", m(mx), m(my), m(6.5), "#ffffff"),
+        d.restore());
+      V(md ? `${MEDAL[md][0]} MEDAL` : "NO MEDAL", mx + 20, my + 3, 11, md ? MEDAL[md][1] : g.haze, { skew: !0 });
+      let next = SWEEP.medals.find((n) => n > w.score);
+      G(
+        res.newBest
+          ? "NEW BEST!"
+          : `Best ${res.best ?? w.score}` + (next ? ` \xB7 ${next} for ${MEDAL[sweepMedal(next)][0].toLowerCase()}` : ""),
+        mx + 20,
+        my + 12,
+        6,
+        res.newBest ? g.gold : g.chalk,
+        { weight: 700 },
+      );
+      e.arcade &&
+        A.legends &&
+        G(
+          md >= 2
+            ? `Next fight: your legendary starts ${md === 3 ? "charged" : "half charged"}`
+            : "Silver or gold charges your legendary for the next fight",
+          $ + 16,
+          y0 + 190,
+          5.4,
+          md >= 2 ? g.gold : g.haze,
+          { italic: !0, weight: 600 },
+        );
+      d.restore();
+    }
+    d.restore();
+  }
   // The round timer between the two bars, with the series score below.
   function hudTimer(a, e) {
     let t = H / 2;
@@ -31480,7 +31903,8 @@
         l = H / 2 - o / 2,
         f = 5;
       hudTimer(r, e.frame);
-    } else {
+    } else if (a.sweep) sweepHud(a, e);
+    else {
       let o = H - 5 - 140;
       Ae(o, 5, 140, 38, g.gold, { edge: "right" }),
         V("Training", o + 14, 20, 13, g.chalk),
@@ -34646,6 +35070,24 @@
           d.beginPath(),
           d.arc(m(M), m(P), m(3.2), 0, Math.PI * 2),
           d.fill();
+      } else if (A.gameMode === 7) {
+        V("Pidgey Sweep", u + 20, 54, 15, g.chalk),
+          G("Pidgey land on the Stadium. Clear", u + 20, 66, 6.4, g.haze),
+          G("as many as you can in 60 seconds.", u + 20, 74, 6.4, g.haze),
+          G(`Pidgeotto ${SWEEP.pts.pidgeotto} \xB7 rare shiny ${SWEEP.pts.shiny}`, u + 20, 82, 6.4, g.gold, { weight: 700 });
+        let M = e.pidgey,
+          P = M.anims.FlapAround;
+        P &&
+          et(
+            d,
+            P,
+            ((t / 5) | 0) % 2,
+            2,
+            m(u + 75),
+            m(150 + Math.sin(t * 0.06) * 6),
+            3 * Fe,
+            M.ground,
+          );
       } else {
         V("Training", u + 20, 54, 15, g.chalk),
           G("Wobbuffet dummies take your hits", u + 20, 66, 6.4, g.haze),
@@ -34664,7 +35106,9 @@
             ? "Tag Team: pick two. Your first pick leads."
             : A.gameMode === 2
               ? `Free-for-All: you and ${cpuNeed()} CPU rivals. RT or tap Players to change.`
-              : "Pick your Pok\u00e9mon. X for Tag Team.",
+              : A.gameMode === 7
+                ? "Pidgey Sweep: pick who goes bird-clearing."
+                : "Pick your Pok\u00e9mon. X for Tag Team.",
         13,
         29.5,
         5.8,
@@ -34804,7 +35248,7 @@
         weight: 700,
       }),
       V(
-        (ARENAS[A.arena]?.name ?? "Stadium").toUpperCase(),
+        (A.gameMode === 7 ? "Stadium" : (ARENAS[A.arena]?.name ?? "Stadium")).toUpperCase(),
         h,
         c + 6.4,
         7.6,
@@ -34845,7 +35289,7 @@
           ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
           [
             "X",
-            `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team"][A.gameMode] ?? "VS CPU")}`,
+            `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team", "Pidgey Sweep"][A.gameMode] ?? "VS CPU")}`,
             "#cfcaea",
           ],
           ...(s
@@ -34859,7 +35303,7 @@
                   ],
                 ]
               : []),
-          ["SELECT", "Arena", y],
+          ...(A.gameMode === 7 ? [] : [["SELECT", "Arena", y]]),
           ...(shinyHave(ge[a.cursor])
             ? [["L2", shinyWant(ge[a.cursor]) ? "Shiny: On" : "Shiny: Off", shinyWant(ge[a.cursor]) ? g.gold : "#cfcaea"]]
             : []),
@@ -35114,7 +35558,11 @@
       te(-10, 14, 236, 44, "rgba(8,6,18,0.7)", 10),
       (d.fillStyle = b),
       d.fillRect(0, m(56), m(230 * K), m(1.6)),
-      (Ka2T = o
+      (Ka2T = r.mode === "sweep"
+        ? MEDAL[sweepMedal(a.sweep?.score ?? 0)][0]
+          ? `${MEDAL[sweepMedal(a.sweep?.score ?? 0)][0][0]}${MEDAL[sweepMedal(a.sweep?.score ?? 0)][0].slice(1).toLowerCase()} medal!`
+          : "Time's up!"
+        : o
         ? r.mode === "team"
           ? "Team wins!"
           : "You win!"
@@ -35138,7 +35586,9 @@
         },
       ),
       G(
-        r.mode === "zone" && a.zscore && Math.max(...a.zscore) >= ZONE.goal
+        r.mode === "sweep"
+          ? `${_a(c.name)} swept the Stadium`
+          : r.mode === "zone" && a.zscore && Math.max(...a.zscore) >= ZONE.goal
           ? `${o ? "You" : "The CPU"} held the zone`
           : `${_a(c.name)} took the final KO`,
         17,
@@ -35152,6 +35602,8 @@
       ),
       d.restore(),
       d.restore();
+    if (r.mode === "sweep") sweepPanel(a, e, s, t);
+    else {
     let $ = 252,
       w = 18,
       U = 220,
@@ -35259,6 +35711,7 @@
         { align: "right", italic: !0 },
       ),
       d.restore();
+    }
     // Arcade cleared: the run's time, continues and best.
     if (e.arcade?.final && o) {
       let q = e.arcade,
@@ -35335,7 +35788,9 @@
         ? ["Rematch", "New team", "Leave"]
         : e.arcade
           ? arcOpts(e, r)
-          : qa
+          : r.mode === "sweep"
+            ? ["Play again", "New fighter", "Quit to title"]
+            : qa
       ).forEach((q, le) => {
         let ve = 214 + le * 80 - (1 - Le) * 20,
           Ce = 228,
@@ -38685,7 +39140,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 28,
+  var NETV = 29,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -40463,6 +40918,13 @@
       color: "#4df08a",
     },
     {
+      id: "sweep",
+      label: "Pidgey Sweep",
+      desc: "Bonus game: clear the Stadium of Pidgey in 60 seconds. Shiny Pidgey are rare and worth the most.",
+      mon: "pidgeotto",
+      color: "#ffd166",
+    },
+    {
       id: "training",
       label: "Training",
       desc: "Practise on Wobbuffet dummies with no timer.",
@@ -40527,6 +40989,13 @@
         d.beginPath(),
           d.arc(m(e + o * s), m(t + l * s), m(0.24 * s), 0, Math.PI * 2),
           d.fill();
+    else if (a === "sweep")
+      // A bird in flight.
+      d.beginPath(),
+        d.moveTo(m(e - 0.75 * s), m(t - 0.1 * s)),
+        d.quadraticCurveTo(m(e - 0.35 * s), m(t - 0.6 * s), m(e), m(t + 0.15 * s)),
+        d.quadraticCurveTo(m(e + 0.35 * s), m(t - 0.6 * s), m(e + 0.75 * s), m(t - 0.1 * s)),
+        d.stroke();
     else if (a === "training") {
       for (let o of [0.62, 0.32])
         d.beginPath(), d.arc(m(e), m(t), m(o * s), 0, Math.PI * 2), d.stroke();
@@ -40669,7 +41138,7 @@
     MENU.forEach((p, M) => {
       let P = M === (a.menuIndex ?? 0),
         C = Ee((a.menuT - 4 - M * 2) / 12),
-        x = 60 + M * 31 + (M > (a.menuIndex ?? 0) ? 6 : 0),
+        x = 56 + M * 26.5 + (M > (a.menuIndex ?? 0) ? 6 : 0),
         v = 30 + M * 5 + (1 - C) * -60,
         E = P ? 26 : 20,
         Q = P ? 196 : 150;
@@ -41238,7 +41707,9 @@
               ? 5
               : R === "training"
                 ? 1
-                : PARTY[s.partyIndex ?? 0][0]),
+                : R === "sweep"
+                  ? 7
+                  : PARTY[s.partyIndex ?? 0][0]),
         Ze(),
         x(!1);
     }
@@ -41726,6 +42197,7 @@
         (e.match.extraPreset = s.cpuPicks.slice(1).map((R) => [R]));
       A.gameMode === 3 && (e.match.extraPreset = teamExtras(s));
       let Ar = A.arena;
+      A.gameMode === 7 && (A.arena = 0);
       e.stockN = s.arcade || !livesMode() ? 1 : (A.lives ?? 1);
       e.shinyTeams = [s.picks.map(shinyWant), []];
       s.arcade &&
@@ -41766,6 +42238,11 @@
         c = e.cpu;
       if (!c) return;
       c.brain && (c.brain.level = ARC.levels[a.stage]);
+      // A silver or gold bonus round charges your legendary for fight 4.
+      a.stage === 3 &&
+        (a.bonusMedal ?? 0) >= 2 &&
+        e.player.legend &&
+        (e.player.lgMeter = a.bonusMedal === 3 ? 100 : 50);
       if (a.stage === ARC.stages - 1) {
         let o = c.slot;
         (c.boss = !0),
@@ -41774,10 +42251,37 @@
           c.legend && (c.lgMeter = ARC.bossMeter);
       }
     }
+    // The bonus round: Pidgey Sweep on the Stadium, between fights 3 and 4.
+    function arcBonus() {
+      let a = s.arcade,
+        Ar = A.arena;
+      (a.bonusDone = !0),
+        (a.inBonus = !0),
+        (A.arena = 0),
+        (e.stockN = 1),
+        (e.shinyTeams = [s.picks.map(shinyWant), []]),
+        e.startMatch("sweep", s.picks, []),
+        (A.arena = Ar),
+        (s.screen = "play"),
+        (s.paused = !1),
+        (s.flash = 10),
+        (s.cards = []),
+        (s.trail = {}),
+        (s.hintT = 0),
+        (s.resultIndex = 0),
+        (k = !0),
+        Me.play(battleSong());
+    }
     function arcPick(n) {
-      let a = s.arcade;
-      (a.time += e.match.ticks ?? 0),
-        n === "Quit"
+      let a = s.arcade,
+        bonus = e.match.mode === "sweep";
+      // The bonus round's minute isn't part of the clear time.
+      bonus
+        ? ((a.bonusMedal = sweepMedal(e.sweep?.score ?? 0)), (a.inBonus = !1))
+        : (a.time += e.match.ticks ?? 0);
+      if (n === "Next fight" && !bonus && a.stage === 2 && !a.bonusDone)
+        return arcBonus();
+      n === "Quit"
           ? ((s.arcade = null), toMenu())
           : n === "Continue"
             ? (a.continues++, E())
@@ -41786,6 +42290,8 @@
                   (a.continues = 0),
                   (a.time = 0),
                   (a.rivals = null),
+                  (a.bonusDone = !1),
+                  (a.bonusMedal = 0),
                   (a.saved = !1))
                 : a.stage++,
               (s.screen = "select"),
@@ -41906,7 +42412,7 @@
         s.roulette <= 0 &&
         (s.readyCue > 64 || (s.readyCue > 14 && n.pressed.has("confirm")))
       )
-        return lgOpen();
+        return A.gameMode === 7 ? E() : lgOpen();
       if (n.pressed.has("confirm")) {
         // The last tile picks a random Pokémon you haven't picked yet.
         let W =
@@ -43213,6 +43719,47 @@
             k === 0 && t.ring(w.x, w.y - 10, 4, 2, 14, "#ffcf3a", !0);
           break;
         }
+        case "sweepGo":
+          t.banner("PIDGEY SWEEP", "#ffd166", 90, "clear as many as you can!", void 0, {
+            icon: "star",
+          });
+          break;
+        case "sweepTick":
+          n.left <= 5 ? S.cdReady() : S.ui(!0);
+          break;
+        case "birdIn":
+          n.kind === "shiny" &&
+            (S.shiny(),
+            t.popup(n.x, n.y - 40, "SHINY!", "#ffe9a0", !1));
+          break;
+        case "birdLand":
+          t.motes(n.x, n.y, 4, 6, "#e9dcc0", 0.5),
+            n.who.bird === "shiny" && shinyBurst(n.who);
+          break;
+        case "birdClear": {
+          let C = n.kind === "shiny" ? "#ffe9a0" : n.kind === "pidgeotto" ? "#ffb35c" : "#ffffff";
+          (s.sweepBump = 12),
+            t.popup(n.x, n.y - 26, `+${n.pts}`, C, n.pts > 1),
+            t.motes(n.x, n.y - 10, 10, n.pts > 1 ? 18 : 9, "#f2e2c0", 1.1),
+            t.motes(n.x, n.y - 10, 8, 6, "#a87850", 0.9),
+            n.kind === "shiny"
+              ? (S.shiny(), t.ring(n.x, n.y - 10, 6, 3, 22, "#ffe9a0", !0))
+              : n.kind === "pidgeotto" && (S.callout(1), t.ring(n.x, n.y - 10, 6, 2.6, 18, C, !0));
+          break;
+        }
+        case "birdAway":
+          n.kind === "shiny"
+            ? t.popup(n.x, n.y - 30, "it got away!", "#ffe9a0", !1)
+            : t.motes(n.x, n.y - 8, 4, 5, "#e9dcc0", 0.5);
+          break;
+        case "gustWarn":
+          S.charge(), t.ring(n.x, n.y - 8, 6, 1.6, 30, "#dfe9ff", !0);
+          break;
+        case "gust":
+          S.dodge?.(),
+            t.ring(n.x, n.y - 8, 10, 4.5, 20, "#dfe9ff", !0),
+            t.motes(n.x, n.y - 8, 14, 22, "#dfe9ff", 2.2);
+          break;
         case "lifeBack":
           n.who.slot?.shiny && shinyBurst(n.who),
           S.respawn(),
@@ -43387,6 +43934,29 @@
           }
           break;
         case "roundEnd":
+          if (e.match.mode === "sweep") {
+            let W = e.sweep?.score ?? 0,
+              Md = sweepMedal(W),
+              Rc = {};
+            try {
+              Rc = JSON.parse(localStorage.getItem(SWEEP.key)) ?? {};
+            } catch {}
+            let nb = W > (Rc.best ?? -1) && W > 0;
+            nb && ((Rc.best = W), (Rc.by = e.player.kit.id));
+            Rc.plays = (Rc.plays ?? 0) + 1;
+            try {
+              localStorage.setItem(SWEEP.key, JSON.stringify(Rc));
+            } catch {}
+            (s.sweepRes = { best: Rc.best ?? W, newBest: nb }),
+              le(),
+              Me.play(Md ? "victory" : "defeat"),
+              t.banner("TIME!", "#ffd166", 140, `${W} points${Md ? ` · ${MEDAL[Md][0].toLowerCase()} medal` : ""}`),
+              S.callout(3),
+              Md && buzz(0.4, 0.8, 0, [70, 60, 70, 60, 160]),
+              (s.resultIndex = 0),
+              (s.resultsT = 0);
+            break;
+          }
           if (
             s.arcade &&
             n.result === "win" &&

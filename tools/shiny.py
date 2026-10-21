@@ -36,6 +36,8 @@ DEX = dict(charizard="0006", venusaur="0003", blastoise="0009", dragapult="0887"
            zoroark="0571")
 PATHS = {k: f"{v}/0000/0001" for k, v in DEX.items()}
 PATHS["aegislashBlade"] = "0681/0001/0001"
+# Pidgey Sweep's rare shiny Pidgey.
+PATHS["pidgey"] = "0016/0000/0001"
 
 
 def get(url):
