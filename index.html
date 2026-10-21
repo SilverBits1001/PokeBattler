@@ -6800,24 +6800,27 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (I.until = this.tick + IT.noBack),
           this.emit({ type: "itPass", from, to: p, mon: I.mon });
       }
-      // A melee hit from whoever is it, by the fighter they control, tags.
+      // Melee contact with whoever is it passes it on, either way: it lands
+      // a melee hit and the one hit is it; you melee whoever is it and you
+      // catch it yourself. Ranged hits never do. Only the fighters you
+      // control count (no assists), and never straight back.
       itTag(e, t, M) {
         let I = this.it;
         if (
           !I ||
           !M ||
           !t ||
-          t !== I.who ||
           t.kind !== "player" ||
           e.kind !== "player" ||
           e === t ||
-          e.out ||
-          e.state === "faint" ||
           I.grace > 0 ||
-          (e === I.prev && this.tick < I.until)
+          (t !== I.who && e !== I.who)
         )
           return;
-        this.itGive(e, t);
+        let to = t === I.who ? e : t,
+          from = I.who;
+        if (to.out || to.state === "faint" || (to === I.prev && this.tick < I.until)) return;
+        this.itGive(to, from);
       }
       // The drain empties a fighter's HP: down they go, as from a hit.
       itKO(w) {
@@ -39534,7 +39537,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 30,
+  var NETV = 31,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -44124,7 +44127,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             S.charge(),
             t.ring(w.x, w.y - 10, 6, 2.6, 18, C, !0),
             w === D
-              ? (t.banner("YOU'RE IT!", C, 70, "tag someone with a melee hit", void 0, { icon: "x" }),
+              ? (t.banner("YOU'RE IT!", C, 70, "pass it on with a melee hit; don't touch it otherwise", void 0, { icon: "x" }),
                 buzz(0.5, 0.7, 120))
               : n.from === D
                 ? (t.popup(w.x, w.y - 44, "TAGGED!", C, !0), S.select())
