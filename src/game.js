@@ -5251,7 +5251,13 @@
       r: 9,
     },
     // Hits from more than ~107 degrees off a guard's facing get through it.
+    // The covered arc narrows as the shield wears down, to ~35 degrees each
+    // side when it is nearly gone, so a worn shield is easy to get round.
     FLANK_COS = -0.3,
+    guardArc = (e) =>
+      0.6 +
+      (Math.acos(FLANK_COS) - 0.6) *
+        Math.max(0, Math.min(1, (e.slot?.guard ?? 100) / 100)),
     // Flamethrower reach, and damage scale from point-blank down to the very tip.
     // Heat: each breath costs `ignite` up front and `gain` per tick while it
     // burns; reaching 100 overheats Charizard for `overheat` ticks.
@@ -12542,7 +12548,8 @@
           l = r ? t.y : i;
         return (
           Math.hypot(o - e.x, l - e.y) > 2 &&
-          Math.cos(Math.atan2(l - e.y, o - e.x) - e.facing) < FLANK_COS
+          Math.cos(Math.atan2(l - e.y, o - e.x) - e.facing) <
+            Math.cos(guardArc(e))
         );
       }
       seedBody(e, t, s) {
@@ -24345,11 +24352,12 @@
       stance(a, e, h, c, y);
       if (h.state === "guard") {
         let p = Math.max(0, h.slot.guard) / 100,
-          k = 9 + 11 * p,
+          k = 15 + 5 * p,
           M = h.t <= 6,
           P = p < 0.3 ? "#ef5a4f" : M ? "#ffffff" : b;
-        // The shield only wraps the front; the open back shows where a flank gets through.
-        let C = Math.acos(FLANK_COS),
+        // The shield only wraps the front, and less of it as it wears down:
+        // its arc is the meter. The open back shows where a flank gets through.
+        let C = guardArc(h),
           x = h.facing - C,
           v = h.facing + C;
         (a.globalAlpha = 0.22),
@@ -38263,7 +38271,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 25,
+  var NETV = 26,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,

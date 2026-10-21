@@ -58,6 +58,10 @@ powers you up) and **Psychic** (a telekinetic pull into fist range) replace Hamm
 and Magnet Rise. Snorlax keeps armour only on its Stomp finisher. Froslass chills only
 with her finisher, freezes for less and has a lower damage scale.
 
+The guard's arc is its meter: it covers about 107 degrees each side when full and
+narrows to about 35 as blocked hits and holding it wear it down, so a worn shield is
+easy to get round (hits from outside the arc get through).
+
 See [docs/blueprint-review.md](docs/blueprint-review.md): guard flanking, punish
 callouts, eight arenas, each with its own hazard and benefit (Stadium spotlights, Ruins
 collapse and Ancient Power, Cinder Crater heat vents, Frostfall slides, Power Plant recharge, Magma Isle edge dunks, Sunken Shrine pools, Ember Caldera lava pools), items (Sitrus Berry, X Attack, Poké Ball, Rocky Helmet, Choice Scarf, Focus Band, Quick Claw, Smoke Ball, Leftovers), Smash-style
