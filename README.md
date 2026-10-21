@@ -155,6 +155,16 @@ roster, Easy to Hard, on a different arena each stage. Stage six is a boss
 with 1.5x HP and its legendary half charged. Lose and you can Continue (retry
 the stage); your clear time, continues and best are kept on this device.
 
+**You're It!** (Party, or X on team select): Free-for-All tag for 3 or 4
+fighters. A Pokémon (Gastly, Litwick, Slugma or Zubat, one per match) sits on top
+of whoever is "it" and drains their HP: about 1.6% a second, rising the longer
+they hold it. Only a melee hit from the fighter you control passes it on; ranged
+attacks, assists, legendaries and hazards never do, though ranged shots still push
+the chaser back. No tag-backs for two seconds, a moment's grace for the new "it",
+and whoever is it is 10% faster. Hits between fighters do 40% damage, so the drain
+is the real threat; drained to zero is a K.O. Last one standing wins, and Lives work
+too. CPUs run from whoever is it.
+
 **Pidgey Sweep** (main menu, or X on team select): a one-minute bonus game on
 the Stadium. Pidgey land in waves, faster as the clock runs down; any hit clears
 one (1 point). They hop away when you get close and fly off if left for about

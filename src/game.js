@@ -3257,6 +3257,15 @@
       adapt(e, t, i) {
         if (t.state === "faint" || e.match.phase !== "fight" || e.intro > 20)
           return i;
+        // You're It!: run from whoever is it (ranged shots still fly).
+        let it = e.it?.who;
+        if (it && it !== t && t.state === "move" && !it.out) {
+          let dx = t.x - it.x,
+            dy = t.y - it.y,
+            d = Math.hypot(dx, dy) || 1;
+          d < IT.flee &&
+            ((i.mx = dx / d), (i.my = dy / d), i.pressed.delete("attack"));
+        }
         let s = e.nearestTarget(t.team, t.x, t.y),
           r = t.slot,
           o = e.item;
@@ -4822,6 +4831,31 @@
     LG_FFA = { groudon: 0.9, deoxys: 0.82 },
     // Dragapult's Phantom Force keeps it out of reach in 2v2 as well.
     MODE_TAKEN = { ffa: FFA_TAKEN, team: { dragapult: 1.05, aegislash: 0.88 } },
+    // You're It!: Free-for-All tag. A Pokemon sticks to whoever is "it" and
+    // drains their HP, slowly at first and faster the longer they hold it.
+    // Only a melee hit from the fighter you control passes it on (no ranged
+    // attacks, assists, legendaries or hazards), never straight back to the
+    // one who passed it. Whoever is it is a little faster, and hits between
+    // fighters do less damage so the drain is the real threat.
+    // [sprite, colour] for each sticker; one is picked per match.
+    IT = {
+      mons: [
+        ["gastly", "#b48cff"],
+        ["litwick", "#c9a4ff"],
+        ["slugma", "#ff7a3c"],
+        ["zubat", "#7fb2ff"],
+      ],
+      first: 60,
+      // % of max HP per second, rising by ramp each second held, to cap.
+      drain: 1.6,
+      ramp: 0.12,
+      cap: 6,
+      grace: 45,
+      noBack: 120,
+      speed: 1.1,
+      dmg: 0.4,
+      flee: 110,
+    },
     // Pidgey Sweep, the bonus game: Pidgey land on the Stadium in waves and
     // you have a minute to clear as many as you can. A Pidgey hops away from
     // you and flies off if left too long; a Pidgeotto takes three hits and
@@ -4865,7 +4899,7 @@
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
     // Tag Team (6) runs the "vs" match with two Pokemon a side.
-    MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag", "sweep"],
+    MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag", "sweep", "ffa"],
     MODE_NAMES = [
       "VS CPU",
       "TRAINING",
@@ -4875,20 +4909,24 @@
       "ONLINE",
       "TAG TEAM",
       "PIDGEY SWEEP",
+      "YOU'RE IT!",
     ],
     // The order X steps through modes on team select.
-    MODE_ORDER = [0, 6, 1, 2, 3, 4, 7, 5],
+    MODE_ORDER = [0, 6, 1, 2, 8, 3, 4, 7, 5],
     // Standard is one Pokemon; Tag Team (and Tag Team online) is two.
     teamSize = () =>
       A.gameMode === 6 || (A.gameMode === 5 && A.onlineTag) ? 2 : 1,
     // Modes with CPU opponents picked on the team select screen.
     cpuSide = () => A.gameMode !== 1 && A.gameMode !== 5 && A.gameMode !== 7,
+    // Free-for-All rules (rivals rolled on team select, 3 or 4 fighters):
+    // Free-for-All itself and You're It!.
+    isFfa = () => A.gameMode === 2 || A.gameMode === 8,
     // Lives apply to every mode but Training and Zone Control.
     livesMode = () => A.gameMode !== 1 && A.gameMode !== 4 && A.gameMode !== 7,
     // How many fighters the CPU side rolls on team select: in Free-for-All
     // one per rival, otherwise a team like yours.
     cpuNeed = () =>
-      A.gameMode === 2
+      isFfa()
         ? Math.max(2, Math.min(3, (A.ffaPlayers ?? 4) - 1))
         : teamSize(),
     QUAD = [
@@ -6531,6 +6569,19 @@
         e === "zone" && this.placeZone(!0);
         this.sweep = null;
         e === "sweep" && this.sweepStart();
+        this.it =
+          this.itGame && e === "ffa"
+            ? {
+                who: null,
+                prev: null,
+                until: 0,
+                grace: 0,
+                held: 0,
+                acc: 0,
+                wait: IT.first,
+                mon: IT.mons[Math.floor(this.rand() * IT.mons.length)][0],
+              }
+            : null;
         // Lives (stock): set on team select; Training and Zone Control play
         // without them.
         let lv = e === "practice" || e === "zone" ? 1 : (this.stockN ?? 1);
@@ -6561,6 +6612,75 @@
             round: r.round,
             cpuKit: (this.cpu ?? this.players[0]).kit,
           });
+      }
+      // ---- You're It! ----
+      itTick() {
+        let I = this.it;
+        if (this.match.phase !== "fight" || this.intro > 0) return;
+        let w = I.who;
+        // Nobody is it (the start, or it fainted): hand it to someone at random.
+        if (!w || w.out || w.state === "faint") {
+          if (!w && I.wait-- > 0) return;
+          let c = this.players.filter((p) => !p.out && p.state !== "faint" && p !== w);
+          c.length && this.itGive(c[Math.floor(this.rand() * c.length)], null);
+          return;
+        }
+        if (I.grace > 0) {
+          I.grace--;
+          return;
+        }
+        I.held++;
+        let sl = w.slot,
+          rate = Math.min(IT.cap, IT.drain + (IT.ramp * I.held) / 60);
+        I.acc += (sl.maxHp * rate) / 100 / 60;
+        let d = Math.floor(I.acc);
+        if (d > 0) {
+          (I.acc -= d), (sl.hp = Math.max(0, sl.hp - d)), (w.stats.taken += d);
+          sl.hp <= 0 && this.itKO(w);
+        }
+      }
+      itGive(p, from) {
+        let I = this.it;
+        (I.prev = from),
+          (I.who = p),
+          (I.held = 0),
+          (I.acc = 0),
+          (I.grace = IT.grace),
+          (I.until = this.tick + IT.noBack),
+          this.emit({ type: "itPass", from, to: p, mon: I.mon });
+      }
+      // A melee hit from whoever is it, by the fighter they control, tags.
+      itTag(e, t, M) {
+        let I = this.it;
+        if (
+          !I ||
+          !M ||
+          !t ||
+          t !== I.who ||
+          t.kind !== "player" ||
+          e.kind !== "player" ||
+          e === t ||
+          e.out ||
+          e.state === "faint" ||
+          I.grace > 0 ||
+          (e === I.prev && this.tick < I.until)
+        )
+          return;
+        this.itGive(e, t);
+      }
+      // The drain empties a fighter's HP: down they go, as from a hit.
+      itKO(w) {
+        (w.state = "faint"),
+          (w.t = 0),
+          (w.z = 0),
+          (w.spinRow = -1),
+          (w.flameEnd = 0),
+          (w.seededT = 0),
+          (w.rooted = !1),
+          (w.slot.burnT = 0),
+          (w.kvx = w.kvy = 0),
+          (w.mvx = w.mvy = 0),
+          this.emit({ type: "faint", who: w, kit: w.kit });
       }
       // ---- Pidgey Sweep ----
       sweepStart() {
@@ -6987,6 +7107,7 @@
         let e = this.match;
         this.updateZone();
         this.sweep && this.sweepTick();
+        this.it && this.itTick();
         e.mode === "practice" ||
           e.phase !== "end" ||
           (--e.endT <= 0 && (e.phase = "results"));
@@ -10980,6 +11101,7 @@
             A.speedScale *
             (e.scarfT > 0 ? SCARF.speed : 1) *
             (e.apT > 0 ? RUINS.apSpeed : 1) *
+            (this.it?.who === e ? IT.speed : 1) *
             this.exSpeed(e);
         i.id === "blastoise" &&
           this.inPuddle(e.x, e.y, e.team, !0) &&
@@ -17515,6 +17637,7 @@
                 : 1) *
               Q *
               ie *
+              (this.it && e.kind === "player" ? IT.dmg : 1) *
               (an ? MAGNE.analytic : 1) *
               (e.kind === "player" &&
               e.kit.thickFat &&
@@ -17552,6 +17675,7 @@
           }
           this.emit({ type: "flank", who: e, attacker: t, x: e.x, y: e.y });
         }
+        this.it && this.itTag(e, t, M);
         if (
           (t &&
             t.kind === "player" &&
@@ -24631,6 +24755,23 @@
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
     for (let h of e.players) dzone(a, e, h);
+    // You're It!: a pulsing ring in the sticker's colour under whoever is it.
+    if (e.it?.who && e.it.who.state !== "faint") {
+      let h = e.it.who,
+        col = IT.mons.find((q) => q[0] === e.it.mon)?.[1] ?? "#ffffff",
+        p = 0.5 + 0.5 * Math.sin(e.tick * 0.2);
+      a.save(),
+        (a.globalAlpha = 0.35 + 0.35 * p),
+        (a.strokeStyle = col),
+        (a.lineWidth = 2),
+        a.beginPath(),
+        a.ellipse(o(h.px, h.x), o(h.py, h.y), 16 + 3 * p, 6 + p, 0, 0, Math.PI * 2),
+        a.stroke(),
+        (a.globalAlpha = 0.18),
+        (a.fillStyle = col),
+        a.fill(),
+        a.restore();
+    }
     for (let h of e.dummies) {
       if (h.state !== "charge") continue;
       let c = h.t >= 15,
@@ -25072,6 +25213,28 @@
               .forEach((q) => a.fillRect(P - 3 + q * 2.4, y + 5.2, 1.6, 1.6))));
       });
     }
+    // You're It!: the sticker sits on top of whoever is it, centred, and
+    // leaps across in an arc when it is passed on.
+    if (e.it?.who) {
+      let I = e.it,
+        h = I.who,
+        L = IT_FX.leap,
+        c = o(h.px, h.x),
+        hy = headTop(h, e, o) + Math.sin(e.tick * 0.15) * 1.2,
+        x = c,
+        y = hy;
+      L && L.t++;
+      if (L && L.to === h && L.t < 16 && L.from) {
+        let k = Ee(L.t / 16),
+          fx = o(L.from.px, L.from.x),
+          fy = headTop(L.from, e, o);
+        (x = fx + (c - fx) * k), (y = fy + (hy - fy) * k - Math.sin(k * Math.PI) * 34);
+      }
+      h.state !== "faint" &&
+        !h.hidden &&
+        !(I.grace > 0 && !(L && L.t < 16) && e.tick % 8 < 3) &&
+        sticker(a, e, I.mon, x, y + 5);
+    }
     // Emote bubbles: a speech bubble with the emote's icon that pops in over
     // a taunting fighter and bobs until the taunt ends.
     for (let h of e.players) {
@@ -25127,7 +25290,9 @@
           o(h.py, h.y) -
             o(h.pz, h.z) -
             h.kit.tall * Bz(h) -
-            17 +
+            17 -
+            // Above the sticker on whoever is it.
+            (e.it?.who === h ? 20 : 0) +
             Math.sin(e.tick * 0.08) * 1.2,
         ),
         b = tagOf(h, e).label,
@@ -31141,7 +31306,7 @@
       for (let c of e.players) {
         if (!c.isRival || c.state === "faint" || c.vanished) continue;
         let y = f(h(c.px, c.x)),
-          b = u(h(c.py, c.y) - h(c.pz, c.z) - 40);
+          b = u(h(c.py, c.y) - h(c.pz, c.z) - 40 - (e.it?.who === c ? 20 : 0));
         ot(
           y - 12,
           b,
@@ -31388,6 +31553,60 @@
   }
   var Pt = 204,
     ka = 46;
+  // You're It!: where the sticker is leaping from (render only).
+  var IT_FX = { leap: null },
+    BOX = new WeakMap();
+  // The opaque bounds of one frame of a sheet (cached): where a sprite's
+  // drawn pixels actually start and end inside its frame.
+  function spriteBox(an, f, r) {
+    let m = BOX.get(an) ?? (BOX.set(an, new Map()), BOX.get(an)),
+      k = f * 64 + r,
+      b = m.get(k);
+    if (b) return b;
+    let c = Zt(an.fw, an.fh),
+      x = c.getContext("2d");
+    x.drawImage(an.img, (f % an.frames) * an.fw, Math.min(r, an.rows - 1) * an.fh, an.fw, an.fh, 0, 0, an.fw, an.fh);
+    let d = x.getImageData(0, 0, an.fw, an.fh).data,
+      t = an.fh,
+      bo = 0,
+      l = an.fw,
+      ri = 0;
+    for (let yy = 0; yy < an.fh; yy++)
+      for (let xx = 0; xx < an.fw; xx++)
+        d[(yy * an.fw + xx) * 4 + 3] > 0 &&
+          ((t = Math.min(t, yy)), (bo = Math.max(bo, yy)), (l = Math.min(l, xx)), (ri = Math.max(ri, xx)));
+    return (b = { t, b: bo, l, r: ri }), m.set(k, b), b;
+  }
+  // The top of a fighter's drawn sprite this frame, in arena pixels.
+  function headTop(h, e, o) {
+    let an = Ht(h),
+      f = zt(h, an, e),
+      r = h.spinRow >= 0 ? h.spinRow : Math.min(nt(h.facing), an.rows - 1),
+      bx = spriteBox(an, f, r),
+      sc = (h.scale ?? 1) * Bz(h) * (h.sqy ?? 1);
+    return o(h.py, h.y) - o(h.pz, h.z) + sc * (-an.fh / 2 - (h.disg ?? h.mon).ground + bx.t);
+  }
+  // A small Pokemon whose drawn feet sit on (x, y), centred on x.
+  function sticker(a, e, kind, x, y) {
+    let an = e.mons?.[kind]?.anims?.Idle;
+    if (!an) return;
+    let tot = an.durations.reduce((u, v) => u + v, 0) || 1,
+      f = 0,
+      acc = e.tick % tot;
+    for (; f < an.durations.length - 1 && acc >= an.durations[f]; f++) acc -= an.durations[f];
+    let b0 = spriteBox(an, 0, 0);
+    a.drawImage(
+      an.img,
+      f * an.fw,
+      0,
+      an.fw,
+      an.fh,
+      Math.round(x - (b0.l + b0.r + 1) / 2),
+      Math.round(y - b0.b - 1),
+      an.fw,
+      an.fh,
+    );
+  }
   // Pidgey Sweep: the countdown, the score and the medal marks.
   function sweepMedal(n) {
     return n >= SWEEP.medals[2] ? 3 : n >= SWEEP.medals[1] ? 2 : n >= SWEEP.medals[0] ? 1 : 0;
@@ -31745,6 +31964,16 @@
       }),
       ue(u.label, u.color, s + 3, i + 23.5, { text: g.night, size: 4.4 }),
       V(f.name, s + 33, i + 10.5, 7, g.chalk),
+      a.it?.who === t &&
+        !c &&
+        (Oe(o[a.it.mon], "Normal", s + 17, i + 15, 13, {
+          bg: IT.mons.find((q) => q[0] === a.it.mon)?.[1],
+          slash: !0,
+        }),
+        ue("IT", IT.mons.find((q) => q[0] === a.it.mon)?.[1] ?? g.gold, s + 3, i + 3, {
+          text: g.night,
+          size: 4.4,
+        })),
       t.slots.forEach((p, k) =>
         hudBall(s + y - 8 - k * 7, i + 7, 2.5, p.hp <= 0),
       );
@@ -34445,7 +34674,7 @@
       let sl = (1 - Ee(Math.min(1, t / 16))) * 170,
         tm = A.gameMode === 3 ? teamExtras(a) : null,
         rv = cpuSide()
-          ? A.gameMode === 2
+          ? isFfa()
             ? a.cpuPicks
             : a.cpuPicks.slice(0, 2)
           : [null],
@@ -34468,7 +34697,7 @@
           sl,
           t,
           cpuSide()
-            ? A.gameMode === 2
+            ? isFfa()
               ? `${rv.length} CPU RIVALS`
               : tm
                 ? "CPU TEAM"
@@ -34921,7 +35150,7 @@
         italic: !0,
       });
     let b =
-      s && A.gameMode === 2 && r[1]
+      s && isFfa() && r[1]
         ? `Rivals: ${r
             .slice(1)
             .map((p) => xe[p].name)
@@ -35027,7 +35256,7 @@
     if (a.arcade) arcCard(a, e, u);
     else if (s) {
       let M = a.roulette > 0 ? (a.rouletteShow ?? []) : a.cpuPicks;
-      A.gameMode === 2
+      isFfa()
         ? ffaCard(a, e, u, M)
         : selCard(a, e, u, !0, 0, [M[0], M[1]], null),
         selPlate(
@@ -35104,7 +35333,9 @@
           ? "Arcade: pick the Pok\u00e9mon you'll climb with."
           : teamSize() === 2
             ? "Tag Team: pick two. Your first pick leads."
-            : A.gameMode === 2
+            : A.gameMode === 8
+              ? `You're It!: melee hits pass it on; being it drains you. ${cpuNeed()} CPU rivals, RT to change.`
+              : A.gameMode === 2
               ? `Free-for-All: you and ${cpuNeed()} CPU rivals. RT or tap Players to change.`
               : A.gameMode === 7
                 ? "Pidgey Sweep: pick who goes bird-clearing."
@@ -35289,7 +35520,7 @@
           ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
           [
             "X",
-            `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team", "Pidgey Sweep"][A.gameMode] ?? "VS CPU")}`,
+            `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team", "Pidgey Sweep", "You're It!"][A.gameMode] ?? "VS CPU")}`,
             "#cfcaea",
           ],
           ...(s
@@ -35316,7 +35547,7 @@
                 ],
               ]
             : []),
-          ...(A.gameMode === 2
+          ...(isFfa()
             ? [["RT", `Players: ${A.ffaPlayers ?? 4}`, g.gold]]
             : []),
         ]) {
@@ -39140,7 +39371,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 29,
+  var NETV = 30,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -40913,7 +41144,7 @@
     {
       id: "party",
       label: "Party",
-      desc: "Four-fighter modes: Free-for-All, Team 2v2 and Zone Control.",
+      desc: "Four-fighter modes: Free-for-All, Team 2v2, Zone Control and You're It!",
       mon: "snorlax",
       color: "#4df08a",
     },
@@ -40943,6 +41174,7 @@
     [2, "Free-for-All"],
     [3, "Team 2v2"],
     [4, "Zone Control"],
+    [8, "You're It!"],
   ];
   // Small line icons for the menu buttons.
   function menuIcon(a, e, t, s, i) {
@@ -41681,7 +41913,7 @@
             S.ui(R === "down"))
           : MENU[D].id === "party" &&
             ((s.partyIndex =
-              ((s.partyIndex ?? 0) + (R === "left" ? 2 : 1)) % 3),
+              ((s.partyIndex ?? 0) + (R === "left" ? PARTY.length - 1 : 1)) % PARTY.length),
             S.ui(R === "right"));
       });
       if (n.pressed.has("back")) return v();
@@ -41891,6 +42123,7 @@
           rbStatic(xe),
           rbStatic(e.mons),
           (e.stockN = D.lives ?? 1),
+          (e.itGame = !1),
           (e.shinyTeams = D.shiny ?? null),
           e.startMatch("vs", D.teams[0], D.teams[1], D.e > 1),
           (e.tick = 0);
@@ -42193,19 +42426,20 @@
         (e.match.cpuLegends = s.cpuLegends ?? [lgRoll(), lgRoll(), lgRoll()]);
       // Free-for-All rivals were rolled on team select: the first is the
       // CPU, the rest come in as the extra fighters.
-      A.gameMode === 2 &&
+      isFfa() &&
         (e.match.extraPreset = s.cpuPicks.slice(1).map((R) => [R]));
       A.gameMode === 3 && (e.match.extraPreset = teamExtras(s));
       let Ar = A.arena;
       A.gameMode === 7 && (A.arena = 0);
       e.stockN = s.arcade || !livesMode() ? 1 : (A.lives ?? 1);
       e.shinyTeams = [s.picks.map(shinyWant), []];
+      e.itGame = A.gameMode === 8 && !s.arcade;
       s.arcade &&
         (A.arena = (s.arcade.arena0 + s.arcade.stage) % ARENAS.length);
       e.startMatch(
         A.gameMode === 6 ? "vs" : (MODES[A.gameMode] ?? "vs"),
         s.picks,
-        n ? (A.gameMode === 2 ? s.cpuPicks.slice(0, 1) : s.cpuPicks) : [],
+        n ? (isFfa() ? s.cpuPicks.slice(0, 1) : s.cpuPicks) : [],
       ),
         (A.arena = Ar),
         s.arcade && arcSetup(),
@@ -42259,6 +42493,7 @@
         (a.inBonus = !0),
         (A.arena = 0),
         (e.stockN = 1),
+        (e.itGame = !1),
         (e.shinyTeams = [s.picks.map(shinyWant), []]),
         e.startMatch("sweep", s.picks, []),
         (A.arena = Ar),
@@ -42397,7 +42632,7 @@
           S.ui(!0)),
         // Free-for-All: three or four fighters.
         n.pressed.has("guard") &&
-          A.gameMode === 2 &&
+          isFfa() &&
           ((A.ffaPlayers = (A.ffaPlayers ?? 4) === 4 ? 3 : 4),
           Ze(),
           (s.cpuPicks = []),
@@ -43717,6 +43952,20 @@
             k === 1 && t.motes(w.x, w.y - 16, 6, 12, "#ff5a8a", 1),
             k === 2 && t.motes(w.x, w.y - 12, 8, 16, "#ffe27a", 1.4),
             k === 0 && t.ring(w.x, w.y - 10, 4, 2, 14, "#ffcf3a", !0);
+          break;
+        }
+        case "itPass": {
+          let w = n.to,
+            C = IT.mons.find((q) => q[0] === n.mon)?.[1] ?? "#ffffff";
+          (IT_FX.leap = { to: w, from: n.from, t: 0 }),
+            S.charge(),
+            t.ring(w.x, w.y - 10, 6, 2.6, 18, C, !0),
+            w === D
+              ? (t.banner("YOU'RE IT!", C, 70, "tag someone with a melee hit", void 0, { icon: "x" }),
+                buzz(0.5, 0.7, 120))
+              : n.from === D
+                ? (t.popup(w.x, w.y - 44, "TAGGED!", C, !0), S.select())
+                : t.popup(w.x, w.y - 44, n.from ? "IT!" : `${tagOf(w, e).label} IS IT!`, C, !1);
           break;
         }
         case "sweepGo":
@@ -46675,6 +46924,19 @@
         (t.leanY += (n.mvy * 0.8 - t.leanY) * 0.08);
       let R = D.hp < D.maxHp * 0.25 && e.match.phase === "fight";
       (t.danger += ((R ? 1 : 0) - t.danger) * 0.05),
+        e.it?.who &&
+          e.it.grace <= 0 &&
+          e.it.who.state !== "faint" &&
+          e.match.phase === "fight" &&
+          e.tick % 5 === 0 &&
+          t.motes(
+            e.it.who.x,
+            e.it.who.y - 14,
+            8,
+            3,
+            IT.mons.find((q) => q[0] === e.it.mon)?.[1] ?? "#ffffff",
+            0.6,
+          ),
         R && e.tick % 80 === 0 && S.lowHp(),
         n.kit.id === "charizard" &&
           D.heat > 85 &&
