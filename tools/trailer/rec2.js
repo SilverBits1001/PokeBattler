@@ -157,7 +157,8 @@ const marks = [];
   const segs = {
     async open() {
       marks.push(['title', N]);
-      await frames(120);
+      // 4.5 s on the title screen (it doubles as the Reddit thumbnail).
+      await frames(135);
       await key('Enter');
       await frames(26);
       marks.push(['menu', N]);
