@@ -102,6 +102,10 @@ floodlit night. Each arena also gained a mechanic:
   you up) or Rock (cover) field for twenty seconds.
 - **Ruins:** an overgrown temple courtyard (a full-resolution painting) with breakable columns and
   pressure plates. Step on one and darts fly down its lane after a short warning, hitting anyone in it.
+  Every so often a boulder rumbles at the top of the stairs (its lane flashes red) and rolls down the
+  middle, bowling over anyone in the way. The rune circles light up in turn: stand in a lit one alone
+  to charge it and gain Ancient Power. Clay urns by the walls break at a touch, and every other one
+  drops an Oran Berry; vines hang over the back wall in front of the fighters.
 - **Cinder Crater:** the lava pools swell and recede.
 - **Frostfall Peak:** a night summit above the clouds; heavy blows crack the centre rink until it breaks into
   slowing icy water, then it refreezes; Spheal roll down the lanes.

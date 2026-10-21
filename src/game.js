@@ -3285,7 +3285,7 @@
               (i.my = i.my * (1 - h) + (f / u / 1.6) * h);
           }
         }
-        // Arena benefits: drift toward a spotlight, live pylon or heat vent when
+        // Arena benefits: drift toward a spotlight, live pylon, heat vent or rune when
         // not trading blows (only while a special is recharging, for the first two).
         if (
           t.state === "move" &&
@@ -3304,6 +3304,10 @@
                 l.push([u.x, u.y + 18]),
             );
           e.heatVents.forEach((u) => l.push([u.x, u.y]));
+          // A lit rune circle in the Ruins, unless someone else holds it.
+          e.rune &&
+            (!e.rune.who || e.rune.who === t) &&
+            l.push([e.rune.x, e.rune.y]);
           let u = l
             .map(([h, c]) => [h, c, Math.hypot(h - t.x, c - t.y)])
             .filter((h) => h[2] < 150 && h[2] > 10 && !e.hazardAt(h[0], h[1]))
@@ -4901,6 +4905,45 @@
       weakTo: ["FIGHTING", "STEEL", "WATER", "GRASS"],
       respawn: 720,
       warn: 120,
+      // The rolling boulder: now and then it rumbles at the top of the
+      // stairs, then rolls straight down the middle of the courtyard,
+      // between the columns, bowling over anyone in its way.
+      roll: {
+        first: 900,
+        every: 1500,
+        warn: 90,
+        x: 320,
+        y0: 62,
+        speed: 3.6,
+        r: 15,
+        dmg: 18,
+        knock: 7,
+      },
+      // The rune circles: the painted one on the right and its mirror on
+      // the left light up in turn. Stand in a lit one alone long enough and
+      // it gives you Ancient Power.
+      rune: {
+        spots: [
+          [456, 229, 40],
+          [184, 187, 40],
+        ],
+        first: 600,
+        every: 1200,
+        live: 420,
+        charge: 75,
+      },
+      // Clay urns by the walls: one hit breaks them, and every other one
+      // drops an Oran Berry. They are back after a while.
+      urns: [
+        [100, 120],
+        [540, 296],
+        [540, 120],
+        [100, 296],
+      ],
+      urnR: 9,
+      urnRespawn: 1200,
+      berry: 0.06,
+      berryLife: 600,
       // The painting's wall torches [x, flicker seed] and cave crystals.
       torches: [
         [240, 0],
@@ -6190,19 +6233,34 @@
           (this.arena = ARENAS[A.arena]?.kind ?? A.arena),
           (this.rocks =
             A.arena === 1
-              ? RUINS.spots.map(([o, l], n) => ({
-                  id: this.nextId++,
-                  x: o,
-                  y: l,
-                  // The four round the centre are marble columns.
-                  column: n < 4,
-                  r: RUINS.r,
-                  hp: RUINS.hp,
-                  max: RUINS.hp,
-                  state: "solid",
-                  t: 0,
-                  hitT: 0,
-                }))
+              ? RUINS.spots
+                  .map(([o, l], n) => ({
+                    id: this.nextId++,
+                    x: o,
+                    y: l,
+                    // The four round the centre are marble columns.
+                    column: n < 4,
+                    r: RUINS.r,
+                    hp: RUINS.hp,
+                    max: RUINS.hp,
+                    state: "solid",
+                    t: 0,
+                    hitT: 0,
+                  }))
+                  .concat(
+                    RUINS.urns.map(([x, y]) => ({
+                      id: this.nextId++,
+                      x,
+                      y,
+                      r: RUINS.urnR,
+                      hp: 1,
+                      max: 1,
+                      state: "solid",
+                      t: 0,
+                      hitT: 0,
+                      urn: !0,
+                    })),
+                  )
               : A.arena === 4
                 ? PLANT.pylons
                     .map(([o, l]) => ({
@@ -6319,6 +6377,13 @@
                 }))
               : []),
           (this.darts = []),
+          (this.roll = null),
+          (this.rollT = RUINS.roll.first),
+          (this.rune = null),
+          (this.runeT = RUINS.rune.first),
+          (this.runeN = 0),
+          (this.berries = []),
+          (this.urnN = 0),
           (this.thin = A.arena === 3 ? { cr: 0, open: 0 } : null),
           (this.spheal = null),
           (this.sphealT = SPHEAL.first),
@@ -11450,6 +11515,7 @@
             );
         }
         this.darts = this.darts.filter((d) => !d.dead);
+        this.stage === 1 && this.ruinsX(live);
         // Cinder Crater lava tide.
         if (this.lava.length) {
           let q = Math.sin((this.tick * Math.PI * 2) / TIDE.period);
@@ -11692,7 +11758,9 @@
       }
       // Telegraphed danger from the new mechanics, for the CPU to steer round.
       arenaXHazard(x, y) {
+        let o = this.roll;
         return (
+          (!!o && Math.abs(x - o.x) < RUINS.roll.r + 16 && y > o.y - 24) ||
           this.plates.some(
             (p) => p.warn > 0 && Math.abs(y - p.y) < TRAP.band + 8,
           ) ||
@@ -12200,6 +12268,7 @@
       }
       hitRock(e, t, s, i, r) {
         if (e.vat !== void 0) return this.hitVat(e.vat, t, s, i);
+        if (e.urn) return this.hitUrn(e);
         // Layout cover is painted scenery: it stops you but never breaks.
         if (e.ghost) return;
         if (e.pylon) {
@@ -12240,6 +12309,119 @@
                 y: i ?? e.y,
                 rock: e,
               }));
+      }
+      // A Ruins urn breaks at a touch; every other one leaves a berry.
+      hitUrn(e) {
+        if (e.state !== "solid") return;
+        (e.state = "broken"), (e.t = RUINS.urnRespawn);
+        let drop = this.urnN++ % 2 === 0;
+        drop &&
+          this.berries.push({
+            id: this.nextId++,
+            x: e.x,
+            y: e.y + 4,
+            life: RUINS.berryLife,
+          });
+        this.emit({ type: "urnBreak", x: e.x, y: e.y, drop });
+      }
+      // The Ruins set pieces: the rolling boulder, the rune circles and the
+      // berries the urns drop.
+      ruinsX(live) {
+        let R = RUINS.roll,
+          bodies = this.bodies().filter(
+            (b) =>
+              b.state !== "faint" &&
+              !b.hidden &&
+              !b.out &&
+              !this.floating(b) &&
+              !(b.kind === "player" && b.airborne),
+          );
+        if (!this.roll && live && --this.rollT <= 0)
+          (this.roll = { x: R.x, y: R.y0, t: 0, ang: 0, hit: [] }),
+            this.emit({ type: "rollWarn", x: R.x, y: R.y0 });
+        let o = this.roll;
+        if (o && ++o.t > R.warn) {
+          o.t === R.warn + 1 && this.emit({ type: "rollGo", x: o.x, y: o.y });
+          (o.y += R.speed), (o.ang += R.speed / R.r);
+          for (let b of bodies)
+            if (
+              !o.hit.includes(b) &&
+              Math.hypot(b.x - o.x, (b.y - o.y) * 1.2) < R.r + b.r
+            ) {
+              let dx = b.x - o.x >= 0 ? 1 : -1;
+              o.hit.push(b),
+                this.envHit(b, R.dmg, R.knock, dx * 0.9, 0.45, !0, 8, 24, !1),
+                this.emit({ type: "rollHit", x: b.x, y: b.y });
+            }
+          // It smashes anything standing in its lane.
+          for (let r of this.rocks)
+            r.state === "solid" &&
+              !r.ghost &&
+              Math.hypot(r.x - o.x, r.y - o.y) < r.r + R.r &&
+              this.hitRock(r, 999, r.x, r.y);
+          o.y > B.y1 + 12 &&
+            (this.emit({ type: "rollBreak", x: o.x, y: B.y1 }),
+            (this.roll = null),
+            (this.rollT = R.every));
+        }
+        // Rune circles, lit in turn.
+        let U = RUINS.rune,
+          q = this.rune;
+        if (!q && live && --this.runeT <= 0) {
+          let [x, y, r] = U.spots[this.runeN++ % U.spots.length];
+          (this.rune = q = { x, y, r, t: 0, who: null, charge: 0 }),
+            this.emit({ type: "runeOn", x, y });
+        }
+        if (q) {
+          q.t++;
+          let inside = this.players.filter(
+            (p) =>
+              bodies.includes(p) &&
+              Math.hypot(p.x - q.x, (p.y - q.y) * 1.3) < q.r,
+          );
+          inside.length === 1
+            ? (inside[0] !== q.who && ((q.who = inside[0]), (q.charge = 0)),
+              q.charge++)
+            : ((q.charge = Math.max(0, q.charge - 2)),
+              q.charge === 0 && (q.who = null));
+          if (q.who && q.charge >= U.charge) {
+            let p = q.who;
+            (p.apT = RUINS.apTicks),
+              this.emit({ type: "ancientPower", who: p }),
+              this.emit({ type: "runeUsed", x: q.x, y: q.y }),
+              (this.rune = null),
+              (this.runeT = U.every);
+          } else
+            q.t >= U.live &&
+              (this.emit({ type: "runeOff", x: q.x, y: q.y }),
+              (this.rune = null),
+              (this.runeT = U.every));
+        }
+        // Berries: a grounded fighter walking over one eats it.
+        for (let b of this.berries) {
+          b.life--;
+          let p = this.players.find(
+            (p) =>
+              bodies.includes(p) && Math.hypot(p.x - b.x, p.y - b.y) < p.r + 8,
+          );
+          if (p && p.slot) {
+            let s = p.slot,
+              h = s.hp;
+            (s.hp = Math.min(
+              s.maxHp,
+              s.hp + Math.round(s.maxHp * RUINS.berry),
+            )),
+              (b.life = 0),
+              this.emit({
+                type: "berryGet",
+                who: p,
+                x: b.x,
+                y: b.y,
+                amount: Math.round(s.hp - h),
+              });
+          }
+        }
+        this.berries = this.berries.filter((b) => b.life > 0);
       }
       // A Power Plant vat takes the hit on its art circle; at zero all of
       // its circles fall, it explodes and leaves its gas.
@@ -19738,6 +19920,9 @@
       for (let [x, n] of RUINS.torches)
         hole(x, 34, 130 * flick(n), 1),
           glow.push([x, 34, 34 * flick(n), "255,150,60", 0.5]);
+      e.rune &&
+        (hole(e.rune.x, e.rune.y, 110, 0.8),
+        glow.push([e.rune.x, e.rune.y, 40, "90,230,255", 0.3]));
       for (let [x, y] of RUINS.crystals)
         hole(x, y, 60, 0.8), glow.push([x, y, 22, "90,230,255", 0.35]);
       for (let x of [240, 400]) hole(x, Te, 140, 0.55);
@@ -20734,6 +20919,141 @@
       },
     });
   }
+  // The rolling boulder: rumbling at the top of the stairs, then rolling
+  // down its lane, spinning, with its shadow and a trail of dust.
+  function rollerArt(a, o, t, fx) {
+    let R = RUINS.roll,
+      im = propOf("roller"),
+      warn = o.t <= R.warn,
+      j = warn ? ((t >> 1) % 2 ? 1 : -1) * (o.t > R.warn - 30 ? 2 : 1) : 0,
+      x = Math.round(o.x + j),
+      y = Math.round(o.y);
+    (a.fillStyle = "rgba(20,16,10,0.35)"),
+      a.beginPath(),
+      a.ellipse(x, y + 2, R.r + 2, 5, 0, 0, Math.PI * 2),
+      a.fill();
+    a.save(), a.translate(x, y - R.r), a.rotate(o.ang);
+    im
+      ? a.drawImage(im, -R.r - 1, -R.r - 1, 2 * R.r + 2, 2 * R.r + 2)
+      : ((a.fillStyle = "#7a776e"),
+        a.beginPath(),
+        a.arc(0, 0, R.r, 0, Math.PI * 2),
+        a.fill());
+    a.restore();
+    !warn && t % 4 === 0 && fx?.dust(o.x, o.y, 2, 0, -0.6, 0.8);
+  }
+  // Ruins floor marks: the boulder's lane flashing before it rolls, the
+  // lit rune circle filling as someone charges it, and berries.
+  function ruinsFloor(a, e, fx) {
+    let t = e.tick,
+      o = e.roll,
+      R = RUINS.roll;
+    if (o && o.t <= R.warn) {
+      // The lane: a red band pulsing faster as the boulder is about to go.
+      let k = o.t / R.warn,
+        p = 0.5 + 0.5 * Math.sin(t * (0.25 + 0.5 * k)),
+        h = B.y1 - R.y0;
+      (a.fillStyle = `rgba(255,60,40,${0.1 + 0.14 * p})`),
+        a.fillRect(o.x - R.r - 4, R.y0, 2 * R.r + 8, h),
+        (a.fillStyle = `rgba(255,110,70,${0.45 + 0.4 * p})`),
+        a.fillRect(o.x - R.r - 4, R.y0, 2, h),
+        a.fillRect(o.x + R.r + 2, R.y0, 2, h);
+      // Chevrons running down it, showing which way it will come.
+      for (let y = R.y0 + ((t * 2) % 24); y < B.y1; y += 24)
+        (a.fillStyle = `rgba(255,150,110,${0.3 + 0.4 * p})`),
+          a.fillRect(o.x - 6, y, 4, 2),
+          a.fillRect(o.x + 2, y, 4, 2),
+          a.fillRect(o.x - 3, y + 2, 6, 2);
+    }
+    let q = e.rune;
+    if (q) {
+      let p = 0.5 + 0.5 * Math.sin(t * 0.12),
+        fade = Math.min(1, q.t / 20, (RUINS.rune.live - q.t) / 30 + 0.2);
+      a.save(),
+        (a.globalCompositeOperation = "lighter"),
+        (a.globalAlpha = fade),
+        (a.strokeStyle = `rgba(90,230,255,${0.45 + 0.35 * p})`),
+        (a.lineWidth = 2),
+        a.beginPath(),
+        a.ellipse(q.x, q.y, q.r, q.r / 1.3, 0, 0, Math.PI * 2),
+        a.stroke(),
+        (a.lineWidth = 1),
+        a.beginPath(),
+        a.ellipse(q.x, q.y, q.r * 0.62, (q.r * 0.62) / 1.3, 0, 0, Math.PI * 2),
+        a.stroke();
+      // Glyph ticks round the ring, turning slowly.
+      for (let n = 0; n < 8; n++) {
+        let g = t * 0.01 + (n * Math.PI) / 4;
+        (a.fillStyle = "rgba(160,245,255,0.8)"),
+          a.fillRect(
+            Math.round(q.x + Math.cos(g) * q.r * 0.81) - 1,
+            Math.round(q.y + (Math.sin(g) * q.r * 0.81) / 1.3) - 1,
+            2,
+            2,
+          );
+      }
+      // The charge, as an arc round the ring.
+      q.charge > 0 &&
+        ((a.strokeStyle = "rgba(220,255,255,0.95)"),
+        (a.lineWidth = 3),
+        a.beginPath(),
+        a.ellipse(
+          q.x,
+          q.y,
+          q.r + 3,
+          (q.r + 3) / 1.3,
+          0,
+          -Math.PI / 2,
+          -Math.PI / 2 + (Math.PI * 2 * q.charge) / RUINS.rune.charge,
+        ),
+        a.stroke());
+      t % 6 === 0 &&
+        fx?.add?.({
+          kind: "ember",
+          x: q.x + (Math.random() - 0.5) * q.r * 1.6,
+          y: q.y + (Math.random() - 0.5) * q.r,
+          z: 2,
+          vx: 0,
+          vy: 0,
+          vz: 0.45,
+          life: 34,
+          size: 1,
+          color: "#9ff3ff",
+        });
+      a.restore();
+    }
+    let bs = propOf("s_sitrus");
+    for (let b of e.berries ?? []) {
+      if (b.life < 90 && t % 10 < 5) continue;
+      let bob = Math.round(Math.sin(t * 0.1 + b.id) * 1.5);
+      (a.fillStyle = "rgba(0,0,0,0.3)"),
+        a.beginPath(),
+        a.ellipse(b.x, b.y + 2, 5, 2, 0, 0, Math.PI * 2),
+        a.fill(),
+        bs
+          ? a.drawImage(
+              bs,
+              Math.round(b.x - bs.width / 2),
+              b.y - bs.height - 2 + bob,
+            )
+          : ((a.fillStyle = "#3a7fd6"),
+            a.fillRect(b.x - 3, b.y - 8 + bob, 6, 6));
+    }
+  }
+  // Vines hanging over the back wall of the painted ruins, in front of
+  // everyone, swaying a little: fighters at the back walk behind them.
+  function vinesArt(a, t) {
+    let im = propOf("vines");
+    if (!im) return;
+    for (let [n, x] of [40, 160, 395, 515].entries()) {
+      let sw = Math.sin(t * 0.025 + n * 1.7) * 0.05;
+      a.save(),
+        a.translate(x, 50),
+        a.transform(1, 0, sw, 1, 0, 0),
+        a.drawImage(im, 0, 0),
+        a.restore();
+    }
+  }
   // A chemical vat: the PixelLab sprite (base centre at ax, ay) with
   // bubbles rising through the green glass.
   function vatWhite(im) {
@@ -20848,6 +21168,16 @@
   }
   function ht2(a, e, t) {
     if (e.pylon) return pylonArt(a, e, t);
+    if (e.urn) {
+      let im = propOf("urn");
+      im &&
+        a.drawImage(
+          im,
+          Math.round(e.x - im.width / 2),
+          Math.round(e.y - im.height + 4),
+        );
+      return;
+    }
     if (e.art === "vat") return vatArt(a, e, t);
     if (e.exPillar) return exPillarArt(a, e, t);
     if (e.column && columnArt(a, e, t)) return;
@@ -23338,6 +23668,7 @@
         R(wx, pl.y + k * 5 - 1, 3, 2, hot && t % 6 < 3 ? "#ff5a3a" : "#1a1612");
       hot && dash(B.x0, pl.y, B.x1, pl.y, "rgba(255,90,60,0.85)");
     }
+    if (e.stage === 1) ruinsFloor(a, e, null);
     let dsp = propOf("dartS");
     for (let d of e.darts ?? [])
       for (let k = -1; k <= 1; k++) {
@@ -23586,7 +23917,25 @@
   };
   // The layer under the game canvas that full-resolution paintings are
   // drawn on (see fa).
-  var BGL = { c: null, g: null, shown: !1 };
+  var BGL = { c: null, g: null, shown: !1, pre: null };
+  // "Sharp bilinear": the painting blown up with nearest-neighbour by the
+  // whole number at or above its on-screen scale (at most 3x, and about
+  // 12M pixels), then smoothed only for the last fraction. Its pixel edges
+  // stay crisp, without the uneven pixels and crawl that plain
+  // nearest-neighbour gives at an in-between scale.
+  function sharpArt(art, s) {
+    let n = Math.min(3, Math.ceil(s - 0.05));
+    while (n > 1 && art.width * art.height * n * n > 12e6) n--;
+    if (n < 2) return art;
+    let p = BGL.pre;
+    if (p && p.art === art && p.n === n) return p.c;
+    let c = Zt(art.width * n, art.height * n),
+      g = c.getContext("2d");
+    (g.imageSmoothingEnabled = !1),
+      g.drawImage(art, 0, 0, c.width, c.height),
+      (BGL.pre = { art, n, c });
+    return c;
+  }
   function fa(a, e, t, s, i = !1) {
     (Bt && Bt.kind === e.arena) || ((Bt = Va(e.arena)), (Bt.kind = e.arena));
     let r = t.view,
@@ -23615,7 +23964,7 @@
         ),
         (g.imageSmoothingEnabled = !0),
         (g.imageSmoothingQuality = "high"),
-        g.drawImage(art, 0, 0, Y, _),
+        g.drawImage(sharpArt(art, (BGL.c.width * r.z) / art.width), 0, 0, Y, _),
         (BGL.shown = !0);
     } else
       BGL.shown &&
@@ -23965,19 +24314,23 @@
             (h.state === "solid" && (!h.ghost || h.art)) ||
             (h.art && h.t <= PLANT.vatBuild),
         ),
+        ...(e.roll ? [{ roller: e.roll, y: e.roll.y }] : []),
         ...lay
           .filter((s) => s.z !== "front")
           .map((s) => ({ layer: s, y: s.base ?? shapeBox(s)[3] })),
       ].sort((h, c) => h.y - c.y);
     for (let h of f)
-      h.layer
-        ? layerDraw(a, e, h.layer)
-        : h.max !== void 0 && h.kind === void 0
-          ? ((a.globalAlpha = CINE_DIM.size ? 0.12 : 1),
-            ht2(a, h, e.tick),
-            (a.globalAlpha = 1))
-          : da(a, h, e, o(h.px, h.x), o(h.py, h.y), o(h.pz, h.z));
+      h.roller
+        ? rollerArt(a, h.roller, e.tick, t)
+        : h.layer
+          ? layerDraw(a, e, h.layer)
+          : h.max !== void 0 && h.kind === void 0
+            ? ((a.globalAlpha = CINE_DIM.size ? 0.12 : 1),
+              ht2(a, h, e.tick),
+              (a.globalAlpha = 1))
+            : da(a, h, e, o(h.px, h.x), o(h.py, h.y), o(h.pz, h.z));
     for (let s of lay) s.z === "front" && layerDraw(a, e, s);
+    e.stage === 1 && arenaArt(1) && vinesArt(a, e.tick);
     for (let h of e.vines)
       h.y2 >= h.y1 && ca(a, h.x1, h.y1, h.x2, h.y2, h.ext, e.tick);
     for (let h of e.players) {
@@ -29062,6 +29415,10 @@
     );
   }
   var ya = (a, e, t, s = !1) => ue(a, Rt[a] ?? "#888", e, t, { right: s });
+  // A fighter's HUD portrait: its current form's (Aegislash in Blade Forme
+  // shows the Blade Forme portrait).
+  var faceOf = (mons, sl) =>
+    (sl?.blade && mons.aegislashBlade) || mons[sl?.kit?.id];
   function Oe(a, e, t, s, i, r = {}) {
     let o = i * 0.2,
       l = () => {
@@ -30650,7 +31007,7 @@
         (d.strokeStyle = u.color),
         (d.lineWidth = m(0.9)),
         d.stroke()),
-      Oe(o[f.id], Gt(a, t, t.active), s + 3, i + 3, 26, {
+      Oe(faceOf(o, l), Gt(a, t, t.active), s + 3, i + 3, 26, {
         bg: f.color,
         grey: c || t.state === "faint",
         slash: !0,
@@ -30843,7 +31200,7 @@
     d.save(),
       l && (d.globalAlpha = 0.45),
       Ae(t, s, 128, 16, r.color, { edge: "right" }),
-      Oe(i[o.kit.id], Gt(a, e, e.active), t + 4, s + 1.5, 13, {
+      Oe(faceOf(i, o), Gt(a, e, e.active), t + 4, s + 1.5, 13, {
         bg: o.kit.color,
         grey: l,
         slash: !0,
@@ -31126,7 +31483,7 @@
     let c = X(5, 36),
       y = 5;
     te(c - 1.5, y - 1.5, 39, 39, "rgba(6,4,10,0.85)", 5),
-      Oe(o[f.id], Gt(a, t, t.active), c, y, 36, {
+      Oe(faceOf(o, l), Gt(a, t, t.active), c, y, 36, {
         flip: r,
         bg: f.color,
         grey: t.state === "faint",
@@ -31196,7 +31553,7 @@
         x = C.hp <= 0,
         v = X(80, 15);
       te(v - 1, 27, 17, 17, "rgba(6,4,10,0.85)", 3),
-        Oe(o[C.kit.id], Gt(a, t, x0), v, 28, 15, {
+        Oe(faceOf(o, C), Gt(a, t, x0), v, 28, 15, {
           flip: r,
           bg: C.kit.color,
           grey: x,
@@ -34833,7 +35190,7 @@
             bright: p ? 1 : 0,
           });
           let k = f - y * 4;
-          Oe(i[c.kit.id], Gt(a, l, y), k + 10, b + 5, 32, {
+          Oe(faceOf(i, c), Gt(a, l, y), k + 10, b + 5, 32, {
             bg: c.kit.color,
             grey: c.hp <= 0,
             slash: !0,
@@ -37741,7 +38098,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 23,
+  var NETV = 25,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -41544,6 +41901,24 @@
         case "voltBoom":
           P("boom", n.x, n.y - 8, 1), P("sparks", n.x, n.y - 8, 0.8);
           break;
+        case "rollGo":
+          P("dustBrown", n.x, n.y, 1.2);
+          break;
+        case "rollHit":
+          P("hitHeavy", n.x, n.y - 14, 0.9);
+          break;
+        case "rollBreak":
+          P("rock", n.x, n.y - 6, 1), P("dustBrown", n.x, n.y - 8, 1.4);
+          break;
+        case "runeOn":
+          P("sparkle2", n.x, n.y - 6, 1.2, { tint: "#7fe8ff" });
+          break;
+        case "runeUsed":
+          P("lightBurst", n.x, n.y - 10, 0.8, { tint: "#9ff3ff" });
+          break;
+        case "urnBreak":
+          P("dustBrown", n.x, n.y - 6, 0.8);
+          break;
         case "vatRise":
           P("lightBurst", n.x, n.y - 28, 0.7, { a: 0.9 }),
             P("smokePuff", n.x, n.y - 6, 1.4, {
@@ -44231,6 +44606,34 @@
           break;
         case "vatRise":
           S.land(), t.dust(n.x, n.y, 8, 0, 0, 1.2);
+          break;
+        case "rollWarn":
+          S.land(), t.shake(0, 1, 2), t.dust(n.x, n.y + 6, 10, 0, 0.4, 1.4);
+          break;
+        case "rollGo":
+          S.slam(), t.shake(0, 1, 4);
+          break;
+        case "rollHit":
+          S.wall(), t.shake(0, 1, 4);
+          break;
+        case "rollBreak":
+          S.slam(),
+            S.guardBreak(),
+            t.shake(0, 1, 6),
+            t.debris(n.x, n.y - 10, 18, 0, -0.6);
+          break;
+        case "runeOn":
+          S.cdReady();
+          break;
+        case "urnBreak":
+          S.wall(),
+            t.debris(n.x, n.y - 10, 10, 0, -0.5),
+            n.drop && t.popup(n.x, n.y - 26, "BERRY!", "#7fd0ff", !1);
+          break;
+        case "berryGet":
+          S.heal(),
+            t.heal(n.x, n.y, 8),
+            t.popup(n.x, n.y - 30, `+${n.amount} HP`, "#7fd0ff", !0);
           break;
         case "vatBoom":
           S.boom(),
