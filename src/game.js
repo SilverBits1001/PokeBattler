@@ -4840,6 +4840,8 @@
     // [sprite, colour] of the sticker.
     IT = {
       mons: [["slugma", "#ff7a3c"]],
+      // The Slugma's drawn size.
+      size: 0.7,
       first: 60,
       // % of max HP per second, rising by ramp each second held, to cap.
       drain: 1.6,
@@ -25287,7 +25289,7 @@
             h.kit.tall * Bz(h) -
             17 -
             // Above the sticker on whoever is it.
-            (e.it?.who === h ? 20 : 0) +
+            (e.it?.who === h ? 13 : 0) +
             Math.sin(e.tick * 0.08) * 1.2,
         ),
         b = tagOf(h, e).label,
@@ -25893,6 +25895,17 @@
         a.drawImage(l.white, p, k, l.fw, l.fh, M, P, l.fw, l.fh),
         a.restore();
       return;
+    }
+    // You're It!: a pulsing red glow round whoever is it, drawn behind.
+    if (C && t.it?.who === C && C.state !== "faint") {
+      let gp = 0.5 + 0.5 * Math.sin(t.tick * 0.18);
+      a.save(),
+        (a.globalAlpha = (e.alpha ?? 1) * v * (0.75 + 0.25 * gp)),
+        (a.shadowColor = "rgba(255,40,30,0.95)"),
+        (a.shadowBlur = (10 + 8 * gp) * ma),
+        a.drawImage(l.tints.get("#ff3a2a") ?? l.white, p, k, l.fw, l.fh, M, P, l.fw, l.fh),
+        a.drawImage(l.tints.get("#ff3a2a") ?? l.white, p, k, l.fw, l.fh, M, P, l.fw, l.fh),
+        a.restore();
     }
     if (
       ((a.globalAlpha = (e.alpha ?? 1) * (x ? 0.6 : 1) * v),
@@ -31301,7 +31314,7 @@
       for (let c of e.players) {
         if (!c.isRival || c.state === "faint" || c.vanished) continue;
         let y = f(h(c.px, c.x)),
-          b = u(h(c.py, c.y) - h(c.pz, c.z) - 40 - (e.it?.who === c ? 20 : 0));
+          b = u(h(c.py, c.y) - h(c.pz, c.z) - 40 - (e.it?.who === c ? 13 : 0));
         ot(
           y - 12,
           b,
@@ -31589,17 +31602,18 @@
       f = 0,
       acc = e.tick % tot;
     for (; f < an.durations.length - 1 && acc >= an.durations[f]; f++) acc -= an.durations[f];
-    let b0 = spriteBox(an, 0, 0);
+    let b0 = spriteBox(an, 0, 0),
+      k = IT.size;
     a.drawImage(
       an.img,
       f * an.fw,
       0,
       an.fw,
       an.fh,
-      Math.round(x - (b0.l + b0.r + 1) / 2),
-      Math.round(y - b0.b - 1),
-      an.fw,
-      an.fh,
+      x - ((b0.l + b0.r + 1) / 2) * k,
+      y - (b0.b + 1) * k,
+      an.fw * k,
+      an.fh * k,
     );
   }
   // Pidgey Sweep: the countdown, the score and the medal marks.
