@@ -23584,13 +23584,47 @@
     let im = ARENA_ART[k];
     return im && im.complete && im.naturalWidth ? im : null;
   };
+  // The layer under the game canvas that full-resolution paintings are
+  // drawn on (see fa).
+  var BGL = { c: null, g: null, shown: !1 };
   function fa(a, e, t, s, i = !1) {
-    (Bt && Bt.kind === e.arena) || ((Bt = Va(e.arena)), (Bt.kind = e.arena)),
-      a.setTransform(1, 0, 0, 1, 0, 0),
-      (a.imageSmoothingEnabled = !1),
-      (a.fillStyle = "#2a2f37"),
-      a.fillRect(0, 0, Y * Ye, _ * Ye);
-    let r = t.view;
+    (Bt && Bt.kind === e.arena) || ((Bt = Va(e.arena)), (Bt.kind = e.arena));
+    let r = t.view,
+      art = arenaArt(e.stage ?? e.arena),
+      // A full-resolution painting goes on its own layer at the screen's
+      // real resolution, from its own pixels, so it stays sharp however
+      // big the screen and however far the camera zooms; the game canvas
+      // over it is left clear. Pixel art drawn on its own grid stays on
+      // the game canvas, unsmoothed.
+      hd = art && art.width >= Y * Ye && BGL.g;
+    a.setTransform(1, 0, 0, 1, 0, 0), (a.imageSmoothingEnabled = !1);
+    if (hd) {
+      let g = BGL.g,
+        k = BGL.c.width / (Y * Ye);
+      a.clearRect(0, 0, Y * Ye, _ * Ye),
+        g.setTransform(1, 0, 0, 1, 0, 0),
+        (g.fillStyle = "#2a2f37"),
+        g.fillRect(0, 0, BGL.c.width, BGL.c.height),
+        g.setTransform(
+          r.z * Ye * k,
+          0,
+          0,
+          r.z * Ye * k,
+          Math.round(r.ox * Ye) * k,
+          Math.round(r.oy * Ye) * k,
+        ),
+        (g.imageSmoothingEnabled = !0),
+        (g.imageSmoothingQuality = "high"),
+        g.drawImage(art, 0, 0, Y, _),
+        (BGL.shown = !0);
+    } else
+      BGL.shown &&
+        BGL.g &&
+        (BGL.g.setTransform(1, 0, 0, 1, 0, 0),
+        BGL.g.clearRect(0, 0, BGL.c.width, BGL.c.height),
+        (BGL.shown = !1)),
+        (a.fillStyle = "#2a2f37"),
+        a.fillRect(0, 0, Y * Ye, _ * Ye);
     if (
       (a.setTransform(
         r.z * Ye,
@@ -23600,16 +23634,7 @@
         Math.round(r.ox * Ye),
         Math.round(r.oy * Ye),
       ),
-      arenaArt(e.stage ?? e.arena)
-        ? // Pixel art drawn on its own grid stays unsmoothed; a painting at
-          // the canvas's full size (1280x720) or larger is smoothed, so it
-          // stays clean when the camera zooms in.
-          ((a.imageSmoothingEnabled =
-            arenaArt(e.stage ?? e.arena).width >= Y * Ye),
-          (a.imageSmoothingQuality = "high"),
-          a.drawImage(arenaArt(e.stage ?? e.arena), 0, 0, Y, _),
-          (a.imageSmoothingEnabled = !1))
-        : a.drawImage(Bt, 0, 0),
+      hd || a.drawImage(art || Bt, 0, 0, Y, _),
       i)
     )
       return;
@@ -40091,6 +40116,7 @@
       r = document.getElementById("game"),
       o = document.getElementById("ui"),
       l = document.getElementById("title"),
+      bgEl = document.getElementById("bg"),
       f = r.getContext("2d"),
       u = o.getContext("2d"),
       h = 1;
@@ -40104,8 +40130,22 @@
       Z >= 1 && Z / T > 0.9 && (T = Z);
       let ne = Math.floor(Y * T),
         ee = Math.floor(_ * T);
-      for (let Kt of [i, r, o])
-        (Kt.style.width = ne + "px"), (Kt.style.height = ee + "px");
+      for (let Kt of [i, r, o, bgEl])
+        Kt && ((Kt.style.width = ne + "px"), (Kt.style.height = ee + "px"));
+      // The painting layer: the screen's real pixels, up to 3x and about
+      // 4K in all (one image drawn per frame, so it stays cheap).
+      if (bgEl) {
+        let k = Math.min(
+          devicePixelRatio || 1,
+          3,
+          Math.sqrt((3840 * 2160) / Math.max(1, ne * ee)),
+        );
+        (bgEl.width = Math.round(ne * k)),
+          (bgEl.height = Math.round(ee * k)),
+          (BGL.c = bgEl),
+          (BGL.g = bgEl.getContext("2d")),
+          (BGL.shown = !0);
+      }
       // The HUD canvas follows the screen's pixel density for crisp text, up
       // to 2x and about 2560x1440 in all: past that the extra pixels cost
       // frame rate on phones and 4K screens without looking any sharper.

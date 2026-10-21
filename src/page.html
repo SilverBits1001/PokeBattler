@@ -32,6 +32,8 @@ body {
 #stage:fullscreen { width: 100vw !important; height: 100vh !important; display: grid; place-items: center; }
 canvas { position: absolute; left: 0; top: 0; display: block; }
 #game { image-rendering: pixelated; image-rendering: crisp-edges; }
+/* The arena painting, under the game canvas at the screen's own resolution. */
+#bg { image-rendering: auto; }
 #title { position: absolute; inset: 0; cursor: pointer; background: transparent; }
 #title:focus-visible { outline: none; }
 #fs {
@@ -45,6 +47,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
 
 <div id="wrap">
   <div id="stage">
+    <canvas id="bg"></canvas>
     <canvas id="game" width="1280" height="720"></canvas>
     <canvas id="ui"></canvas>
     <button id="fs" type="button" aria-label="Go fullscreen" title="Fullscreen" hidden>
