@@ -157,9 +157,10 @@ the stage); your clear time, continues and best are kept on this device.
 
 **You're It!** (Party, or X on team select): Free-for-All tag for 3 or 4
 fighters. A Slugma sits on top of whoever is "it" and burns their HP: about 1.6% a second, rising the longer
-they hold it. Only a melee hit from the fighter you control passes it on; ranged
-attacks, assists, legendaries and hazards never do, though ranged shots still push
-the chaser back. No tag-backs for two seconds, a moment's grace for the new "it",
+they hold it. Melee contact passes it on either way: if whoever is it lands a melee
+hit, the one hit is it; if you melee whoever is it, you catch it. Only the fighter
+you control counts; ranged attacks, assists, legendaries and hazards never pass it,
+so ranged shots are how you fight back from a safe distance. No tag-backs for two seconds, a moment's grace for the new "it",
 and whoever is it is 10% faster. Hits between fighters do 40% damage, so the drain
 is the real threat; drained to zero is a K.O. Last one standing wins, and Lives work
 too. CPUs run from whoever is it.
