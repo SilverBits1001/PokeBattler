@@ -283,6 +283,16 @@ them to appear.
 **In battle** the bottom-left tray lists your moves with their buttons and cooldowns,
 and your legendary's meter.
 
+## Trailer
+
+A 95-second trailer is at
+**https://silverbits1001.github.io/PokeBattler/trailer.mp4**. It is recorded from
+the game itself: `tools/trailer/rec.js` drives an instrumented build on a virtual
+clock (30 fps, two game ticks a frame) through the title, menu, team select, stage
+select and staged CPU matches, adding captions as an overlay. `tools/trailer/mux.py`
+then encodes the frames with the title theme and the battle theme. The music is
+the game's (Nintendo / Creatures / GAME FREAK). Sound effects are not recorded.
+
 ## Online play
 
 Choose **Online** or **Online Tag Team** as the mode on team select (X cycles modes),

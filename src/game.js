@@ -24817,7 +24817,9 @@
           o(h.py, h.y) -
           o(h.pz, h.z) -
           h.kit.tall * Bz(h) -
-          24 +
+          24 -
+          // Clear of the full player tag while it shows.
+          (e.players.length > 2 || (e.match.ticks ?? 0) <= 180 ? 12 : 0) +
           Math.sin(h.t * 0.25) * 1.5;
       if (sc <= 0) continue;
       a.save(),
