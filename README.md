@@ -242,6 +242,11 @@ Details and numbers are in the design review.
 **Tag Team**: two Pokémon each, with Switch and Assist. Party modes use one Pokémon
 each.
 
+**Fight length**: every Pokémon has 1.5x the HP its kit lists (`HP_SCALE`), with
+moves unchanged, so a 1v1 life lasts about a minute (Hard CPU against Hard CPU:
+53 s on average, up from 38 s), nearer Smash and Pokkén than the half minute it
+was. Stage hazards and status ticks keep their fixed damage.
+
 **Lives**: L1 (Q) on team select sets 1, 3 or 5 lives each, in every mode but
 Training and Zone Control (and the Arcade). A K.O. with a life left brings the
 fighter (both of them, in Tag Team) back at full health at the spawn point

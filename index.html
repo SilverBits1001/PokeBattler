@@ -2919,8 +2919,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     ut = 360,
     // Deliberate pacing: every move commits a little longer, so attacks can be
     // read and whiffs can be punished. Scales the per-kit frame data below.
-    PACE = { startup: 1.3, recovery: 1.35, windup: 1.25, cooldown: 1.3 };
+    PACE = { startup: 1.3, recovery: 1.35, windup: 1.25, cooldown: 1.3 },
+    // Longer lives: every Pokemon's HP is scaled up together (moves keep
+    // their damage), so a 1v1 life runs about a minute rather than half
+    // that, nearer Smash and Pokken. Stage hazards and status ticks keep
+    // their fixed damage, so they matter a little less.
+    HP_SCALE = 1.5;
   for (let a of Object.values(xe)) {
+    a.hp = Math.round(a.hp * HP_SCALE);
     let e = a.basic;
     (a.basic = () =>
       e().map((t) => ({
@@ -39537,7 +39543,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 31,
+  var NETV = 32,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
