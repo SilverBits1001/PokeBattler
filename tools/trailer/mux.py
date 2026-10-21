@@ -1,4 +1,8 @@
-"""Frames + music -> trailer.mp4. Usage: python3 mux.py framesdir out.mp4"""
+"""Frames + music -> trailer.mp4.
+
+Usage: python3 mux.py framesdir out.mp4 [--no-fade-in]
+--no-fade-in starts on the first frame itself (for sites that use the
+opening frame as the thumbnail, like Reddit)."""
 import json, subprocess, sys, glob, os
 d, out = sys.argv[1], sys.argv[2]
 here = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +24,7 @@ subprocess.run([
     '-i', f'{here}/title.mp3', '-i', f'{here}/rse.mp3',
     '-filter_complex', af, '-map', '0:v', '-map', '[a]',
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p',
-    '-vf', f'fade=t=in:st=0:d=0.5,fade=t=out:st={T - 0.8}:d=0.8',
+    '-vf', ('' if '--no-fade-in' in sys.argv else 'fade=t=in:st=0:d=0.5,') + f'fade=t=out:st={T - 0.8}:d=0.8',
     '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out,
 ], check=True)
 print(out, f'{T:.1f}s', n, 'frames')
