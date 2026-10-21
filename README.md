@@ -70,8 +70,10 @@ switched in Options → Match, or with X / Select on team select. Accessibility 
 
 Match flow: in Free-for-All, pick 3 or 4 fighters on team select (RT, O or tap
 Players); the CPU rivals are shown there before the match. After choosing your
-Pokémon and legendary, a ready screen sums up the match and waits for Start (Back
-returns to the legendary). In Training that screen is a briefing for each of your
+Pokémon and legendary comes the stage select: every stage as a big picture in a
+3x3 grid, with Random last (it remembers your pick; not in the Arcade, whose ladder
+sets the stages, or online, which has its own arena roulette). Then a ready screen
+sums up the match and waits for Start (Back returns to the stage select). In Training that screen is a briefing for each of your
 Pokémon: every move with its typical damage and what it does, what each effect
 (burn, chill, daze, armour...) means, and a guide to how to play it. Mid-fight
 announcements (combos, surges, items, legendaries) now appear as a small pill under
