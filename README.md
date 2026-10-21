@@ -311,8 +311,7 @@ and your legendary's meter.
 ## Trailer
 
 A 79-second trailer (no web address on screen) is at
-**https://silverbits1001.github.io/PokeBattler/trailer.mp4** (the first cut is
-kept as `trailer-v1.mp4`). It is recorded from the game itself:
+**https://silverbits1001.github.io/PokeBattler/trailer.mp4**. It is recorded from the game itself:
 `tools/trailer/rec2.js` drives an instrumented build on a virtual clock (30 fps,
 two game ticks a frame) through the title, main menu, team select (Tag Team and
 the legendary picks), Stadium, Power Plant and Magma Isle, Tag Team switching, a
