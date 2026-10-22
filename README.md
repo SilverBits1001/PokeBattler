@@ -322,6 +322,33 @@ with captions as an overlay; items, taunts, shinies and Lives are off.
 battle theme. The music is the game's (Nintendo / Creatures / GAME FREAK). Sound
 effects are not recorded.
 
+## Android (AYN Thor and other handhelds)
+
+```
+python3 tools/build.py && python3 tools/build_apk.py
+```
+
+This writes `dist/PocketBrawl.apk`, the whole game in one full-screen landscape
+WebView. It runs offline, and online play works when the device has internet.
+The sources are in `android/`. The Java is written as smali, so no Android SDK
+is needed. The build downloads Apktool and uber-apk-signer into `.apk-tools/`
+the first time it runs, and signs the APK with uber-apk-signer's debug key, so
+a new build installs over the old one. Set `APK_VERSION_CODE` and
+`APK_VERSION_NAME` to raise the version.
+
+The built-in controller is read natively, from key and motion events, and handed
+to the page as `window.AndroidPad`. A small shim in the APK's page turns that into
+a standard `navigator.getGamepads()` pad, so the game's controller support works
+unchanged:
+
+- Buttons: A, B, X, Y, L1, R1, L3, R3, Start, Select and Home.
+- D-pad: as keys or as a hat axis.
+- Both sticks.
+- Analog L2 and R2.
+
+Back pauses (it acts as Escape). The screen stays on, the system bars are
+hidden, and the game pauses when the app goes to the background.
+
 ## Online play
 
 Choose **Online** or **Online Tag Team** as the mode on team select (X cycles modes),

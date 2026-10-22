@@ -3,3 +3,10 @@ trailer.mp4
 trailer-reddit.mp4
 trailer-thumbnail.jpg
 menu-music-loop-preview.mp3
+
+# Android build (tools/build_apk.py)
+.apk-tools/
+.apk-build/
+.apk-unsigned.apk
+.apk-signed/
+dist/PocketBrawl.apk
