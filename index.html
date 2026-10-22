@@ -5202,8 +5202,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       milotic: 0.68,
       inteleon: 0.55,
       zoroark: 0.95,
-      // Roster 4: Pikachu is caught out in a crowd; Gengar is about right.
-      pikachu: 1.1,
+      // Roster 4: a crowd keeps waking Gengar's sleepers and feeding it; Pikachu
+      // picks off the weakened.
+      pikachu: 0.85,
+      gengar: 0.65,
       lurantis: 1.15,
       ceruledge: 1.35,
       // Shield Forme and King's Shield shine in a crowd.
@@ -5247,8 +5249,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ceruledge: 1.25,
       inteleon: 1.25,
       zoroark: 1.1,
-      pikachu: 1.12,
-      gengar: 1.15,
+      pikachu: 1.35,
+      gengar: 1.35,
       // Focused by two foes, the new pair need a little more in 2v2.
       aegislash: 1.15,
       greninja: 1.12,
@@ -40744,6 +40746,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           !a.arenas.every(
             (e) => Number.isInteger(e) && e >= 0 && e < ARENAS.length,
           ))) ||
+      (a.thin != null && typeof a.thin !== "boolean") ||
       (a.tune.arena != null &&
         !(
           Number.isInteger(a.tune.arena) &&
@@ -40926,6 +40929,16 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             (P2P.state === "linked" || e.presence.fmt === teamSize()),
         )
       : [];
+  }
+  // Who is in the party: everyone linked by code, or in the open lobby
+  // the trainers who chose to join ours.
+  function netPartyJoiners() {
+    let me = netMe();
+    return netLobbyPeers().filter((x) =>
+      P2P.state === "linked"
+        ? x.presence.st !== "away"
+        : x.presence.st === "join" && me && x.presence.want === me.peer,
+    );
   }
   function netMe() {
     return NET.room?.peers().find((a) => a.sameTab) ?? null;
@@ -41271,6 +41284,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     search: ["SEARCHING", "#ffc93c"],
     challenge: ["CHALLENGING", "#ff9a3d"],
     busy: ["IN BATTLE", "#ff4a63"],
+    host: ["HOSTING A PARTY", "#4df08a"],
+    join: ["IN A PARTY", "#4df08a"],
   };
   // ---- Friend codes ----
   // A direct WebRTC link between two pages, for friends who cannot share the
@@ -42097,8 +42112,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   function netRows() {
     let a = !!NET.room && !NET.dead;
     return [
-      ...(a && P2P.state !== "linked" ? [{ kind: "quick" }] : []),
+      ...(a && P2P.state !== "linked" ? [{ kind: "quick" }, { kind: "hostParty" }] : []),
       ...(P2P.state === "linked" && P2P.host ? [{ kind: "party" }] : []),
+      { kind: "thin" },
       ...netLobbyPeers()
         .filter((e) => e.presence.st !== "away")
         .map((e) => ({ kind: "peer", p: e })),
@@ -42287,6 +42303,30 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           );
       else if (C.kind === "back")
         V("Back to team select", Q + 10, E + 13, 10.5, K ? g.night : g.chalk);
+      else if (C.kind === "hostParty")
+        V("Host a party", Q + 10, E + 13, 10.5, K ? g.night : g.gold),
+          G(
+            "Up to 4 trainers: pick yours to join",
+            Q + 96,
+            E + 12,
+            6.2,
+            K ? g.night : g.haze,
+          );
+      else if (C.kind === "thin")
+        V(
+          NET.thin ? "Mode: Thin Ice" : "Mode: Battle",
+          Q + 10,
+          E + 13,
+          10.5,
+          K ? g.night : NET.thin ? "#7fd0ff" : g.chalk,
+        ),
+          G(
+            "The host's choice is played",
+            Q + 128,
+            E + 12,
+            6.2,
+            K ? g.night : g.haze,
+          );
       else if (C.kind === "party") {
         let n = Math.min(4, netLobbyPeers().filter((x) => x.presence.st !== "away").length + 1);
         V("Start battle", Q + 10, E + 13, 10.5, K ? g.night : g.gold),
@@ -42394,6 +42434,24 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       (y = "Different game versions: both refresh"), (b = [["B", "Back"]]);
     else if (NET.st === "search")
       (y = "Looking for an opponent…"), (b = [["B", "Cancel"]]);
+    else if (NET.st === "host") {
+      let C = netPartyJoiners().length;
+      (y = C
+        ? `Your party: ${C + 1} players`
+        : "Hosting a party: waiting for trainers…"),
+        (b = C
+          ? [
+              ["A", "Start"],
+              ["B", "Cancel"],
+            ]
+          : [["B", "Cancel"]]),
+        (p = "#4df08a");
+    } else if (NET.st === "join") {
+      let C = netLobbyPeers().find((x) => x.peer === NET.want);
+      (y = `In ${C ? netName(C) : "a"}'s party. Waiting for the start…`),
+        (b = [["B", "Leave"]]),
+        (p = "#4df08a");
+    }
     else if (NET.st === "challenge") {
       let C = netLobbyPeers().find((x) => x.peer === NET.want);
       (y = `Waiting for ${C ? netName(C) : "them"} to accept…`),
@@ -43463,9 +43521,16 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (netSet({ bye: 1 }), netEnd("Cancelled"), S.back());
         return;
       }
-      if (NET.st === "search" || NET.st === "challenge") {
+      if (NET.st === "search" || NET.st === "challenge" || NET.st === "join") {
         n.pressed.has("back") &&
           ((NET.st = "idle"), (NET.want = null), netPresence(), S.back());
+        return;
+      }
+      // Hosting a party in the open lobby: start, or call it off.
+      if (NET.st === "host") {
+        n.pressed.has("confirm") && netPartyStart(),
+          n.pressed.has("back") &&
+            ((NET.st = "idle"), (NET.want = null), netPresence(), S.back());
         return;
       }
       w(n, (R) => {
@@ -43489,6 +43554,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       if (R.kind === "unlink")
         return p2pStop("Friend link ended"), (s.netCursor = 0), S.back();
       if (R.kind === "party") return netPartyStart();
+      if (R.kind === "thin")
+        return (NET.thin = !NET.thin), S.ui(!0), netPresence();
+      if (R.kind === "hostParty")
+        return (NET.st = "host"), (NET.want = null), S.select(), netPresence();
       // In a friend party the host starts the battle for everyone.
       if (R.kind === "peer" && P2P.state === "linked") return S.fizzle();
       if (!NET.room || NET.dead)
@@ -43497,6 +43566,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         ? ((NET.st = "search"), (NET.want = null), (NET.wantT = 0), S.select())
         : R.p.presence.st === "busy"
           ? S.fizzle()
+          : R.p.presence.st === "host"
+            ? // Join their party; they start the battle.
+              ((NET.st = "join"),
+              (NET.want = R.p.peer),
+              (NET.wantT = Date.now()),
+              S.select())
           : ((NET.st = "challenge"),
             (NET.want = R.p.peer),
             (NET.wantT = Date.now()),
@@ -43543,7 +43618,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         for (let T of Object.keys(A)) NET_LOCAL.includes(T) || (W[T] = A[T]);
         // Each player picked an arena: if they differ, one is drawn at random
         // and every page plays a short roulette before the battle.
-        let Ar = D.seats.map((x, k) => (k === 0 ? A.arena : (D.arenaS[k] ?? A.arena)));
+        let Ar = D.seats.map((x, k) =>
+          NET.thin ? 3 : k === 0 ? A.arena : (D.arenaS[k] ?? A.arena),
+        );
         (W.arena = Ar[Math.floor(Math.random() * N)]),
           (D.roll =
             new Set(Ar).size > 1 ? { a: Ar, pick: W.arena, at: Date.now() } : null);
@@ -43578,6 +43655,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             }),
             arenas: Ar,
             lives: A.lives ?? 1,
+            // Thin Ice when the host chose it (always on the frozen lake).
+            thin: !!NET.thin,
             shiny: D.seats.map((x, k) =>
               (k === 0 ? D.myTeam.map(shinyWant) : (D.shinyS[k] ?? [])).slice(
                 0,
@@ -43609,7 +43688,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           rbStatic(e.mons),
           (e.stockN = D.lives ?? 1),
           (e.itGame = !1),
-          (e.thinGame = !1),
+          (e.thinGame = D.thin === !0),
           (e.shinyTeams = D.shiny ?? null);
         // Three or four players: a Free-for-All, one Pokemon each.
         N > 2
@@ -43758,11 +43837,28 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     // Friend-code party: the host starts a battle for everyone it has
     // linked (two to four players); the guests follow the host's lead.
     function netPartyTick() {
-      if (P2P.state !== "linked" || P2P.host || NET.m || !NET.room) return;
+      if (NET.m || !NET.room) return;
+      let linked = P2P.state === "linked";
+      if (linked ? P2P.host : NET.st !== "join") return;
       let me = netMe();
       if (!me) return;
+      if (!linked) {
+        let q = netLobbyPeers().find((x) => x.peer === NET.want);
+        if (!q || (q.presence.st !== "host" && q.presence.st !== "busy"))
+          return (
+            (NET.st = "idle"),
+            (NET.want = null),
+            (NET.msg = "The party was called off"),
+            (NET.msgT = 150),
+            netPresence()
+          );
+      }
       let h = NET.room.peers().find(
-          (x) => !x.sameTab && x.presence?.party && Array.isArray(x.presence.party.seats),
+          (x) =>
+            !x.sameTab &&
+            (linked || x.peer === NET.want) &&
+            x.presence?.party &&
+            Array.isArray(x.presence.party.seats),
         ),
         pt = h?.presence.party;
       pt &&
@@ -43777,9 +43873,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     function netPartyStart() {
       let me = netMe(),
-        fr = netLobbyPeers()
-          .filter((x) => x.presence.st !== "away")
-          .slice(0, 3);
+        fr = netPartyJoiners().slice(0, 3);
       if (!me || !fr.length) return S.fizzle();
       let seats = [me.peer, ...fr.map((x) => x.peer)],
         room = "sb-party-" + Math.random().toString(36).slice(2, 9);

@@ -102,9 +102,18 @@ Duel win rates at each CPU level (rookie, normal, hard), each against the same t
 
 No kit depends on one skill level to be viable.
 
-**Free-for-All and 2v2:** in random four-fighter Free-for-Alls (25% is par) Pikachu
-won about 21% and Gengar 26%; in random 2v2s (50% is par) 40% and 36%. Pikachu gets a
-×1.1 damage scale in Free-for-All, where its low HP gets it caught in the middle, and
-both get a little more in 2v2 (×1.12 and ×1.15), like the other kits' per-mode tables.
+**Free-for-All and 2v2.** Each new kit was put in every game of 300 random
+four-fighter Free-for-Alls (25% is par) and 300 random 2v2s (50% is par), then its
+per-mode damage scale was adjusted and the check run again:
+
+| Mode | Kit | First pass | Scale | Final check |
+|---|---|---|---|---|
+| Free-for-All | Pikachu | 0.31 (163 games) | 1 → 0.85 | 0.24 (166) |
+| Free-for-All | Gengar | 0.35 (163) | 1 → 0.65 | 0.32 at 0.74, 0.22 at 0.6 (200–300 games each) |
+| 2v2 | Pikachu | 0.36 (166) | 1 → 1.35 | 0.50 (166) |
+| 2v2 | Gengar | 0.44 (162) | 1 → 1.35 | 0.46 (200) |
+
+A crowd suits Gengar: other fighters wake and soften its sleepers, and it floats over
+the floor hazards. Pikachu needs its partner in 2v2: alone it is focused down.
 
 This testing is CPU-only. A human session is still the right final check on feel.

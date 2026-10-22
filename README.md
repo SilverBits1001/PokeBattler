@@ -50,7 +50,9 @@ water hurts them. CPUs read the ice and get off slabs that are about to go.
 
 **Online parties of up to 4.** A friend code now links up to four players. The host
 starts the battle when everyone is in: two players play a 1v1 (Tag Team works too),
-three or four play a Free-for-All. See [Online play](#online-play).
+three or four play a Free-for-All. In the claude.ai open lobby, pick **Host a party**
+and other trainers join you from the list. Either way the host can set **Mode: Thin
+Ice**. See [Online play](#online-play).
 
 **Items drop anywhere.** Items now land at a random open spot on the arena (never in
 walls, water, lava or hazards, and not right on top of a fighter), so someone has to
@@ -396,7 +398,12 @@ row, which also shows how many are in. The host picks **Start battle**: two play
 play a 1v1, three or four a Free-for-All (one Pokémon each). After a battle everyone
 can **Rematch** (it starts once all of you ask), and anyone who picks **New team** or
 leaves sends the party back to its lobby, still linked, where the host can start again.
-The host passes every message between the friends, so each page sees the whole party. The two pages connect directly over WebRTC when they can, and through
+The host passes every message between the friends, so each page sees the whole party.
+
+**Parties in the open lobby.** Pick **Host a party**: your status shows HOSTING A PARTY
+and other trainers pick you from the list to join (up to three). Start when everyone is
+in; B calls it off. The **Mode** row (Battle or Thin Ice) is the host's choice, for 1v1s
+and parties alike. Thin Ice online always plays on the frozen lake. The two pages connect directly over WebRTC when they can, and through
 free public MQTT relay servers when they can't. Both stay open during a match: play
 moves to the direct link whenever it opens, and back to the relay instantly if it
 drops. This works from any copy of the game. The public copy is
