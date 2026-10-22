@@ -4,8 +4,8 @@
 Usage: python3 tools/addmon.py <name> <dex path> <Anim,Anim,...>
   e.g. python3 tools/addmon.py pidgeotto 0017 FlapAround,Walk,Idle,Hurt,Shoot
 
-Fetches each listed animation sheet (following CopyOf aliases), the Normal
-portrait and the credits, and writes them in the same shape as the other
+Fetches each listed animation sheet (following CopyOf aliases), the
+portraits and the credits, and writes them in the same shape as the other
 entries: {anims: {Name: {fw, fh, durations, rush, hit, ret, src}}, credits,
 portraits}.
 """
@@ -48,7 +48,9 @@ def main():
             "ret": num("ReturnFrame"),
             "src": "data:image/png;base64," + base64.b64encode(png).decode(),
         }
-    portrait = get(BASE + f"portrait/{path}/Normal.png")
+    # Every mood the menus and HUD use; missing ones fall back to Normal.
+    moods = ["Normal", "Happy", "Pain", "Angry", "Determined", "Joyous"]
+    portraits = {m: get(BASE + f"portrait/{path}/{m}.png") for m in moods}
     credits = (get(BASE + f"sprite/{path}/credits.txt") or b"").decode()
     f = ROOT / "assets/sprites.js"
     src = f.read_text()
@@ -56,10 +58,10 @@ def main():
     assets[name] = {
         "anims": out,
         "credits": credits,
-        "portraits": {"Normal": "data:image/png;base64," + base64.b64encode(portrait).decode()} if portrait else {},
+        "portraits": {m: "data:image/png;base64," + base64.b64encode(b).decode() for m, b in portraits.items() if b},
     }
     f.write_text("window.__ASSETS__=" + json.dumps(assets, separators=(",", ":")) + ";\n")
-    print(name, "anims", list(out), "portrait", bool(portrait))
+    print(name, "anims", list(out), "portraits", [m for m, b in portraits.items() if b])
 
 
 main()

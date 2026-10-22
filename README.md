@@ -26,6 +26,36 @@ select. The overlay hides again when a keyboard or controller is used.
 
 ## What's new
 
+**Pikachu and Gengar.** Two new fighters, each built round one idea with a payoff
+that costs something (see [docs/plan-roster-4.md](docs/plan-roster-4.md)):
+
+- **Pikachu** (Electric, speedster) is the fastest fighter and one of the frailest.
+  **Quick Attack** darts in twice (untouchable on the first dash), **Thunderbolt**
+  zaps from range and may paralyse, and **Volt Tackle** is a huge charging dash that
+  paralyses, but a quarter of the damage it deals hurts Pikachu too, and a miss leaves
+  it wide open. **Static** can paralyse anyone who hits it up close.
+- **Gengar** (Ghost/Poison, trickster) puts foes to sleep with a slow wave of
+  **Hypnosis**, then feeds with **Dream Eater**: weak on a foe who is awake, but 2.2x
+  and healing on one who sleeps. Hypnosis is slow with a long recovery and a long
+  cooldown. **Shadow Sneak** sinks it into its shadow to glide and rise under them.
+  **Levitate** floats it over ground hazards.
+
+**Thin Ice** (main menu, and a 4-fighter version in Party). The fight is on a frozen
+lake of ice slabs. Every hit cracks the slab under whoever takes it; heavy hits crack
+the slabs round it too. A slab that cracks through creaks for a moment, then gives way,
+and anyone standing on it falls in: a K.O. (a life, with Lives on), credited to whoever
+hit them last. After 30 seconds the lake starts to thaw from its edge inward, so the
+floor keeps shrinking. Floating Pokémon don't fall, but the freezing spray off open
+water hurts them. CPUs read the ice and get off slabs that are about to go.
+
+**Online parties of up to 4.** A friend code now links up to four players. The host
+starts the battle when everyone is in: two players play a 1v1 (Tag Team works too),
+three or four play a Free-for-All. See [Online play](#online-play).
+
+**Items drop anywhere.** Items now land at a random open spot on the arena (never in
+walls, water, lava or hazards, and not right on top of a fighter), so someone has to
+go and get them.
+
 **Roster 3: seven new fighters, three new legendaries.** Each new fighter is built
 around one idea from its lore and typing, with a payoff that a commitment buys
 (see [docs/plan-roster-3.md](docs/plan-roster-3.md)):
@@ -359,9 +389,14 @@ roulette decides between them before the battle. After a battle, choose **Rematc
 **New team** (you pick again, and the two of you are paired again once you're done) or
 **Leave**.
 
-**Friend codes (no claude.ai account needed).** On the Online screen pick **Create a
-friend code** and send the 5-letter code to a friend; they pick **Enter a friend code**
-and type it in. The two pages connect directly over WebRTC when they can, and through
+**Friend codes and parties (no claude.ai account needed).** On the Online screen pick
+**Create a friend code** and send the 5-letter code to up to three friends; they pick
+**Enter a friend code** and type it in. The code stays on the host's **Start battle**
+row, which also shows how many are in. The host picks **Start battle**: two players
+play a 1v1, three or four a Free-for-All (one Pokémon each). After a battle everyone
+can **Rematch** (it starts once all of you ask), and anyone who picks **New team** or
+leaves sends the party back to its lobby, still linked, where the host can start again.
+The host passes every message between the friends, so each page sees the whole party. The two pages connect directly over WebRTC when they can, and through
 free public MQTT relay servers when they can't. Both stay open during a match: play
 moves to the direct link whenever it opens, and back to the relay instantly if it
 drops. This works from any copy of the game. The public copy is
@@ -377,10 +412,10 @@ To update the public copy after a change: run `python3 tools/build.py`, copy
 `index.html` onto the `gh-pages` branch, and push it.
 
 Matches use rollback netcode with an input delay that adapts to the connection (1 tick on
-a fast link, up to 12 on a slow one), so the other player only ever has to be predicted a
-few ticks ahead. The other player's input is predicted until it arrives; when a guess was
-wrong, the game rewinds and replays the missed ticks within the same frame. Both pages
-run the same deterministic simulation from the host's seed, a sync check runs every
+a fast link, up to 12 on a slow one), so the other players only ever have to be predicted a
+few ticks ahead. Each other player's input is predicted until it arrives; when a guess was
+wrong, the game rewinds and replays the missed ticks within the same frame. Every page
+runs the same deterministic simulation from the host's seed, a sync check runs every
 second, and a corner readout shows the link type (direct, relay or room) and the latency. Press
 F2 (or tap the readout) for a diagnostics panel.
 

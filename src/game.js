@@ -2734,6 +2734,198 @@
         xCd: 150,
         yCd: 300,
       },
+      // The electric mouse. The fastest and the frailest fighter: it darts in
+      // with Quick Attack, zaps from range with Thunderbolt, and its Volt
+      // Tackle is the biggest charge in the game, but it hurts Pikachu too.
+      // Static can paralyse anyone who touches it.
+      pikachu: {
+        id: "pikachu",
+        name: "PIKACHU",
+        type: "ELECTRIC",
+        color: "#f8d030",
+        typeInk: "#2a2000",
+        hp: 800,
+        power: 2.3,
+        speed: 3.35,
+        weight: 0.8,
+        r: 8,
+        hurtR: 10,
+        size: 0.85,
+        tall: 26,
+        role: "Speedster \xB7 glass cannon",
+        ex: !0,
+        static: !0,
+        stats: { speed: 5, power: 4, defense: 1, range: 3, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 4,
+            active: 3,
+            recovery: 7,
+            lunge: 9,
+            dmg: 15,
+            kb: 1.5,
+            heavy: !1,
+            shape: "circle",
+            reach: 14,
+            radius: 12,
+            mtype: "ELECTRIC",
+          },
+          {
+            anim: "Double",
+            startup: 4,
+            active: 3,
+            recovery: 8,
+            lunge: 9,
+            dmg: 16,
+            kb: 1.7,
+            heavy: !1,
+            shape: "circle",
+            reach: 14,
+            radius: 12,
+            mtype: "ELECTRIC",
+          },
+          {
+            anim: "Swing",
+            startup: 6,
+            active: 4,
+            recovery: 13,
+            lunge: 11,
+            dmg: 30,
+            kb: 5.8,
+            heavy: !0,
+            shape: "circle",
+            reach: 17,
+            radius: 15,
+            mtype: "STEEL",
+          },
+        ],
+        dodge: {
+          kind: "dash",
+          dist: 100,
+          ticks: 8,
+          iframes: 8,
+          cooldown: 26,
+          anim: "Walk",
+        },
+        smash: {
+          name: "VOLT TACKLE",
+          anim: "QuickStrike",
+          windup: 8,
+          maxCharge: 48,
+          active: 6,
+          recovery: 30,
+          lunge: 44,
+          dmg: 50,
+          kb: 7.4,
+          shape: "circle",
+          reach: 12,
+          radius: 17,
+          pierce: !0,
+          mtype: "ELECTRIC",
+          blitz: { grow: 1, recoil: 0.25, para: 50, src: "volttackle" },
+        },
+        xName: "THUNDERBOLT",
+        yName: "QUICK ATTACK",
+        xCd: 130,
+        yCd: 150,
+      },
+      // The shadow. It puts foes to sleep with Hypnosis, then feeds on their
+      // dreams: Dream Eater is weak on a foe who is awake, but devastating on
+      // one who sleeps, and it heals Gengar. Shadow Sneak sinks it into its
+      // own shadow to strike from below. Levitate keeps it off the ground.
+      gengar: {
+        id: "gengar",
+        name: "GENGAR",
+        type: "GHOST",
+        type2: "POISON",
+        color: "#7b5cb8",
+        typeInk: "#160c2a",
+        hp: 1000,
+        power: 1.65,
+        speed: 2.75,
+        weight: 1.1,
+        r: 9,
+        hurtR: 11,
+        size: 0.95,
+        tall: 32,
+        role: "Trickster \xB7 dream eater",
+        ex: !0,
+        flier: !0,
+        dreamEater: !0,
+        stats: { speed: 3, power: 4, defense: 2, range: 3, difficulty: 5 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 5,
+            active: 3,
+            recovery: 8,
+            lunge: 8,
+            dmg: 17,
+            kb: 1.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 13,
+            mtype: "GHOST",
+          },
+          {
+            anim: "Double",
+            startup: 5,
+            active: 3,
+            recovery: 9,
+            lunge: 8,
+            dmg: 18,
+            kb: 1.8,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 13,
+            mtype: "GHOST",
+          },
+          {
+            anim: "Lick",
+            startup: 7,
+            active: 4,
+            recovery: 14,
+            lunge: 10,
+            dmg: 30,
+            kb: 5.4,
+            heavy: !0,
+            shape: "circle",
+            reach: 18,
+            radius: 15,
+            mtype: "GHOST",
+          },
+        ],
+        dodge: {
+          kind: "blink",
+          dist: 92,
+          ticks: 9,
+          iframes: 9,
+          cooldown: 30,
+          anim: "Idle",
+        },
+        smash: {
+          name: "DREAM EATER",
+          anim: "Strike",
+          windup: 10,
+          maxCharge: 40,
+          active: 5,
+          recovery: 20,
+          lunge: 30,
+          dmg: 24,
+          kb: 4.6,
+          shape: "circle",
+          reach: 15,
+          radius: 16,
+          mtype: "PSYCHIC",
+        },
+        xName: "HYPNOSIS",
+        yName: "SHADOW SNEAK",
+        xCd: 240,
+        yCd: 210,
+      },
     },
     ge = [
       "charizard",
@@ -2761,6 +2953,8 @@
       "milotic",
       "inteleon",
       "zoroark",
+      "pikachu",
+      "gengar",
     ],
     ut = 360,
     // Deliberate pacing: every move commits a little longer, so attacks can be
@@ -3096,6 +3290,50 @@
         fpMin: 0.85,
         fpMax: 1.5,
       },
+      pikachu: {
+        pref: 44,
+        // Thunderbolt: a fast bolt; a hit may paralyse.
+        tbWind: 10,
+        tbSpeed: 8,
+        tbLife: 34,
+        tbDmg: 24,
+        tbKb: 3,
+        tbPara: 0.35,
+        tbParaT: 60,
+        tbRec: 12,
+        // Quick Attack: two darting dashes; the first is untouchable.
+        qaDash: 7,
+        qaGap: 3,
+        qaSpeed: 7.2,
+        qaTurn: 0.9,
+        qaDmg: 14,
+        qaKb: 2.4,
+        qaRec: 10,
+        // Static: touching Pikachu may paralyse.
+        static: 0.3,
+        staticT: 45,
+      },
+      gengar: {
+        pref: 40,
+        // Hypnosis: a slow wave of sleep; a long, open recovery.
+        hyWind: 12,
+        hySpeed: 2.6,
+        hyLife: 80,
+        hyDmg: 4,
+        hySleep: 84,
+        hyRec: 22,
+        // Dream Eater: weak on a waking foe; on a sleeping one it feasts.
+        deMult: 2.2,
+        deHeal: 0.5,
+        // Shadow Sneak: sink into the shadow, glide, erupt.
+        ssIn: 8,
+        ssGlide: 22,
+        ssSpeed: 1.75,
+        ssR: 32,
+        ssDmg: 30,
+        ssKb: 5,
+        ssRec: 9,
+      },
       greninja: {
         pref: 70,
         // Water Shuriken: a fan of three quick stars.
@@ -3377,6 +3615,7 @@
           e.lava.length ||
           e.stage === MAGMA.stage ||
           e.ice.length ||
+          e.tice ||
           e.rocks.some((f) => f.pylon)
         ) {
           let f = Math.hypot(i.mx, i.my),
@@ -3396,6 +3635,11 @@
               ? (i.mx = i.my = 0)
               : ((i.mx = Math.cos(u + h) * f), (i.my = Math.sin(u + h) * f));
           } else if (e.hazardAt(t.x, t.y)) {
+            // On thin ice, getting off a slab that is going comes first.
+            e.tice &&
+              e.ticeBad(t.x, t.y) &&
+              this.rand() < [0.5, 0.8, 0.95][this.level ?? A.cpuLevel] &&
+              i.pressed.clear();
             for (let h = 0; h < 8; h++) {
               let c = (h / 8) * Math.PI * 2;
               if (!e.hazardAt(t.x + Math.cos(c) * 26, t.y + Math.sin(c) * 26)) {
@@ -4085,7 +4329,61 @@
               (i.my = Math.sin(a)),
               i.pressed.add("dodge"));
           };
-        if (f === "aegislash") {
+        if (f === "pikachu") {
+          // Dodge their big swings, chip with Thunderbolt from range, close
+          // the gap with Quick Attack, and save Volt Tackle for an opening
+          // (a paralysed or recovering foe), since it costs Pikachu too.
+          let hot =
+              op &&
+              y < 64 &&
+              (["attack", "smash", "bodySlam"].includes(op.state) ||
+                (op.state === "ex" && op.exDanger)),
+            open =
+              op &&
+              ((op.paraT ?? 0) > 20 ||
+                (op.asleepUntil ?? 0) > e.tick ||
+                e.recovering(op));
+          hot && u.cdDodge === 0 && r() < 0.55
+            ? dash(b + Math.PI + (r() - 0.5) * 1.6)
+            : open && y > 30 && y < 150 && hp > 0.2 && r() < 0.5
+              ? smash(10 + Math.floor(r() * 30))
+              : y < 30 || (N && y < 44)
+                ? i.pressed.add("attack")
+                : u.cdX === 0 && los && y > 70 && y < 270 && r() < 0.45
+                  ? i.pressed.add("special1")
+                  : u.cdY === 0 && y > 60 && y < 150 && r() < 0.2
+                    ? i.pressed.add("special2")
+                    : y > 50 &&
+                      y < 120 &&
+                      hp > 0.35 &&
+                      r() < 0.06 &&
+                      smash(6 + Math.floor(r() * 30));
+        } else if (f === "gengar") {
+          // Hypnosis from mid range; when it lands, glide in and feast with
+          // Dream Eater. Shadow Sneak escapes pressure or ambushes.
+          let hot =
+              op &&
+              y < 60 &&
+              (["attack", "smash", "bodySlam"].includes(op.state) ||
+                (op.state === "ex" && op.exDanger)),
+            asleep = op && (op.asleepUntil ?? 0) > e.tick;
+          asleep
+            ? y < 48
+              ? smash(4 + Math.floor(r() * 16))
+              : ((i.mx = Math.cos(b)), (i.my = Math.sin(b)))
+            : hot && u.cdY === 0 && r() < 0.45
+              ? i.pressed.add("special2")
+              : u.cdX === 0 && los && y > 50 && y < 200 && r() < 0.35
+                ? i.pressed.add("special1")
+                : y < 32 || (N && y < 46)
+                  ? i.pressed.add("attack")
+                  : u.cdY === 0 && y > 70 && y < 170 && r() < 0.1
+                    ? i.pressed.add("special2")
+                    : y > 30 &&
+                      y < 60 &&
+                      r() < 0.05 &&
+                      smash(4 + Math.floor(r() * 20));
+        } else if (f === "aegislash") {
           // Raise King's Shield into a committed attack (and to get back to
           // Shield Forme when hurt); Shadow Ball from range; Sacred Sword
           // through a guard; swing up close.
@@ -4749,6 +5047,8 @@
       milotic: 0.68,
       inteleon: 0.55,
       zoroark: 0.95,
+      // Roster 4: Pikachu is caught out in a crowd; Gengar is about right.
+      pikachu: 1.1,
       lurantis: 1.15,
       ceruledge: 1.35,
       // Shield Forme and King's Shield shine in a crowd.
@@ -4792,6 +5092,8 @@
       ceruledge: 1.25,
       inteleon: 1.25,
       zoroark: 1.1,
+      pikachu: 1.12,
+      gengar: 1.15,
       // Focused by two foes, the new pair need a little more in 2v2.
       aegislash: 1.15,
       greninja: 1.12,
@@ -4844,6 +5146,28 @@
     // one who passed it. Whoever is it is a little faster, and hits between
     // fighters do less damage so the drain is the real threat.
     // [sprite, colour] of the sticker.
+    // Thin Ice: the fight is on a frozen lake of ice slabs. Every hit cracks
+    // the slab under whoever takes it (heavy hits crack the slabs round it
+    // too); a slab that cracks through creaks for a moment, then gives way
+    // to open water. Fall in and you are out (a life, in Lives). After a
+    // while the lake thaws from its edge inward, so the floor keeps
+    // shrinking. Floating Pokemon don't fall, but the freezing spray off
+    // open water hurts them.
+    TICE = {
+      cols: 20,
+      rows: 10,
+      hp: 100,
+      hitMul: 0.3,
+      heavyMul: 1.5,
+      splash: 0.5,
+      warn: 70,
+      thawAt: 60 * 30,
+      thawEvery: 40,
+      thawDmg: 50,
+      keep: 12,
+      floatEvery: 30,
+      floatDmg: 0.04,
+    },
     IT = {
       mons: [["slugma", "#ff7a3c"]],
       // The Slugma's drawn size.
@@ -4902,7 +5226,7 @@
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
     // Tag Team (6) runs the "vs" match with two Pokemon a side.
-    MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag", "sweep", "ffa"],
+    MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag", "sweep", "ffa", "vs", "ffa"],
     MODE_NAMES = [
       "VS CPU",
       "TRAINING",
@@ -4913,9 +5237,11 @@
       "TAG TEAM",
       "PIDGEY SWEEP",
       "YOU'RE IT!",
+      "THIN ICE",
+      "THIN ICE FFA",
     ],
     // The order X steps through modes on team select.
-    MODE_ORDER = [0, 6, 1, 2, 8, 3, 4, 7, 5],
+    MODE_ORDER = [0, 6, 1, 2, 8, 10, 3, 4, 7, 9, 5],
     // Standard is one Pokemon; Tag Team (and Tag Team online) is two.
     teamSize = () =>
       A.gameMode === 6 || (A.gameMode === 5 && A.onlineTag) ? 2 : 1,
@@ -4923,7 +5249,8 @@
     cpuSide = () => A.gameMode !== 1 && A.gameMode !== 5 && A.gameMode !== 7,
     // Free-for-All rules (rivals rolled on team select, 3 or 4 fighters):
     // Free-for-All itself and You're It!.
-    isFfa = () => A.gameMode === 2 || A.gameMode === 8,
+    isFfa = () => A.gameMode === 2 || A.gameMode === 8 || A.gameMode === 10,
+    thinMode = () => A.gameMode === 9 || A.gameMode === 10,
     // Lives apply to every mode but Training and Zone Control.
     livesMode = () => A.gameMode !== 1 && A.gameMode !== 4 && A.gameMode !== 7,
     // How many fighters the CPU side rolls on team select: in Free-for-All
@@ -6302,6 +6629,8 @@
           // Pidgey Sweep is always on the Stadium.
           ar0 = A.arena;
         e === "sweep" && (A.arena = 0);
+        // Thin Ice is on Frostfall's frozen lake.
+        this.thinGame && e !== "sweep" && (A.arena = 3);
         if (
           ((r.mode = e),
           (r.you = [...t]),
@@ -6572,6 +6901,8 @@
         e === "zone" && this.placeZone(!0);
         this.sweep = null;
         e === "sweep" && this.sweepStart();
+        this.tice = null;
+        this.thinGame && e !== "practice" && e !== "sweep" && this.ticeStart();
         this.it =
           this.itGame && e === "ffa"
             ? {
@@ -6591,7 +6922,7 @@
         r.lives = lv;
         for (let o of this.players) o.lives = lv;
         // Shinies are looks only: [your side, the other side], per slot.
-        this.players.slice(0, 2).forEach((o, k) =>
+        this.players.forEach((o, k) =>
           o.slots.forEach((sl, j) => this.shinyTeams?.[k]?.[j] && (sl.shiny = !0)),
         );
         // Everyone brings a legendary when they are on; Training starts full.
@@ -6687,6 +7018,165 @@
           (w.kvx = w.kvy = 0),
           (w.mvx = w.mvy = 0),
           this.emit({ type: "faint", who: w, kit: w.kit });
+      }
+      // ---- Thin Ice ----
+      ticeStart() {
+        let n = TICE.cols * TICE.rows;
+        this.tice = {
+          hp: Array(n).fill(TICE.hp),
+          // 0 solid, 1 giving way, 2 open water
+          st: Array(n).fill(0),
+          t: Array(n).fill(0),
+          thaw: TICE.thawAt,
+        };
+        // A clean lake: none of Frostfall's own hazards, cover or surges.
+        (this.ice = []),
+          (this.thin = null),
+          (this.rocks = []),
+          (this.puddles = []),
+          (this.surgeT = 1e9),
+          (this.sphealT = 1e9);
+      }
+      ticeCell(x, y) {
+        let c = Math.floor(((x - B.x0) / (B.x1 - B.x0)) * TICE.cols),
+          r = Math.floor(((y - B.y0) / (B.y1 - B.y0)) * TICE.rows);
+        return c < 0 || r < 0 || c >= TICE.cols || r >= TICE.rows
+          ? -1
+          : r * TICE.cols + c;
+      }
+      ticeAt(i) {
+        let cw = (B.x1 - B.x0) / TICE.cols,
+          ch = (B.y1 - B.y0) / TICE.rows;
+        return [
+          B.x0 + ((i % TICE.cols) + 0.5) * cw,
+          B.y0 + (Math.floor(i / TICE.cols) + 0.5) * ch,
+        ];
+      }
+      ticeHurt(i, n) {
+        let T = this.tice;
+        if (i < 0 || T.st[i] || n <= 0) return;
+        (T.hp[i] -= n),
+          T.hp[i] <= 0 &&
+            ((T.hp[i] = 0),
+            (T.st[i] = 1),
+            (T.t[i] = 0),
+            this.emit({ type: "iceCreak", i, x: this.ticeAt(i)[0], y: this.ticeAt(i)[1] }));
+      }
+      // Unsafe ground for the CPU: open water, slabs giving way, thin slabs.
+      ticeBad(x, y) {
+        let T = this.tice,
+          i = this.ticeCell(x, y);
+        return i < 0 || T.st[i] > 0 || T.hp[i] < 30;
+      }
+      // The nearest whole slab, to come back on.
+      ticeSafe(x, y) {
+        let T = this.tice,
+          best = [Se, Te],
+          bd = 1 / 0;
+        for (let i = 0; i < T.st.length; i++) {
+          if (T.st[i] || T.hp[i] < 40) continue;
+          let [cx, cy] = this.ticeAt(i),
+            d = Math.hypot(cx - x, cy - y);
+          d < bd && ((bd = d), (best = [cx, cy]));
+        }
+        return best;
+      }
+      ticeTick() {
+        let T = this.tice;
+        if (!T) return;
+        let live = this.match.phase === "fight" && this.intro <= 0,
+          C = TICE.cols;
+        // Hits crack the slab under whoever takes them.
+        if (live)
+          for (let v of this.events) {
+            if (v.type !== "hit" || !v.victim || !(v.dmg > 0)) continue;
+            let i = this.ticeCell(v.victim.x, v.victim.y),
+              n = v.dmg * TICE.hitMul * (v.heavy ? TICE.heavyMul : 1);
+            if (i < 0) continue;
+            this.ticeHurt(i, n);
+            if (v.heavy) {
+              let c = i % C,
+                r = Math.floor(i / C);
+              for (let [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                let cc = c + dc,
+                  rr = r + dr;
+                cc >= 0 &&
+                  cc < C &&
+                  rr >= 0 &&
+                  rr < TICE.rows &&
+                  this.ticeHurt(rr * C + cc, n * TICE.splash);
+              }
+            }
+          }
+        // Slabs that cracked through give way after a creak.
+        for (let i = 0; i < T.st.length; i++)
+          T.st[i] === 1 &&
+            ++T.t[i] >= TICE.warn &&
+            ((T.st[i] = 2),
+            this.emit({ type: "slabBreak", x: this.ticeAt(i)[0], y: this.ticeAt(i)[1] }));
+        // The thaw: from a while in, the lake melts from its edge inward.
+        if (live && --T.thaw <= 0) {
+          T.thawing ||
+            ((T.thawing = !0), this.emit({ type: "iceThaw" }));
+          T.thaw = TICE.thawEvery;
+          let solid = [],
+            ring = 99;
+          for (let i = 0; i < T.st.length; i++) {
+            if (T.st[i]) continue;
+            let c = i % C,
+              r = Math.floor(i / C),
+              k = Math.min(c, C - 1 - c, (r * C) / TICE.rows, ((TICE.rows - 1 - r) * C) / TICE.rows);
+            solid.push([i, k]), (ring = Math.min(ring, k));
+          }
+          if (solid.length > TICE.keep) {
+            let edge = solid.filter(([, k]) => k < ring + 1);
+            this.ticeHurt(
+              edge[Math.floor(this.rand() * edge.length)][0],
+              TICE.thawDmg,
+            );
+          }
+        }
+        if (!live) return;
+        // Into the water.
+        for (let p of this.players) {
+          if (
+            p.out ||
+            p.state === "faint" ||
+            p.hidden ||
+            p.airborne ||
+            p.state === "dodge" ||
+            p.state === "launched"
+          )
+            continue;
+          let i = this.ticeCell(p.x, p.y);
+          if (i >= 0 && T.st[i] !== 2) continue;
+          if (this.floating(p)) {
+            // Freezing spray off the open water.
+            this.tick % TICE.floatEvery === 0 &&
+              !p.invincible &&
+              ((p.slot.hp = Math.max(
+                0,
+                p.slot.hp - Math.round(p.slot.maxHp * TICE.floatDmg),
+              )),
+              this.emit({ type: "iceSpray", who: p, x: p.x, y: p.y }),
+              p.slot.hp <= 0 && this.ticeFall(p));
+            continue;
+          }
+          this.ticeFall(p);
+        }
+      }
+      ticeFall(p) {
+        // Whoever last hit them (within ten seconds) gets the KO.
+        let by = p.lastHitBy;
+        by &&
+          by.kind === "player" &&
+          by !== p &&
+          this.tick - (p.lastHitT ?? -1e9) < 600 &&
+          (by.koCount++, (by.lastKoTick = this.tick), by.stats.kos++);
+        (p.slot.hp = 0),
+          (p.sunk = !0),
+          this.emit({ type: "iceFall", who: p, x: p.x, y: p.y }),
+          this.itKO(p);
       }
       // ---- Pidgey Sweep ----
       sweepStart() {
@@ -7094,7 +7584,8 @@
           this.resolveHits(),
           this.pushApart(),
           this.updateMatch(),
-          this.arenaPost();
+          this.arenaPost(),
+          this.ticeTick();
         for (let i of this.bodies())
           i.flash > 0 && i.flash--,
             i.tint > 0 && i.tint--,
@@ -7121,7 +7612,11 @@
       endRound(e) {
         let t = this.match;
         // Results are kept from this screen's point of view (display only).
-        this.localIdx === 1 && (e = e === "win" ? "lose" : "win");
+        // Online Free-for-All: you won if you are the one still standing.
+        let me = this.players[this.localIdx ?? 0] ?? this.players[0];
+        this.localIdx && t.mode === "ffa"
+          ? (e = me.out ? "lose" : "win")
+          : this.localIdx === 1 && (e = e === "win" ? "lose" : "win");
         t.phase !== "end" &&
           ((t.phase = "end"),
           (t.endT = 150),
@@ -7129,9 +7624,8 @@
           (t.place =
             e === "win"
               ? 1
-              : (this.players[0].place ??
-                this.players.filter((s) => !s.out).length +
-                  (this.players[0].out ? 1 : 0))),
+              : (me.place ??
+                this.players.filter((s) => !s.out).length + (me.out ? 1 : 0))),
           e === "win" ? t.wins++ : t.losses++,
           this.emit({ type: "roundEnd", result: e }));
       }
@@ -7670,7 +8164,11 @@
           this.applyKnockback(e),
           (e.animName = "Hurt"),
           (e.animFrame = 1),
-          (e.alpha = e.t < 36 ? 1 : Math.max(0, 1 - (e.t - 36) / 14)),
+          (e.alpha = e.sunk
+            ? Math.max(0, 1 - e.t / 12)
+            : e.t < 36
+              ? 1
+              : Math.max(0, 1 - (e.t - 36) / 14)),
           e.t === 60)
         ) {
           let t = e.aliveSlot(1);
@@ -7698,6 +8196,13 @@
               : this.endRound("lose");
             return;
           }
+          // Off thin ice, a partner comes in on solid ground.
+          this.tice &&
+            t !== null &&
+            (([e.x, e.y] = this.ticeSafe(e.x, e.y)),
+            (e.px = e.x),
+            (e.py = e.y),
+            (e.sunk = !1));
           t !== null && ((e.alpha = 1), this.doSwitch(e, t, !0));
         }
       }
@@ -7720,7 +8225,9 @@
           foes = this.players.filter(
             (o) => o !== e && !o.out && o.team !== e.team,
           ),
-          spots = [...QUAD, [Se - 120, Te], [Se + 120, Te], [Se, Te]],
+          spots = [...QUAD, [Se - 120, Te], [Se + 120, Te], [Se, Te]].map(
+            ([x, y]) => (this.tice ? this.ticeSafe(x, y) : [x, y]),
+          ),
           best = spots[0],
           bd = -1;
         for (let [x, y] of spots) {
@@ -9079,10 +9586,11 @@
             rehit: 0,
             attackerStop: !0,
             fire: e.kit.id === "charizard",
-            src: s.blitz ? "flareblitz" : "smash",
+            src: s.blitz ? (s.blitz.src ?? "flareblitz") : "smash",
             melee: !0,
             poison: s.poison,
-            burns: !!s.blitz,
+            burns: !!s.blitz && !s.blitz.para,
+            para: s.blitz?.para,
             smash: Math.max(0.01, i),
             chill: s.chill,
             daze: s.daze ? EXK.golurk.daze : 0,
@@ -10666,6 +11174,14 @@
           }),
           this.emit({ type: "assist", kit: xe[r], who: f });
       }
+      // Paralysis for a set time (Thunderbolt, Static, Volt Tackle).
+      paraFor(e, n) {
+        e.kind === "player" &&
+          e.state !== "faint" &&
+          !this.statusImmune(e) &&
+          ((e.paraT = Math.max(e.paraT ?? 0, n)),
+          this.emit({ type: "paralyzed", who: e }));
+      }
       paralyze(e) {
         e.kind === "player" &&
           e.state !== "faint" &&
@@ -11848,6 +12364,7 @@
           this.drops.some(
             (s) => Math.hypot(s.x - e, (s.y - t) * 1.3) < SURGE.meteorR + 6,
           ) ||
+          (!!this.tice && this.ticeBad(e, t)) ||
           (this.surgeLive(4) && this.nearPylonLine(e, t, 16)) ||
           this.nearArc(e, t, 16) ||
           this.arenaXHazard(e, t)
@@ -12693,15 +13210,47 @@
           }
         this.updateItem();
       }
+      // Where the next item drops: anywhere open on the floor, clear of
+      // walls, water, lava and hazards, and not right on top of a fighter,
+      // so someone has to go and get it. The match's own random stream picks
+      // it, so every online peer agrees.
+      itemSpot() {
+        let best = [Se, Te],
+          bestD = -1;
+        for (let i = 0; i < 24; i++) {
+          let x = B.x0 + 30 + this.rand() * (B.x1 - B.x0 - 60),
+            y = B.y0 + 34 + this.rand() * (B.y1 - B.y0 - 60);
+          if (
+            this.hazardAt(x, y) ||
+            this.inPuddle(x, y) ||
+            this.ice.some((z) => z.melt > 0 && this.inZone(x, y, z)) ||
+            this.inOpenWater({ x, y }) ||
+            this.rocks.some(
+              (r) => r.state === "solid" && Math.hypot(r.x - x, r.y - y) < r.r + 16,
+            )
+          )
+            continue;
+          let d = Math.min(
+            ...this.players
+              .filter((p) => p.state !== "faint")
+              .map((p) => Math.hypot(p.x - x, p.y - y)),
+            999,
+          );
+          if (d > 64) return [x, y];
+          d > bestD && ((bestD = d), (best = [x, y]));
+        }
+        return best;
+      }
       updateItem() {
         if (!A.items || this.match.phase !== "fight" || this.intro > 0) return;
         let e = this.item;
         if (!e) {
-          --this.itemT <= 0 &&
-            ((this.item = {
+          if (--this.itemT > 0) return;
+          let [ix, iy] = this.itemSpot();
+          ((this.item = {
               id: this.nextId++,
-              x: Se,
-              y: Te,
+              x: ix,
+              y: iy,
               state: "warn",
               t: 0,
               kind: ((r) => {
@@ -12709,7 +13258,7 @@
                 return "sitrus";
               })(this.rand() * ITEMS.reduce((r, o) => r + o.w, 0)),
             }),
-            this.emit({ type: "itemWarn", x: Se, y: Te }));
+            this.emit({ type: "itemWarn", x: ix, y: iy }));
           return;
         }
         if ((e.t++, e.state === "warn")) {
@@ -13738,6 +14287,17 @@
                 e.kind === "wisp" && this.burn(t),
                 e.kind === "pulse" && this.soak(t, e.team, e.owner),
                 e.kind === "zap" && this.paralyze(t),
+                e.kind === "tbolt" &&
+                  t.kind === "player" &&
+                  t.slot.hp < fh &&
+                  this.rand() < EXK.pikachu.tbPara &&
+                  this.paraFor(t, EXK.pikachu.tbParaT),
+                e.kind === "hypno" &&
+                  t.kind === "player" &&
+                  t.slot.hp < fh &&
+                  !this.statusImmune(t) &&
+                  (this.fallAsleep(t, EXK.gengar.hySleep),
+                  (t.nightmareBy = e.owner)),
                 e.pierce
                   ? this.emit({ type: "projHit", p: e, x: t.x, y: t.y })
                   : this.emit({ type: "projDie", p: e, wall: !1 });
@@ -13917,6 +14477,23 @@
             break;
           case "zoroarky":
             go("illusion", "Hop"), (sl.cdY = e.kit.yCd);
+            break;
+          case "pikachux":
+            go("tbolt", "Shock"), (sl.cdX = e.kit.xCd);
+            break;
+          case "pikachuy":
+            go("qatk", "QuickStrike"),
+              (sl.cdY = e.kit.yCd),
+              (e.dir2 = this.aimAssist(e, s, 120)),
+              (e.facing = e.dir2);
+            break;
+          case "gengarx":
+            go("hypno", "Charge"),
+              (sl.cdX = e.kit.xCd),
+              this.emit({ type: "hypnoWind", who: e });
+            break;
+          case "gengary":
+            go("sneak", "Sink"), (sl.cdY = e.kit.yCd);
             break;
           case "greninjax":
             go("shuriken", "Shoot"), (sl.cdX = e.kit.xCd);
@@ -14714,6 +15291,14 @@
             return this.exNightDaze(e);
           case "illusion":
             return this.exIllusion(e, mx, my);
+          case "tbolt":
+            return this.exThunderbolt(e, P);
+          case "qatk":
+            return this.exQuickAttack(e, mx, my, mag);
+          case "hypno":
+            return this.exHypnosis(e, P);
+          case "sneak":
+            return this.exSneak(e, mx, my);
           case "shuriken":
             return this.exShuriken(e, P);
           case "shadowball":
@@ -16105,6 +16690,14 @@
           /:smash/.test(k) &&
           v?.kind === "player" &&
           (m *= me(v.kit.power ?? 1, X.zoroark.fpMin, X.zoroark.fpMax));
+        // Dream Eater feasts on a sleeping foe (and Gengar heals for it).
+        d.dreamEater &&
+          /:smash/.test(k) &&
+          v?.kind === "player" &&
+          (v.asleepUntil ?? 0) > this.tick &&
+          ((m *= X.gengar.deMult),
+          (t.dreamFed = this.tick),
+          this.emit({ type: "dreamEater", who: t, v }));
         // Quiver Dance stacks power Volcarona up.
         (sl.qd ?? 0) > 0 && (m *= 1 + X.volcarona.qdDmg * sl.qd);
         // Ceruledge fights bare-handed while its blades are thrown.
@@ -16160,6 +16753,16 @@
             this.rand() < X.volcarona.flameBody &&
             (this.burn(t), this.emit({ type: "flameBody", who: w, by: t }));
         }
+        // Static: touching Pikachu may paralyse.
+        w.kit.static &&
+          re > 0 &&
+          M &&
+          t &&
+          t.kind === "player" &&
+          t.team !== w.team &&
+          this.rand() < X.pikachu.static &&
+          (this.paraFor(t, X.pikachu.staticT),
+          this.emit({ type: "static", who: w, by: t }));
         if (w.kit.weakArmor && re > 0) {
           w.slot.waT > 0 && (re = Math.round(re * X.ceruledge.waTaken));
           l &&
@@ -16802,6 +17405,144 @@
           this.exFr(e, "Idle", 4, !0),
           e.t >= c.ilHide + c.ilRec && this.exEnd(e);
       }
+      // Pikachu ---------------------------------------------------------------
+      exThunderbolt(e, P) {
+        let c = EXK.pikachu;
+        this.locomote(e, 0, 0);
+        if (e.t <= c.tbWind) {
+          this.exAim(e, P, 280), this.exFr(e, "Shock", 2, !0);
+          return;
+        }
+        e.t === c.tbWind + 1 &&
+          (this.exProj(e, e.team, e.dir2, {
+            kind: "tbolt",
+            speed: c.tbSpeed,
+            r: 6,
+            life: c.tbLife,
+            dmg: c.tbDmg,
+            kb: c.tbKb,
+            hitstun: 18,
+            hitstop: 5,
+            color: "#f8e060",
+            mtype: "ELECTRIC",
+          }),
+          this.emit({ type: "thunderbolt", who: e }));
+        (e.exRec = !0),
+          this.exFr(e, "Shoot", 2, !1, c.tbWind),
+          e.t >= c.tbWind + c.tbRec && this.exEnd(e);
+      }
+      // Quick Attack: dash, cut, dash again. Untouchable on the first leg;
+      // the second can be steered, and a light hit lands on each leg.
+      exQuickAttack(e, mx, my, mag) {
+        let c = EXK.pikachu,
+          leg2 = c.qaDash + c.qaGap,
+          end = leg2 + c.qaDash;
+        e.t === 1 &&
+          ((e.exInv = !0),
+          (e.exList = []),
+          this.emit({ type: "quickAttack", who: e, x: e.x, y: e.y }));
+        if (e.t === c.qaDash + 1) {
+          e.exInv = !1;
+          // The second leg turns toward the stick, up to qaTurn radians.
+          if (mag > 0.3) {
+            let want = Math.atan2(my, mx),
+              d = $e(want, e.dir2);
+            e.dir2 += me(d, -c.qaTurn, c.qaTurn);
+          } else e.dir2 += e.t % 2 ? 0.5 : -0.5;
+          (e.facing = e.dir2), (e.exList = []);
+        }
+        let dashing = e.t <= c.qaDash || (e.t > leg2 && e.t <= end);
+        if (dashing) {
+          let o = Math.cos(e.dir2),
+            l = Math.sin(e.dir2);
+          this.moveBody(e, o * c.qaSpeed, l * c.qaSpeed),
+            this.exFr(e, "QuickStrike", 1, !1),
+            e.t % 2 === 0 && this.emit({ type: "qaTrail", who: e, x: e.x, y: e.y });
+          for (let v of this.victimsFor(e.team))
+            e.exList.includes(v) ||
+              Math.hypot(v.x - e.x, v.y - e.y) > e.r + v.hurtR + 6 ||
+              (e.exList.push(v),
+              this.exHit(v, e, c.qaDmg, c.qaKb, o, l, {
+                src: "quickattack",
+                mtype: "NORMAL",
+                hitstun: 16,
+                melee: !0,
+                color: "#fff0a0",
+              }));
+          return;
+        }
+        if (e.t <= leg2) {
+          this.locomote(e, 0, 0), this.exFr(e, "Idle", 2, !0);
+          return;
+        }
+        (e.exRec = !0),
+          this.locomote(e, 0, 0),
+          this.exFr(e, "Idle", 4, !0),
+          e.t >= end + c.qaRec && this.exEnd(e);
+      }
+      // Gengar ----------------------------------------------------------------
+      exHypnosis(e, P) {
+        let c = EXK.gengar;
+        this.locomote(e, 0, 0);
+        if (e.t <= c.hyWind) {
+          this.exAim(e, P, 220), this.exFr(e, "Charge", 2, !0);
+          return;
+        }
+        e.t === c.hyWind + 1 &&
+          (this.exProj(e, e.team, e.dir2, {
+            kind: "hypno",
+            speed: c.hySpeed,
+            r: 10,
+            life: c.hyLife,
+            dmg: c.hyDmg,
+            kb: 0.4,
+            hitstun: 10,
+            hitstop: 2,
+            color: "#c890ff",
+            mtype: "PSYCHIC",
+          }),
+          this.emit({ type: "hypnosis", who: e }));
+        (e.exRec = !0),
+          this.exFr(e, "Twirl", 2, !1, c.hyWind),
+          e.t >= c.hyWind + c.hyRec && this.exEnd(e);
+      }
+      // Shadow Sneak: sink, glide through the shadows, rise under them.
+      exSneak(e, mx, my) {
+        let c = EXK.gengar;
+        if (e.t <= c.ssIn) {
+          this.locomote(e, 0, 0), this.exFr(e, "Sink", 2, !1);
+          e.t === c.ssIn &&
+            ((e.exInv = e.exHidden = !0),
+            (e.alpha = 0),
+            this.emit({ type: "sneakIn", who: e, x: e.x, y: e.y }));
+          return;
+        }
+        let u = e.t - c.ssIn;
+        if (u <= c.ssGlide) {
+          let sp = e.kit.speed * A.speedScale * c.ssSpeed * this.exSpeed(e);
+          (e.mvx = e.mvy = 0),
+            this.moveBody(e, mx * sp, my * sp),
+            e.t % 3 === 0 &&
+              this.emit({ type: "sneakTrail", who: e, x: e.x, y: e.y }),
+            (e.exDanger = c.ssR);
+          u === c.ssGlide &&
+            ((e.exInv = e.exHidden = !1),
+            (e.alpha = 1),
+            this.exArea(e, e.team, e.x, e.y, c.ssR, c.ssDmg, c.ssKb, {
+              heavy: !0,
+              src: "shadowsneak",
+              mtype: "GHOST",
+              hitstun: A.hitstunHeavy,
+              color: "#7b5cb8",
+            }),
+            this.emit({ type: "sneakOut", who: e, x: e.x, y: e.y, r: c.ssR }));
+          return;
+        }
+        (e.exRec = !0),
+          this.locomote(e, 0, 0),
+          this.exFr(e, "Idle", 3, !0),
+          u >= c.ssGlide + c.ssRec && this.exEnd(e);
+      }
       // Tag Team assists for the second-generation kits.
       exAssist(e, t, s) {
         let id = e.kit.id,
@@ -16810,7 +17551,39 @@
           ty = s ? s.y : e.y + Math.sin(e.dir) * 80,
           o = Math.cos(e.dir),
           l = Math.sin(e.dir);
-        if (id === "zoroark") {
+        if (id === "pikachu") {
+          // Darts in with Quick Attack and lets off a shock.
+          if (e.t < 14) {
+            let dx = tx - e.x,
+              dy = ty - e.y,
+              d = Math.hypot(dx, dy);
+            d > 16 && ((e.x += (dx / d) * 6), (e.y += (dy / d) * 6));
+          }
+          e.t === 14 &&
+            (this.exArea(e, t, e.x, e.y, 30, 18, 3.6, {
+              src: "thunderbolt",
+              mtype: "ELECTRIC",
+              hitstun: 18,
+              color: "#f8e060",
+            }),
+            this.emit({ type: "thunderbolt", who: e })),
+            (e.animName = e.t < 14 ? "QuickStrike" : "Shock"),
+            (e.animFrame = Math.floor(e.t / 2) % 4);
+        } else if (id === "gengar") {
+          // Slips through the shadows and rises under the foe.
+          e.t < 18 && ((e.x += (tx - e.x) * 0.2), (e.y += (ty - e.y) * 0.2)),
+            (e.alpha = e.t < 18 ? 0.25 : 1),
+            e.t === 18 &&
+              (this.exArea(e, t, e.x, e.y, 30, 20, 4.4, {
+                src: "shadowsneak",
+                mtype: "GHOST",
+                hitstun: 20,
+                color: "#7b5cb8",
+              }),
+              this.emit({ type: "sneakOut", who: e, x: e.x, y: e.y, r: 30 })),
+            (e.animName = e.t < 18 ? "Sink" : "Strike"),
+            (e.animFrame = Math.floor(e.t / 3) % 4);
+        } else if (id === "zoroark") {
           if (e.t < 16) {
             let dx = tx - e.x,
               dy = ty - e.y,
@@ -17751,6 +18524,21 @@
               x: t.x,
               y: t.y,
               dmg: Math.round(re * HELMET.recoil),
+            }));
+          t &&
+            t.kind === "player" &&
+            t.dreamFed === this.tick &&
+            re > 0 &&
+            ((t.dreamFed = -1),
+            (t.slot.hp = Math.min(
+              t.slot.maxHp,
+              t.slot.hp + Math.round(re * EXK.gengar.deHeal),
+            )),
+            this.emit({
+              type: "heal",
+              x: t.x,
+              y: t.y,
+              amount: Math.round(re * EXK.gengar.deHeal),
             }));
           t &&
             t.kind === "player" &&
@@ -24135,7 +24923,10 @@
     if (a.brain?.net)
       return a.brain.local
         ? { label: "YOU", color: t.p1 }
-        : { label: netOppName(10).toUpperCase(), color: t.cpu[0] };
+        : {
+            label: netShort(a.brain.name ?? netOppName(10), 10).toUpperCase(),
+            color: t.cpu[Math.max(0, (a.brain.seat ?? 1) - 1) % 3],
+          };
     return a.isRival
       ? e && a.team === e.player.team
         ? { label: "ALLY", color: t.ally }
@@ -24557,6 +25348,84 @@
       (BGL.pre = { art, n, c });
     return c;
   }
+  // Thin Ice: the lake's slabs, cracking as they take hits, and the open
+  // water where they have given way.
+  function drawTice(a, e) {
+    let T = e.tice,
+      C = TICE.cols,
+      cw = (B.x1 - B.x0) / C,
+      ch = (B.y1 - B.y0) / TICE.rows,
+      tk = e.tick;
+    a.save();
+    for (let i = 0; i < T.st.length; i++) {
+      let c = i % C,
+        r = Math.floor(i / C),
+        x = Math.round(B.x0 + c * cw),
+        y = Math.round(B.y0 + r * ch),
+        w = Math.round(B.x0 + (c + 1) * cw) - x,
+        h = Math.round(B.y0 + (r + 1) * ch) - y,
+        st = T.st[i];
+      if (st === 2) {
+        // Open water: deep, with slow ripples and the slab edge above.
+        (a.fillStyle = "#123848"), a.fillRect(x, y, w, h);
+        a.fillStyle = "#1d5266";
+        for (let k = 0; k < 3; k++) {
+          let q = (tk * 0.25 + k * 9 + i * 5) % (h + 6);
+          a.fillRect(x + ((k * 7 + i) % Math.max(1, w - 8)), y + Math.floor(q) - 3, 6, 1);
+        }
+        r > 0 &&
+          T.st[i - C] !== 2 &&
+          ((a.fillStyle = "#7fb9cf"), a.fillRect(x, y, w, 3),
+          (a.fillStyle = "#4d8ba3"), a.fillRect(x, y + 3, w, 1));
+        continue;
+      }
+      let hp = T.hp[i],
+        sh = st === 1 ? ((tk + i) % 4 < 2 ? 1 : -1) : 0,
+        rnd = rt(i * 7 + 3),
+        tone = Math.floor(rnd() * 3);
+      x += sh;
+      // The slab: pale ice, a bright top edge, a seam to its neighbours.
+      (a.fillStyle = ["#cdeefa", "#c4e8f6", "#d6f2fc"][tone]),
+        a.fillRect(x, y, w, h),
+        (a.fillStyle = "#eefbff"),
+        a.fillRect(x, y, w, 1),
+        a.fillRect(x, y, 1, h),
+        (a.fillStyle = "#a6d6e8"),
+        a.fillRect(x + w - 1, y, 1, h),
+        a.fillRect(x, y + h - 1, w, 1);
+      for (let k = 0; k < 3; k++)
+        (a.fillStyle = "#ffffff"),
+          a.fillRect(x + 2 + Math.floor(rnd() * (w - 4)), y + 2 + Math.floor(rnd() * (h - 4)), 1, 1);
+      // Cracks: more of them, and darker, the more the slab has taken.
+      let n = st === 1 ? 6 : hp < 35 ? 4 : hp < 70 ? 2 : 0;
+      if (n) {
+        let cx = x + w * (0.3 + rnd() * 0.4),
+          cy = y + h * (0.3 + rnd() * 0.4);
+        (a.strokeStyle = st === 1 ? "#2f6f8c" : hp < 35 ? "#4f8fac" : "#79b2c9"),
+          (a.lineWidth = 1),
+          a.beginPath();
+        for (let k = 0; k < n; k++) {
+          let ang = rnd() * Math.PI * 2,
+            px = cx,
+            py = cy;
+          a.moveTo(Math.round(px) + 0.5, Math.round(py) + 0.5);
+          for (let j = 0; j < 3; j++)
+            (ang += (rnd() - 0.5) * 1.2),
+              (px = Math.min(x + w - 1, Math.max(x, px + Math.cos(ang) * w * 0.22))),
+              (py = Math.min(y + h - 1, Math.max(y, py + Math.sin(ang) * h * 0.22))),
+              a.lineTo(Math.round(px) + 0.5, Math.round(py) + 0.5);
+        }
+        a.stroke();
+      }
+      // About to go: the slab darkens and flashes.
+      st === 1 &&
+        ((a.globalAlpha = 0.25 + 0.25 * Math.sin(tk * 0.6)),
+        (a.fillStyle = "#2a6f8f"),
+        a.fillRect(x, y, w, h),
+        (a.globalAlpha = 1));
+    }
+    a.restore();
+  }
   function fa(a, e, t, s, i = !1) {
     (Bt && Bt.kind === e.arena) || ((Bt = Va(e.arena)), (Bt.kind = e.arena));
     let r = t.view,
@@ -24648,6 +25517,7 @@
       }
       a.globalAlpha = 1;
     }
+    e.tice && drawTice(a, e);
     for (let h of e.puddles) {
       // The Shrine's pools are in its painting.
       if (h.pool) continue;
@@ -29032,6 +29902,53 @@
     }
   }
   function r3DrawProj(a, e, h, c, y, ang) {
+    if (h.kind === "tbolt") {
+      // Thunderbolt: a jagged bolt with a hot white core.
+      let o = Math.cos(ang),
+        l = Math.sin(ang),
+        pts = [];
+      for (let k = 0; k <= 5; k++) {
+        let j = k === 0 || k === 5 ? 0 : (((h.age * 7 + k * 13) % 7) - 3) * 1.4;
+        pts.push([c - o * k * 4 - l * j, y - l * k * 4 + o * j]);
+      }
+      a.save(), (a.globalCompositeOperation = "lighter");
+      for (let [w, col, al] of [
+        [5, "#f8d030", 0.35],
+        [2, "#fff6b0", 0.9],
+        [1, "#ffffff", 1],
+      ]) {
+        (a.globalAlpha = al), (a.strokeStyle = col), (a.lineWidth = w);
+        a.beginPath();
+        pts.forEach(([px, py], k) => (k ? a.lineTo(px, py) : a.moveTo(px, py)));
+        a.stroke();
+      }
+      (a.globalAlpha = 0.5),
+        (a.fillStyle = "#fff3a0"),
+        a.beginPath(),
+        a.arc(c, y, 5, 0, Math.PI * 2),
+        a.fill(),
+        a.restore();
+      return !0;
+    }
+    if (h.kind === "hypno") {
+      // Hypnosis: slow rings of violet light, rippling outward.
+      a.save();
+      for (let k = 0; k < 3; k++) {
+        let q = ((h.age * 0.06 + k / 3) % 1),
+          rr = 3 + q * 9;
+        (a.globalAlpha = 0.85 * (1 - q)),
+          (a.strokeStyle = k % 2 ? "#e8c8ff" : "#a070e0"),
+          (a.lineWidth = 2),
+          a.beginPath(),
+          a.ellipse(c, y, rr, rr * 0.75, 0, 0, Math.PI * 2),
+          a.stroke();
+      }
+      (a.globalAlpha = 0.9),
+        (a.fillStyle = "#f0e0ff"),
+        a.fillRect(Math.round(c) - 1, Math.round(y) - 1, 2, 2),
+        a.restore();
+      return !0;
+    }
     if (h.kind === "wgun") {
       // Water Gun: a fast streak of water.
       (a.globalAlpha = 0.5),
@@ -29376,6 +30293,14 @@
       return l.disguise
         ? ue(`ILLUSION: ${xe[l.disguise]?.name ?? "?"}`, "#b03050", v, E)
         : hint("Strike from a disguise: ambush");
+    if (id === "pikachu")
+      return t.state === "ex" && t.exMove === "qatk"
+        ? ue("QUICK ATTACK", "#f8d030", v, E)
+        : hint("Volt Tackle hurts you too");
+    if (id === "gengar")
+      return t.state === "ex" && t.exMove === "sneak" && t.exHidden
+        ? ue("IN THE SHADOWS", "#7b5cb8", v, E)
+        : hint("Hypnosis, then Dream Eater");
     if (id === "inteleon")
       return l.steadyT > 0
         ? ue("STEADY AIM", "#9fe0ff", v, E)
@@ -33943,6 +34868,8 @@
         Y: "decoy",
       },
       inteleon: { A: "17 · 18 · 29", RS: "32–112", X: "3 × ~9", Y: "~19" },
+      pikachu: { A: "26 · 28 · 52", RS: "86–138", X: "~41", Y: "2 × ~24" },
+      gengar: { A: "21 · 22 · 37", RS: "30–48 · ×2.2 asleep", X: "sleep", Y: "~37" },
       milotic: { A: "20 · 22 · 33", RS: "6 × ~8", X: "~22", Y: "+10% HP" },
       volcarona: { A: "18 · 19 · 32", RS: "29–46", X: "~23", Y: "+12% dmg" },
       ceruledge: {
@@ -34029,6 +34956,14 @@
         "Illusionist. You start each round disguised as someone else: make your first hit count, it is an ambush. Illusion leaves a decoy for them to chase while you vanish and re-disguise. Night Daze punishes crowding, and Foul Play hits the strongest Pok\xE9mon hardest.",
         ["ambush", "daze"],
       ],
+      pikachu: [
+        "Speedster. The fastest Pok\xE9mon and the frailest: dart in with Quick Attack, chip from range with Thunderbolt, and get out. Volt Tackle is the biggest charge in the game and paralyses, but the recoil hurts you and a miss leaves you wide open. Static can paralyse anyone who hits you up close.",
+        ["para", "invuln"],
+      ],
+      gengar: [
+        "Trickster. Hypnosis is slow and leaves you open, but a foe it touches falls asleep. Then glide in and Dream Eater them: it is weak on a foe who is awake, and devastating on one who sleeps, and it heals you. Shadow Sneak sinks you into your shadow to escape or rise under them. Levitate floats you over the ground.",
+        ["sleep", "lifesteal", "invuln"],
+      ],
       inteleon: [
         "Sniper. Make space with Acrobatics and the kick, then line up Snipe Shot: the laser sight shows where it will land, and a full charge is a critical. Water Gun keeps them honest. Up close you are the weakest fighter there is.",
         ["sniper", "invuln"],
@@ -34088,6 +35023,11 @@
         "Moves at under half speed and can't dodge until it wears off.",
       ],
       daze: ["Daze", "#7ab8ff", "Slower, wobbly movement for under a second."],
+      sleep: [
+        "Sleep",
+        "#c890ff",
+        "Can't act until it wears off, or until you're hit.",
+      ],
       chill: ["Chill", "#9ad8f0", "Each stack slows you; three stacks freeze."],
       freeze: [
         "Freeze",
@@ -35353,6 +36293,10 @@
             ? "Tag Team: pick two. Your first pick leads."
             : A.gameMode === 8
               ? `You're It!: melee hits pass it on; being it drains you. ${cpuNeed()} CPU rivals, RT to change.`
+              : A.gameMode === 9
+              ? "Thin Ice: every hit cracks the ice. Knock them into the water."
+              : A.gameMode === 10
+              ? `Thin Ice FFA: last one standing on the ice. ${cpuNeed()} CPU rivals, RT to change.`
               : A.gameMode === 2
               ? `Free-for-All: you and ${cpuNeed()} CPU rivals. RT or tap Players to change.`
               : A.gameMode === 7
@@ -35497,7 +36441,12 @@
         weight: 700,
       }),
       V(
-        (A.gameMode === 7 ? "Stadium" : (ARENAS[A.arena]?.name ?? "Stadium")).toUpperCase(),
+        (A.gameMode === 7
+          ? "Stadium"
+          : thinMode()
+            ? "Frozen Lake"
+            : (ARENAS[A.arena]?.name ?? "Stadium")
+        ).toUpperCase(),
         h,
         c + 6.4,
         7.6,
@@ -35538,7 +36487,7 @@
           ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
           [
             "X",
-            `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team", "Pidgey Sweep", "You're It!"][A.gameMode] ?? "VS CPU")}`,
+            `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team", "Pidgey Sweep", "You're It!", "Thin Ice", "Thin Ice FFA"][A.gameMode] ?? "VS CPU")}`,
             "#cfcaea",
           ],
           ...(s
@@ -35552,7 +36501,7 @@
                   ],
                 ]
               : []),
-          ...(A.gameMode === 7 ? [] : [["SELECT", "Arena", y]]),
+          ...(A.gameMode === 7 || thinMode() ? [] : [["SELECT", "Arena", y]]),
           ...(shinyHave(ge[a.cursor])
             ? [["L2", shinyWant(ge[a.cursor]) ? "Shiny: On" : "Shiny: Off", shinyWant(ge[a.cursor]) ? g.gold : "#cfcaea"]]
             : []),
@@ -35820,7 +36769,7 @@
           : r.mode === "team"
             ? "CPUs win"
             : NET.m
-              ? `${netOppName(14)} wins`
+              ? `${a.players.find((q) => !q.out && q.brain?.net && !q.brain.local)?.brain.name ?? netOppName(14)} wins`
               : "CPU wins"),
       // Long names shrink to fit the banner.
       V(
@@ -36072,11 +37021,17 @@
       s =
         a.phase === "ready"
           ? "Starting the rematch…"
-          : e && !t
-            ? `Waiting for ${netOppName(14)}…`
-            : t && !e
-              ? `${netOppName(14)} wants a rematch!`
-              : "";
+          : a.N > 2
+            ? e
+              ? `Waiting for ${a.N - 1 - (a.rmS ?? 0)} more…`
+              : t
+                ? `${a.rmS} want${a.rmS > 1 ? "" : "s"} a rematch!`
+                : ""
+            : e && !t
+              ? `Waiting for ${netOppName(14)}…`
+              : t && !e
+                ? `${netOppName(14)} wants a rematch!`
+                : "";
     s &&
       (te(226, 212, 176, 12, "rgba(8,6,18,0.75)"),
       G(s, 314, 220.5, 7, t && !e ? g.gold : g.chalk, {
@@ -36248,10 +37203,13 @@
     if (!e || a.phase !== "ready") return;
     let t = Date.now() - e.at;
     if (t > NET_ROLL + 300) return;
-    let i = Math.min(1, t / (NET_ROLL - 700)),
-      r = e.a.indexOf(e.pick),
-      o = 12 + (r === 0 ? 0 : 1),
-      l = Math.floor((1 - Math.pow(1 - i, 2.2)) * o) % 2,
+    // One card per arena picked (yours first), up to four.
+    let L0 = [...new Set(e.a)],
+      L = L0.length,
+      i = Math.min(1, t / (NET_ROLL - 700)),
+      r = L0.indexOf(e.pick),
+      o = 12 - (12 % L) + r,
+      l = Math.floor((1 - Math.pow(1 - i, 2.2)) * o) % L,
       f = i >= 1;
     l !== e.last && ((e.last = l), f ? S.select() : S.ui(l === 1));
     d.save(),
@@ -36262,10 +37220,10 @@
         skew: !0,
         outline: 2.4,
       });
-    let u = 150,
+    let u = L > 3 ? 96 : L > 2 ? 120 : 150,
       h = u * 0.56;
-    e.a.forEach((c, y) => {
-      let b = H / 2 - u - 10 + y * (u + 20),
+    L0.forEach((c, y) => {
+      let b = H / 2 - (L * u + (L - 1) * 20) / 2 + y * (u + 20),
         p = 78,
         k = y === l,
         M = f && !k;
@@ -36311,7 +37269,11 @@
           },
         ),
         G(
-          y === 0 ? "Your pick" : `${netOppName(14)}'s pick`,
+          y === 0
+            ? "Your pick"
+            : a.N > 2
+              ? "A rival's pick"
+              : `${netOppName(14)}'s pick`,
           b + u / 2,
           p + h + 26,
           6.4,
@@ -36993,6 +37955,72 @@
         "*",
         "Illusion",
         "Start each round disguised. Your first strike from a disguise hits 30% harder; a hit on you breaks it.",
+        "PASSIVE",
+      ],
+    ],
+    pikachu: [
+      [
+        "A",
+        "Spark \xB7 Iron Tail",
+        "Two quick sparks, then a heavy Iron Tail.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Volt Tackle",
+        "A crackling charge through foes that paralyses. Charge to go further. Recoil: a quarter of the damage dealt hurts you too.",
+        "CHARGE",
+      ],
+      [
+        "X",
+        "Thunderbolt",
+        "A fast bolt of lightning. It may paralyse.",
+        "RANGED",
+      ],
+      [
+        "Y",
+        "Quick Attack",
+        "Two darting dashes that hit as you pass. Untouchable on the first; steer the second.",
+        "MOBILITY",
+      ],
+      ["B", "Dash", "A quick dash.", "DODGE"],
+      [
+        "*",
+        "Static",
+        "A foe who hits you up close may be paralysed (30%).",
+        "PASSIVE",
+      ],
+    ],
+    gengar: [
+      [
+        "A",
+        "Shadow Punch \xB7 Lick",
+        "Two shadowy punches, then a heavy Lick.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Dream Eater",
+        "A lunging bite. Weak on a foe who is awake; on a sleeping foe it deals 2.2\xD7 and heals you for half.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Hypnosis",
+        "A slow wave of sleep. A foe it touches falls asleep. Long recovery.",
+        "SLEEP",
+      ],
+      [
+        "Y",
+        "Shadow Sneak",
+        "Sink into your shadow, glide where you steer, and rise under them.",
+        "AMBUSH",
+      ],
+      ["B", "Phase", "Blink a short way, untouchable.", "DODGE"],
+      [
+        "*",
+        "Levitate",
+        "Floats: ground attacks, quakes and floor hazards miss you.",
         "PASSIVE",
       ],
     ],
@@ -38018,7 +39046,14 @@
                   ? (I("saw", 440, 330, 0.25, 0.09, e, { vib: 30 }),
                     I("p25", 660, 880, 0.2, 0.06, e + 0.08),
                     X(0.2, "bandpass", 1400, 2, 0.06, 900, e + 0.05))
-                  : a === "inteleon"
+                  : a === "pikachu"
+                    ? (I("sq", 1320, 1760, 0.08, 0.06, e, { vib: 25 }),
+                      I("sq", 1760, 1175, 0.18, 0.06, e + 0.1, { vib: 30 }))
+                    : a === "gengar"
+                      ? (I("saw", 220, 440, 0.2, 0.08, e, { vib: 10 }),
+                        I("p25", 440, 165, 0.35, 0.07, e + 0.18, { vib: 6 }),
+                        X(0.3, "bandpass", 700, 2, 0.05, 300, e + 0.1))
+                      : a === "inteleon"
                     ? (I("p25", 880, 1175, 0.15, 0.07, e, { vib: 20 }),
                       I("p25", 1175, 990, 0.2, 0.06, e + 0.12),
                       X(0.1, "highpass", 5e3, 1, 0.05, 8e3, e + 0.05))
@@ -39389,7 +40424,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 32,
+  var NETV = 33,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -39534,17 +40569,23 @@
       a.delay > 15 ||
       !Array.isArray(a.teams) ||
       !a.teams.every(netTeam) ||
-      a.teams.length !== 2 ||
-      a.teams[0].length !== a.teams[1].length ||
+      a.teams.length < 2 ||
+      a.teams.length > 4 ||
+      !a.teams.every((t) => t.length === a.teams[0].length) ||
+      // Tag Team is a 1v1 format.
+      (a.teams.length > 2 && a.teams[0].length !== 1) ||
+      !Array.isArray(a.seats) ||
+      a.seats.length !== a.teams.length ||
+      !a.seats.every((x) => typeof x === "string" && x.length < 80) ||
       !a.tune ||
       typeof a.tune !== "object" ||
       (a.legends != null &&
         (!Array.isArray(a.legends) ||
-          a.legends.length !== 2 ||
+          a.legends.length !== a.teams.length ||
           !a.legends.every((e) => LEGENDS.includes(e)))) ||
       (a.arenas != null &&
         (!Array.isArray(a.arenas) ||
-          a.arenas.length !== 2 ||
+          a.arenas.length !== a.teams.length ||
           !a.arenas.every(
             (e) => Number.isInteger(e) && e >= 0 && e < ARENAS.length,
           ))) ||
@@ -39713,6 +40754,7 @@
         fmt: teamSize(),
         hb: NET.hb ?? 0,
         no: [...NET.declined].slice(-4),
+        party: NET.party ?? null,
       },
       s = JSON.stringify(t);
     s !== NET.sent && ((NET.sent = s), e.presence(t).catch(() => {}));
@@ -39726,7 +40768,7 @@
             !e.sameTab &&
             e.kind === "viewer" &&
             e.presence?.v === NETV &&
-            e.presence.fmt === teamSize(),
+            (P2P.state === "linked" || e.presence.fmt === teamSize()),
         )
       : [];
   }
@@ -39808,30 +40850,50 @@
     return null;
   }
   // The match room: hello, a short ping to size the input delay, the host's
-  // settings, then lockstep. All of it travels in presence.
-  async function netOpenMatch(a, e) {
+  // settings, then lockstep. All of it travels in presence. Two to four
+  // seats: seat 0 hosts. A 1v1 pairs two pages; a friend-code party opens a
+  // room for everyone the host has linked.
+  async function netOpenMatch(seats, e, name) {
     let t = netMe();
     if (!t) return;
-    let s = t.peer < a.peer,
-      i = `sb-${netHash([t.peer, a.peer].sort().join("|"))}`;
-    let o0 = NET.st === "search";
+    let me = seats.indexOf(t.peer);
+    if (me < 0) return;
+    let i = name ?? `sb-${netHash([...seats].sort().join("|"))}`,
+      o0 = NET.st === "search",
+      N = seats.length;
     (NET.st = "busy"), netPresence();
+    let peers = netLobbyPeers(),
+      nm = (k) => {
+        let q = peers.find((x) => x.peer === seats[k]);
+        return q ? netName(q) : "";
+      };
     let r = {
       name: i,
       room: null,
-      host: s,
-      opp: a.peer,
-      oppName: netName(a),
+      seats: [...seats],
+      seat: me,
+      N,
+      host: me === 0,
+      rem: seats.map((x, k) => k).filter((k) => k !== me),
+      opp: seats[me === 0 ? 1 : 0],
+      oppName: nm(me === 0 ? 1 : 0),
+      names: seats.map((x, k) => (k === me ? netShort(NET.nick, 20) : nm(k))),
       myTeam: [...e],
       oppTeam: [],
+      teams: seats.map((x, k) => (k === me ? [...e] : null)),
+      shinyS: [],
+      lgS: [],
+      arenaS: [],
       phase: "join",
       epoch: 0,
       cfg: null,
       pings: [],
       pingK: 0,
       pingAt: {},
+      pingGot: {},
       pong: -1,
       seenAt: Date.now(),
+      seenS: {},
       joinedAt: Date.now(),
       wasSearch: o0,
       wins: 0,
@@ -39883,15 +40945,20 @@
       (NET.sent = ""),
       netPresence());
   }
+  // A seat's page in the match room, if it is there.
+  function netSeatPeer(e, k) {
+    return e?.room
+      ? (e.room.peers().find((x) => x.peer === e.seats[k]) ?? null)
+      : null;
+  }
   function netOpp() {
     let a = NET.m;
-    return a?.room
-      ? (a.room.peers().find((e) => e.peer === a.opp) ?? null)
-      : null;
+    return a ? netSeatPeer(a, a.rem[0]) : null;
   }
   function netEnd(a) {
     let e = NET.m;
     (NET.m = null),
+      (NET.party = null),
       e?.room && e.room.leave().catch(() => {}),
       e?.saved && Object.assign(A, e.saved),
       (NET.st = "idle"),
@@ -39900,59 +40967,110 @@
       a && ((NET.msg = a), (NET.msgT = 210)),
       netPresence();
   }
-  // Everything that only depends on what the other page has said so far.
+  // Everything that only depends on what the other pages have said so far.
   function netMatchTick(a) {
     let e = NET.m;
     if (!e?.room) return;
-    let t = netOpp(),
-      s = Date.now();
-    if (t) (e.seenAt = s), (e.seen = !0);
-    else if (!e.seen && s - e.joinedAt > 6e3) {
+    let s = Date.now(),
+      P = e.rem.map((k) => [k, netSeatPeer(e, k)]),
+      // Before play, the host speaks for everyone: guests only need the host.
+      need = e.phase === "play" || e.phase === "results" || e.host ? P : P.filter(([k]) => k === 0);
+    for (let [k, t] of P) t && ((e.seenS[k] = s), (e.seen = !0));
+    // In a friend party a page only drops out of the room by leaving.
+    // When a friend leaves, the host ends its match too: if both are gone at
+    // once, it was the friend who left.
+    if (P2P.state === "linked" && (e.phase === "play" || e.phase === "results")) {
+      let gone = P.filter(([k, t]) => !t && e.seenS[k]).map(([k]) => k);
+      if (gone.length) return a.left(!0, gone.find((k) => k !== 0) ?? gone[0]);
+    }
+    let late = need.find(([k]) => !e.seenS[k]);
+    if (late && s - e.joinedAt > 6e3 && !e.seen) {
       // They paired with someone else: quietly go back to what we were doing.
       let r = e.wasSearch;
       return (
         netEnd(r ? "" : "No answer"), r && ((NET.st = "search"), netPresence())
       );
-    } else if (s - e.seenAt > (e.phase === "play" ? 5e3 : 8e3))
-      return a.left(e.phase === "play" || e.phase === "results");
-    if (!t) return;
-    let i = t.presence ?? {};
-    if (i.bye) return a.left(!0);
-    i.h &&
-      !e.oppTeam.length &&
-      netTeam(i.h.team) &&
-      ((e.oppTeam = i.h.team),
-      (e.oppShiny = Array.isArray(i.h.sh) ? i.h.sh.map((x) => x === !0) : []),
-      (e.oppLg = i.h.lg),
-      (e.oppArena =
-        Number.isInteger(i.h.ar) && i.h.ar >= 0 && i.h.ar < ARENAS.length
-          ? i.h.ar
-          : null),
-      i.h.nick && !e.oppName && (e.oppName = i.h.nick));
-    // Ping: the host times a few round trips to pick the input delay.
-    if (e.host && e.phase === "hello" && e.oppTeam.length) {
-      if (i.po === e.pingK && e.pingAt[e.pingK])
-        e.pings.push(s - e.pingAt[e.pingK]), e.pingK++;
-      if (e.pings.length >= 5 || (e.pingK > 0 && s - e.pingAt[0] > 4e3)) {
+    }
+    for (let [k] of need)
+      if (e.seenS[k] && s - e.seenS[k] > (e.phase === "play" ? 5e3 : 8e3))
+        return a.left(e.phase === "play" || e.phase === "results", k);
+    if (late && s - e.joinedAt > 1e4)
+      return a.left(!1, late[0]);
+    e.seenAt = s;
+    let I = {};
+    for (let [k, t] of P) t && (I[k] = t.presence ?? {});
+    for (let k in I)
+      if (I[k].bye) {
+        let w = I[k].why;
+        return a.left(
+          !0,
+          +k === 0 && Number.isInteger(w) && w > 0 && w < e.N && w !== e.seat ? w : +k,
+        );
+      }
+    // Hellos: each seat's team, name and picks.
+    for (let k in I) {
+      let i = I[k];
+      i.h &&
+        !e.teams[k] &&
+        netTeam(i.h.team) &&
+        ((e.teams[k] = i.h.team),
+        (e.shinyS[k] = Array.isArray(i.h.sh) ? i.h.sh.map((x) => x === !0) : []),
+        (e.lgS[k] = i.h.lg),
+        (e.arenaS[k] =
+          Number.isInteger(i.h.ar) && i.h.ar >= 0 && i.h.ar < ARENAS.length
+            ? i.h.ar
+            : null),
+        i.h.nick && !e.names[k] && (e.names[k] = netShort(i.h.nick, 20)));
+    }
+    let o = e.rem[0];
+    (e.oppTeam = e.teams[o] ?? []),
+      (e.oppShiny = e.shinyS[o]),
+      (e.oppLg = e.lgS[o]),
+      (e.oppArena = e.arenaS[o]),
+      (e.oppName = e.names[o] || e.oppName);
+    let all = e.rem.every((k) => e.teams[k]);
+    // Ping: the host times a few round trips to each guest to pick the
+    // input delay (the slowest link sets it).
+    if (e.host && e.phase === "hello" && all) {
+      let got = e.rem.filter((k) => I[k]?.po === e.pingK);
+      if (e.pingAt[e.pingK] && got.length)
+        for (let k of got)
+          (e.pingGot[e.pingK] ??= new Set()).has(k) ||
+            (e.pingGot[e.pingK].add(k), e.pings.push(s - e.pingAt[e.pingK]));
+      e.pingAt[e.pingK] &&
+        e.rem.every((k) => e.pingGot[e.pingK]?.has(k)) &&
+        e.pingK++;
+      if (
+        e.pings.length >= 5 * e.rem.length ||
+        (e.pingK > 0 && s - e.pingAt[0] > 4e3)
+      ) {
         let r = [...e.pings].sort((l, f) => l - f),
-          o = r[Math.floor(r.length / 2)] ?? 200;
-        (e.rtt = o), a.host(o);
+          q = r[Math.floor(r.length * 0.7)] ?? 200;
+        (e.rtt = q), a.host(q);
       } else
         e.pingAt[e.pingK] || ((e.pingAt[e.pingK] = s), netSet({ pi: e.pingK }));
     }
-    // The other player switched apps or tabs: wait longer for them.
-    e.oppAway = !!i.aw;
+    // Another player switched apps or tabs: wait longer for them.
+    e.oppAway = Object.values(I).some((i) => !!i.aw);
+    let H0 = I[0] ?? {};
     !e.host &&
-      typeof i.pi === "number" &&
-      i.pi !== e.pong &&
-      ((e.pong = i.pi), netSet({ po: i.pi }));
+      typeof H0.pi === "number" &&
+      H0.pi !== e.pong &&
+      ((e.pong = H0.pi), netSet({ po: H0.pi }));
     // Settings and the start signal.
-    if (!e.host && i.cfg?.v === NETV && i.cfg.e > e.epoch && netCfgOk(i.cfg)) {
-      (e.cfg = i.cfg), (e.epoch = i.cfg.e), (e.phase = "ready");
-      let r = i.cfg.arenas;
+    if (
+      !e.host &&
+      H0.cfg?.v === NETV &&
+      H0.cfg.e > e.epoch &&
+      netCfgOk(H0.cfg) &&
+      H0.cfg.seats.length === e.N &&
+      H0.cfg.seats.every((x, k) => x === e.seats[k])
+    ) {
+      (e.cfg = H0.cfg), (e.epoch = H0.cfg.e), (e.phase = "ready");
+      let r = H0.cfg.arenas;
       (e.roll =
-        r && r[0] !== r[1]
-          ? { a: [r[1], r[0]], pick: i.cfg.tune.arena, at: s }
+        r && new Set(r).size > 1
+          ? { a: [r[e.seat], ...r.filter((x, k) => k !== e.seat)], pick: H0.cfg.tune.arena, at: s }
           : null),
         (e.rdAt = e.roll ? s + NET_ROLL : 0);
     }
@@ -39961,24 +41079,33 @@
       s >= (e.rdAt ?? 0) &&
       e.pres.rd !== e.epoch &&
       netSet({ rd: e.epoch });
-    // The guest starts when "go" reaches it, so the host waits half a round
-    // trip before starting too: both clocks begin at the same moment.
-    if (e.host && e.phase === "ready" && i.rd === e.epoch) {
+    // Guests start when "go" reaches them, so the host waits half a round
+    // trip before starting too: every clock begins at about the same moment.
+    if (e.host && e.phase === "ready" && e.rem.every((k) => I[k]?.rd === e.epoch)) {
       e.goAt == null &&
         (netSet({ go: e.epoch }), (e.goAt = s + (e.rtt ?? 0) / 2));
       s >= e.goAt && ((e.goAt = null), a.go());
     }
-    !e.host && e.phase === "ready" && i.go === e.epoch && a.go();
-    // Rematch: once both ask for one, the host sends new settings.
+    !e.host && e.phase === "ready" && H0.go === e.epoch && a.go();
+    // Rematch: once everyone asks for one, the host sends new settings.
+    e.rmS = e.rem.filter((k) => I[k]?.rm === e.epoch).length;
     e.phase === "results" &&
       e.host &&
       e.rm === e.epoch &&
-      i.rm === e.epoch &&
+      e.rmS === e.rem.length &&
       a.host(e.rtt ?? 120);
-    e.oppRm = i.rm === e.epoch;
-    if (i.nt === e.epoch && e.phase === "results") return a.newTeam();
+    e.oppRm = e.rmS > 0;
+    for (let k in I)
+      if (I[k].nt === e.epoch && e.phase === "results") return a.newTeam(+k);
     // Inputs and their acknowledgements.
-    e.phase === "play" && a.inputs(i);
+    if (e.phase === "play") {
+      for (let k in I) a.inputs(I[k], +k);
+      e.ackR = Math.min(...e.rem.map((k) => e.ackS[k]));
+      e.oppAck = Math.min(...e.rem.map((k) => e.peerAck[k]));
+      e.oppAv = e.rem.reduce((q, k) => q + (e.avS[k] ?? 0), 0) / e.rem.length;
+      let dl = e.rem.map((k) => e.dlS[k]).filter((x) => x != null);
+      e.oppDl = dl.length === e.rem.length ? Math.max(...dl) : null;
+    }
   }
   // ---- Online lobby screen ----
   // The same neon stage as team select: your team on the left, the trainers
@@ -40016,7 +41143,13 @@
       rqT: 0,
       rqAt: 0,
       autoJoin: "",
+      // Host of a party: the direct links to each friend, and the friends
+      // heard on the relay. Every message from one friend is passed on to
+      // the others, so each page sees the whole party.
+      conns: [],
+      guests: new Set(),
     },
+    P2P_MAX = 3,
     P2P_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
     P2P_PREFIX = "starterbrawl-v2-";
   try {
@@ -40118,7 +41251,14 @@
           emit: () => Promise.resolve(),
           on: () => () => {},
           leave: () => (
-            i({ r: o, p: e, bye: 1 }), delete t[o], Promise.resolve()
+            // A presence update still waiting goes out before the goodbye.
+            l.timer &&
+              (clearTimeout(l.timer),
+              (l.timer = 0),
+              i({ r: o, p: e, s: ++s, pr: l.self })),
+            i({ r: o, p: e, bye: 1 }),
+            delete t[o],
+            Promise.resolve()
           ),
         };
       return (
@@ -40168,12 +41308,25 @@
         last: Date.now(),
         ping: () => i({ r: "", p: e, k: 1 }),
         // Everything the other page sends is untrusted: shape-check it first.
+        seen: new Map(),
+        // Friends not heard from for ms (the host drops them).
+        stale(ms) {
+          let n = Date.now();
+          return [...t[""].others.keys()].filter(
+            (p) => n - (this.seen.get(p) ?? n) > ms,
+          );
+        },
+        forget(p) {
+          for (let o of Object.values(t)) o.others.has(p) && o.recv({ p, bye: 1 });
+          this.seen.delete(p);
+        },
         recv(o) {
           let l;
           try {
             l = typeof o === "string" && o.length < 65536 && JSON.parse(o);
           } catch {}
           l && (this.last = Date.now());
+          l && typeof l.p === "string" && l.p !== e && this.seen.set(l.p, Date.now());
           l &&
             typeof l === "object" &&
             typeof l.r === "string" &&
@@ -40200,6 +41353,10 @@
     try {
       P2P.conn?.close();
     } catch {}
+    for (let c of P2P.conns)
+      try {
+        c.close();
+      } catch {}
     try {
       P2P.peer?.destroy();
     } catch {}
@@ -40227,6 +41384,8 @@
       hi: 0,
       rtcUp: !1,
       rq: [],
+      conns: [],
+      guests: new Set(),
     }),
       clearTimeout(P2P.rqT),
       (P2P.rqT = 0),
@@ -40424,12 +41583,30 @@
     )
       return;
     let t = P2P.state === "linked" && !P2P.other;
-    e.k === "hi" && P2P.host
-      ? (P2P.state === "waiting" || P2P.other === e.f || t) &&
-        (P2P.relay.send({ f: P2P.me, t: e.f, k: "ok" }),
-        (P2P.other = e.f),
-        P2P.state === "waiting" && p2pUp("relay"))
-      : e.k === "ok" && !P2P.host && (P2P.state === "joining" || t)
+    if (P2P.host) {
+      if (e.k === "hi") {
+        if (P2P.state !== "waiting" && P2P.state !== "linked") return;
+        // A party holds the host and up to three friends.
+        if (!P2P.guests.has(e.f) && P2P.guests.size >= P2P_MAX)
+          return P2P.relay.send({ f: P2P.me, t: e.f, k: "full" });
+        let fresh = !P2P.guests.has(e.f);
+        P2P.guests.add(e.f), P2P.relay.send({ f: P2P.me, t: e.f, k: "ok" });
+        P2P.state === "waiting"
+          ? p2pUp("relay")
+          : fresh && p2pMsg(`A friend joined (${P2P.guests.size + 1} in the party)`);
+      } else
+        e.k === "d" &&
+          P2P.state === "linked" &&
+          P2P.guests.has(e.f) &&
+          Array.isArray(e.d) &&
+          e.d.forEach(
+            (s) => typeof s === "string" && (P2P.shim?.recv(s), p2pFwd(s, null)),
+          );
+      return;
+    }
+    e.k === "full" && P2P.state === "joining"
+      ? p2pStop("That party is full (4 players)")
+      : e.k === "ok" && (P2P.state === "joining" || t)
         ? ((P2P.other = e.f), P2P.state === "joining" && p2pUp("relay"))
         : e.k === "d" &&
           P2P.state === "linked" &&
@@ -40447,8 +41624,11 @@
             (P2P.rqT = 0), (P2P.rqAt = Date.now());
             let e = P2P.rq;
             (P2P.rq = []),
-              P2P.other &&
-                P2P.relay?.send({ f: P2P.me, t: P2P.other, k: "d", d: e });
+              P2P.host
+                ? P2P.guests.size &&
+                  P2P.relay?.send({ f: P2P.me, t: "", k: "d", d: e })
+                : P2P.other &&
+                  P2P.relay?.send({ f: P2P.me, t: P2P.other, k: "d", d: e });
           },
           Math.max(0, 20 - (Date.now() - P2P.rqAt)),
         ));
@@ -40456,6 +41636,7 @@
   var P2P_LINK = {
     open: !0,
     send(a) {
+      if (P2P.host) return p2pFwd(a, null);
       if (P2P.rtcUp && P2P.conn?.open)
         try {
           return P2P.conn.send(a);
@@ -40463,6 +41644,18 @@
       p2pRelaySend(a);
     },
   };
+  // Host: send to every friend but the one it came from. Direct links where
+  // they are open; the relay too while any friend has no direct link.
+  function p2pFwd(a, from) {
+    let n = 0;
+    for (let c of P2P.conns)
+      if (c.open)
+        try {
+          c !== from && c.send(a), n++;
+        } catch {}
+    // n friends have an open direct link: the relay carries it to the rest.
+    (P2P.guests.size > n || n === 0) && p2pRelaySend(a);
+  }
   function p2pVia() {
     P2P.via = P2P.rtcUp ? "rtc" : "relay";
   }
@@ -40528,11 +41721,11 @@
       e.on("connection", (t) => {
         if (
           P2P.peer !== e ||
-          P2P.rtcUp ||
+          P2P.conns.length >= P2P_MAX ||
           (P2P.state !== "waiting" && P2P.state !== "linked")
         )
           return void t.close();
-        p2pRtc(t);
+        p2pRtcHost(t);
       })),
       p2pLater(() => {
         P2P.state === "opening" &&
@@ -40599,6 +41792,29 @@
       a.on("close", e),
       a.on("error", e);
   }
+  // Host: one direct link per friend.
+  function p2pRtcHost(a) {
+    let e = () => {
+      let i = P2P.conns.indexOf(a);
+      i >= 0 && P2P.conns.splice(i, 1),
+        (P2P.rtcUp = P2P.conns.length > 0),
+        P2P.state === "linked" && p2pVia();
+    };
+    a.on("open", () => {
+      P2P.conns.includes(a) || P2P.conns.push(a),
+        (P2P.rtcUp = !0),
+        P2P.state === "linked"
+          ? (p2pVia(), p2pMsg("A friend joined"))
+          : p2pUp("rtc");
+    }),
+      a.on("data", (t) => {
+        P2P.state === "linked" &&
+          P2P.shim &&
+          (P2P.shim.recv(t), p2pFwd(t, a));
+      }),
+      a.on("close", e),
+      a.on("error", e);
+  }
   function p2pRedial() {
     P2P.host ||
       P2P.redial ||
@@ -40643,19 +41859,30 @@
       (NET.sent = ""),
       (NET.declined = new Set()),
       (NET.incoming = null),
-      // Two people, one lobby: start looking for each other at once.
-      (NET.st = "search"),
+      // A party: the host starts the battle when everyone is in.
+      (NET.st = "idle"),
       (NET.want = null),
       (NET.wantT = 0),
+      (NET.party = null),
+      (NET.lastParty = null),
       netPresence(NET.team ?? []),
-      p2pMsg("Linked with your friend!"),
+      p2pMsg(
+        P2P.host
+          ? "A friend joined! Start when everyone is in"
+          : "Linked! The host starts the battle",
+      ),
       // A timer, not the frame loop, so a page in the background (the
       // player switched apps to send the code) still answers.
       p2pLater(
         () => {
-          t.ping(),
-            Date.now() - t.last > (NET.m?.oppAway ? 6e4 : 2e4) &&
-              p2pStop("Your friend disconnected");
+          t.ping();
+          let lim = NET.m?.oppAway ? 6e4 : 2e4;
+          if (P2P.host) {
+            // A friend who has gone quiet leaves the party; the rest stay.
+            for (let q of t.stale(lim)) t.forget(q);
+            return;
+          }
+          Date.now() - t.last > lim && p2pStop("Your friend disconnected");
         },
         2e3,
         !0,
@@ -40715,7 +41942,8 @@
   function netRows() {
     let a = !!NET.room && !NET.dead;
     return [
-      ...(a ? [{ kind: "quick" }] : []),
+      ...(a && P2P.state !== "linked" ? [{ kind: "quick" }] : []),
+      ...(P2P.state === "linked" && P2P.host ? [{ kind: "party" }] : []),
       ...netLobbyPeers()
         .filter((e) => e.presence.st !== "away")
         .map((e) => ({ kind: "peer", p: e })),
@@ -40812,7 +42040,9 @@
       V("Online Battle", 12, 25, 22, g.chalk, { skew: !0, outline: 2 }),
       G(
         P2P.state === "linked"
-          ? "You are linked with a friend. Pick them to battle."
+          ? P2P.host
+            ? "Your party: up to 4 players. Start when everyone is in."
+            : "You are in a friend's party. The host starts the battle."
           : NET.room && !NET.dead
             ? "Battle anyone who has this game open, or a friend by code."
             : "Battle a friend anywhere with a friend code.",
@@ -40861,7 +42091,7 @@
       V("Trainers here", i + 16, r + 16, 12, g.chalk, { skew: !0 });
     if (!s) {
       let C = [
-        "Play a friend anywhere with a code.",
+        "Play up to 3 friends anywhere with a code.",
         "Create a code and send it to them,",
         "or type in the code they sent you.",
       ];
@@ -40902,9 +42132,22 @@
           );
       else if (C.kind === "back")
         V("Back to team select", Q + 10, E + 13, 10.5, K ? g.night : g.chalk);
+      else if (C.kind === "party") {
+        let n = Math.min(4, netLobbyPeers().filter((x) => x.presence.st !== "away").length + 1);
+        V("Start battle", Q + 10, E + 13, 10.5, K ? g.night : g.gold),
+          G(
+            n < 2
+              ? `Code ${P2P.code} \u00b7 waiting for friends`
+              : `Code ${P2P.code} \u00b7 ${n} players \u00b7 ${n > 2 ? "Free-for-All" : "1v1"}`,
+            Q + 96,
+            E + 12,
+            6.2,
+            K ? g.night : g.haze,
+          );
+      }
       else if (C.kind === "host" || C.kind === "code" || C.kind === "unlink") {
         let [w, U] = {
-          host: ["Create a friend code", "Send it to a friend to battle"],
+          host: ["Create a friend code", "Send it to up to 3 friends"],
           code: ["Enter a friend code", "Join the game a friend made"],
           unlink: ["End friend link", "Go back to the open lobby"],
         }[C.kind];
@@ -40935,6 +42178,17 @@
       }
       d.globalAlpha = 1;
     });
+    P2P.state === "linked" &&
+      !P2P.host &&
+      !NET.m &&
+      G(
+        "In your friend's party. The host starts the battle (up to 4 players).",
+        i + 18,
+        r + l - 10,
+        6.6,
+        g.haze,
+        { italic: !0 },
+      );
     s &&
       P2P.state !== "linked" &&
       !netLobbyPeers().length &&
@@ -40969,7 +42223,9 @@
     } else if (NET.m)
       (y =
         NET.m.phase === "join" || NET.m.phase === "hello"
-          ? `Connecting to ${netOppName(16)}…`
+          ? NET.m.N > 2
+            ? `Connecting ${NET.m.N} players…`
+            : `Connecting to ${netOppName(16)}…`
           : `Starting the battle…`),
         (b = [["B", "Cancel"]]);
     else if (
@@ -41099,11 +42355,12 @@
     }
     if (t.stall > 20) {
       let r = (performance.now() - (t.stallAt ?? performance.now())) / 1e3,
+        nm = t.N > 2 ? "the others" : netOppName(14),
         o = t.oppAway
-          ? `${netOppName(14)} switched away. Waiting…`
+          ? `${t.N > 2 ? "A player" : netOppName(14)} switched away. Waiting…`
           : r > 3
-            ? `Reconnecting to ${netOppName(14)}…`
-            : `Waiting for ${netOppName(14)}…`;
+            ? `Reconnecting to ${nm}…`
+            : `Waiting for ${nm}…`;
       Ae(H / 2 - 80, 64, 160, 15, g.gold),
         G(o, H / 2, 74, 7.2, g.chalk, { align: "center" });
     }
@@ -41162,9 +42419,16 @@
     {
       id: "party",
       label: "Party",
-      desc: "Four-fighter modes: Free-for-All, Team 2v2, Zone Control and You're It!",
+      desc: "Four-fighter modes: Free-for-All, Team 2v2, Zone Control, You're It! and Thin Ice",
       mon: "snorlax",
       color: "#4df08a",
+    },
+    {
+      id: "thin",
+      label: "Thin Ice",
+      desc: "Fight on a frozen lake. Every hit cracks the ice, and the lake keeps shrinking. Knock them into the water.",
+      mon: "froslass",
+      color: "#7fd0ff",
     },
     {
       id: "sweep",
@@ -41193,6 +42457,7 @@
     [3, "Team 2v2"],
     [4, "Zone Control"],
     [8, "You're It!"],
+    [10, "Thin Ice"],
   ];
   // Small line icons for the menu buttons.
   function menuIcon(a, e, t, s, i) {
@@ -41246,6 +42511,15 @@
         d.quadraticCurveTo(m(e - 0.35 * s), m(t - 0.6 * s), m(e), m(t + 0.15 * s)),
         d.quadraticCurveTo(m(e + 0.35 * s), m(t - 0.6 * s), m(e + 0.75 * s), m(t - 0.1 * s)),
         d.stroke();
+    else if (a === "thin")
+      // A cracked slab of ice.
+      r(-0.7, -0.5, 0.7, -0.5),
+        r(0.7, -0.5, 0.7, 0.5),
+        r(0.7, 0.5, -0.7, 0.5),
+        r(-0.7, 0.5, -0.7, -0.5),
+        r(-0.1, -0.5, 0.1, -0.05),
+        r(0.1, -0.05, -0.15, 0.5),
+        r(0.1, -0.05, 0.5, 0.15);
     else if (a === "training") {
       for (let o of [0.62, 0.32])
         d.beginPath(), d.arc(m(e), m(t), m(o * s), 0, Math.PI * 2), d.stroke();
@@ -41388,7 +42662,11 @@
     MENU.forEach((p, M) => {
       let P = M === (a.menuIndex ?? 0),
         C = Ee((a.menuT - 4 - M * 2) / 12),
-        x = 56 + M * 26.5 + (M > (a.menuIndex ?? 0) ? 6 : 0),
+        // Rows close up as the menu grows, so the last stays above the strip.
+        x =
+          56 +
+          M * Math.min(26.5, 162 / (MENU.length - 1)) +
+          (M > (a.menuIndex ?? 0) ? 6 : 0),
         v = 30 + M * 5 + (1 - C) * -60,
         E = P ? 26 : 20,
         Q = P ? 196 : 150;
@@ -41960,7 +43238,9 @@
                 ? 1
                 : R === "sweep"
                   ? 7
-                  : PARTY[s.partyIndex ?? 0][0]),
+                  : R === "thin"
+                    ? 9
+                    : PARTY[s.partyIndex ?? 0][0]),
         Ze(),
         x(!1);
     }
@@ -42053,6 +43333,9 @@
       if (R.kind === "code") return p2pEnter(), S.select();
       if (R.kind === "unlink")
         return p2pStop("Friend link ended"), (s.netCursor = 0), S.back();
+      if (R.kind === "party") return netPartyStart();
+      // In a friend party the host starts the battle for everyone.
+      if (R.kind === "peer" && P2P.state === "linked") return S.fizzle();
       if (!NET.room || NET.dead)
         return (s.screen = "select"), netAway(), S.back();
       R.kind === "quick"
@@ -42065,29 +43348,37 @@
             S.select()),
         netPresence();
     }
-    // Hooks netMatchTick calls as the other page answers.
+    // Hooks netMatchTick calls as the other pages answer.
     var netHooks = {
-      // The other player chose a new team: wait for them in the lobby.
-      newTeam() {
+      // Another player chose a new team: wait for them in the lobby.
+      newTeam(k) {
         let n = NET.m,
-          D = n.opp,
-          R = netShort(n.oppName, 14);
+          D = n.seats[k],
+          R = netShort(n.names[k] || n.oppName, 14);
         netEnd(`${R} is picking a new team`),
-          s.screen === "play" && netToLobby(),
-          (NET.again = { peer: D, until: Date.now() + 18e4, name: R }),
+          s.screen === "play" && netToLobby();
+        // A friend-code party meets again in its lobby; a 1v1 from the
+        // room re-pairs the two of you once the new team is set.
+        if (n.N > 2 || P2P.state === "linked") return;
+        (NET.again = { peer: D, until: Date.now() + 18e4, name: R }),
           (NET.st = "search"),
           (NET.want = D),
           (NET.wantT = Date.now()),
           netPresence();
       },
-      left(n) {
-        let D = NET.m?.oppName ? netShort(NET.m.oppName, 14) : "Your opponent";
+      left(n, k) {
+        let M = NET.m,
+          nm = (k != null && M?.names?.[k]) || M?.oppName,
+          D = nm ? netShort(nm, 14) : "Your opponent";
+        // The host tells the rest of a party who it was before it goes.
+        M?.host && M.N > 2 && k != null && netSet({ bye: 1, why: k });
         netEnd(n ? `${D} left the match` : `Lost the connection to ${D}`),
           s.screen === "play" && netToLobby();
       },
       // Host: pick a seed and input delay, and share this page's settings.
       host(n) {
         let D = NET.m,
+          N = D.N,
           // Rollback hides the rest of the latency: keep our own delay tiny.
           R = Math.max(
             1,
@@ -42096,31 +43387,48 @@
           W = {};
         for (let T of Object.keys(A)) NET_LOCAL.includes(T) || (W[T] = A[T]);
         // Each player picked an arena: if they differ, one is drawn at random
-        // and both pages play a short roulette before the battle.
-        let Ar = [A.arena, D.oppArena ?? A.arena];
-        (W.arena = Ar[0] === Ar[1] ? Ar[0] : Ar[Math.random() < 0.5 ? 0 : 1]),
+        // and every page plays a short roulette before the battle.
+        let Ar = D.seats.map((x, k) => (k === 0 ? A.arena : (D.arenaS[k] ?? A.arena)));
+        (W.arena = Ar[Math.floor(Math.random() * N)]),
           (D.roll =
-            Ar[0] !== Ar[1] ? { a: Ar, pick: W.arena, at: Date.now() } : null);
+            new Set(Ar).size > 1 ? { a: Ar, pick: W.arena, at: Date.now() } : null);
+        // Everyone brings the same number of Pokemon; Tag Team is 1v1 only.
+        let teams = D.seats.map((x, k) => (k === 0 ? D.myTeam : D.teams[k]));
+        (N > 2 || !teams.every((t) => t.length === teams[0].length)) &&
+          (teams = teams.map((t) => t.slice(0, 1)));
         (D.epoch += 1),
           (D.cfg = {
             v: NETV,
             e: D.epoch,
             seed: Math.floor(Math.random() * 2147483647),
             delay: R,
-            teams: [D.myTeam, D.oppTeam],
-            // Legendaries only when both players have them on; Random rolls
+            seats: D.seats,
+            teams,
+            // Legendaries only when every player has them on; Random rolls
             // here, fresh for every rematch.
             legends:
-              A.legends && D.oppLg !== "off"
-                ? [
-                    lgResolve(A.legendPick),
-                    LEGENDS.includes(D.oppLg) ? D.oppLg : lgRoll(),
-                  ]
+              A.legends && D.rem.every((k) => D.lgS[k] !== "off")
+                ? D.seats.map((x, k) =>
+                    k === 0
+                      ? lgResolve(A.legendPick)
+                      : LEGENDS.includes(D.lgS[k])
+                        ? D.lgS[k]
+                        : lgRoll(),
+                  )
                 : null,
-            names: [netShort(NET.nick, 20), D.oppName],
+            // Without a name (outside claude.ai), players go by their seat.
+            names: D.seats.map((x, k) => {
+              let q = k === 0 ? NET.nick : D.names[k];
+              return q && q !== "Trainer" ? netShort(q, 20) : `Player ${k + 1}`;
+            }),
             arenas: Ar,
             lives: A.lives ?? 1,
-            shiny: [D.myTeam.map(shinyWant), D.oppShiny ?? []],
+            shiny: D.seats.map((x, k) =>
+              (k === 0 ? D.myTeam.map(shinyWant) : (D.shinyS[k] ?? [])).slice(
+                0,
+                teams[k].length,
+              ),
+            ),
             tune: W,
           }),
           (D.phase = "ready"),
@@ -42128,14 +43436,17 @@
       },
       go() {
         let n = NET.m,
-          D = n.cfg;
+          D = n.cfg,
+          N = D.teams.length;
         n.saved || (n.saved = { ...A });
         for (let [W, T] of Object.entries(D.tune))
           NET_LOCAL.includes(W) || (A[W] = T);
         (A.legends = D.legends ? 1 : 0),
           (e.match.youLegend = D.legends?.[0] ?? null),
-          (e.match.cpuLegends = [D.legends?.[1] ?? null]);
-        (e.localIdx = n.host ? 0 : 1),
+          (e.match.cpuLegends = D.legends ? D.legends.slice(1) : [null]);
+        (n.names = D.names.map((x) => netShort(x, 20))),
+          (n.oppName = n.names[n.rem[0]]),
+          (e.localIdx = n.seat),
           (e.nextId = 1),
           (e.tick = 0),
           (e.rand = rt(D.seed)),
@@ -42143,36 +43454,51 @@
           rbStatic(e.mons),
           (e.stockN = D.lives ?? 1),
           (e.itGame = !1),
-          (e.shinyTeams = D.shiny ?? null),
-          e.startMatch("vs", D.teams[0], D.teams[1], D.e > 1),
+          (e.thinGame = !1),
+          (e.shinyTeams = D.shiny ?? null);
+        // Three or four players: a Free-for-All, one Pokemon each.
+        N > 2
+          ? ((A.ffaPlayers = N),
+            (e.match.extraPreset = D.teams.slice(2)),
+            e.startMatch("ffa", D.teams[0], D.teams[1], D.e > 1))
+          : e.startMatch("vs", D.teams[0], D.teams[1], D.e > 1),
           (e.tick = 0);
         let R = (W) => ({
           net: !0,
           local: W === e.localIdx,
+          seat: W,
+          name: n.names[W] || "Rival",
           think: () => n.cur[W],
         });
-        (e.players[0].brain = R(0)),
-          (e.players[1].brain = R(1)),
+        e.players.forEach((W, T) => (W.brain = R(T))),
           (n.delay = D.delay),
           (n.inL = []),
-          (n.inR = []);
-        for (let W = 0; W < D.delay; W++)
-          (n.inL[W] = NET_IDLE), (n.inR[W] = NET_IDLE);
+          (n.inS = {}),
+          (n.usedS = {}),
+          (n.ackS = {}),
+          (n.peerAck = {}),
+          (n.avS = {}),
+          (n.dlS = {}),
+          (n.cksS = {}),
+          (n.guessS = {});
+        for (let W = 0; W < D.delay; W++) n.inL[W] = NET_IDLE;
+        for (let k of n.rem) {
+          (n.inS[k] = []), (n.usedS[k] = []), (n.cksS[k] = {});
+          for (let W = 0; W < D.delay; W++) n.inS[k][W] = NET_IDLE;
+          (n.ackS[k] = D.delay - 1), (n.peerAck[k] = D.delay - 1);
+        }
         (n.sim = 0),
           (n.sched = D.delay),
           (n.ackR = D.delay - 1),
           (n.oppAck = D.delay - 1),
           (n.stall = 0),
           (n.cks = {}),
-          (n.oppCks = {}),
           (n.snaps = {}),
-          (n.used = []),
           (n.hash = {}),
           (n.evs = []),
           (n.ghost = []),
           (n.chk = 0),
           (n.rolls = 0),
-          (n.guessAt = -1),
           (n.oppAv = 0),
           (n.oppDl = null),
           (n.lat = null),
@@ -42180,7 +43506,8 @@
           (n.adv = 0),
           (n.vo = []),
           (n.rm = 0),
-          (n.cur = [netDec(NET_IDLE), netDec(NET_IDLE)]),
+          (n.rmS = 0),
+          (n.cur = e.players.map(() => netDec(NET_IDLE))),
           (n.phase = "play"),
           (n.pend = new Set()),
           netSet({
@@ -42206,12 +43533,13 @@
           S.cry(e.player.kit.id, 0.1),
           Me.play(battleSong());
       },
-      // The other page's inputs: fill in every tick we did not have yet.
-      inputs(n) {
+      // A seat's inputs: fill in every tick we did not have yet.
+      inputs(n, k) {
         let D = NET.m,
           R = n.in;
         if (
           R &&
+          D.inS[k] &&
           R.e === D.epoch &&
           typeof R.d === "string" &&
           R.d.length % 7 === 0 &&
@@ -42220,23 +43548,28 @@
           R.b >= 0 &&
           /^[A-Za-z0-9_-]*$/.test(R.d)
         ) {
-          Number.isInteger(R.ak) && R.ak > D.oppAck && (D.oppAck = R.ak),
-            Number.isInteger(R.av) && Math.abs(R.av) < 1e4 && (D.oppAv = R.av),
+          Array.isArray(R.ak) &&
+            Number.isInteger(R.ak[D.seat]) &&
+            R.ak[D.seat] > D.peerAck[k] &&
+            (D.peerAck[k] = R.ak[D.seat]),
+            Number.isInteger(R.av) && Math.abs(R.av) < 1e4 && (D.avS[k] = R.av),
             Number.isInteger(R.dl) &&
               R.dl >= 0 &&
               R.dl < 60 &&
-              (D.oppDl = R.dl);
-          let T = R.d.length / 7;
+              (D.dlS[k] = R.dl);
+          let T = R.d.length / 7,
+            I = D.inS[k];
           for (let Z = 0; Z < T; Z++) {
             let ne = R.b + Z;
-            D.inR[ne] === void 0 && (D.inR[ne] = R.d.slice(Z * 7, Z * 7 + 7));
+            I[ne] === void 0 && (I[ne] = R.d.slice(Z * 7, Z * 7 + 7));
           }
-          for (; D.inR[D.ackR + 1] !== void 0; ) D.ackR++;
+          for (; I[D.ackS[k] + 1] !== void 0; ) D.ackS[k]++;
         }
         n.ck &&
+          D.cksS[k] &&
           n.ck.e === D.epoch &&
           Number.isInteger(n.ck.t) &&
-          (D.oppCks[n.ck.t] = n.ck.h);
+          (D.cksS[k][n.ck.t] = n.ck.h);
       },
     };
     // Called once per frame, whatever the screen.
@@ -42244,24 +43577,60 @@
       if (!NET.room) return;
       netBeat();
       let n = netLobbyTick();
-      n && !NET.m && netOpenMatch(n, s.picks);
+      if (n && !NET.m) {
+        let me = netMe();
+        me && netOpenMatch(me.peer < n.peer ? [me.peer, n.peer] : [n.peer, me.peer], s.picks);
+      }
+      netPartyTick();
       let D = NET.m;
       if (!D?.room) return;
       netMatchTick(netHooks);
       if (NET.m !== D || D.phase !== "play") return;
       netSendInputs(D);
-      // A sync check every second: both pages must agree exactly.
-      for (let T in D.oppCks)
-        if (D.cks[T] !== void 0) {
-          if (D.cks[T] !== D.oppCks[T])
-            return (
-              netHooks.left(!1),
-              void (NET.msg = "The two games fell out of sync")
-            );
-          delete D.cks[T], delete D.oppCks[T];
-        }
+      // A sync check every second: every page must agree exactly.
+      for (let k of D.rem)
+        for (let T in D.cksS[k])
+          if (D.cks[T] !== void 0) {
+            if (D.cks[T] !== D.cksS[k][T])
+              return (
+                netHooks.left(!1, k),
+                void (NET.msg = "The games fell out of sync")
+              );
+            delete D.cksS[k][T];
+          }
+      for (let T in D.cks) +T < D.chk - 900 && delete D.cks[T];
     }
-    // Every local input the other side has not confirmed yet.
+    // Friend-code party: the host starts a battle for everyone it has
+    // linked (two to four players); the guests follow the host's lead.
+    function netPartyTick() {
+      if (P2P.state !== "linked" || P2P.host || NET.m || !NET.room) return;
+      let me = netMe();
+      if (!me) return;
+      let h = NET.room.peers().find(
+          (x) => !x.sameTab && x.presence?.party && Array.isArray(x.presence.party.seats),
+        ),
+        pt = h?.presence.party;
+      pt &&
+        pt.seats[0] === h.peer &&
+        pt.seats.length <= 4 &&
+        pt.seats.includes(me.peer) &&
+        pt.seats.every((x) => typeof x === "string") &&
+        typeof pt.room === "string" &&
+        pt.room.length < 60 &&
+        pt.room !== NET.lastParty &&
+        ((NET.lastParty = pt.room), netOpenMatch(pt.seats, s.picks, pt.room));
+    }
+    function netPartyStart() {
+      let me = netMe(),
+        fr = netLobbyPeers()
+          .filter((x) => x.presence.st !== "away")
+          .slice(0, 3);
+      if (!me || !fr.length) return S.fizzle();
+      let seats = [me.peer, ...fr.map((x) => x.peer)],
+        room = "sb-party-" + Math.random().toString(36).slice(2, 9);
+      (NET.party = { room, seats }), netOpenMatch(seats, s.picks, room), S.select();
+    }
+    // Every local input some other page has not confirmed yet.
     function netSendInputs(D) {
       let R = Math.max(0, D.oppAck + 1),
         W = Math.max(R, D.sched - 180);
@@ -42270,7 +43639,7 @@
           e: D.epoch,
           b: W,
           d: D.inL.slice(W, D.sched).join(""),
-          ak: D.ackR,
+          ak: D.seats.map((x, k) => (k === D.seat ? -1 : D.ackS[k])),
           av: D.sim - D.ackR,
           dl: D.sched - D.sim,
         },
@@ -42288,17 +43657,18 @@
         );
       return D(`${e.tick},${e.projectiles.length},${e.drops.length}`), n;
     }
-    // Rollback. Our own input is used two ticks after it is read; the other
+    // Rollback. Our own input is used two ticks after it is read; each other
     // player's is guessed (their last known input, held) until it arrives.
     // When a real input differs from the guess, the game rewinds to that tick
     // and replays forward within the same frame, so nobody waits on the
     // network unless it falls more than RB_MAX ticks behind.
-    function netGuess(D) {
-      if (D.guessAt !== D.ackR) {
-        let R = netDec(D.inR[D.ackR]);
-        (R.pressed = new Set()), (D.guess = netEnc(R)), (D.guessAt = D.ackR);
+    function netGuess(D, k) {
+      let g = (D.guessS[k] ??= { at: -2, v: NET_IDLE });
+      if (g.at !== D.ackS[k]) {
+        let R = netDec(D.inS[k][D.ackS[k]] ?? NET_IDLE);
+        (R.pressed = new Set()), (g.v = netEnc(R)), (g.at = D.ackS[k]);
       }
-      return D.guess;
+      return g.v;
     }
     function rbKey(n) {
       let D = n.who ?? n.by ?? n.owner ?? n.target;
@@ -42306,10 +43676,14 @@
     }
     function netTick(D, j, again) {
       D.snaps[j] = rbSave(e);
-      let R = D.inR[j] ?? netGuess(D),
-        W = netDec(D.inL[j]),
-        T = netDec(R);
-      (D.used[j] = R), (D.cur = D.host ? [W, T] : [T, W]), e.step(null);
+      let cur = [];
+      for (let k = 0; k < D.N; k++)
+        if (k === D.seat) cur[k] = netDec(D.inL[j]);
+        else {
+          let R = D.inS[k][j] ?? netGuess(D, k);
+          (D.usedS[k][j] = R), (cur[k] = netDec(R));
+        }
+      (D.cur = cur), e.step(null);
       // An event the screen already showed from the undone timeline (same
       // kind, same side, a few ticks apart) is not shown twice.
       D.ghost.length && (D.ghost = D.ghost.filter((Z) => Z[0] >= j - 8));
@@ -42331,14 +43705,20 @@
           netSet({ ck: { e: D.epoch, t: T, h: D.hash[T] } }),
           delete D.hash[T]),
           delete D.snaps[D.chk];
+        for (let k of D.rem) delete D.usedS[k][D.chk];
       }
       D.evs.length > 64 && (D.evs = D.evs.filter((T) => T[0] >= D.chk));
     }
     // One-way latency in ticks, from how far each page runs ahead of the
-    // other's inputs and the input delay each one uses, smoothed.
+    // others' inputs and the input delay each one uses, smoothed.
     function netLatency(D) {
       if (D.sim < 30 || D.oppDl == null) return 0;
-      let n = (D.sim - D.ackR + D.oppAv + (D.sched - D.sim) + D.oppDl) / 2;
+      let n = 0;
+      for (let k of D.rem)
+        n = Math.max(
+          n,
+          (D.sim - D.ackS[k] + (D.avS[k] ?? 0) + (D.sched - D.sim) + (D.dlS[k] ?? 0)) / 2,
+        );
       return (D.lat = D.lat == null ? n : D.lat * 0.97 + n * 0.03);
     }
     function netStep(n) {
@@ -42350,9 +43730,9 @@
       }
       D.stall = 0;
       // Input delay that follows the connection, as fighting games do: our
-      // own delay absorbs most of the one-way latency, so the other page only
-      // ever predicts about RB_AIM ticks of our input and its corrections stay
-      // small. One tick at a time, at most every half second.
+      // own delay absorbs most of the one-way latency, so the other pages
+      // only ever predict about RB_AIM ticks of our input and their
+      // corrections stay small. One tick at a time, at most every half second.
       let q = netLatency(D),
         X = D.sched - D.sim,
         ve = Math.max(1, Math.min(RB_DMAX, Math.round(q - RB_AIM)));
@@ -42367,15 +43747,23 @@
         }
       }
       n && (D.inL[D.sched++] = s.netMenu ? NET_IDLE : netEnc(n));
-      let R = D.chk;
-      for (; R < D.sim && D.inR[R] !== void 0 && D.inR[R] === D.used[R]; R++);
-      if (R < D.sim && D.inR[R] !== void 0) {
-        let T0 = e.players.map((T) => [T.x, T.y]);
+      // The first tick where a real input differs from what was played.
+      let M = -1;
+      for (let t = D.chk; t < D.sim && M < 0; t++)
+        for (let k of D.rem) {
+          let v = D.inS[k][t];
+          if (v !== void 0 && v !== D.usedS[k][t]) {
+            M = t;
+            break;
+          }
+        }
+      if (M >= 0) {
+        let R = M,
+          T0 = e.players.map((T) => [T.x, T.y]);
         rbLoad(D.snaps[R]), D.rolls++, netLog(D, "rbLog", D.sim - R);
         for (let T of D.evs) T[0] >= R && D.ghost.push(T);
         D.evs = D.evs.filter((T) => T[0] < R);
         for (let T = R; T < D.sim; T++) netTick(D, T, !0);
-        for (; R < D.sim && D.inR[R] !== void 0; R++);
         // Draw a corrected fighter where it was, then let it glide over.
         e.players.forEach((T, Z) => {
           let ne = D.vo[Z] ?? [0, 0],
@@ -42388,6 +43776,9 @@
             (D.vo[Z] = Math.hypot(q, X) < 160 ? [q, X] : [0, 0]);
         });
       }
+      // Final: every seat's input is real (and, after any replay, played).
+      let R = D.chk;
+      for (; R < D.sim && D.rem.every((k) => D.inS[k][R] !== void 0); R++);
       return netVerify(D, R), s.playTicks++, netTick(D, D.sim, !1), D.sim++, !0;
     }
     function netMenuInput(n) {
@@ -42420,11 +43811,13 @@
               ? // New team: tell the other player, then pick again. The two
                 // of you meet again in the lobby once the new team is set.
                 (netSet({ nt: D.epoch }),
-                (NET.again = {
-                  peer: D.opp,
-                  until: Date.now() + 18e4,
-                  name: netShort(D.oppName, 14),
-                }),
+                D.N > 2 ||
+                  P2P.state === "linked" ||
+                  (NET.again = {
+                    peer: D.opp,
+                    until: Date.now() + 18e4,
+                    name: netShort(D.oppName, 14),
+                  }),
                 setTimeout(() => NET.m === D && netEnd(""), 500),
                 x(!0),
                 netAway(),
@@ -42453,6 +43846,7 @@
       e.stockN = s.arcade || !livesMode() ? 1 : (A.lives ?? 1);
       e.shinyTeams = [s.picks.map(shinyWant), []];
       e.itGame = A.gameMode === 8 && !s.arcade;
+      e.thinGame = thinMode() && !s.arcade;
       s.arcade &&
         (A.arena = (s.arcade.arena0 + s.arcade.stage) % ARENAS.length);
       e.startMatch(
@@ -42513,6 +43907,7 @@
         (A.arena = 0),
         (e.stockN = 1),
         (e.itGame = !1),
+        (e.thinGame = !1),
         (e.shinyTeams = [s.picks.map(shinyWant), []]),
         e.startMatch("sweep", s.picks, []),
         (A.arena = Ar),
@@ -42774,7 +44169,7 @@
     // where to fight, or Random. Not in the Arcade (its ladder sets the
     // stages) or online (each player's pick goes to the arena roulette).
     function stageFlow() {
-      return !s.arcade && A.gameMode !== 5;
+      return !s.arcade && A.gameMode !== 5 && !thinMode();
     }
     function stageOpen() {
       (s.stagePhase = !0),
@@ -44881,6 +46276,49 @@
         case "flameBody":
           t.popup(n.by.x, n.by.y - 40, "FLAME BODY", "#ff8a2a", !1);
           break;
+        case "thunderbolt":
+          S.thunder(),
+            t.motes(n.who.x, n.who.y - 14, 6, 12, "#fff3a0", 1.4);
+          break;
+        case "quickAttack":
+          S.dodge(), t.dust(n.x, n.y, 6, 0, 0, 1.4);
+          break;
+        case "qaTrail":
+          t.streaks(
+            n.x,
+            n.y - 8,
+            Math.cos(n.who.facing),
+            Math.sin(n.who.facing),
+            2,
+            "#fff3a0",
+          );
+          break;
+        case "static":
+          t.popup(n.by.x, n.by.y - 40, "STATIC", "#f8d030", !1);
+          break;
+        case "hypnoWind":
+          S.charge();
+          break;
+        case "hypnosis":
+          S.wind(), t.ring(n.who.x, n.who.y - 12, 6, 2.2, 16, "#c890ff");
+          break;
+        case "sneakIn":
+          S.phantom(), t.smoke(n.x, n.y - 6, 12, 8);
+          break;
+        case "sneakTrail":
+          t.smoke(n.x, n.y - 2, 2, 4);
+          break;
+        case "sneakOut":
+          S.slam(),
+            t.shake(0, 1, 5),
+            t.shockRing(n.x, n.y, n.r, "#7b5cb8", 10),
+            t.smoke(n.x, n.y - 8, 14, 10);
+          break;
+        case "dreamEater":
+          S.heal(),
+            n.v && t.popup(n.v.x, n.v.y - 46, "DREAM EATER!", "#c890ff", !0),
+            t.ring(n.who.x, n.who.y - 12, 6, 3, 16, "#c890ff", !0);
+          break;
         case "bugBuzzWind":
           S.charge();
           break;
@@ -46164,6 +47602,31 @@
           break;
         case "refreeze":
           cueSound("ice"), t.motes(n.x, n.y, 10, 16, "#ffffff", 1.4);
+          break;
+        case "iceCreak":
+          X(0.06, "highpass", 4e3, 1, 0.1),
+            I("tri", F(90), F(78), 0.1, 0.04),
+            t.dust(n.x, n.y, 3, 0, 0, 1);
+          break;
+        case "slabBreak":
+          S.splash(),
+            t.splash(n.x, n.y, 12, 6),
+            t.motes(n.x, n.y, 6, 10, "#eefbff", 1.2);
+          break;
+        case "iceFall":
+          S.splash(!0),
+            S.slam(),
+            t.splash(n.x, n.y, 30, 12),
+            t.shake(0, 1, 5),
+            t.popup(n.x, n.y - 36, "SPLASH!", "#7fd0ff", !0),
+            buzz(0.6, 0.6, 160);
+          break;
+        case "iceSpray":
+          t.motes(n.x, n.y - 8, 4, 10, "#bfeaff", 1);
+          break;
+        case "iceThaw":
+          cueSound("ice"),
+            t.popup(Se, B.y0 + 26, "THE LAKE IS THAWING", "#bfeaff", !0);
           break;
         case "sphealWarn":
           cueSound("dash"), I("p25", F(72), F(84), 0.12, 0.05);
