@@ -272,20 +272,6 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     { kind: "header", label: "Match" },
     {
       kind: "choice",
-      key: "gameMode",
-      label: "Mode (next battle)",
-      options: [
-        "VS CPU",
-        "Training",
-        "Free-for-All",
-        "Team Battle",
-        "Zone Control",
-        "Online",
-        "Tag Team",
-      ],
-    },
-    {
-      kind: "choice",
       key: "legends",
       label: "Legendaries",
       options: ["Off", "On"],
@@ -298,23 +284,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     },
     {
       kind: "choice",
-      key: "arena",
-      label: "Arena (next battle)",
-      options: [
-        "Stadium",
-        "Ruins",
-        "Cinder Crater",
-        "Frostfall Peak",
-        "Power Plant",
-        "Magma Isle",
-        "Sunken Shrine",
-        "Ember Caldera",
-      ],
-    },
-    {
-      kind: "choice",
       key: "items",
-      label: "Items (Sitrus Berry)",
+      label: "Items",
       options: ["Off", "On"],
     },
     { kind: "header", label: "Accessibility" },
@@ -540,6 +511,42 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     { kind: "action", id: "copy", label: "Copy tuning as JSON" },
     { kind: "action", id: "reset", label: "Reset to defaults" },
   ];
+  // Options are split into tabs. The developer tuning (movement, frame
+  // data, impact) only shows with ?dev in the address.
+  var OPT_DEV = (() => {
+      try {
+        return /[?&]dev(=|&|$)/.test(location.search);
+      } catch {
+        return !1;
+      }
+    })(),
+    OPT_TABS = [
+      ["Game", ["Match", "Practice"]],
+      ["Audio", ["Sound"]],
+      ["Controls", ["Controls"]],
+      ["Accessibility", ["Accessibility"]],
+      ...(OPT_DEV
+        ? [["Developer", ["Movement", "Charizard combo", "Impact", "Team", ""]]]
+        : []),
+    ];
+  // The rows of a tab (indices into Re); a one-section tab drops its header.
+  function optRows(t) {
+    let hs = (OPT_TABS[t] ?? OPT_TABS[0])[1],
+      out = [],
+      cur = null;
+    return (
+      Re.forEach((r, i) => {
+        r.kind === "header" && (cur = r.label),
+          hs.includes(cur) &&
+            (r.kind !== "header" || hs.length > 1) &&
+            out.push(i);
+      }),
+      out
+    );
+  }
+  function optFirst(t) {
+    return optRows(t).find((i) => Re[i].kind !== "header") ?? 1;
+  }
   var Rt = {
       FIRE: "#f08030",
       GRASS: "#78c850",
@@ -5302,6 +5309,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     // while the lake thaws from its edge inward, so the floor keeps
     // shrinking. Floating Pokemon don't fall, but the freezing spray off
     // open water hurts them.
+    // The VS screen starts the battle by itself after this many idle ticks.
+    READY_AUTO = 300,
     TICE = {
       cols: 20,
       rows: 10,
@@ -5387,10 +5396,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       "PIDGEY SWEEP",
       "YOU'RE IT!",
       "THIN ICE",
-      "THIN ICE FFA",
+      "THIN ICE PARTY",
     ],
-    // The order X steps through modes on team select.
-    MODE_ORDER = [0, 6, 1, 2, 8, 10, 3, 4, 7, 9, 5],
     // Standard is one Pokemon; Tag Team (and Tag Team online) is two.
     teamSize = () =>
       A.gameMode === 6 || (A.gameMode === 5 && A.onlineTag) ? 2 : 1,
@@ -31284,7 +31291,28 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     X: { bg: "#3d9bff", fg: "#031730" },
     Y: { bg: "#ffcf3a", fg: "#2e2203" },
   };
+  // Button prompts follow the last input used: on a keyboard, its keys.
+  var PE_KEYS = {
+    A: "J",
+    B: "K",
+    X: "L",
+    Y: "I",
+    L1: "Q",
+    R1: "Shift",
+    L2: "E",
+    LT: "E",
+    R2: "O",
+    RT: "O",
+    SELECT: "Tab",
+    START: "Esc",
+    RS: "Arrows",
+    LS: "WASD",
+  };
+  function peKey(a) {
+    return wt === "keys" && PE_KEYS[a] ? PE_KEYS[a] : a;
+  }
   function Pe(a, e, t, s = 4.2, i = !1) {
+    a = peKey(a);
     d.save(), (d.globalAlpha *= i ? 0.35 : 1);
     if (STICKS[a]) {
       // A thumbstick seen from above: a dark well, a domed cap with a grip
@@ -31342,12 +31370,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     );
   }
   var STICKS = { RS: "R", LS: "L", R3: "R", L3: "L" },
-    ba = (a, e) =>
+    ba = (a, e) => (
+      (a = peKey(a)),
       STICKS[a]
         ? e * 2.1
         : Ta[a]
           ? e * 2
-          : Math.max(e * 2.4, ye(a, e * 1.05, je, 700) + e * 1.4);
+          : Math.max(e * 2.4, ye(a, e * 1.05, je, 700) + e * 1.4)
+    );
   function tt(a) {
     return (
       {
@@ -32387,6 +32417,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     if (s.screen === "menu") {
       menuScreen(s, o), ga(s), Lt(s), touchDraw(s, e);
+      return;
+    }
+    if (s.screen === "modes") {
+      modesScreen(s, o), ga(s), Lt(s), touchDraw(s, e);
       return;
     }
     let l = t.view,
@@ -35888,7 +35922,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       te(r - 50, o - 10, 100, 19, g.gold, 6),
       Pe("A", r - 34, o - 0.5, 3.6),
       V(
-        A.gameMode === 5 ? "GO ONLINE" : a.arcade ? "FIGHT" : "START",
+        A.gameMode === 5
+          ? "GO ONLINE"
+          : a.arcade
+            ? "FIGHT"
+            : (a.readyIdle ?? -1) >= 0 && A.gameMode !== 1
+              ? `START  ${Math.max(1, Math.ceil((READY_AUTO - a.readyIdle) / 60))}`
+              : "START",
         r + 6,
         o + 5,
         11,
@@ -35905,8 +35945,27 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       Pe("B", bx + 11, by + 6.5, 3),
       G(a.arcade?.stage ? "Quit" : "Back", bx + 19, by + 8.8, 6, g.chalk, {
         weight: 600,
-      }),
-      (d.globalAlpha = 1);
+      });
+    // Change the legendary or the stage from here.
+    if (A.gameMode !== 5 && A.gameMode !== 7) {
+      // Training: beside Back. Otherwise Legendary left of Back, Stage right.
+      let hy = i ? o - 8 : by,
+        hx = i ? r + 62 : null,
+        opts = [
+          ["Y", "Legendary", "special2"],
+          ...(!a.arcade && !thinMode() ? [["SELECT", "Stage", "select"]] : []),
+        ];
+      for (let [k, lab, act] of opts) {
+        let wd = ye(lab, 6) + (k === "SELECT" ? 26 : 18);
+        i || (hx = k === "Y" ? bx - wd - 6 : bx + 58);
+        tapRect(hx, hy - 1, wd, 15, () => Ue.add(act)),
+          te(hx, hy, wd, 13, "rgba(8,6,18,0.86)", 4);
+        let kw = Pe(k, hx + (k === "SELECT" ? 13 : 9), hy + 6.5, 3);
+        G(lab, hx + (k === "SELECT" ? 14 : 9) + kw / 2 + 3, hy + 8.8, 6, g.chalk, { weight: 600 }),
+          (hx += wd + 6);
+      }
+    }
+    d.globalAlpha = 1;
   }
   // Free-for-All rivals on team select: one small card each.
   function ffaCard(a, e, t, s) {
@@ -36028,7 +36087,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     let u = 12;
     for (let [h, c] of [
       ["←→↑↓", "Choose"],
-      ["A", A.gameMode === 5 ? "Confirm and go online" : "Confirm and battle"],
+      ["A", A.gameMode === 5 ? "Confirm and go online" : "Confirm"],
       ["B", "Back"],
     ]) {
       let y = Pe(h, u + 4, oe - 7, 3.2),
@@ -36445,12 +36504,16 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               : A.gameMode === 9
               ? "Thin Ice: every hit cracks the ice. Knock them into the water."
               : A.gameMode === 10
-              ? `Thin Ice FFA: last one standing on the ice. ${cpuNeed()} CPU rivals, RT to change.`
+              ? `Thin Ice Party: last one standing on the ice. ${cpuNeed()} CPU rivals, RT to change.`
               : A.gameMode === 2
               ? `Free-for-All: you and ${cpuNeed()} CPU rivals. RT or tap Players to change.`
               : A.gameMode === 7
                 ? "Pidgey Sweep: pick who goes bird-clearing."
-                : "Pick your Pok\u00e9mon. X for Tag Team.",
+                : A.gameMode === 6
+                  ? "Tag Team: pick two. Your first pick leads."
+                  : A.gameMode === 5
+                    ? "Pick your Pok\u00e9mon. X switches Standard / Tag Team."
+                    : "Pick your Pok\u00e9mon.",
         13,
         29.5,
         5.8,
@@ -36629,27 +36692,21 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     for (let [M, P, C] of a.arcade
       ? [
           ["A", "Pick", "#cfcaea"],
-          ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
+          ["B", a.picks.length ? "Undo" : "Back", "#cfcaea"],
         ]
       : [
           ["A", "Pick", "#cfcaea"],
-          ["B", a.picks.length ? "Undo" : "Menu", "#cfcaea"],
-          [
-            "X",
-            `Mode: ${A.gameMode === 5 && A.onlineTag ? "Online Tag Team" : (["VS CPU", "Training", "Free-for-All", "Team 2v2", "Zone Control", "Online", "Tag Team", "Pidgey Sweep", "You're It!", "Thin Ice", "Thin Ice FFA"][A.gameMode] ?? "VS CPU")}`,
-            "#cfcaea",
-          ],
-          ...(s
-            ? [["Y", `CPU: ${i}`, r]]
-            : A.gameMode === 5
-              ? [
-                  [
-                    "Y",
-                    A.onlineTag ? "Format: Tag Team" : "Format: Standard",
-                    "#cfcaea",
-                  ],
-                ]
-              : []),
+          ["B", a.picks.length ? "Undo" : "Back", "#cfcaea"],
+          ...(A.gameMode === 5
+            ? [
+                [
+                  "X",
+                  A.onlineTag ? "Format: Tag Team" : "Format: Standard",
+                  "#cfcaea",
+                ],
+              ]
+            : []),
+          ...(s ? [["Y", `CPU: ${i}`, r]] : []),
           ...(A.gameMode === 7 || thinMode() ? [] : [["SELECT", "Arena", y]]),
           ...(shinyHave(ge[a.cursor])
             ? [["L2", shinyWant(ge[a.cursor]) ? "Shiny: On" : "Shiny: Off", shinyWant(ge[a.cursor]) ? g.gold : "#cfcaea"]]
@@ -37050,7 +37107,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       G(
         e.arcade
           ? `Arcade \xB7 stage ${e.arcade.stage + 1} of ${ARC.stages}`
-          : `Series ${r.wins}\u2013${r.losses}`,
+          : `Series: ${r.wins} win${r.wins === 1 ? "" : "s"}, ${r.losses} loss${r.losses === 1 ? "" : "es"}`,
         $ + U - 22,
         w + re - 7,
         6.4,
@@ -37250,14 +37307,18 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       y = 16,
       b = e.inContent
         ? [
-            ["A", "Select"],
+            ["A", h === "tuning" ? "Change" : "Select"],
             ["B", "Back"],
+            ...(h === "tuning" ? [["L1", "Tabs"]] : []),
             ["START", "Resume"],
           ]
         : [
-            ["A", "Open"],
-            ["B", "Resume"],
-            ["START", "Resume"],
+            ...(h === "resume"
+              ? [["A", "Resume"]]
+              : [
+                  ["A", "Select"],
+                  ["B", "Resume"],
+                ]),
           ];
     for (let [p, k] of b) {
       let M = Pe(p, y + 4, c, 3.6);
@@ -38544,11 +38605,31 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       });
   }
   function us(a, e, t, s, i) {
-    let o = Math.floor((i - 26) / 12),
-      l = Math.max(0, Math.min(Re.length - o, a.tuneIndex - Math.floor(o / 2)));
-    for (let f = l; f < Math.min(Re.length, l + o); f++) {
-      let u = Re[f],
-        h = t + 16 + (f - l) * 12,
+    let T = Math.min(a.optTab ?? 0, OPT_TABS.length - 1),
+      rows = optRows(T);
+    rows.includes(a.tuneIndex) || (a.tuneIndex = optFirst(T));
+    // Tabs along the top; L1 / R1 (or a tap) switches.
+    let tx = e + 16;
+    OPT_TABS.forEach(([lab], k) => {
+      let on = k === T,
+        w = ye(lab, 7.4, He, 900) + 16;
+      tapRect(tx, t + 7, w, 14, () => {
+        (a.optTab = k), (a.tuneIndex = optFirst(k)), (a.inContent = !0);
+      }),
+        te(tx, t + 7, w, 14, on ? g.p1 : "rgba(38,32,67,0.9)", 3),
+        V(lab, tx + 8, t + 17, 7.4, on ? g.night : g.chalk),
+        (tx += w + 4);
+    });
+    let kx = e + s - 20;
+    (kx -= Pe("R1", kx, t + 14, 3) + 4), Pe("L1", kx, t + 14, 3);
+    let top = t + 26,
+      o = Math.floor((i - 38) / 12),
+      pos = Math.max(0, rows.indexOf(a.tuneIndex)),
+      l = Math.max(0, Math.min(rows.length - o, pos - Math.floor(o / 2)));
+    for (let q = l; q < Math.min(rows.length, l + o); q++) {
+      let f = rows[q],
+        u = Re[f],
+        h = top + 8 + (q - l) * 12,
         c = a.inContent && f === a.tuneIndex;
       u.kind !== "header" &&
         tapRect(e + 8, h - 7, s - 16, 12, () => {
@@ -38568,7 +38649,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         continue;
       }
       c && te(e + 12, h - 6, s - 26, 11, "rgba(51,214,255,0.16)", 2),
-        G(u.label, e + 22, h + 2.6, 7.4, c ? g.chalk : "#d9d4f2");
+        G(u.label, e + 22, h + 2.6, 7.6, c ? g.chalk : "#d9d4f2");
       let y = ls(u);
       if (y) {
         if (u.kind === "num") {
@@ -38580,7 +38661,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           c ? `\u2039 ${y} \u203A` : y,
           e + s - 18,
           h + 2.6,
-          7.4,
+          7.6,
           c ? g.p1 : g.chalk,
           { align: "right", weight: 700 },
         );
@@ -42599,11 +42680,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // ---- Main menu ----
   // A column of slanted buttons with round icons on the left, the featured
   // Pokemon on a turning sigil on the right, and a description strip below.
+  // The main menu: one entry per thing you do. Every local mode lives on
+  // the Mode Select screen behind Play.
   var MENU = [
     {
-      id: "battle",
-      label: "Battle",
-      desc: "One-on-one against the CPU. X on team select for Tag Team.",
+      id: "play",
+      label: "Play",
+      desc: "Pick a mode: duels, Tag Team, Thin Ice, party modes for four fighters, and Pidgey Sweep.",
       mon: "charizard",
       color: "#ff8a3d",
     },
@@ -42617,53 +42700,38 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     {
       id: "online",
       label: "Online",
-      desc: "Battle a friend with a code, or anyone online right now.",
+      desc: "Battle up to three friends with a code, or anyone online right now.",
       mon: "lucario",
       color: "#33d6ff",
     },
     {
-      id: "party",
-      label: "Party",
-      desc: "Four-fighter modes: Free-for-All, Team 2v2, Zone Control, You're It! and Thin Ice",
-      mon: "snorlax",
-      color: "#4df08a",
-    },
-    {
-      id: "thin",
-      label: "Thin Ice",
-      desc: "Fight on a frozen lake. Every hit cracks the ice, and the lake keeps shrinking. Knock them into the water.",
-      mon: "froslass",
-      color: "#7fd0ff",
-    },
-    {
-      id: "sweep",
-      label: "Pidgey Sweep",
-      desc: "Bonus game: clear the Stadium of Pidgey in 60 seconds. Shiny Pidgey are rare and worth the most.",
-      mon: "pidgeotto",
-      color: "#ffd166",
-    },
-    {
       id: "training",
       label: "Training",
-      desc: "Practise on Wobbuffet dummies with no timer.",
+      desc: "Practise on Wobbuffet dummies with no timer, and read every move.",
       mon: "venusaur",
       color: "#ffc93c",
     },
     {
       id: "options",
       label: "Options",
-      desc: "Sound, controls, match rules and accessibility.",
+      desc: "Game, audio, controls and accessibility.",
       mon: "magnezone",
       color: "#a184f5",
     },
   ];
-  var PARTY = [
-    [2, "Free-for-All"],
-    [3, "Team 2v2"],
-    [4, "Zone Control"],
-    [8, "You're It!"],
-    [10, "Thin Ice"],
-  ];
+  // Mode Select: every local mode as a card, in three rows.
+  var MODE_ROWS = ["Duels", "Party \u00b7 three or four fighters", "Specials"],
+    MODE_CARDS = [
+      { gm: 0, label: "VS CPU", desc: "One on one against the CPU.", tag: "1V1", mon: "charizard", color: "#ff8a3d" },
+      { gm: 6, label: "Tag Team", desc: "Two Pok\u00e9mon each. Switch, and call your partner in.", tag: "1V1 \u00b7 2 EACH", mon: "lucario", color: "#4aa3ff" },
+      { gm: 4, label: "Zone Control", desc: "Hold the ring to score. First to the goal wins.", tag: "1V1", mon: "venusaur", color: "#4df08a" },
+      { gm: 2, label: "Free-for-All", desc: "Last one standing among three or four fighters.", tag: "3\u20134 FIGHTERS", mon: "garchomp", color: "#ff4f6d" },
+      { gm: 3, label: "Team 2v2", desc: "You and a CPU partner against two CPUs.", tag: "2V2", mon: "blastoise", color: "#33d6ff" },
+      { gm: 8, label: "You're It!", desc: "Melee hits pass the Slugma on. Being it drains you.", tag: "3\u20134 FIGHTERS", mon: "snorlax", color: "#ff7a3c" },
+      { gm: 9, label: "Thin Ice", desc: "Every hit cracks the ice. Knock them into the water.", tag: "1V1", mon: "froslass", color: "#7fd0ff" },
+      { gm: 10, label: "Thin Ice Party", desc: "A cracking lake and three or four fighters.", tag: "3\u20134 FIGHTERS", mon: "greninja", color: "#9fe0ff" },
+      { gm: 7, label: "Pidgey Sweep", desc: "Clear the Stadium of Pidgey in 60 seconds.", tag: "SOLO", mon: "pidgeotto", color: "#ffd166" },
+    ];
   // Small line icons for the menu buttons.
   function menuIcon(a, e, t, s, i) {
     (d.strokeStyle = i),
@@ -42676,7 +42744,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         d.lineTo(m(e + f * s), m(t + u * s)),
         d.stroke();
     };
-    if (a === "battle")
+    if (a === "battle" || a === "play")
       r(-0.7, 0.2, -0.1, -0.7), r(-0.3, 0.6, 0.3, -0.3), r(0.1, 0.8, 0.7, -0.1);
     else if (a === "arcade")
       // A trophy.
@@ -42909,10 +42977,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         d.stroke(),
         menuIcon(p.id, $, w, K * 0.62, P ? p.color : "#cfcaea");
       let U = p.label;
-      p.id === "party" &&
-        P &&
-        (U = `Party ‹ ${(PARTY[a.partyIndex ?? 0] ?? PARTY[0])[1]} ›`),
-        V(
+      V(
           U,
           v + K + 6,
           x + E / 2 + (P ? 5.6 : 4),
@@ -42927,10 +42992,16 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       d.fillRect(0, m(oe - 22), m(H), m(0.8)),
       G(s.desc, 14, oe - 11.5, 7, g.chalk);
     let p = H - 46;
-    for (let [M, P] of [
-      ["B", "Back"],
-      ["A", "Confirm"],
-    ]) {
+    for (let [M, P] of a.menuOpts
+      ? [
+          ["B", "Back"],
+          ["L1", "Tabs"],
+          ["A", "Change"],
+        ]
+      : [
+          ["B", "Back"],
+          ["A", "Select"],
+        ]) {
       let C = ye(P, 6.6) + 4;
       G(P, p, oe - 11.5, 6.6, "#cfcaea", { align: "right" }),
         (p -= C + 4),
@@ -42938,6 +43009,79 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         (p -= 14);
     }
     a.menuOpts && menuOptions(a);
+  }
+  // Mode Select: every local mode as a card in three rows (duels, party
+  // modes, specials). The highlighted card's colour tints the backdrop.
+  function modesScreen(a, e) {
+    let t = a.frame,
+      sel = a.modeIndex ?? 0,
+      c0 = MODE_CARDS[sel],
+      i = Ee((a.modesT = (a.modesT ?? 0) + 1) / 14);
+    neonBg(t);
+    let r = parseInt(c0.color.slice(1), 16),
+      rgb = `${r >> 16},${(r >> 8) & 255},${r & 255}`,
+      gr = d.createRadialGradient(m(H / 2), m(150), 0, m(H / 2), m(150), m(260));
+    gr.addColorStop(0, `rgba(${rgb},0.18)`),
+      gr.addColorStop(1, `rgba(${rgb},0)`),
+      (d.fillStyle = gr),
+      d.fillRect(0, 0, m(H), m(oe));
+    V("Choose a mode", 12, 22, 16, g.chalk, { skew: !0, outline: 2 }),
+      G("Every way to play here. Arcade and Online are on the main menu.", 13, 31.5, 6.4, g.haze);
+    let x0 = 22,
+      gap = 8,
+      w = (H - x0 * 2 - gap * 2) / 3,
+      h = 50;
+    MODE_ROWS.forEach((lab, row) => {
+      let y = 46 + row * 66;
+      G(lab.toUpperCase(), x0 + 2, y + 2, 5.6, g.gold, { weight: 800 });
+    });
+    MODE_CARDS.forEach((c, k) => {
+      let col = k % 3,
+        row = Math.floor(k / 3),
+        on = k === sel,
+        x = x0 + col * (w + gap) - row * 4,
+        y = 52 + row * 66 + (1 - i) * 20;
+      tapRect(x, y, w, h, () =>
+        on ? Ue.add("confirm") : (a.modeIndex = k),
+      );
+      d.save(), (d.globalAlpha = i);
+      if (on) {
+        let lg = d.createLinearGradient(m(x), 0, m(x + w), 0);
+        lg.addColorStop(0, c.color),
+          lg.addColorStop(1, "rgba(255,255,255,0.12)"),
+          te(x + 2, y + 2.5, w, h, "rgba(0,0,0,0.5)", 8),
+          teHalo(x, y, w, h, lg, 8, c.color, 6, 0.5);
+      } else
+        te(x + 1.5, y + 2, w, h, "rgba(0,0,0,0.45)", 8),
+          te(x, y, w, h, "rgba(28,24,48,0.94)", 8),
+          te(x + 6, y, 3, h, c.color, 0.6);
+      // The mode's Pokemon, cropped by the card.
+      let mon = e[c.mon],
+        an = mon?.anims.Idle ?? mon?.anims.Walk;
+      an &&
+        (d.save(),
+        ze(x, y, w, h, 8),
+        d.clip(),
+        (d.globalAlpha *= on ? 1 : 0.55),
+        et(d, an, on ? Be(an, t, 1) : 0, 0, m(x + w - 22), m(y + h - 3), 1.6 * Fe * Math.min(1, xe[c.mon]?.size ?? 1), mon.ground),
+        d.restore());
+      let ink = on ? g.night : g.chalk;
+      V(c.label, x + 14, y + 16, 11.5, ink),
+        wrapText(c.desc, 6, w - 62)
+          .slice(0, 2)
+          .forEach((ln, j) =>
+            G(ln, x + 14 - j * 1.6, y + 26.5 + j * 8, 6, on ? g.night : g.haze),
+          ),
+        ue(c.tag, on ? g.night : c.color, x + 12 - 3, y + h - 10, {
+          size: 5,
+          text: on ? c.color : g.night,
+        }),
+        d.restore();
+    });
+    Pe("A", 16, oe - 14, 4.2),
+      G("Select", 24, oe - 11.5, 6.6, g.chalk),
+      Pe("B", 60, oe - 14, 4.2),
+      G("Back", 68, oe - 11.5, 6.6, g.chalk);
   }
   // Options from the main menu: the same settings list as the pause menu.
   function menuOptions(a) {
@@ -42973,6 +43117,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // The buttons for the current screen: [id, label, actions, x, y, radius].
   function touchButtons(a, e) {
     if (a.screen === "title") return [];
+    // Mode Select: cards are tapped directly; Back sits clear of them.
+    if (a.screen === "modes")
+      return [["back", "B", ["dodge", "back"], H - 24, 22, 10]];
     let t = [
       ["confirm", "A", ["attack", "confirm"], H - 50, oe - 26, 12],
       ["back", "B", ["dodge", "back"], H - 24, oe - 46, 10],
@@ -43393,8 +43540,33 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         Me.muffle(!1),
         S.select();
     }
+    // Mode Select: a 3x3 grid; A picks, B goes back to the main menu.
+    function modesInput(n) {
+      let N = MODE_CARDS.length,
+        D = s.modeIndex ?? 0;
+      w(n, (R) => {
+        let c = D % 3,
+          r = Math.floor(D / 3);
+        R === "left" && (c = (c + 2) % 3),
+          R === "right" && (c = (c + 1) % 3),
+          R === "up" && (r = (r + 2) % 3),
+          R === "down" && (r = (r + 1) % 3),
+          (D = s.modeIndex = Math.min(N - 1, r * 3 + c)),
+          S.ui(R === "right" || R === "down");
+      });
+      if (n.pressed.has("back")) return toMenu();
+      if (!n.pressed.has("confirm") && !n.pressed.has("start")) return;
+      (s.arcade = null),
+        (A.gameMode = MODE_CARDS[D].gm),
+        (A.onlineTag = 0),
+        Ze(),
+        (s.fromModes = !0),
+        x(!1);
+    }
     function menuInput(n) {
       if (s.menuOpts) {
+        n.pressed.has("switch") && optTabStep(-1),
+          n.pressed.has("lock") && optTabStep(1);
         w(n, (R) => {
           R === "up" && N(-1),
             R === "down" && N(1),
@@ -43413,10 +43585,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             (D = s.menuIndex),
             (s.menuSwap = 0),
             S.ui(R === "down"))
-          : MENU[D].id === "party" &&
-            ((s.partyIndex =
-              ((s.partyIndex ?? 0) + (R === "left" ? PARTY.length - 1 : 1)) % PARTY.length),
-            S.ui(R === "right"));
+          : 0;
       });
       if (n.pressed.has("back")) return v();
       if (!n.pressed.has("confirm") && !n.pressed.has("start")) return;
@@ -43425,6 +43594,17 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         (s.menuOpts = !0), (s.inContent = !0), S.select();
         return;
       }
+      if (R === "play") {
+        let i = MODE_CARDS.findIndex((c) => c.gm === A.gameMode);
+        (s.screen = "modes"),
+          (s.modeIndex = i < 0 ? 0 : i),
+          (s.modesT = 0),
+          (s.flash = 6),
+          (k = !0),
+          S.select();
+        return;
+      }
+      s.fromModes = !1;
       (s.arcade =
         R === "arcade"
           ? {
@@ -43434,18 +43614,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               arena0: Math.floor(Math.random() * ARENAS.length),
             }
           : null),
-        (A.gameMode =
-          R === "battle" || R === "arcade"
-            ? 0
-            : R === "online"
-              ? 5
-              : R === "training"
-                ? 1
-                : R === "sweep"
-                  ? 7
-                  : R === "thin"
-                    ? 9
-                    : PARTY[s.partyIndex ?? 0][0]),
+        (A.gameMode = R === "arcade" ? 0 : R === "online" ? 5 : 1),
         Ze(),
         x(!1);
     }
@@ -44240,15 +44409,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       w(n, (W) => {
         (s.cursor = rosterNav(s.cursor, W)), S.ui(!0);
       }),
+        // Online only: X switches between Standard and Tag Team. Every other
+        // mode is chosen on Mode Select.
         n.pressed.has("special1") &&
           !s.arcade &&
-          (A.gameMode === 5 && !A.onlineTag
-            ? (A.onlineTag = 1)
-            : ((A.onlineTag = 0),
-              (A.gameMode =
-                MODE_ORDER[
-                  (MODE_ORDER.indexOf(A.gameMode) + 1) % MODE_ORDER.length
-                ] ?? 0)),
+          A.gameMode === 5 &&
+          ((A.onlineTag = A.onlineTag ? 0 : 1),
           Ze(),
           (s.picks = s.picks.slice(0, teamSize())),
           (s.cpuPicks = []),
@@ -44302,7 +44468,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         s.roulette <= 0 &&
         (s.readyCue > 64 || (s.readyCue > 14 && n.pressed.has("confirm")))
       )
-        return A.gameMode === 7 ? E() : lgOpen();
+        return A.gameMode === 7 ? E() : A.gameMode === 5 ? lgOpen() : readyOpen();
       if (n.pressed.has("confirm")) {
         // The last tile picks a random Pokémon you haven't picked yet.
         let W =
@@ -44332,7 +44498,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             S.back())
           : s.picks.length
             ? (s.picks.pop(), S.back())
-            : toMenu());
+            : s.fromModes
+              ? ((s.screen = "modes"), (k = !0), S.back())
+              : toMenu());
     }
     // The legendary roster opens once every fighter is chosen. Confirming
     // starts the battle (or goes online) straight away.
@@ -44370,18 +44538,31 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             (A.legendPick = LG_PICKS.indexOf(LG_CARDS[s.lgCursor][0]))),
           Ze(),
           (s.lgPhase = !1),
-          stageFlow()
-            ? stageOpen()
-            : ((s.readyPhase = !0), (s.readyT = 0), (s.briefKit = 0)),
+          s.edit
+            ? readyOpen()
+            : stageFlow()
+              ? stageOpen()
+              : ((s.readyPhase = !0), (s.readyT = 0), (s.briefKit = 0)),
           S.select();
         return;
       }
       n.pressed.has("back") &&
-        ((s.lgPhase = !1),
-        (s.cpuPicks = []),
-        (s.roulette = -1),
-        s.picks.pop(),
+        (s.edit
+          ? ((s.lgPhase = !1), readyOpen())
+          : ((s.lgPhase = !1),
+            (s.cpuPicks = []),
+            (s.roulette = -1),
+            s.picks.pop()),
         S.back());
+    }
+    // The VS screen. Legendary and stage are already set (last used, or
+    // Random); Y and Select change them from here and come straight back.
+    function readyOpen() {
+      (s.edit = null),
+        (s.readyPhase = !0),
+        (s.readyT = 0),
+        (s.readyIdle = 0),
+        (s.briefKit = 0);
     }
     // The last step before a battle: a summary (and in Training, the
     // briefing) with Start. Back returns to the legendary roster.
@@ -44393,17 +44574,35 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           D > 1 &&
           ((s.briefKit = (s.briefKit + 1) % D), S.ui(R === "right"));
       });
+      // Any input stops the countdown; left alone, a battle starts itself.
+      let auto = A.gameMode !== 1 && A.gameMode !== 5 && !s.arcade;
+      (n.pressed.size || n.held.size || Math.abs(n.mx) + Math.abs(n.my) > 0.4) &&
+        (s.readyIdle = -1),
+        s.readyIdle >= 0 && s.readyIdle++;
       if (
-        s.readyT > 8 &&
-        (n.pressed.has("confirm") || n.pressed.has("start"))
+        (s.readyT > 8 &&
+          (n.pressed.has("confirm") || n.pressed.has("start"))) ||
+        (auto && s.readyIdle > READY_AUTO)
       ) {
         (s.readyPhase = !1), E();
         return;
       }
+      if (A.gameMode !== 5 && s.readyT > 8) {
+        if (n.pressed.has("special2"))
+          return (s.readyPhase = !1), (s.edit = "ready"), lgOpen(), S.select();
+        if (n.pressed.has("select") && stageFlow())
+          return (s.readyPhase = !1), (s.edit = "ready"), stageOpen(), S.select();
+      }
       n.pressed.has("back") &&
         (s.arcade?.stage
           ? ((s.arcade = null), toMenu())
-          : ((s.readyPhase = !1), stageFlow() ? stageOpen() : lgOpen()),
+          : A.gameMode === 5
+            ? ((s.readyPhase = !1), lgOpen())
+            : // Back to team select, with the last pick undone.
+              ((s.readyPhase = !1),
+              (s.cpuPicks = []),
+              (s.roulette = -1),
+              s.picks.pop()),
         S.back());
     }
     // The stage select: after the fighters (and legendary) are set, pick
@@ -44444,13 +44643,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             : s.stageCursor),
           Ze(),
           (s.stagePhase = !1),
-          (s.readyPhase = !0),
-          (s.readyT = 0),
-          (s.briefKit = 0),
+          readyOpen(),
           S.select();
         return;
       }
-      n.pressed.has("back") && ((s.stagePhase = !1), lgOpen(), S.back());
+      n.pressed.has("back") &&
+        ((s.stagePhase = !1), s.edit ? readyOpen() : lgOpen(), S.back());
     }
     function re() {
       s.roulette <= 0 ||
@@ -44467,10 +44665,16 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     let se = (n) => Re[n] && Re[n].kind !== "header";
     function N(n) {
-      let D = s.tuneIndex;
-      do D = (D + n + Re.length) % Re.length;
-      while (!se(D));
-      (s.tuneIndex = D), S.ui(n < 0);
+      let rows = optRows(s.optTab ?? 0).filter(se),
+        k = Math.max(0, rows.indexOf(s.tuneIndex));
+      (s.tuneIndex = rows[(k + n + rows.length) % rows.length]), S.ui(n < 0);
+    }
+    function optTabStep(n) {
+      let L = OPT_TABS.length;
+      (s.optTab = ((s.optTab ?? 0) + n + L) % L),
+        (s.tuneIndex = optFirst(s.optTab)),
+        (s.inContent = !0),
+        S.ui(n > 0);
     }
     function J(n) {
       let D = Re[s.tuneIndex];
@@ -44528,6 +44732,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       if (n.pressed.has("start")) return pe();
       let Vx = tabsOf(e),
         D = Vx[s.tab].id;
+      D === "tuning" &&
+        (n.pressed.has("switch") && optTabStep(-1),
+        n.pressed.has("lock") && optTabStep(1));
       if (
         (w(n, (R) => {
           if (!s.inContent) {
@@ -48752,6 +48959,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           }
           if (s.screen === "menu") {
             menuInput(ee);
+            continue;
+          }
+          if (s.screen === "modes") {
+            modesInput(ee);
             continue;
           }
           if (s.screen === "select") {

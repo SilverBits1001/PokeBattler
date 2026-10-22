@@ -26,6 +26,18 @@ select. The overlay hides again when a keyboard or controller is used.
 
 ## What's new
 
+**Menus, reorganised.** The main menu is now Play, Arcade, Online, Training and
+Options. **Play** opens **Mode Select**: one card per mode (VS CPU, Tag Team, Zone
+Control, Free-for-All, Team 2v2, You're It!, Thin Ice, Thin Ice Party, Pidgey Sweep),
+each with a line on how it plays and how many fight, and it reopens on the mode you
+played last. After you pick your fighters you go straight to the **VS screen**: it
+shows the legendary and stage you used last, **Y** changes the legendary, **Select**
+changes the stage, **A** starts, and left alone it starts by itself after a 5-second
+countdown. **Options** has tabs (Game, Audio, Controls, Accessibility; L1 / R1 or Q /
+Shift switch them); the frame-data and physics tuning is in a Developer tab that only
+shows with `?dev` in the address. Button prompts follow what you play with: pad
+buttons on a controller, keys on a keyboard.
+
 **Pikachu and Gengar.** Two new fighters, each built round one idea with a payoff
 that costs something (see [docs/plan-roster-4.md](docs/plan-roster-4.md)):
 
@@ -40,7 +52,7 @@ that costs something (see [docs/plan-roster-4.md](docs/plan-roster-4.md)):
   cooldown. **Shadow Sneak** sinks it into its shadow to glide and rise under them.
   **Levitate** floats it over ground hazards.
 
-**Thin Ice** (main menu, and a 4-fighter version in Party). The fight is on a frozen
+**Thin Ice** (Mode Select, as a duel and as Thin Ice Party for 3–4 fighters). The fight is on a frozen
 lake of ice slabs. Every hit cracks the slab under whoever takes it; heavy hits crack
 the slabs round it too. A slab that cracks through creaks for a moment, then gives way,
 and anyone standing on it falls in: a K.O. (a life, with Lives on), credited to whoever
@@ -107,9 +119,10 @@ move types, Magnezone, battle music (Trainer Battle from Ruby/Sapphire/Emerald, 
 Creatures / GAME FREAK, looping seamlessly after its intro), the Opening Title from FireRed/LeafGreen on the title and
 team select, the Pokémon Center theme from HeartGold/SoulSilver on the main menu
 (crossfaded into a seamless 34-second loop), plus victory/defeat music, and five modes
-(VS CPU, Training, Free-for-All, Team 2v2, Zone Control). Mode, arena and items can be
-switched in Options → Match, or with X / Select on team select. Accessibility options
-(reduced effects, high-contrast team colours, swapped specials) are in Options.
+(VS CPU, Training, Free-for-All, Team 2v2, Zone Control). Modes are on Mode Select
+(Play on the main menu); the stage is set from the VS screen (Select) or on team select
+(Select cycles it); items are in Options → Game. Accessibility options (reduced effects,
+high-contrast team colours, swapped specials) are in Options → Accessibility.
 
 Match flow: in Free-for-All, pick 3 or 4 fighters on team select (RT, O or tap
 Players); the CPU rivals are shown there before the match. After choosing your
@@ -188,7 +201,7 @@ roster, Easy to Hard, on a different arena each stage. Stage six is a boss
 with 1.5x HP and its legendary half charged. Lose and you can Continue (retry
 the stage); your clear time, continues and best are kept on this device.
 
-**You're It!** (Party, or X on team select): Free-for-All tag for 3 or 4
+**You're It!** (Mode Select): Free-for-All tag for 3 or 4
 fighters. A Slugma sits on top of whoever is "it" and burns their HP: about 1.6% a second, rising the longer
 they hold it. Melee contact passes it on either way: if whoever is it lands a melee
 hit, the one hit is it; if you melee whoever is it, you catch it. Only the fighter
@@ -198,7 +211,7 @@ and whoever is it is 10% faster. Hits between fighters do 40% damage, so the dra
 is the real threat; drained to zero is a K.O. Last one standing wins, and Lives work
 too. CPUs run from whoever is it.
 
-**Pidgey Sweep** (main menu, or X on team select): a one-minute bonus game on
+**Pidgey Sweep** (Mode Select): a one-minute bonus game on
 the Stadium. Pidgey land in waves, faster as the clock runs down; any hit clears
 one (1 point). They hop away when you get close and fly off if left for about
 eight seconds. A Pidgeotto (5 points) takes three hits and Gusts you back. A shiny
@@ -271,8 +284,8 @@ Details and numbers are in the design review.
 
 ## Modes and legendaries
 
-**Standard** (the default) is one Pokémon a side. Press X on team select for
-**Tag Team**: two Pokémon each, with Switch and Assist. Party modes use one Pokémon
+**Standard** (VS CPU) is one Pokémon a side. **Tag Team** (its own card on Mode
+Select) is two Pokémon each, with Switch and Assist. Party modes use one Pokémon
 each.
 
 **Fight length**: every Pokémon has 1.5x the HP its kit lists (`HP_SCALE`), with
@@ -333,9 +346,10 @@ launches them:
 
 **Team select** asks for as many Pokémon as the mode needs: one in Standard and the
 party modes, two in Tag Team. The last tile picks a random Pokémon you haven't
-picked, and the CPU never copies yours. Once every fighter is chosen, the legendary
-roster opens: choose one of the nine legendaries, Random or Off, and the battle starts.
-Each CPU gets a random legendary. Online, both players must have legendaries on for
+picked, and the CPU never copies yours. Once every fighter is chosen, the VS screen
+shows your legendary (the last one you chose, or Random): **Y** opens the legendary
+roster (nine legendaries, Random or Off) and **Select** the stage picker; both come
+back to the VS screen. Each CPU gets a random legendary. Online, both players must have legendaries on for
 them to appear.
 
 **In battle** the bottom-left tray lists your moves with their buttons and cooldowns,
@@ -383,8 +397,8 @@ hidden, and the game pauses when the app goes to the background.
 
 ## Online play
 
-Choose **Online** or **Online Tag Team** as the mode on team select (X cycles modes),
-pick your team and your legendary. The lobby lists everyone who has the game open right now: pick **Quick match**
+Choose **Online** on the main menu, pick your team (X switches Standard / Tag Team)
+and your legendary. The lobby lists everyone who has the game open right now: pick **Quick match**
 to play the next trainer who is searching, or choose a trainer to challenge them.
 Each player picks an arena (Select, or tap the stage plate). If the two picks differ, a
 roulette decides between them before the battle. After a battle, choose **Rematch**,
