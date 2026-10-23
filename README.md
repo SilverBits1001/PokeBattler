@@ -138,8 +138,11 @@ team select, the Pokémon Center theme from HeartGold/SoulSilver on the main men
 (Select cycles it); items are in Options → Game. Accessibility options (reduced effects,
 high-contrast team colours, swapped specials) are in Options → Accessibility.
 
-Match flow: in Free-for-All, pick 3 or 4 fighters on team select (RT, O or tap
-Players); the CPU rivals are shown there before the match. After choosing your
+Match flow: after your own picks, team select moves on to **Choose your rival**,
+as in Smash: the cursor (now red) picks the CPU's fighters one by one, starting on
+the **?** tile, so pressing A again gives a random rival. Start (Enter) fills any
+rival slots still open at random, and B undoes the last rival. In Free-for-All, pick
+3 or 4 fighters (RT, O or tap Players) and choose each CPU rival the same way. After choosing your
 Pokémon and legendary comes the stage select: every stage as a big picture in a
 3x3 grid, shown as it looks in a match (props, conveyors and lighting, baked by
 `tools/stage-previews.js` into `assets/stages.js`); the highlighted stage zooms in
@@ -216,7 +219,7 @@ with 1.5x HP and its legendary half charged. Lose and you can Continue (retry
 the stage); your clear time, continues and best are kept on this device.
 
 **You're It!** (Mode Select): Free-for-All tag for 3 or 4
-fighters. A Slugma sits on top of whoever is "it" and burns their HP: about 1.6% a second, rising the longer
+fighters. A Slugma sits on top of whoever is "it" and burns their HP: about 2% a second (up to 7.5%), rising the longer
 they hold it. Melee contact passes it on either way: if whoever is it lands a melee
 hit, the one hit is it; if you melee whoever is it, you catch it. Only the fighter
 you control counts; ranged attacks, assists, legendaries and hazards never pass it,
