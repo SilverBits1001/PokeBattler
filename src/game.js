@@ -5214,6 +5214,50 @@
       keep: 12,
       floatEvery: 30,
       floatDmg: 0.04,
+      // Attacks that touch the floor crack it too, hit or miss.
+      // A swing cracks the slab it reaches; a shot cracks where it lands.
+      swing: 0.15,
+      shot: 0.2,
+      // Area attacks: [crack at the centre, radius]. Cells further out
+      // take less, down to 40% at the edge. `r` uses the event's own radius.
+      fx: {
+        quake: [22, "r"],
+        slam: [16, 36],
+        slamLand: [16, 36],
+        heavySlam: [24, "r"],
+        erupt: [16, 36],
+        fireBlast: [18, 40],
+        overheat: [16, 46, 40],
+        vatBoom: [18, 40],
+        voltBoom: [18, 42],
+        rockSlide: [14, 32],
+        rockTomb: [14, 28],
+        rockRise: [12, 28],
+        rockWrecker: [18, 34, 36],
+        icicle: [10, 20],
+        discharge: [14, 46],
+        moonblast: [12, 30, 34],
+        psychicPulse: [10, 46],
+        seedLand: [6, 14],
+        rayDive: [34, 64],
+        palkiaRend: [30, 56],
+        giratinaRise: [30, 56],
+        dialgaRoar: [18, "r"],
+        dollBurst: [12, 28],
+        bellyBounce: [16, 36],
+        hurricaneEnd: [12, 36],
+        digOut: [16, "r"],
+        sneakOut: [12, "r"],
+        pfStrike: [14, 28],
+        whirlpool: [8, 28],
+        hexMark: [10, 22],
+        shadowPunch: [10, 22, 26],
+        flurryHit: [6, 18, 22],
+        airSlash: [8, 22, 30],
+        icyWind: [10, 40, 34],
+        bugBuzz: [8, 40, 30],
+        scald: [10, 30, 34],
+      },
     },
     IT = {
       mons: [["slugma", "#ff7a3c"]],
@@ -7124,6 +7168,23 @@
             (T.t[i] = 0),
             this.emit({ type: "iceCreak", i, x: this.ticeAt(i)[0], y: this.ticeAt(i)[1] }));
       }
+      // Cracks every slab whose centre is within r of (x, y): n at the
+      // middle, falling to 40% at the edge. A small r hits just the slab.
+      ticeArea(x, y, r, n) {
+        let T = this.tice;
+        if (!T || !(n > 0)) return;
+        let i = this.ticeCell(x, y);
+        i >= 0 && !T.st[i] && this.emit({ type: "iceChip", x, y, n, r });
+        if (r <= 14) return void (i >= 0 && this.ticeHurt(i, n));
+        for (let k = 0; k < T.st.length; k++) {
+          if (T.st[k]) continue;
+          let [cx, cy] = this.ticeAt(k),
+            d = Math.hypot(cx - x, cy - y);
+          d <= r
+            ? this.ticeHurt(k, n * (1 - (0.6 * d) / r))
+            : k === i && this.ticeHurt(k, n * 0.4);
+        }
+      }
       // Unsafe ground for the CPU: open water, slabs giving way, thin slabs.
       ticeBad(x, y) {
         let T = this.tice,
@@ -7169,6 +7230,37 @@
                   this.ticeHurt(rr * C + cc, n * TICE.splash);
               }
             }
+          }
+        // Everything else that strikes the floor: shots where they land
+        // (a shot that hit someone already cracked their slab), and areas.
+        if (live)
+          for (let v of this.events) {
+            if (v.type === "projDie") {
+              let q = v.p;
+              !v.wall &&
+                q.dmg > 0 &&
+                !this.events.some(
+                  (h) =>
+                    h.type === "hit" &&
+                    h.attacker === q.owner &&
+                    Math.hypot(h.x - q.x, h.y - q.y) < 30,
+                ) &&
+                this.ticeArea(q.x, q.y, 6, q.dmg * TICE.shot);
+              continue;
+            }
+            let f = TICE.fx[v.type];
+            if (!f) continue;
+            let w = v.who,
+              x = v.x ?? w?.x,
+              y = v.y ?? w?.y;
+            if (x == null || y == null) continue;
+            // Cone moves: centred out in front, along their aim.
+            if (f[2]) {
+              let a =
+                v.dx != null ? Math.atan2(v.dy, v.dx) : (w?.dir2 ?? w?.facing ?? 0);
+              (x += Math.cos(a) * f[2]), (y += Math.sin(a) * f[2]);
+            }
+            this.ticeArea(x, y, f[1] === "r" ? (v.r ?? 40) : f[1], f[0]);
           }
         // Slabs that cracked through give way after a creak.
         for (let i = 0; i < T.st.length; i++)
@@ -9025,6 +9117,16 @@
       tickAttack(e, t, s) {
         let i = e.kit.basic(),
           r = i[e.combo];
+        // On thin ice, a swing cracks the slab it reaches, hit or miss.
+        e.t === r.startup + 1 &&
+          this.tice &&
+          this.match.phase === "fight" &&
+          this.ticeArea(
+            e.x + Math.cos(e.atkDir ?? e.facing) * r.reach * 0.8,
+            e.y + Math.sin(e.atkDir ?? e.facing) * r.reach * 0.8,
+            6,
+            r.dmg * TICE.swing,
+          );
         // A Smash input before the opening swing comes out takes over
         // (a touch drag or a quick A-then-stick reads as the Smash).
         if (
@@ -40624,7 +40726,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 36,
+  var NETV = 37,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -48287,6 +48389,11 @@
           X(0.06, "highpass", 4e3, 1, 0.1),
             I("tri", F(90), F(78), 0.1, 0.04),
             t.dust(n.x, n.y, 3, 0, 0, 1);
+          break;
+        case "iceChip":
+          // Ice flaking off where an attack struck the floor.
+          t.motes(n.x, n.y, Math.min(10, 2 + Math.round(n.n / 3)), Math.min(30, 6 + n.r * 0.4), "#e6f7ff", 1),
+            n.n >= 12 && t.dust(n.x, n.y, 3, 0, 0, 1);
           break;
         case "slabBreak":
           S.splash(),

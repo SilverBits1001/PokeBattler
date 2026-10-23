@@ -67,8 +67,10 @@ that costs something (see [docs/plan-roster-4.md](docs/plan-roster-4.md)):
   **Levitate** floats it over ground hazards.
 
 **Thin Ice** (Mode Select, as a duel and as Thin Ice Party for 3–4 fighters). The fight is on a frozen
-lake of thin ice slabs. Every hit cracks the slab under whoever takes it; heavy hits
-crack the slabs round it too, and even walking wears a slab down a little. A slab that cracks through creaks for a moment, then gives way,
+lake of thin ice slabs. Every attack cracks the ice it strikes, hit or miss: a hit
+cracks the slab under whoever takes it (heavy hits the slabs round it too), a swing
+the slab it reaches, a shot the spot where it lands, and quakes, slams, blasts and
+legendaries everything they cover. Even walking wears a slab down a little. A slab that cracks through creaks for a moment, then gives way,
 and anyone standing on it falls in: a K.O. (a life, with Lives on), credited to whoever
 hit them last. After 30 seconds the lake starts to thaw from its edge inward, so the
 floor keeps shrinking. Floating Pokémon don't fall, but the freezing spray off open
