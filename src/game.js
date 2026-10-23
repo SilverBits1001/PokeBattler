@@ -5201,7 +5201,7 @@
     TICE = {
       cols: 20,
       rows: 10,
-      hp: 75,
+      hp: 55,
       // Wear per tick on the slab under a fighter on the move.
       walk: 0.05,
       hitMul: 0.3,
@@ -5221,9 +5221,9 @@
       size: 0.7,
       first: 60,
       // % of max HP per second, rising by ramp each second held, to cap.
-      drain: 1.6,
-      ramp: 0.12,
-      cap: 6,
+      drain: 2,
+      ramp: 0.15,
+      cap: 7.5,
       grace: 45,
       noBack: 120,
       speed: 1.1,
@@ -5292,6 +5292,14 @@
       A.gameMode === 6 || (A.gameMode === 5 && A.onlineTag) ? 2 : 1,
     // Modes with CPU opponents picked on the team select screen.
     cpuSide = () => A.gameMode !== 1 && A.gameMode !== 5 && A.gameMode !== 7,
+    // Team select, after your own picks: the cursor picks the CPU's
+    // fighters (or ? for a random one), as in Smash.
+    rivalPhase = (a) =>
+      !a.arcade &&
+      cpuSide() &&
+      a.picks.length >= teamSize() &&
+      a.cpuPicks.length < cpuNeed() &&
+      !(a.roulette > 0),
     // Free-for-All rules (rivals rolled on team select, 3 or 4 fighters):
     // Free-for-All itself and You're It!.
     isFfa = () => A.gameMode === 2 || A.gameMode === 8 || A.gameMode === 10,
@@ -7120,7 +7128,7 @@
       ticeBad(x, y) {
         let T = this.tice,
           i = this.ticeCell(x, y);
-        return i < 0 || T.st[i] > 0 || T.hp[i] < 22;
+        return i < 0 || T.st[i] > 0 || T.hp[i] < TICE.hp * 0.3;
       }
       // The nearest whole slab, to come back on.
       ticeSafe(x, y) {
@@ -7128,7 +7136,7 @@
           best = [Se, Te],
           bd = 1 / 0;
         for (let i = 0; i < T.st.length; i++) {
-          if (T.st[i] || T.hp[i] < 30) continue;
+          if (T.st[i] || T.hp[i] < TICE.hp * 0.4) continue;
           let [cx, cy] = this.ticeAt(i),
             d = Math.hypot(cx - x, cy - y);
           d < bd && ((bd = d), (best = [cx, cy]));
@@ -34897,7 +34905,9 @@
   }
   function rndTile(a) {
     let { x: t, y: s, s: i } = rs(ge.length),
-      r = a.cursor === ge.length && a.picks.length < teamSize();
+      r =
+        a.cursor === ge.length &&
+        (a.picks.length < teamSize() || rivalPhase(a));
     tapRect(t - 2, s - 2, i + 4, i + 12, () => {
       (a.cursor = ge.length), Ue.add("confirm");
     }),
@@ -34911,7 +34921,7 @@
           i + 4,
           "rgba(255,255,255,0.55)",
           (i + 4) * RG_SK,
-          "#ffffff",
+          rivalPhase(a) ? g.cpu : "#ffffff",
           6,
           0.6,
         ),
@@ -34921,7 +34931,7 @@
         s - 1.4,
         i + 2.8,
         i + 2.8,
-        r ? "#ffffff" : "rgba(10,8,22,0.95)",
+        r ? (rivalPhase(a) ? g.cpu : "#ffffff") : "rgba(10,8,22,0.95)",
         (i + 2.8) * RG_SK,
       ),
       te(t, s, i, i, "#191530", i * RG_SK),
@@ -36349,7 +36359,10 @@
         text: g.night,
       });
     let l = ge[a.cursor],
-      f = a.picks.includes(l) ? null : l;
+      f = a.picks.includes(l) ? null : l,
+      rv = rivalPhase(a),
+      // The rival under the cursor, previewed on the CPU's side.
+      fr = rv && l && !a.picks.includes(l) && !a.cpuPicks.includes(l) ? l : null;
     // Left: your team.
     selCard(
       a,
@@ -36367,8 +36380,8 @@
     else if (s) {
       let M = a.roulette > 0 ? (a.rouletteShow ?? []) : a.cpuPicks;
       isFfa()
-        ? ffaCard(a, e, u, M)
-        : selCard(a, e, u, !0, 0, [M[0], M[1]], null),
+        ? ffaCard(a, e, u, fr ? [...M, fr] : M)
+        : selCard(a, e, u, !0, 0, [M[0], M[1]], fr),
         selPlate(
           !1,
           u + 2,
@@ -36376,7 +36389,7 @@
           !0,
           `CPU \xB7 ${i.toUpperCase()}`,
           a.cpuPicks,
-          null,
+          fr,
         );
     } else {
       te(u + 2, 37, 140, 136, "rgba(0,0,0,0.5)", 14),
@@ -36437,9 +36450,14 @@
         et(d, P, Be(P, t, 1), 0, m(u + 75), m(160), 2 * Fe, M.ground);
       }
     }
-    V("Choose your team", 12, 22, 16, g.chalk, { skew: !0, outline: 2 }),
+    V(rv ? "Choose your rival" : "Choose your team", 12, 22, 16, rv ? g.cpu : g.chalk, {
+      skew: !0,
+      outline: 2,
+    }),
       G(
-        a.arcade
+        rv
+          ? `Pick ${cpuNeed() > 1 ? `${cpuNeed() - a.cpuPicks.length} more CPU fighters` : "the CPU's fighter"}, or ? for a random one.`
+          : a.arcade
           ? "Arcade: pick the Pok\u00e9mon you'll climb with."
           : teamSize() === 2
             ? "Tag Team: pick two. Your first pick leads."
@@ -36473,7 +36491,7 @@
         Q = a.picks.indexOf(M),
         ie = a.cpuPicks.includes(M),
         full = a.picks.length >= teamSize(),
-        K = P === a.cursor && Q < 0 && !full,
+        K = P === a.cursor && Q < 0 && (!full || (rv && !ie)),
         $ = P === a.cursor ? a.pickBump * 3 : 0,
         fl = M === a.pickFlashKit ? (a.pickFlash ?? 0) : 0;
       tapRect(C - 2, x - 2, v + 4, v + 12, () => {
@@ -36489,7 +36507,7 @@
           v + 4 + $ * 2,
           "rgba(255,255,255,0.55)",
           (v + 4 + $ * 2) * RG_SK,
-          "#ffffff",
+          rv ? g.cpu : "#ffffff",
           6,
           0.6,
         ),
@@ -36504,7 +36522,9 @@
             : Q >= 0
               ? g.p1
               : K
-                ? "#ffffff"
+                ? rv
+                  ? g.cpu
+                  : "#ffffff"
                 : ie
                   ? "#7a1f30"
                   : "rgba(10,8,22,0.95)",
@@ -36639,8 +36659,11 @@
           ["B", a.picks.length ? "Undo" : "Back", "#cfcaea"],
         ]
       : [
-          ["A", "Pick", "#cfcaea"],
+          ["A", rv ? "Pick rival" : "Pick", rv ? g.cpu : "#cfcaea"],
           ["B", a.picks.length ? "Undo" : "Back", "#cfcaea"],
+          ...(rv
+            ? [[wt === "keys" ? "Enter" : "START", "Random rivals", "#cfcaea"]]
+            : []),
           ...(A.gameMode === 5
             ? [
                 [
@@ -36676,6 +36699,8 @@
           Y: "special2",
           SELECT: "select",
           RT: "guard",
+          START: "start",
+          Enter: "start",
           L1: "switch",
           L2: "assist",
         }[M];
@@ -36684,6 +36709,7 @@
         (k += x + ye(P, 6.2) + 10);
     }
     a.picks.length >= teamSize() &&
+      !rv &&
       !a.lgPhase &&
       !a.readyPhase &&
       !a.stagePhase &&
@@ -40598,7 +40624,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 35,
+  var NETV = 36,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -44635,10 +44661,21 @@
           isFfa() &&
           ((A.ffaPlayers = (A.ffaPlayers ?? 4) === 4 ? 3 : 4),
           Ze(),
-          (s.cpuPicks = []),
-          (s.roulette = s.picks.length === teamSize() ? 48 : -1),
+          (s.cpuPicks = s.cpuPicks.slice(0, cpuNeed())),
+          (s.roulette = -1),
           S.ui(!0));
-      s.readyCue = s.picks.length === teamSize() ? (s.readyCue ?? 0) + 1 : 0;
+      let rv = rivalPhase(s);
+      s.readyCue =
+        s.picks.length === teamSize() && !rv ? (s.readyCue ?? 0) + 1 : 0;
+      // START fills the rival slots still open at random.
+      if (rv && n.pressed.has("start")) {
+        for (; s.cpuPicks.length < cpuNeed(); )
+          s.cpuPicks.push(freshPicks(1, [...s.picks, ...s.cpuPicks])[0]);
+        (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]),
+          S.select(),
+          S.cry(s.cpuPicks.at(-1), 0.08);
+        return;
+      }
       let R =
         s.picks.length === teamSize() &&
         (!cpuSide() || s.cpuPicks.length === cpuNeed());
@@ -44648,7 +44685,20 @@
         (s.readyCue > 64 || (s.readyCue > 14 && n.pressed.has("confirm")))
       )
         return A.gameMode === 7 ? E() : A.gameMode === 5 ? lgOpen() : readyOpen();
-      if (n.pressed.has("confirm")) {
+      if (rv && n.pressed.has("confirm")) {
+        // A rival: anyone nobody has picked yet; ? rolls one.
+        let W =
+          s.cursor === ge.length
+            ? freshPicks(1, [...s.picks, ...s.cpuPicks])[0]
+            : ge[s.cursor];
+        !s.picks.includes(W) && !s.cpuPicks.includes(W)
+          ? (s.cpuPicks.push(W),
+            S.select(),
+            S.cry(W, 0.08),
+            s.cpuPicks.length === cpuNeed() &&
+              (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]))
+          : S.fizzle();
+      } else if (n.pressed.has("confirm")) {
         // The last tile picks a random Pokémon you haven't picked yet.
         let W =
           s.cursor === ge.length ? freshPicks(1, s.picks)[0] : ge[s.cursor];
@@ -44663,13 +44713,16 @@
               ? ((s.cpuPicks = [arcRival()]),
                 (s.cpuLegends = [lgRoll(), lgRoll(), lgRoll()]))
               : s.picks.length === teamSize() && cpuSide()
-                ? (s.roulette = 48)
+                ? // On to the rivals, the cursor on ? (A again: random).
+                  (s.cursor = ge.length)
                 : s.picks.length === 1 &&
                   (s.cursor = ge.findIndex((T) => !s.picks.includes(T))))
           : S.fizzle();
       }
       n.pressed.has("back") &&
-        (s.cpuPicks.length || s.roulette > 0
+        (!s.arcade && s.cpuPicks.length && s.roulette <= 0
+          ? (s.cpuPicks.pop(), (s.readyCue = 0), S.back())
+          : s.cpuPicks.length || s.roulette > 0
           ? ((s.cpuPicks = []),
             (s.roulette = -1),
             (s.lgPhase = !1),
