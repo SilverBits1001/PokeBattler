@@ -14,15 +14,29 @@ animation and cry with a speech bubble over the fighter. It takes a second and
 can't be cancelled, so a taunt in a rival's face can be punished; CPUs taunt
 now and then after a K.O. Taunts go over the network like any other input.
 
-On a phone or tablet, touch controls appear as soon as you touch the screen: drag
-anywhere on the left half for a floating stick. On the right, a large Attack button
-sits in an arc with the two specials, Dodge and Smash (aimed with the stick), with
-Guard and Lock above; Legendary, Switch and Assist are on the left edge and pause is
-at the bottom centre. Every button shows its own cooldown, like a fighting game's
-touch layout: the button dims, a coloured ring refills, the seconds left are written
-on it, and it flashes when it is ready again. The battle HUD fades back while a
-fighter is underneath it. Menus, team select, the lobby and results are tap to
-select. The overlay hides again when a keyboard or controller is used.
+On a phone or tablet, touch controls appear as soon as you touch the screen. They
+are built for one thumb on each side:
+
+- **Move**: drag anywhere on the stick side for a floating stick.
+- **Attack (A)**: tap for the combo. **Drag A** in any direction to aim the Smash;
+  it charges while you hold and fires when you let go (a line shows the aim).
+- **Specials (X, Y), Dodge (B), Guard**: in an arc around A. Legendary sits above
+  them; Switch and Assist (Tag Team) are on the stick side.
+- **Auto-target**: moves aim at the nearest foe, and follow a foe that comes much
+  closer. Tap empty space on the button side to switch to the next foe.
+- Pause, Emote and Fullscreen are at the bottom centre.
+
+On wide phones the controls move out into the bars beside the arena, so thumbs
+don't cover the fight. Every button shows its own cooldown: the button dims, a
+coloured ring refills, the seconds left are written on it, and it flashes when it
+is ready again. Buttons give a short vibration when pressed (with Vibration on).
+The first touch fight shows a short tip about Smash and targeting.
+
+Options > Controls has the touch settings: auto-target on or off (off brings back a
+Lock button), an extra Smash button aimed with the stick, small, medium or large
+buttons, and a left-handed layout that mirrors everything. Menus, team select, the
+lobby and results are tap to select. The overlay hides again when a keyboard or
+controller is used.
 
 ## What's new
 

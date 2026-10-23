@@ -34,6 +34,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
 #game { image-rendering: pixelated; image-rendering: crisp-edges; }
 /* The arena painting, under the game canvas at the screen's own resolution. */
 #bg { image-rendering: auto; }
+#pad { pointer-events: none; }
 #title { position: absolute; inset: 0; cursor: pointer; background: transparent; }
 #title:focus-visible { outline: none; }
 #fs {
@@ -42,6 +43,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
   background: rgba(19,26,34,0.82); color: var(--ink); cursor: pointer;
 }
 #fs svg { width: 58%; height: 58%; }
+/* With touch controls showing: bottom centre, left of Pause. */
+#fs.touch { right: auto; left: 41.6%; bottom: 0.8%; width: clamp(26px, 4%, 44px); }
 #fs:hover, #fs:focus-visible { border-color: var(--flame); color: var(--flame); outline: none; }
 </style>
 
@@ -50,6 +53,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     <canvas id="bg"></canvas>
     <canvas id="game" width="1280" height="720"></canvas>
     <canvas id="ui"></canvas>
+    <!-- Touch controls: the whole screen, so buttons can use the bars. -->
+    <canvas id="pad"></canvas>
     <button id="fs" type="button" aria-label="Go fullscreen" title="Fullscreen" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/></svg>
     </button>
