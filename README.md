@@ -67,8 +67,8 @@ that costs something (see [docs/plan-roster-4.md](docs/plan-roster-4.md)):
   **Levitate** floats it over ground hazards.
 
 **Thin Ice** (Mode Select, as a duel and as Thin Ice Party for 3–4 fighters). The fight is on a frozen
-lake of ice slabs. Every hit cracks the slab under whoever takes it; heavy hits crack
-the slabs round it too. A slab that cracks through creaks for a moment, then gives way,
+lake of thin ice slabs. Every hit cracks the slab under whoever takes it; heavy hits
+crack the slabs round it too, and even walking wears a slab down a little. A slab that cracks through creaks for a moment, then gives way,
 and anyone standing on it falls in: a K.O. (a life, with Lives on), credited to whoever
 hit them last. After 30 seconds the lake starts to thaw from its edge inward, so the
 floor keeps shrinking. Floating Pokémon don't fall, but the freezing spray off open
@@ -308,7 +308,9 @@ moves unchanged, so a 1v1 life lasts about a minute (Hard CPU against Hard CPU:
 was. Stage hazards and status ticks keep their fixed damage.
 
 **Lives**: L1 (Q) on team select sets 1, 3 or 5 lives each, in every mode but
-Training and Zone Control (and the Arcade). A K.O. with a life left brings the
+Training and Zone Control (and the Arcade). In Zone Control a K.O. never ends the
+round: the fallen fighter is back after four seconds (a countdown shows under the zone
+meter), time the one who scored it can spend on the ring. A K.O. with a life left brings the
 fighter (both of them, in Tag Team) back at full health at the spawn point
 furthest from its rivals, with two seconds' grace that ends when it acts; the
 last one standing wins. Hearts under the name (or a heart badge on the party

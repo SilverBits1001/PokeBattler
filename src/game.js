@@ -5201,7 +5201,9 @@
     TICE = {
       cols: 20,
       rows: 10,
-      hp: 100,
+      hp: 75,
+      // Wear per tick on the slab under a fighter on the move.
+      walk: 0.05,
       hitMul: 0.3,
       heavyMul: 1.5,
       splash: 0.5,
@@ -5309,7 +5311,16 @@
       [Se + 110, Te + 75],
     ],
     // Zone Control: hold the ring alone to fill your meter; it relocates on a telegraph.
-    ZONE = { r: 44, goal: 100, rate: 100 / (60 * 20), every: 720, warn: 150 },
+    // A K.O. is not the end: the fallen fighter comes back after `back`
+    // ticks, which the one who scored it can spend on the ring.
+    ZONE = {
+      r: 44,
+      goal: 100,
+      rate: 100 / (60 * 20),
+      every: 720,
+      warn: 150,
+      back: 240,
+    },
     he = {
       base: 10,
       per: 0.04,
@@ -7109,7 +7120,7 @@
       ticeBad(x, y) {
         let T = this.tice,
           i = this.ticeCell(x, y);
-        return i < 0 || T.st[i] > 0 || T.hp[i] < 30;
+        return i < 0 || T.st[i] > 0 || T.hp[i] < 22;
       }
       // The nearest whole slab, to come back on.
       ticeSafe(x, y) {
@@ -7117,7 +7128,7 @@
           best = [Se, Te],
           bd = 1 / 0;
         for (let i = 0; i < T.st.length; i++) {
-          if (T.st[i] || T.hp[i] < 40) continue;
+          if (T.st[i] || T.hp[i] < 30) continue;
           let [cx, cy] = this.ticeAt(i),
             d = Math.hypot(cx - x, cy - y);
           d < bd && ((bd = d), (best = [cx, cy]));
@@ -7192,6 +7203,12 @@
           )
             continue;
           let i = this.ticeCell(p.x, p.y);
+          // Footsteps wear the slab a little (not when floating over it).
+          i >= 0 &&
+            !T.st[i] &&
+            !this.floating(p) &&
+            Math.hypot(p.mvx, p.mvy) > 0.3 &&
+            this.ticeHurt(i, TICE.walk);
           if (i >= 0 && T.st[i] !== 2) continue;
           if (this.floating(p)) {
             // Freezing spray off the open water.
@@ -8202,6 +8219,14 @@
         this.applyKnockback(e), this.animatePlayer(e);
       }
       tickFaint(e) {
+        // Zone Control: down and out of sight until the wait is over.
+        if (e.zoneBack) {
+          e.alpha = 0;
+          this.match.phase === "fight" &&
+            --e.zoneBack <= 0 &&
+            ((e.zoneBack = 0), this.respawn(e, !0));
+          return;
+        }
         if (
           (this.locomote(e, 0, 0),
           this.applyKnockback(e),
@@ -8215,6 +8240,11 @@
           e.t === 60)
         ) {
           let t = e.aliveSlot(1);
+          if (this.match.mode === "zone" && t === null) {
+            (e.zoneBack = ZONE.back),
+              this.emit({ type: "zoneDown", who: e, wait: ZONE.back });
+            return;
+          }
           if (this.match.mode !== "practice" && t === null && e.lives > 1)
             return this.respawn(e);
           if (this.match.mode !== "practice" && t === null) {
@@ -8253,7 +8283,7 @@
       // spawn point furthest from the fighters still standing, and gets a
       // short grace that ends when it acts. The object stays the same so
       // locks, brains and the HUD keep pointing at it.
-      respawn(e) {
+      respawn(e, free) {
         let keep = {
             team: e.team,
             brain: e.brain,
@@ -8263,7 +8293,7 @@
             stats: e.stats,
             koCount: e.koCount,
             lastKoTick: e.lastKoTick,
-            lives: e.lives - 1,
+            lives: free ? e.lives : e.lives - 1,
           },
           foes = this.players.filter(
             (o) => o !== e && !o.out && o.team !== e.team,
@@ -25451,11 +25481,11 @@
         (a.fillStyle = "#ffffff"),
           a.fillRect(x + 2 + Math.floor(rnd() * (w - 4)), y + 2 + Math.floor(rnd() * (h - 4)), 1, 1);
       // Cracks: more of them, and darker, the more the slab has taken.
-      let n = st === 1 ? 6 : hp < 35 ? 4 : hp < 70 ? 2 : 0;
+      let n = st === 1 ? 6 : hp < TICE.hp * 0.35 ? 4 : hp < TICE.hp * 0.7 ? 2 : 0;
       if (n) {
         let cx = x + w * (0.3 + rnd() * 0.4),
           cy = y + h * (0.3 + rnd() * 0.4);
-        (a.strokeStyle = st === 1 ? "#2f6f8c" : hp < 35 ? "#4f8fac" : "#79b2c9"),
+        (a.strokeStyle = st === 1 ? "#2f6f8c" : hp < TICE.hp * 0.35 ? "#4f8fac" : "#79b2c9"),
           (a.lineWidth = 1),
           a.beginPath();
         for (let k = 0; k < n; k++) {
@@ -33256,6 +33286,19 @@
               : g.gold,
         { align: "center", weight: 800, italic: !0, outline: 2 },
       );
+    // Who is down, and how long until they are back.
+    for (let l of a.players)
+      if (l.zoneBack > 0) {
+        let f = l.team === a.players[0].team;
+        G(
+          `${f ? "BACK" : "FOE BACK"} IN ${Math.ceil(l.zoneBack / 60)}`,
+          f ? s - r : s + r,
+          i + 21,
+          5.4,
+          f ? "#33d6ff" : g.cpu,
+          { align: f ? "left" : "right", weight: 800, outline: 2 },
+        );
+      }
   }
   // ---- Battle HUD ----
   // Fighting-game style: corner portrait and name plate, a long slanted energy
@@ -40555,7 +40598,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 34,
+  var NETV = 35,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
