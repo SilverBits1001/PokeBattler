@@ -42,6 +42,7 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
 #game { image-rendering: pixelated; image-rendering: crisp-edges; }
 /* The arena painting, under the game canvas at the screen's own resolution. */
 #bg { image-rendering: auto; }
+#pad { pointer-events: none; }
 #title { position: absolute; inset: 0; cursor: pointer; background: transparent; }
 #title:focus-visible { outline: none; }
 #fs {
@@ -50,6 +51,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
   background: rgba(19,26,34,0.82); color: var(--ink); cursor: pointer;
 }
 #fs svg { width: 58%; height: 58%; }
+/* With touch controls showing: bottom centre, left of Pause. */
+#fs.touch { right: auto; left: 41.6%; bottom: 0.8%; width: clamp(26px, 4%, 44px); }
 #fs:hover, #fs:focus-visible { border-color: var(--flame); color: var(--flame); outline: none; }
 </style>
 
@@ -58,6 +61,8 @@ canvas { position: absolute; left: 0; top: 0; display: block; }
     <canvas id="bg"></canvas>
     <canvas id="game" width="1280" height="720"></canvas>
     <canvas id="ui"></canvas>
+    <!-- Touch controls: the whole screen, so buttons can use the bars. -->
+    <canvas id="pad"></canvas>
     <button id="fs" type="button" aria-label="Go fullscreen" title="Fullscreen" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/></svg>
     </button>
@@ -205,6 +210,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       lives: 1,
       showHitboxes: 0,
       swapFace: 0,
+      // Touch: auto-target the nearest foe, an extra Smash button, button
+      // size (0 small, 1 medium, 2 large) and a left-handed mirror.
+      touchLock: 1,
+      touchSmash: 0,
+      touchSize: 1,
+      touchLeft: 0,
       volume: 0.7,
       music: 0.55,
       slowmo: 0,
@@ -232,6 +243,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       "swapSp",
       "cueText",
       "rumble",
+      "touchLock",
+      "touchSmash",
+      "touchSize",
+      "touchLeft",
     ];
   function Vt() {
     try {
@@ -382,6 +397,30 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       step: 5,
       min: 0,
       max: 90,
+    },
+    {
+      kind: "choice",
+      key: "touchLock",
+      label: "Touch auto-target",
+      options: ["Off", "On"],
+    },
+    {
+      kind: "choice",
+      key: "touchSmash",
+      label: "Touch Smash button",
+      options: ["Off", "On"],
+    },
+    {
+      kind: "choice",
+      key: "touchSize",
+      label: "Touch button size",
+      options: ["Small", "Medium", "Large"],
+    },
+    {
+      kind: "choice",
+      key: "touchLeft",
+      label: "Touch layout",
+      options: ["Right-handed", "Left-handed"],
     },
     { kind: "header", label: "Movement" },
     {
@@ -9108,6 +9147,17 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       tickAttack(e, t, s) {
         let i = e.kit.basic(),
           r = i[e.combo];
+        // A Smash input before the opening swing comes out takes over
+        // (a touch drag or a quick A-then-stick reads as the Smash).
+        if (
+          e.combo === 0 &&
+          e.t <= r.startup &&
+          (e.buf.smash ?? 0) > 0 &&
+          !(e.slot.curseSm > 0)
+        ) {
+          (e.buf.smash = 0), this.startSmash(e, e.smashAim);
+          return;
+        }
         if (
           (e.buf.attack &&
             e.t >= 2 &&
@@ -33233,7 +33283,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       partyHud(a, e, t);
       for (let r of Object.keys(e.chipFlash))
         e.chipFlash[r] > 0 && e.chipFlash[r]--;
+      // Touch auto-target keeps a lock all fight: the target ring is enough.
       s.lock &&
+        !(touchOn() && A.touchLock) &&
         (Pe("R1", 14, 64, 3.4),
         G("Locked on", 22, 66.5, 7, s.kit.color, {
           weight: 700,
@@ -33288,6 +33340,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         });
     }
     s.lock &&
+      !(touchOn() && A.touchLock) &&
       (Pe("R1", 14, 74, 3.4),
       G("Locked on", 22, 76.5, 7, s.kit.color, {
         weight: 700,
@@ -40662,7 +40715,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 33,
+  var NETV = 34,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -40694,6 +40747,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     // Settings that only change how this screen looks or sounds; everything
     // else in A can change the simulation, so the host's values are used.
     NET_LOCAL = [
+      "touchLock",
+      "touchSmash",
+      "touchSize",
+      "touchLeft",
       "cueText",
       "rumble",
       "volume",
@@ -43108,8 +43165,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   }
   // ---- Touch controls ----
   // Shown while touch is the last input used (a keyboard or controller hides
-  // them). A floating stick on the left, face buttons on the right; menus are
+  // them). A floating stick on one side, face buttons on the other; menus are
   // tapped directly through hit areas each screen registers as it draws.
+  // Built for one thumb per side: Attack is tapped for the combo and dragged
+  // to aim and charge the Smash, auto-target aims the rest, and a tap on
+  // empty space on the button side cycles the target.
   var TOUCH = {
       stick: null,
       btns: new Map(),
@@ -43117,11 +43177,25 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       taps: [],
       next: [],
       btnList: [],
+      // The Attack finger: {id, x0, y0, x, y, n, drag, fired, up}.
+      atk: null,
+      // Target cycling: ticks left in the flick, and the target it goes to.
+      cyc: 0,
+      cycTo: null,
+      tk: 0,
+      cycT: -1e9,
     },
     tapRect = (a, e, t, s, i) => {
       wt === "touch" && TOUCH.next.push([a, e, t, s, i]);
     },
-    touchOn = () => wt === "touch";
+    touchOn = () => wt === "touch",
+    // Left-handed mirrors the fight layout.
+    touchX = (a) => (A.touchLeft ? H - a : a),
+    touchBuzz = () => {
+      try {
+        A.rumble && navigator.vibrate && navigator.vibrate(8);
+      } catch {}
+    };
   // The buttons for the current screen: [id, label, actions, x, y, radius].
   function touchButtons(a, e) {
     if (a.screen === "title") return [];
@@ -43132,37 +43206,53 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ["confirm", "A", ["attack", "confirm"], H - 50, oe - 26, 12],
       ["back", "B", ["dodge", "back"], H - 24, oe - 46, 10],
     ];
-    return a.screen !== "play" ||
+    if (
+      a.screen !== "play" ||
       a.paused ||
       a.netMenu ||
       e.match.phase === "results"
-      ? t
-      : [
-          // Right thumb: Attack biggest, specials around it, Dodge outside.
-          ["attack", "A", ["attack", "confirm"], 432, 230, 18],
-          ["sp1", "X", ["special1"], 394, 214, 13.5],
-          ["sp2", "Y", ["special2"], 420, 188, 13.5],
-          ["dodge", "B", ["dodge", "back"], 462, 196, 12.5],
-          ["smash", "SMASH", ["smash"], 386, 251, 10],
-          ["guard", "GUARD", ["guard"], 456, 160, 9.5],
-          ["lock", "LOCK", ["lock"], 382, 178, 9],
-          // Left side, above the stick.
-          ...(e.player.legend
-            ? [["legend", "LEGEND", ["legend"], 30, 142, 11]]
-            : []),
-          ...(e.player.slots.length > 1
-            ? [
-                ["switch", "SWITCH", ["switch"], 30, 112, 9.5],
-                ["assist", "ASSIST", ["assist"], 60, 124, 9.5],
-              ]
-            : []),
-          ["start", "II", ["start"], H / 2, oe - 12, 8],
-          // Taunt: the stick picks the emote.
-          ["taunt", "EMOTE", ["taunt"], H / 2 + 30, oe - 12, 7.5],
-        ];
+    )
+      return t;
+    // The thumb cluster grows from the corner with the size option, and
+    // moves out into the bars beside the stage when the screen has them.
+    let sc = [0.86, 1, 1.14][A.touchSize] ?? 1,
+      R = (s, i, r, o, l, f) => [
+        s,
+        i,
+        r,
+        touchX(H + TOUCH.sR - (H - o) * sc),
+        oe + TOUCH.sB - (oe - l) * sc,
+        f * sc,
+      ],
+      U = (s, i, r, o, l, f) => [s, i, r, touchX(o + TOUCH.sL), l, f * sc];
+    return [
+      // Attack biggest, the specials around it, Dodge and Guard outside.
+      R("attack", "A", ["attack", "confirm"], 430, 222, 22),
+      R("sp1", "X", ["special1"], 386, 236, 16),
+      R("sp2", "Y", ["special2"], 398, 192, 16),
+      R("dodge", "B", ["dodge", "back"], 462, 178, 14),
+      R("guard", "GUARD", ["guard"], 436, 152, 12),
+      ...(e.player.legend
+        ? [R("legend", "LEGEND", ["legend"], 466, 132, 11)]
+        : []),
+      // Optional: a separate Smash, aimed with the stick.
+      ...(A.touchSmash ? [R("smash", "SMASH", ["smash"], 350, 252, 11)] : []),
+      // Without auto-target, Lock is a button again.
+      ...(A.touchLock ? [] : [R("lock", "LOCK", ["lock"], 398, 154, 10)]),
+      // Tag Team, above the stick.
+      ...(e.player.slots.length > 1
+        ? [
+            U("switch", "SWITCH", ["switch"], 30, 112, 10),
+            U("assist", "ASSIST", ["assist"], 60, 124, 10),
+          ]
+        : []),
+      ["start", "II", ["start"], H / 2, oe - 12, 10],
+      // Taunt: the stick picks the emote.
+      ["taunt", "EMOTE", ["taunt"], touchX(H / 2 + 30), oe - 12, 8],
+    ];
   }
   function touchXY(a) {
-    let e = document.getElementById("stage").getBoundingClientRect();
+    let e = document.getElementById("ui").getBoundingClientRect();
     return [
       ((a.clientX - e.left) / e.width) * H,
       ((a.clientY - e.top) / e.height) * oe,
@@ -43186,29 +43276,55 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           ([, , , l, f, u]) => Math.hypot(i - l, r - f) < u + 5,
         );
         if (o) {
-          TOUCH.btns.set(s.pointerId, o);
+          TOUCH.btns.set(s.pointerId, o), TOUCH.play && touchBuzz();
+          // Attack waits a moment to see whether the thumb drags (Smash).
+          if (o[0] === "attack" && TOUCH.play) {
+            TOUCH.atk = {
+              id: s.pointerId,
+              x0: o[3],
+              y0: o[4],
+              x: i,
+              y: r,
+              n: 0,
+            };
+            return;
+          }
           for (let l of o[2]) l !== "smash" && Ue.add(l);
           return;
         }
-        a().screen === "title" ||
-          TOUCH.stick ||
-          (i < H * 0.5 &&
+        if (a().screen === "title") return;
+        let l = A.touchLeft ? i > H * 0.5 : i < H * 0.5;
+        // The stick side: a floating stick. The other side: cycle target.
+        l
+          ? TOUCH.stick ||
+            (r > 60 &&
+              (TOUCH.stick = { id: s.pointerId, bx: i, by: r, x: i, y: r }))
+          : TOUCH.play &&
+            A.touchLock &&
             r > 60 &&
-            (TOUCH.stick = { id: s.pointerId, bx: i, by: r, x: i, y: r }));
+            ((TOUCH.cyc = 3), (TOUCH.cycTo = null), (TOUCH.cycT = TOUCH.tk));
       },
       { passive: !0 },
     ),
       addEventListener(
         "pointermove",
         (s) => {
-          let i = TOUCH.stick;
+          let i = TOUCH.stick,
+            r = TOUCH.atk;
           i && i.id === s.pointerId && ([i.x, i.y] = touchXY(s));
+          r &&
+            r.id === s.pointerId &&
+            (([r.x, r.y] = touchXY(s)),
+            !r.drag &&
+              Math.hypot(r.x - r.x0, r.y - r.y0) > 8 &&
+              ((r.drag = !0), touchBuzz()));
         },
         { passive: !0 },
       );
     let s = (i) => {
       TOUCH.btns.delete(i.pointerId),
-        TOUCH.stick?.id === i.pointerId && (TOUCH.stick = null);
+        TOUCH.stick?.id === i.pointerId && (TOUCH.stick = null),
+        TOUCH.atk?.id === i.pointerId && (TOUCH.atk.up = !0);
     };
     addEventListener("pointerup", s, { passive: !0 }),
       addEventListener("pointercancel", s, { passive: !0 });
@@ -43216,6 +43332,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // Folds the touch state into this tick's input.
   function touchInput(a) {
     if (wt !== "touch") return;
+    TOUCH.tk++;
     let e = TOUCH.stick;
     if (e) {
       let t = e.x - e.bx,
@@ -43228,25 +43345,169 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (a.my = (s / i) * Math.min(1, i / 22)),
           (TOUCH.dir = [t / i, s / i]));
     }
-    for (let t of TOUCH.btns.values()) {
-      for (let s of t[2]) s !== "smash" && a.held.add(s);
-      t[0] === "smash" &&
-        ((a.ax = TOUCH.dir[0]), (a.ay = TOUCH.dir[1]), (a.aimHeld = !0));
+    let t = !1;
+    for (let s of TOUCH.btns.values())
+      if (s[0] !== "attack" || !TOUCH.atk) {
+        for (let i of s[2]) i !== "smash" && a.held.add(i);
+        s[0] === "smash" &&
+          ((a.ax = TOUCH.dir[0]),
+          (a.ay = TOUCH.dir[1]),
+          (a.aimHeld = !0),
+          (t = !0));
+      }
+    // Attack: a tap (or a hold that stays put) is the combo; a drag aims
+    // the Smash, which charges while held and fires on release.
+    let s = TOUCH.atk;
+    if (s) {
+      if (s.drag) {
+        let i = s.x - s.x0,
+          r = s.y - s.y0,
+          o = Math.hypot(i, r) || 1;
+        (a.ax = i / o), (a.ay = r / o), (a.aimHeld = !0), (t = !0);
+      } else
+        !s.fired &&
+          (s.up || ++s.n >= 4) &&
+          ((s.fired = !0), a.pressed.add("attack"));
+      s.fired && !s.drag && !s.up && a.held.add("attack"),
+        s.up && (TOUCH.atk = null);
+    }
+    // Auto-target: lock is held through the fight, so attacks and specials
+    // aim at a foe. Not while a Smash is aimed (a lock would stop it).
+    if (!A.touchLock || !TOUCH.play || t) return;
+    let i = TOUCH.eng,
+      r = i?.player,
+      o = r?.lock,
+      l = r && i.targetsFor ? i.targetsFor(r.team) : [],
+      f = (u) => Math.hypot(u.x - r.x, u.y - r.y);
+    if (TOUCH.cyc > 0) {
+      // Cycle: one tick at rest to arm the flick, then flick from the
+      // current target toward the next one out by distance.
+      if ((TOUCH.cyc--, o && l.length > 1 && TOUCH.cyc < 2)) {
+        if (!TOUCH.cycTo) {
+          let u = l.slice().sort((c, y) => f(c) - f(y));
+          TOUCH.cycTo = u[(u.indexOf(o) + 1) % u.length];
+        }
+        let u = TOUCH.cycTo.x - o.x,
+          h = TOUCH.cycTo.y - o.y,
+          c = Math.hypot(u, h) || 1;
+        (a.ax = u / c), (a.ay = h / c);
+      }
+    } else if (o && l.length > 1 && TOUCH.tk - TOUCH.cycT > 180) {
+      // Not cycled lately: follow a foe that comes much closer.
+      let u = l.reduce((c, y) => (f(y) < f(c) ? y : c));
+      if (u !== o && f(o) > 60 && f(u) < f(o) * 0.6) return;
+    }
+    a.held.add("lock");
+  }
+  function touchPad() {
+    let c = TOUCH.pad || (TOUCH.pad = document.getElementById("pad")),
+      u = document.getElementById("ui");
+    if (!c || !u) return null;
+    let i = u.getBoundingClientRect(),
+      r = document.getElementById("stage").getBoundingClientRect(),
+      o = document.fullscreenElement
+        ? { left: 0, top: 0, right: innerWidth, bottom: innerHeight }
+        : document.getElementById("wrap").getBoundingClientRect(),
+      l = (Fe * H) / Math.max(1, i.width),
+      f = o.right - o.left,
+      h = o.bottom - o.top,
+      y = Math.round(f * l),
+      b = Math.round(h * l),
+      k = [y, b, o.left - r.left, o.top - r.top].join();
+    TOUCH.padKey !== k &&
+      ((TOUCH.padKey = k),
+      (c.width = y),
+      (c.height = b),
+      (c.style.left = o.left - r.left + "px"),
+      (c.style.top = o.top - r.top + "px"),
+      (c.style.width = f + "px"),
+      (c.style.height = h + "px"));
+    // How far the controls may move out past the stage (logical units).
+    let x = (v) => (v / Math.max(1, i.width)) * H;
+    (TOUCH.sR = Math.min(140, Math.max(0, x(o.right - i.right) - 4))),
+      (TOUCH.sL = -Math.min(140, Math.max(0, x(i.left - o.left) - 4))),
+      (TOUCH.sB = Math.min(60, Math.max(0, x(o.bottom - i.bottom) - 4)));
+    let g = c.getContext("2d");
+    return (
+      g.setTransform(1, 0, 0, 1, 0, 0),
+      g.clearRect(0, 0, y, b),
+      g.setTransform(1, 0, 0, 1, (i.left - o.left) * l, (i.top - o.top) * l),
+      g
+    );
+  }
+  // Touch controls draw on the pad canvas over the whole screen.
+  function touchDraw(a, e) {
+    TOUCH.sR ??= 0;
+    TOUCH.sL ??= 0;
+    TOUCH.sB ??= 0;
+    let t = wt === "touch" || TOUCH.padOn ? touchPad() : null;
+    TOUCH.fs ??= document.getElementById("fs");
+    // The fullscreen button moves beside Pause, clear of the thumb cluster.
+    TOUCH.fs?.classList.toggle("touch", wt === "touch");
+    if (((TOUCH.padOn = wt === "touch"), !t)) return touchDrawIn(a, e);
+    let s = d;
+    d = t;
+    try {
+      touchDrawIn(a, e);
+    } finally {
+      d = s;
     }
   }
-  function touchDraw(a, e) {
+  function touchDrawIn(a, e) {
     if (
-      ((TOUCH.btnList = touchButtons(a, e)),
+      ((TOUCH.eng = e),
+      (TOUCH.play =
+        a.screen === "play" &&
+        !a.paused &&
+        !a.netMenu &&
+        e.match?.phase === "fight"),
+      (TOUCH.btnList = touchButtons(a, e)),
       (TOUCH.taps = TOUCH.next),
       (TOUCH.next = []),
       wt !== "touch")
     )
       return;
     d.save();
+    // First touch fight on this device: how Smash and targeting work.
+    if (TOUCH.play && TOUCH.hint !== 0) {
+      if (TOUCH.hint == null)
+        try {
+          TOUCH.hint = localStorage.getItem("pb-touch-hint") ? 0 : 1;
+        } catch {
+          TOUCH.hint = 1;
+        }
+      if (TOUCH.hint > 0) {
+        let i = TOUCH.hint++,
+          r = Math.min(1, i / 20, (420 - i) / 30);
+        (d.globalAlpha = Math.max(0, r)),
+          G("Drag A to aim and charge a Smash", H / 2, oe - 46, 6.4, g.chalk, {
+            align: "center",
+            weight: 700,
+            outline: 2,
+          }),
+          G(
+            A.touchLock
+              ? "Moves aim at the nearest foe \xB7 tap the free side to switch"
+              : "Hold LOCK to aim moves at a foe",
+            H / 2,
+            oe - 36,
+            5.4,
+            g.haze,
+            { align: "center", weight: 700, outline: 2 },
+          ),
+          (d.globalAlpha = 1);
+        if (i >= 420) {
+          TOUCH.hint = 0;
+          try {
+            localStorage.setItem("pb-touch-hint", "1");
+          } catch {}
+        }
+      }
+    }
     let t = TOUCH.stick;
     if (a.screen === "play" && !a.paused) {
-      let i = t ? t.bx : 64,
-        r = t ? t.by : 210;
+      let i = t ? t.bx : touchX(64 + TOUCH.sL),
+        r = t ? t.by : 210 + TOUCH.sB;
       (d.globalAlpha = t ? 0.75 : 0.35),
         (d.fillStyle = "rgba(10,8,22,0.55)"),
         d.beginPath(),
@@ -43262,6 +43523,27 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         d.arc(m(i + o), m(r + l), m(11), 0, Math.PI * 2),
         d.fill(),
         t || G("MOVE", i, r + 38, 6, g.chalk, { align: "center", weight: 700 });
+    }
+    // While Attack is dragged: a line from the button to the thumb, and
+    // the Smash name, so the aim is visible before it fires.
+    let q = TOUCH.atk;
+    if (q?.drag && TOUCH.play) {
+      let i = q.x - q.x0,
+        r = q.y - q.y0,
+        o = Math.hypot(i, r) || 1,
+        l = Math.min(o, 34);
+      (d.globalAlpha = 0.85),
+        (d.strokeStyle = "#ffd75e"),
+        (d.lineWidth = m(2)),
+        d.beginPath(),
+        d.moveTo(m(q.x0), m(q.y0)),
+        d.lineTo(m(q.x0 + (i / o) * l), m(q.y0 + (r / o) * l)),
+        d.stroke(),
+        (d.fillStyle = "#ffd75e"),
+        d.beginPath(),
+        d.arc(m(q.x0 + (i / o) * l), m(q.y0 + (r / o) * l), m(3), 0, Math.PI * 2),
+        d.fill(),
+        (d.globalAlpha = 1);
     }
     let s = new Set([...TOUCH.btns.values()].map((i) => i[0])),
       mi =
@@ -43280,11 +43562,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       },
       // Move names under the buttons that cast something.
       // 1 under, -1 above (Y sits above A, so its name goes on top).
-      nm = { sp1: 1, sp2: -1, smash: 1, legend: 1 };
+      nm = { sp1: 1, sp2: -1, smash: 1, legend: 1, attack: 1 };
     TOUCH.cd ??= {};
     TOUCH.flash ??= {};
     for (let [i, r, , o, l, f] of TOUCH.btnList) {
-      let M = mi && mi[i],
+      // Attack carries the Smash: its cooldown ring and name are the Smash's.
+      let M = mi && mi[i === "attack" ? "smash" : i],
         C = M ? M[1] : 1,
         x = M ? M[2] : "",
         y = C >= 1,
@@ -43417,7 +43700,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         "Pok\xE9mon is \xA9 Nintendo / Creatures / GAME FREAK.",
         "Fan project for personal use. Not for sale.",
       ]);
-    (window.__game = e), (window.__fx = t), (window.__ui = s);
+    (window.__game = e), (window.__fx = t), (window.__ui = s), (window.__touch = TOUCH);
     let i = document.getElementById("stage"),
       r = document.getElementById("game"),
       o = document.getElementById("ui"),
@@ -43438,6 +43721,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         ee = Math.floor(_ * T);
       for (let Kt of [i, r, o, bgEl])
         Kt && ((Kt.style.width = ne + "px"), (Kt.style.height = ee + "px"));
+      // Fullscreen stretches the stage to the screen: centre the canvases.
+      for (let Kt of [r, o, bgEl])
+        Kt &&
+          ((Kt.style.left = D ? Math.floor((R - ne) / 2) + "px" : ""),
+          (Kt.style.top = D ? Math.floor((W - ee) / 2) + "px" : ""));
       // The painting layer: the screen's real pixels, up to 3x and about
       // 4K in all (one image drawn per frame, so it stays cheap).
       if (bgEl) {
