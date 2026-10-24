@@ -40,6 +40,27 @@ controller is used.
 
 ## What's new
 
+**Toxtricity and Gallade.** Two new fighters, each built round one idea with a payoff
+that costs something (see [docs/plan-roster-5.md](docs/plan-roster-5.md)):
+
+- **Toxtricity** (Electric/Poison, punk rocker) mixes, then sets it off. **Sludge
+  Bomb** lobs a glob that poisons and leaves a puddle, **Shock** paralyses poisoned
+  foes (Toxic Shock) and charges your puddles so they zap, and a charged
+  **Overdrive** sends out a sound ring through cover that detonates every puddle it
+  reaches. **Punk Rock** makes sound moves hit harder and halves sound damage taken.
+  Every payoff is close range or behind a long charge, and it has 1000 HP.
+- **Gallade** (Psychic/Fighting, blade knight) gets in and cuts through.
+  **Teleport Slash** blinks behind a foe (a whiff leaves it open), **Psycho Cut**
+  slices from range, the combo ends in **Sacred Sword**, which cuts through guard, and
+  **Close Combat** is a lunging flurry that leaves Gallade taking 30% more damage
+  for 4 seconds. **Sharpness** hones every blade.
+
+**Koraidon and Miraidon.** Two new legendaries. **Koraidon, Collision Course**
+charges down a warned lane, rams anyone it catches under the red sun of Area Zero,
+and leaves a harsh sun that powers up your hits. **Miraidon, Electro Drift** drifts
+a neon ring round the aim point, strikes it with lightning in a scene set in a future
+city, and leaves Electric Terrain that speeds you up and zaps foes.
+
 **Chandelure, reworked.** Trap, burn, cash in: **Fire Spin** holds a foe in a flame
 vortex, **Inferno** (a slow fireball you are rooted to cast) always burns and leaves a
 burning pool, and **Hex** eats the burn for double damage and heals you. Design and test
@@ -280,10 +301,10 @@ the fallen Pokémon's face. Statuses each have their own short sound, and big
 moments flash the screen edge in their colour. Options → Accessibility →
 Battle callouts → "Icons + words" brings the words back.
 
-Roster (25): Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern,
+Roster (29): Charizard, Venusaur, Blastoise, Dragapult, Magnezone, Snorlax, Noivern,
 Lucario, Garchomp, Scizor, Tyrantrum, Golurk, Rhyperior, Froslass, Gardevoir,
 Metagross, Greninja, Aegislash, Lurantis, Chandelure, Ceruledge, Volcarona, Milotic,
-Inteleon and Zoroark. Each has a class from [the design document](docs/design-doc.md) (speedster,
+Inteleon, Zoroark, Pikachu, Gengar, Toxtricity and Gallade. Each has a class from [the design document](docs/design-doc.md) (speedster,
 heavyweight, trickster, controller, artillery or skirmisher), a signature gimmick, a
 real weakness, an answer to ranged attacks and a way to escape:
 
@@ -379,12 +400,20 @@ launches them:
   sleep and freeze, and heals a lone Pokémon 10%. In Tag Team, Rebirth revives a
   fainted partner at 15% instead, once per match. Then a ring of fire rolls out and stays around you, burning foes
   inside. Made for Tag Team and 2v2.
+- **Koraidon, Collision Course** (Area Zero). A lane lights up, then Koraidon charges
+  down it. Anyone caught is rammed again and again under a red sun before the last
+  collision launches them. Afterwards a harsh sun round you makes your hits 20%
+  stronger for 5 seconds.
+- **Miraidon, Electro Drift** (the future). It drifts a neon ring round the aim point,
+  then strikes the centre with a bolt that paralyses. Anyone caught gets a scene in a
+  neon city with lightning raining down. Afterwards Electric Terrain round you speeds
+  you up by 25% for 5 seconds and zaps foes who stand in it.
 
 **Team select** asks for as many Pokémon as the mode needs: one in Standard and the
 party modes, two in Tag Team. The last tile picks a random Pokémon you haven't
 picked, and the CPU never copies yours. Once every fighter is chosen, the VS screen
 shows your legendary (the last one you chose, or Random): **Y** opens the legendary
-roster (nine legendaries, Random or Off) and **Select** the stage picker; both come
+roster (eleven legendaries, Random or Off) and **Select** the stage picker; both come
 back to the VS screen. Each CPU gets a random legendary. Online, both players must have legendaries on for
 them to appear.
 

@@ -2970,6 +2970,208 @@
         xCd: 240,
         yCd: 210,
       },
+      // The punk rocker (Amped Form). Toxins in its body make electricity:
+      // Sludge Bomb lays toxic puddles, Shock paralyses a poisoned foe
+      // (the toxin conducts), and Overdrive, strummed on its chest, is a
+      // charged sound blast that sets every puddle it reaches off at once.
+      // Punk Rock powers its sound and softens the sound it takes.
+      toxtricity: {
+        id: "toxtricity",
+        name: "TOXTRICITY",
+        type: "ELECTRIC",
+        type2: "POISON",
+        color: "#9a5ce0",
+        typeInk: "#1c0d33",
+        hp: 1000,
+        power: 2.2,
+        speed: 2.7,
+        weight: 1.05,
+        r: 9,
+        hurtR: 11,
+        size: 0.95,
+        tall: 34,
+        role: "Punk rocker \xB7 chemist",
+        ex: !0,
+        punkRock: !0,
+        stats: { speed: 3, power: 4, defense: 2, range: 4, difficulty: 4 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 5,
+            active: 3,
+            recovery: 8,
+            lunge: 8,
+            dmg: 16,
+            kb: 1.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 13,
+            mtype: "POISON",
+            poison: EXK.toxtricity.pjPoison,
+          },
+          {
+            anim: "Double",
+            startup: 5,
+            active: 3,
+            recovery: 9,
+            lunge: 8,
+            dmg: 17,
+            kb: 1.8,
+            heavy: !1,
+            shape: "circle",
+            reach: 17,
+            radius: 13,
+            mtype: "POISON",
+            poison: EXK.toxtricity.pjPoison,
+          },
+          {
+            anim: "Strike",
+            startup: 7,
+            active: 4,
+            recovery: 14,
+            lunge: 10,
+            dmg: 29,
+            kb: 5.6,
+            heavy: !0,
+            shape: "circle",
+            reach: 18,
+            radius: 15,
+            mtype: "ELECTRIC",
+          },
+        ],
+        dodge: {
+          kind: "dash",
+          dist: 92,
+          ticks: 9,
+          iframes: 8,
+          cooldown: 30,
+          anim: "Walk",
+        },
+        // Overdrive: rooted to strum, a shockwave all round that grows with
+        // charge. It detonates every toxic puddle it reaches.
+        smash: {
+          name: "OVERDRIVE",
+          anim: "Shock",
+          windup: 12,
+          maxCharge: 54,
+          active: 6,
+          recovery: 26,
+          lunge: 0,
+          dmg: 22,
+          kb: 5,
+          shape: "circle",
+          reach: 0,
+          radius: 40,
+          mtype: "ELECTRIC",
+          custom: "overdrive",
+        },
+        xName: "SLUDGE BOMB",
+        yName: "SHOCK",
+        xCd: 240,
+        yCd: 150,
+      },
+      // The blade knight. Gardevoir's counterpart closes in where it keeps
+      // away: Teleport Slash blinks behind a foe, Psycho Cut slices from
+      // range, and the combo ends in Sacred Sword, which cuts through a
+      // guard. Close Combat is a devastating flurry that lowers Gallade's own
+      // defences for a while after. Sharpness hones every blade.
+      gallade: {
+        id: "gallade",
+        name: "GALLADE",
+        type: "PSYCHIC",
+        type2: "FIGHTING",
+        color: "#4fb86a",
+        typeInk: "#0c2a14",
+        hp: 1000,
+        power: 1.3,
+        speed: 2.9,
+        weight: 1.05,
+        r: 8,
+        hurtR: 10,
+        size: 1.05,
+        tall: 32,
+        role: "Duelist \xB7 blade knight",
+        ex: !0,
+        sharpness: !0,
+        stats: { speed: 4, power: 4, defense: 2, range: 3, difficulty: 3 },
+        basic: () => [
+          {
+            anim: "Attack",
+            startup: 4,
+            active: 3,
+            recovery: 8,
+            lunge: 9,
+            dmg: 17,
+            kb: 1.6,
+            heavy: !1,
+            shape: "circle",
+            reach: 19,
+            radius: 13,
+            mtype: "PSYCHIC",
+          },
+          {
+            anim: "Double",
+            startup: 4,
+            active: 3,
+            recovery: 9,
+            lunge: 9,
+            dmg: 18,
+            kb: 1.8,
+            heavy: !1,
+            shape: "circle",
+            reach: 19,
+            radius: 13,
+            mtype: "PSYCHIC",
+          },
+          {
+            anim: "Swing",
+            startup: 7,
+            active: 4,
+            recovery: 15,
+            lunge: 12,
+            dmg: 30,
+            kb: 5.6,
+            heavy: !0,
+            shape: "circle",
+            reach: 21,
+            radius: 15,
+            mtype: "FIGHTING",
+            pierceGuard: !0,
+          },
+        ],
+        dodge: {
+          kind: "blink",
+          dist: 84,
+          ticks: 8,
+          iframes: 8,
+          cooldown: 30,
+          anim: "Idle",
+        },
+        // Close Combat: a lunging flurry of hits (one every 5 ticks), then
+        // Gallade's guard is down: it takes more damage for four seconds.
+        smash: {
+          name: "CLOSE COMBAT",
+          anim: "Strike",
+          windup: 10,
+          maxCharge: 40,
+          active: 18,
+          recovery: 32,
+          lunge: 34,
+          dmg: 8,
+          kb: 2.6,
+          shape: "circle",
+          reach: 14,
+          radius: 15,
+          mtype: "FIGHTING",
+          rehit: 5,
+          ccDrop: !0,
+        },
+        xName: "TELEPORT SLASH",
+        yName: "PSYCHO CUT",
+        xCd: 240,
+        yCd: 120,
+      },
     },
     ge = [
       "charizard",
@@ -2999,6 +3201,8 @@
       "zoroark",
       "pikachu",
       "gengar",
+      "toxtricity",
+      "gallade",
     ],
     ut = 360,
     // Deliberate pacing: every move commits a little longer, so attacks can be
@@ -3027,6 +3231,68 @@
   }
   // Tuning for the second-generation kits. Frame counts are in ticks (60/s).
   var EXK = {
+      toxtricity: {
+        pref: 64,
+        // Poison Jab: each of the first two hits may poison.
+        pjPoison: 0.2,
+        // Sludge Bomb: a lobbed glob that lands where it was aimed, splashes
+        // and leaves a toxic puddle. Floating Pokemon pass over the puddle.
+        sbWind: 10,
+        sbRange: 190,
+        sbFlight: 22,
+        sbR: 22,
+        sbDmg: 18,
+        sbPoolR: 26,
+        sbPoolT: 300,
+        sbEvery: 30,
+        sbPoolDmg: 2,
+        sbRec: 12,
+        // Shock: a burst all round. A poisoned foe takes more and is
+        // paralysed; a puddle it touches is charged and shocks for a while.
+        shWind: 8,
+        shR: 40,
+        shDmg: 14,
+        shHot: 1.5,
+        shPara: 60,
+        shCharge: 150,
+        shZap: 5,
+        shZapEvery: 20,
+        shRec: 12,
+        // Overdrive: ring radius and damage grow with charge; each puddle in
+        // reach detonates (Toxic Shock).
+        odR: 44,
+        odRGrow: 40,
+        odGrow: 32,
+        tsDmg: 16,
+        tsR: 30,
+        tsPara: 50,
+        // Punk Rock: its sound hits harder, sound hurts it less.
+        prOut: 1.25,
+        prTaken: 0.5,
+      },
+      gallade: {
+        pref: 26,
+        // Teleport Slash: blinks behind the foe in range and slashes; with
+        // nobody in range it blinks ahead and swings at nothing.
+        tsWind: 6,
+        tsRange: 130,
+        tsBehind: 18,
+        tsMiss: 70,
+        tsDmg: 21,
+        tsRec: 18,
+        tsMissRec: 26,
+        // Psycho Cut: a piercing psychic crescent.
+        pcWind: 8,
+        pcSpeed: 4.6,
+        pcLife: 44,
+        pcDmg: 18,
+        pcRec: 10,
+        // Close Combat lowers its defences: damage taken x ccTaken for ccT.
+        ccT: 240,
+        ccTaken: 1.3,
+        // Sharpness: slicing moves (the combo, Teleport Slash, Psycho Cut).
+        sharp: 1.15,
+      },
       garchomp: {
         pref: 22,
         // Outrage: a roar, then a rampage; afterwards Garchomp is confused.
@@ -4827,6 +5093,57 @@
                 : y > 30 && y < 70 && r() < 0.14
                   ? smash(4 + Math.floor(r() * 20))
                   : y > 60 && y < 130 && r() < 0.18 && dash(b);
+        } else if (f === "toxtricity") {
+          // Lay puddles from mid range, Shock anyone who comes close (hard
+          // when they are poisoned), and Overdrive a poisoned foe, or one
+          // standing on its puddles.
+          let lv = this.level ?? A.cpuLevel,
+            pz = op && (op.slot.poisonT ?? 0) > 0,
+            onPool =
+              op &&
+              e.fields.some(
+                (q) =>
+                  q.kind === "sludge" &&
+                  q.owner === t &&
+                  Math.hypot(op.x - q.x, op.y - q.y) < q.r + 12,
+              ),
+            pools = e.fields.filter((q) => q.kind === "sludge" && q.owner === t)
+              .length,
+            close = y < 44;
+          close && u.cdY === 0 && r() < (pz ? 0.7 : 0.4)
+            ? i.pressed.add("special2")
+            : (pz || onPool) && y < 70 + 40 * Math.min(1, pools) && r() < [0.15, 0.3, 0.4][lv]
+              ? smash(Math.floor(r() * 26))
+              : u.cdX === 0 && y > 50 && y < 190 && r() < 0.45
+                ? i.pressed.add("special1")
+                : y < 34 || (N && y < 46)
+                  ? i.pressed.add("attack")
+                  : close && u.cdDodge === 0 && r() < 0.2
+                    ? dash(b + Math.PI + (r() - 0.5) * 1.4)
+                    : y > 40 && y < 80 && r() < 0.02 && smash(10);
+        } else if (f === "gallade") {
+          // Duelist: Teleport Slash in from mid range, Psycho Cut from afar,
+          // the combo up close. Close Combat on a foe that is reeling, then
+          // play safe while its guard is down.
+          let lv = this.level ?? A.cpuLevel,
+            soft = (u.ccT ?? 0) > 0,
+            open =
+              op &&
+              (op.state === "hurt" ||
+                op.state === "stunned" ||
+                op.state === "guard" ||
+                (op.state === "attack" && y < 40));
+          soft && y < 50 && u.cdDodge === 0 && r() < 0.25
+            ? dash(b + Math.PI + (r() - 0.5) * 1.2)
+            : !soft && open && y < 52 && r() < [0.2, 0.35, 0.45][lv]
+              ? smash(Math.floor(r() * 14))
+              : u.cdX === 0 && y > 46 && y < 130 && r() < (soft ? 0.15 : 0.4)
+                ? i.pressed.add("special1")
+                : u.cdY === 0 && los && y > 60 && y < 230 && r() < 0.35
+                  ? i.pressed.add("special2")
+                  : y < 32 || (N && y < 44)
+                    ? i.pressed.add("attack")
+                    : y > 30 && y < 70 && r() < 0.1 && dash(b);
         } else if (f === "chandelure") {
           // Trap, burn, cash in: Fire Spin a foe in range, Inferno one that
           // is held (or reeling), Hex one that burns. Flicker away from
@@ -5397,6 +5714,10 @@
       // picks off the weakened.
       pikachu: 0.85,
       gengar: 0.65,
+      // Roster 5: puddles and Overdrive catch a whole crowd at once.
+      toxtricity: 0.6,
+      // Gallade's blades work one foe at a time; a crowd punishes Guard Down.
+      gallade: 1.3,
       lurantis: 1.15,
       ceruledge: 1.35,
       // Shield Forme and King's Shield shine in a crowd.
@@ -5556,6 +5877,13 @@
         pfStrike: [14, 28],
         whirlpool: [8, 28],
         infernoLand: [14, 30],
+        overdrive: [18, "r"],
+        electroDrift: [26, "r"],
+        koraidonDust: [10, 24],
+        terrainZap: [3, "r"],
+        toxicShock: [10, "r"],
+        sludgeLand: [8, "r"],
+        shockBurst: [8, "r"],
         fireSpin: [8, "r"],
         pyreTick: [3, "r"],
         shadowPunch: [10, 22, 26],
@@ -6217,6 +6545,37 @@
     // Palkia's Spacial Rend: three rifts tear across the arena through the
     // aim point, a beat apart; each pulls whoever it cuts onto its line.
     PALKIA = { n: 3, warn: 18, gap: 12, r: 20, len: 560, dmg: 30, kb: 6.4 },
+    // Koraidon's Collision Course: a warned lane through the aim point, then
+    // a full-tilt sprint along it. Orichalcum Pulse leaves harsh sunlight
+    // at the aim point: its caller hits harder standing in it.
+    KORAIDON = {
+      warn: 26,
+      dash: 16,
+      leave: 24,
+      r: 26,
+      dmg: 44,
+      kb: 9.6,
+      sunR: 64,
+      sunT: 300,
+      sunPow: 1.2,
+    },
+    // Miraidon's Electro Drift: it drifts a ring round the aim point, then
+    // discharges inside it. Hadron Engine leaves Electric Terrain: its
+    // caller is faster on it, and foes on it are zapped now and then.
+    MIRAIDON = {
+      drift: 34,
+      r: 72,
+      dmg: 40,
+      kb: 8,
+      bolt: 14,
+      leave: 24,
+      terT: 300,
+      terSpeed: 1.25,
+      zapEvery: 45,
+      zapDmg: 5,
+      zapPara: 30,
+      zapChance: 0.35,
+    },
     // Giratina's Shadow Force: it sinks into the Distortion World, hunts the
     // foe nearest the aim from below, then erupts through any defence.
     GIRATINA = {
@@ -6325,6 +6684,22 @@
         finDmg: 72,
         finKb: 11,
       },
+      koraidon: {
+        len: 124,
+        hits: [22, 38, 54, 70],
+        dmg: 12,
+        fin: 96,
+        finDmg: 70,
+        finKb: 11.5,
+      },
+      miraidon: {
+        len: 122,
+        hits: [18, 30, 42, 54, 66],
+        dmg: 10,
+        fin: 92,
+        finDmg: 68,
+        finKb: 11,
+      },
     },
     cineKey = (a) => (a.kind === "deoxys" ? (a.form ?? "normal") : a.kind),
     LEGENDS = [
@@ -6337,6 +6712,8 @@
       "dialga",
       "palkia",
       "giratina",
+      "koraidon",
+      "miraidon",
     ],
     // The saved legendary choice indexes this list (new ones are appended,
     // so an older save keeps its pick).
@@ -6351,6 +6728,8 @@
       "dialga",
       "palkia",
       "giratina",
+      "koraidon",
+      "miraidon",
     ],
     lgRoll = () => LEGENDS[Math.floor(Math.random() * LEGENDS.length)],
     // An unbiased shuffle (Fisher-Yates). Sorting with a random comparator
@@ -9547,6 +9926,8 @@
             src: `basic${e.combo + 1}`,
             melee: !0,
             hex: r.hex,
+            poison: r.poison,
+            pierceGuard: !!r.pierceGuard,
             burns: r.fang,
             chill: r.chill,
             mtype: r.mtype,
@@ -10085,7 +10466,8 @@
             hitstop: A.hitstopHeavy + Math.round(6 * i),
             hitstun: A.hitstunHeavy,
             color: e.kit.color,
-            rehit: 0,
+            rehit: s.rehit ?? 0,
+            pierceGuard: !!s.pierceGuard,
             attackerStop: !0,
             fire: e.kit.id === "charizard",
             src: s.blitz ? (s.blitz.src ?? "flareblitz") : "smash",
@@ -12132,6 +12514,15 @@
           (r *= 1.35),
           !i.flier && this.inPuddle(e.x, e.y, e.team, !1) && (r *= 0.6),
           this.inOpenWater(e) && (r *= THIN.slow),
+          // Hadron Engine: faster on its own Electric Terrain.
+          this.fields.length &&
+            this.fields.some(
+              (f) =>
+                f.kind === "eterrain" &&
+                f.owner === e &&
+                Math.hypot(e.x - f.x, (e.y - f.y) * 1.6) < f.r,
+            ) &&
+            (r *= MIRAIDON.terSpeed),
           i.id === "dragapult" &&
             e.slot.horns.includes("out") &&
             (r *= he.light);
@@ -14628,7 +15019,9 @@
                 this.exFx(e, t, t.kind === "player" ? hp0 - t.slot.hp : 1),
               (e.chill || e.daze || e.flinch || e.exTag) &&
                 this.exOnHit(e, t, t.kind !== "player" || t.slot.hp < hp0),
-              e.poison && this.poison(t),
+              e.poison &&
+                (e.poison === !0 || this.rand() < e.poison) &&
+                this.poison(t),
               e.burns &&
                 (e.burns === !0 || this.rand() < e.burns) &&
                 this.burn(t),
@@ -14822,6 +15215,7 @@
       poison(e) {
         if (e.kind !== "player" || e.state === "faint") return;
         if (
+          e.kit.type === "POISON" ||
           e.kit.type2 === "POISON" ||
           e.kit.type2 === "STEEL" ||
           e.kit.type === "STEEL"
@@ -14935,6 +15329,18 @@
             break;
           case "lurantisy":
             go("sunny", "Charge"), (sl.cdY = e.kit.yCd);
+            break;
+          case "toxtricityx":
+            go("sludge", "Shoot"), (sl.cdX = e.kit.xCd);
+            break;
+          case "toxtricityy":
+            go("shock", "Shock"), (sl.cdY = e.kit.yCd);
+            break;
+          case "galladex":
+            go("teleslash", "Charge"), (sl.cdX = e.kit.xCd);
+            break;
+          case "galladey":
+            go("psychocut", "Swing"), (sl.cdY = e.kit.yCd);
             break;
           case "chandelurex":
             go("fspin", "Shoot"), (sl.cdX = e.kit.xCd);
@@ -15544,6 +15950,43 @@
         let s = e.kit.smash,
           o = Math.cos(e.atkDir),
           l = Math.sin(e.atkDir);
+        if (s.custom === "overdrive") {
+          let c = EXK.toxtricity,
+            R = c.odR + c.odRGrow * i;
+          // Sound: all round, through cover.
+          for (let v of this.victimsFor(e.team)) {
+            let dx = v.x - e.x,
+              dy = v.y - e.y,
+              d = Math.hypot(dx, dy);
+            d < R + v.hurtR &&
+              this.exHit(
+                v,
+                e,
+                Math.round(s.dmg + c.odGrow * i),
+                s.kb * (1 + 0.6 * i),
+                d > 1 ? dx / d : Math.cos(e.atkDir),
+                d > 1 ? dy / d : Math.sin(e.atkDir),
+                {
+                  src: "overdrive",
+                  mtype: "ELECTRIC",
+                  heavy: !0,
+                  hitstun: A.hitstunHeavy,
+                  hitstop: 8 + Math.round(6 * i),
+                  color: "#f8e040",
+                },
+              );
+          }
+          for (let f of this.fields)
+            f.kind === "sludge" &&
+              !f.dead &&
+              f.owner === e &&
+              Math.hypot(f.x - e.x, f.y - e.y) < R + f.r &&
+              this.toxicShock(e, f);
+          this.emit({ type: "overdrive", who: e, x: e.x, y: e.y, r: R, charge: i });
+        }
+        s.ccDrop &&
+          ((e.slot.ccT = EXK.gallade.ccT),
+          this.emit({ type: "ccDrop", who: e }));
         if (s.custom === "inferno") {
           let c = EXK.chandelure;
           this.exProj(e, e.team, e.atkDir, {
@@ -15799,6 +16242,14 @@
             return this.exXScissor(e, P);
           case "sunny":
             return this.exSunny(e);
+          case "sludge":
+            return this.exSludge(e, P);
+          case "shock":
+            return this.exShock(e, P);
+          case "teleslash":
+            return this.exTeleSlash(e, P);
+          case "psychocut":
+            return this.exPsychoCut(e, P);
           case "fspin":
             return this.exFireSpin(e, P);
           case "hexbolt":
@@ -16848,6 +17299,60 @@
       // ---- Dialga, Palkia and Giratina --------------------------------------
       r3Fire(e) {
         let t = e.owner;
+        if (e.kind === "koraidon") {
+          let K = KORAIDON,
+            o = zekLine(t, e.ax, e.ay);
+          Object.assign(e, o, { phase: "warn", t: 0, px: o.sx, py: o.sy, alpha: 1 }),
+            // Orichalcum Pulse: the sun blazes over the aim point.
+            this.fields.push({
+              id: this.nextId++,
+              kind: "osun",
+              x: e.ax,
+              y: e.ay,
+              r: K.sunR,
+              life: K.sunT,
+              t: 0,
+              owner: t,
+              team: t.team,
+            }),
+            this.emit({
+              type: "koraidonWarn",
+              who: t,
+              x1: o.sx,
+              y1: o.sy,
+              x2: o.ex,
+              y2: o.ey,
+              x: e.ax,
+              y: e.ay,
+            });
+          return !0;
+        }
+        if (e.kind === "miraidon") {
+          let M = MIRAIDON;
+          Object.assign(e, {
+            phase: "drift",
+            t: 0,
+            x: e.ax,
+            y: e.ay,
+            px: e.ax - M.r,
+            py: e.ay,
+            trail: [],
+            alpha: 1,
+          }),
+            this.fields.push({
+              id: this.nextId++,
+              kind: "eterrain",
+              x: e.ax,
+              y: e.ay,
+              r: M.r,
+              life: M.terT,
+              t: 0,
+              owner: t,
+              team: t.team,
+            }),
+            this.emit({ type: "miraidonDrift", who: t, x: e.ax, y: e.ay, r: M.r });
+          return !0;
+        }
         if (e.kind === "dialga") {
           let D = DIALGA,
             l = this.victimsFor(e.team).filter(
@@ -16930,6 +17435,79 @@
       }
       r3Legend(e) {
         let w = e.owner;
+        if (e.kind === "koraidon") {
+          let K = KORAIDON;
+          if (e.phase === "warn")
+            e.t >= K.warn &&
+              ((e.phase = "dash"),
+              (e.t = 0),
+              this.emit({ type: "collision", who: w, x1: e.sx, y1: e.sy, x2: e.ex, y2: e.ey }));
+          else if (e.phase === "dash") {
+            let q = Math.min(1, e.t / K.dash),
+              s2 = q * q;
+            (e.px = e.sx + (e.ex - e.sx) * s2),
+              (e.py = e.sy + (e.ey - e.sy) * s2),
+              e.t % 3 === 0 && this.emit({ type: "koraidonDust", x: e.px, y: e.py }),
+              this.hitboxes.push(
+                this.lgBox(
+                  e,
+                  { kind: "capsule", x1: e.sx, y1: e.sy, x2: e.px, y2: e.py, r: K.r },
+                  {
+                    dmg: K.dmg,
+                    kb: K.kb,
+                    kbMode: "dir",
+                    hitstun: 26,
+                    hitstop: 10,
+                    color: "#ff8a3d",
+                  },
+                ),
+              ),
+              e.t >= K.dash && ((e.phase = "leave"), (e.t = 0));
+          } else
+            (e.px += e.dx * 8),
+              (e.py += e.dy * 8),
+              (e.alpha = Math.max(0, 1 - e.t / K.leave)),
+              e.t >= K.leave && (e.done = !0);
+          return !0;
+        }
+        if (e.kind === "miraidon") {
+          let M = MIRAIDON;
+          if (e.phase === "drift") {
+            // Once round the ring, quick at first, sliding into the bolt.
+            let q = Math.min(1, e.t / M.drift),
+              g = Math.PI + Ee(q) * Math.PI * 2;
+            (e.px = e.x + Math.cos(g) * M.r),
+              (e.py = e.y + Math.sin(g) * M.r * 0.55),
+              (e.ang = g + Math.PI / 2),
+              e.trail.push([e.px, e.py]),
+              e.trail.length > 40 && e.trail.shift(),
+              e.t >= M.drift &&
+                ((e.phase = "bolt"),
+                (e.t = 0),
+                this.hitboxes.push(
+                  this.lgBox(
+                    { ...e, dx: 0, dy: 0 },
+                    { kind: "circle", x: e.x, y: e.y, r: M.r },
+                    {
+                      dmg: M.dmg,
+                      kb: M.kb,
+                      kbMode: "away",
+                      hitstun: 28,
+                      hitstop: 10,
+                      color: "#c8b8ff",
+                      para: 40,
+                    },
+                  ),
+                ),
+                this.emit({ type: "electroDrift", who: w, x: e.x, y: e.y, r: M.r }));
+          } else if (e.phase === "bolt")
+            e.t >= M.bolt && ((e.phase = "leave"), (e.t = 0));
+          else
+            (e.px += 7), (e.py -= 3),
+              (e.alpha = Math.max(0, 1 - e.t / M.leave)),
+              e.t >= M.leave && (e.done = !0);
+          return !0;
+        }
         if (e.kind === "dialga") {
           let D = DIALGA;
           if (e.phase === "stop") {
@@ -17091,6 +17669,7 @@
       // Timers on a fighter's slot (also ticking while it is tagged out).
       r3Slot(e, s) {
         s.ffT > 0 && s.ffT--;
+        s.ccT > 0 && s.ccT--;
         s.fcT > 0 && --s.fcT === 0 && (s.fcN = 0);
         s.waT > 0 && s.waT--;
         s.steadyT > 0 && s.steadyT--;
@@ -17239,6 +17818,21 @@
             (p) => p.kind === "pblade" && p.owner === t && !p.dead,
           ) &&
           (m *= X.ceruledge.pgBare);
+        // Orichalcum Pulse: its caller hits harder standing in the sun.
+        this.fields.length &&
+          t?.kind === "player" &&
+          this.fields.some(
+            (f) =>
+              f.kind === "osun" &&
+              f.owner === t &&
+              Math.hypot(t.x - f.x, (t.y - f.y) * 1.6) < f.r,
+          ) &&
+          (m *= KORAIDON.sunPow);
+        // Sharpness hones Gallade's blades; Punk Rock powers Overdrive.
+        d.sharpness &&
+          /:(basic\d|teleslash|psychocut)/.test(k) &&
+          (m *= X.gallade.sharp);
+        d.punkRock && /:overdrive/.test(k) && (m *= X.toxtricity.prOut);
         // Flash Fire fuels Chandelure's fire moves.
         d.flashFire &&
             sl.ffT > 0 &&
@@ -17249,6 +17843,15 @@
       // Incoming damage from roster-3 abilities on the defender.
       r3Taken(w, t, re, l, k, M) {
         let X = EXK;
+        // Close Combat left Gallade's guard down.
+        (w.slot.ccT ?? 0) > 0 &&
+          re > 0 &&
+          (re = Math.round(re * X.gallade.ccTaken));
+        // Punk Rock: sound moves hurt Toxtricity less.
+        w.kit.punkRock &&
+          re > 0 &&
+          /:(overdrive|boomburst|bugbuzz|snore)/.test(k) &&
+          (re = Math.round(re * X.toxtricity.prTaken));
         w.kit.flashFire &&
           this.attackerType(t) === "FIRE" &&
           re > 0 &&
@@ -17426,6 +18029,91 @@
           }
           k && this.emit({ type: "whirlChurn", x: f.x, y: f.y });
         }
+        // Hadron Engine's Electric Terrain zaps foes on it now and then.
+        if (f.kind === "eterrain" && f.t % MIRAIDON.zapEvery === 20) {
+          let M = MIRAIDON;
+          for (let v of this.victimsFor(f.team)) {
+            if (this.floating(v) || v.airborne) continue;
+            let dx = v.x - f.x,
+              dy = (v.y - f.y) * 1.6,
+              d = Math.hypot(dx, dy);
+            d < f.r + v.hurtR * 0.5 &&
+              this.exHit(v, o, M.zapDmg, 0.6, dx / (d || 1), dy / (d || 1), {
+                src: "legend-terrain",
+                mtype: "ELECTRIC",
+                hitstun: 10,
+                hitstop: 2,
+                multi: !0,
+                color: "#c8b8ff",
+              }) &&
+              this.rand() < M.zapChance &&
+              this.paraFor(v, M.zapPara);
+          }
+          this.emit({ type: "terrainZap", x: f.x, y: f.y, r: f.r });
+        }
+        if (f.kind === "sludgelob" && f.t >= EXK.toxtricity.sbFlight) {
+          let c = X.toxtricity,
+            hl = [];
+          this.exArea(o, f.team, f.x, f.y, c.sbR, c.sbDmg, 2.4, {
+            src: "sludgebomb",
+            mtype: "POISON",
+            hitstun: 18,
+            color: "#b06ce0",
+            list: hl,
+          });
+          for (let v of hl) this.poison(v);
+          (f.dead = !0),
+            this.fields.push({
+              id: this.nextId++,
+              kind: "sludge",
+              x: f.x,
+              y: f.y,
+              r: c.sbPoolR,
+              life: c.sbPoolT,
+              t: 0,
+              owner: o,
+              team: f.team,
+              charged: 0,
+            }),
+            this.emit({ type: "sludgeLand", who: o, x: f.x, y: f.y, r: c.sbPoolR });
+        }
+        if (f.kind === "sludge") {
+          let c = X.toxtricity;
+          f.charged > 0 && f.charged--;
+          let pz = f.t % c.sbEvery === 5,
+            zap = f.charged > 0 && f.t % c.shZapEvery === 0;
+          if (pz || zap)
+            for (let v of this.victimsFor(f.team)) {
+              // Fluid on the ground: floating Pokemon pass over it.
+              if (this.floating(v) || v.airborne || v.heldBy) continue;
+              let dx = v.x - f.x,
+                dy = (v.y - f.y) * 1.6,
+                d = Math.hypot(dx, dy);
+              if (d > f.r + v.hurtR * 0.5) continue;
+              pz &&
+                this.exHit(v, o, c.sbPoolDmg, 0.1, 0, 0, {
+                  src: "sludgepool",
+                  mtype: "POISON",
+                  hitstun: 4,
+                  hitstop: 0,
+                  multi: !0,
+                  color: "#b06ce0",
+                }) &&
+                this.poison(v);
+              zap &&
+                this.exHit(v, o, c.shZap, 0.4, dx / (d || 1), dy / (d || 1), {
+                  src: "chargedpool",
+                  mtype: "ELECTRIC",
+                  hitstun: 10,
+                  hitstop: 1,
+                  multi: !0,
+                  color: "#f8e040",
+                }) &&
+                this.rand() < 0.5 &&
+                this.paraFor(v, 30);
+            }
+          zap && this.emit({ type: "sludgeZap", x: f.x, y: f.y, r: f.r });
+        }
         if (f.kind === "fspin") {
           let c = X.chandelure,
             q = f.t - c.fsArm;
@@ -17569,6 +18257,172 @@
           }),
           this.emit({ type: "sunnyDay", who: e, x: e.x, y: e.y }));
         e.t >= c.sunCast + c.sunRec && this.exEnd(e);
+      }
+      // Toxtricity ----------------------------------------------------------
+      // Sludge Bomb: lobbed at the foe (or ahead); lands as a puddle.
+      exSludge(e, P) {
+        let c = EXK.toxtricity;
+        this.locomote(e, 0, 0), this.exFr(e, "Shoot", 2, !1);
+        e.t < c.sbWind && this.exAim(e, P, c.sbRange);
+        if (e.t === c.sbWind) {
+          let tg = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+            ok = tg && Math.hypot(tg.x - e.x, tg.y - e.y) < c.sbRange,
+            x = me(ok ? tg.x : e.x + Math.cos(e.dir2) * 120, B.x0 + 16, B.x1 - 16),
+            y = me(ok ? tg.y : e.y + Math.sin(e.dir2) * 120, B.y0 + 12, B.y1 - 10);
+          this.fields.push({
+            id: this.nextId++,
+            kind: "sludgelob",
+            x,
+            y,
+            sx: e.x,
+            sy: e.y - 18,
+            r: c.sbR,
+            life: c.sbFlight + 1,
+            t: 0,
+            owner: e,
+            team: e.team,
+          }),
+            this.emit({ type: "sludgeThrow", who: e, x, y });
+        }
+        (e.exRec = e.t > c.sbWind), e.t >= c.sbWind + c.sbRec && this.exEnd(e);
+      }
+      // Shock: a burst all round; poisoned foes are paralysed by it, and
+      // puddles it touches are charged.
+      exShock(e, P) {
+        let c = EXK.toxtricity;
+        this.locomote(e, 0, 0), this.exFr(e, "Shock", 2, !1);
+        if (e.t === c.shWind) {
+          for (let v of this.victimsFor(e.team)) {
+            let dx = v.x - e.x,
+              dy = v.y - e.y,
+              d = Math.hypot(dx, dy);
+            if (d > c.shR + v.hurtR) continue;
+            let hot = v.kind === "player" && (v.slot.poisonT ?? 0) > 0;
+            this.exHit(
+              v,
+              e,
+              Math.round(c.shDmg * (hot ? c.shHot : 1)),
+              hot ? 3.6 : 2.4,
+              d > 1 ? dx / d : 1,
+              d > 1 ? dy / d : 0,
+              { src: "shock", mtype: "ELECTRIC", hitstun: 18, color: "#f8e040" },
+            ) &&
+              hot &&
+              (this.paraFor(v, c.shPara),
+              this.emit({ type: "toxicJolt", who: e, v, x: v.x, y: v.y }));
+          }
+          for (let f of this.fields)
+            f.kind === "sludge" &&
+              f.owner === e &&
+              Math.hypot(f.x - e.x, f.y - e.y) < c.shR + f.r &&
+              ((f.charged = c.shCharge),
+              this.emit({ type: "sludgeCharge", x: f.x, y: f.y, r: f.r }));
+          this.emit({ type: "shockBurst", who: e, x: e.x, y: e.y, r: c.shR });
+        }
+        (e.exRec = e.t > c.shWind), e.t >= c.shWind + c.shRec && this.exEnd(e);
+      }
+      // Toxic Shock: a puddle set off by Overdrive. Poisons and paralyses
+      // everyone on it, then it is gone.
+      toxicShock(e, f) {
+        let c = EXK.toxtricity,
+          hl = [];
+        this.exArea(e, e.team, f.x, f.y, c.tsR + f.r * 0.4, c.tsDmg, 4.2, {
+          src: "toxicshock",
+          mtype: "POISON",
+          heavy: !0,
+          hitstun: 26,
+          list: hl,
+          color: "#c06cff",
+        });
+        for (let v of hl)
+          this.poison(v), this.paraFor(v, c.tsPara);
+        (f.dead = !0),
+          this.emit({ type: "toxicShock", who: e, x: f.x, y: f.y, r: f.r });
+      }
+      // Gallade --------------------------------------------------------------
+      // Teleport Slash: vanish, reappear behind the foe, slash.
+      exTeleSlash(e, P) {
+        let c = EXK.gallade;
+        this.locomote(e, 0, 0);
+        if (e.t < c.tsWind) {
+          this.exAim(e, P, c.tsRange), this.exFr(e, "Charge", 2, !0);
+          return;
+        }
+        if (e.t === c.tsWind) {
+          let tg = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+            ok = tg && Math.hypot(tg.x - e.x, tg.y - e.y) < c.tsRange,
+            x0 = e.x,
+            y0 = e.y;
+          if (ok) {
+            // Behind them, as seen from where Gallade stood.
+            let a = Math.atan2(tg.y - e.y, tg.x - e.x);
+            (e.x = me(tg.x + Math.cos(a) * c.tsBehind, B.x0 + 8, B.x1 - 8)),
+              (e.y = me(tg.y + Math.sin(a) * c.tsBehind, B.y0 + 6, B.y1 - 4)),
+              (e.dir2 = e.facing = a + Math.PI);
+          } else
+            (e.x = me(e.x + Math.cos(e.dir2) * c.tsMiss, B.x0 + 8, B.x1 - 8)),
+              (e.y = me(e.y + Math.sin(e.dir2) * c.tsMiss, B.y0 + 6, B.y1 - 4));
+          (e.px = e.x), (e.py = e.y), (e.tsHit = !!ok),
+            (e.moveId = this.nextId++),
+            (e.exInv = 1),
+            this.emit({ type: "teleSlash", who: e, x0, y0, x: e.x, y: e.y });
+        }
+        let k = e.t - c.tsWind;
+        k === 3 && (e.exInv = 0);
+        k >= 2 &&
+          k < 6 &&
+          this.hitboxes.push({
+            id: e.moveId,
+            team: e.team,
+            owner: e,
+            shape: {
+              kind: "circle",
+              x: e.x + Math.cos(e.dir2) * 14,
+              y: e.y + Math.sin(e.dir2) * 14,
+              r: 16,
+            },
+            dmg: c.tsDmg,
+            kb: 4.6,
+            kbMode: "dir",
+            dx: Math.cos(e.dir2),
+            dy: Math.sin(e.dir2),
+            heavy: !0,
+            hitstop: 8,
+            hitstun: A.hitstunHeavy,
+            color: "#8fe0a8",
+            rehit: 0,
+            attackerStop: !0,
+            src: "teleslash",
+            melee: !0,
+            mtype: "PSYCHIC",
+          });
+        (e.animName = k < 2 ? "Charge" : "Swing"),
+          (e.animFrame = Math.floor(Math.max(0, k) / 2) % 6),
+          (e.exRec = k >= 6),
+          k >= 6 + (e.tsHit ? c.tsRec : c.tsMissRec) && this.exEnd(e);
+      }
+      // Psycho Cut: a crescent of psychic blade that slices through.
+      exPsychoCut(e, P) {
+        let c = EXK.gallade;
+        this.locomote(e, 0, 0), this.exFr(e, "Swing", 2, !1);
+        e.t <= c.pcWind && this.exAim(e, P, 260);
+        e.t === c.pcWind + 1 &&
+          (this.exProj(e, e.team, e.dir2, {
+            kind: "psychocut",
+            speed: c.pcSpeed,
+            r: 10,
+            life: c.pcLife,
+            dmg: c.pcDmg,
+            kb: 3,
+            hitstun: 18,
+            hitstop: 4,
+            color: "#ff7ad0",
+            mtype: "PSYCHIC",
+            pierce: !0,
+          }),
+          this.emit({ type: "psychoCut", who: e }));
+        (e.exRec = e.t > c.pcWind + 1),
+          e.t >= c.pcWind + 1 + c.pcRec && this.exEnd(e);
       }
       // Chandelure -----------------------------------------------------------
       // Fire Spin: cast on the foe (or ahead), it arms, then pulls and holds.
@@ -18135,7 +18989,35 @@
           ty = s ? s.y : e.y + Math.sin(e.dir) * 80,
           o = Math.cos(e.dir),
           l = Math.sin(e.dir);
-        if (id === "pikachu") {
+        if (id === "toxtricity") {
+          // Strums once: a small Overdrive ring round the partner's foe.
+          (e.animName = "Shock"), (e.animFrame = Math.floor(e.t / 3) % 6);
+          e.t === 14 &&
+            (this.exArea(e, t, e.x, e.y, 48, 20, 4.4, {
+              src: "overdrive",
+              mtype: "ELECTRIC",
+              heavy: !0,
+              hitstun: 22,
+              color: "#f8e040",
+            }),
+            this.emit({ type: "overdrive", who: e, x: e.x, y: e.y, r: 48, charge: 0.2 }));
+        } else if (id === "gallade") {
+          // Teleports beside the foe and slashes.
+          e.t === 8 && s &&
+            ((e.x = me(s.x - Math.cos(e.dir) * 18, B.x0 + 8, B.x1 - 8)),
+            (e.y = me(s.y - Math.sin(e.dir) * 18, B.y0 + 6, B.y1 - 4)),
+            this.emit({ type: "teleSlash", who: e, x0: e.x, y0: e.y, x: e.x, y: e.y }));
+          e.t === 12 &&
+            this.exArea(e, t, e.x + o * 14, e.y + l * 14, 18, 24, 4.6, {
+              src: "teleslash",
+              mtype: "PSYCHIC",
+              heavy: !0,
+              hitstun: 22,
+              color: "#8fe0a8",
+            });
+          (e.animName = e.t < 12 ? "Charge" : "Swing"),
+            (e.animFrame = Math.floor(e.t / 2) % 6);
+        } else if (id === "pikachu") {
           // Darts in with Quick Attack and lets off a shock.
           if (e.t < 14) {
             let dx = tx - e.x,
@@ -23212,6 +24094,7 @@
     leaf: ["120,200,80", 8],
     fireblast: ["255,138,61", 30],
     inferno: ["255,138,61", 34],
+    psychocut: ["255,122,208", 18],
     hexbolt: ["160,112,255", 16],
     fist: ["138,107,224", 22],
     moon: ["255,143,216", 26],
@@ -23818,6 +24701,18 @@
       move: "SHADOW FORCE",
       color: "#a05cff",
       rgb: "160,92,255",
+    },
+    koraidon: {
+      name: "KORAIDON",
+      move: "COLLISION COURSE",
+      color: "#ff5a3c",
+      rgb: "255,90,60",
+    },
+    miraidon: {
+      name: "MIRAIDON",
+      move: "ELECTRO DRIFT",
+      color: "#8a6cff",
+      rgb: "138,108,255",
     },
     hooh: {
       name: "HO-OH",
@@ -28194,6 +29089,8 @@
     dialga: 0.74,
     palkia: 0.7,
     giratina: 0.78,
+    koraidon: 0.66,
+    miraidon: 0.7,
   };
   // A blade of stone jutting from the ground with a molten edge.
   function lgBlade(a, x, y, h, w, hot) {
@@ -28271,6 +29168,55 @@
   // Aim previews. Returns true when it drew one.
   function exLgAim(a, e, s, i, t) {
     let o = s.alpha;
+    if (s.kind === "koraidon") {
+      // The lane it will charge down, and the sun it will leave.
+      let L = zekLine(s.owner, s.ax, s.ay);
+      return (
+        (a.globalAlpha = 0.5 * o),
+        lgWarnBand(a, L.sx, L.sy, L.ex, L.ey, KORAIDON.r, 0.4, t),
+        (a.globalAlpha = 0.18 * o),
+        (a.fillStyle = "#ff8a3d"),
+        a.beginPath(),
+        a.ellipse(s.ax, s.ay, KORAIDON.sunR, KORAIDON.sunR * 0.55, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 0.8 * o),
+        a.setLineDash([6, 5]),
+        (a.lineDashOffset = -t * 0.5),
+        (a.strokeStyle = "#ffd36a"),
+        (a.lineWidth = 1.4),
+        a.stroke(),
+        a.setLineDash([]),
+        (a.globalAlpha = 1),
+        !0
+      );
+    }
+    if (s.kind === "miraidon") {
+      // The ring it will drift round.
+      let R = MIRAIDON.r;
+      (a.globalAlpha = 0.16 * o),
+        (a.fillStyle = "#8a6cff"),
+        a.beginPath(),
+        a.ellipse(s.ax, s.ay, R, R * 0.55, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = 0.85 * o),
+        a.setLineDash([8, 5]),
+        (a.lineDashOffset = t * 0.8),
+        (a.strokeStyle = "#5ff0ff"),
+        (a.lineWidth = 1.6),
+        a.stroke(),
+        a.setLineDash([]);
+      for (let n = 0; n < 6; n++) {
+        let g = (n / 6) * Math.PI * 2 - t * 0.06;
+        (a.fillStyle = n % 2 ? "#5ff0ff" : "#c8b8ff"),
+          a.fillRect(
+            Math.round(s.ax + Math.cos(g) * R) - 1,
+            Math.round(s.ay + Math.sin(g) * R * 0.55) - 1,
+            3,
+            2,
+          );
+      }
+      return (a.globalAlpha = 1), !0;
+    }
     if (s.kind === "dialga") {
       // A clock face where time will stop.
       let D = DIALGA;
@@ -28688,6 +29634,54 @@
   function exLgGround(a, e, s, i, t) {
     if (s.kind === "dialga" || s.kind === "palkia" || s.kind === "giratina")
       return lgWorld(a, e, s, i, t), !0;
+    if (s.kind === "koraidon") {
+      let K = KORAIDON;
+      if (s.phase === "warn") {
+        let q = s.t / K.warn;
+        lgWarnBand(a, s.sx, s.sy, s.ex, s.ey, K.r, q, t);
+      } else if (s.phase === "dash") {
+        // A scorched furrow behind it, glowing hot.
+        (a.globalCompositeOperation = "lighter"),
+          (a.globalAlpha = 0.5),
+          summonBand(a, s.sx, s.sy, s.px, s.py, K.r * 1.6, "#ff5a3c"),
+          (a.globalAlpha = 0.8),
+          summonBand(a, s.sx, s.sy, s.px, s.py, 6, "#ffd36a"),
+          (a.globalCompositeOperation = "source-over");
+      }
+      return (a.globalAlpha = 1), !0;
+    }
+    if (s.kind === "miraidon") {
+      let M = MIRAIDON;
+      // The neon trail it leaves as it drifts.
+      a.globalCompositeOperation = "lighter";
+      let tr = s.trail ?? [];
+      for (let n = 1; n < tr.length; n++) {
+        let q = n / tr.length;
+        (a.globalAlpha = q * 0.9),
+          summonBand(a, tr[n - 1][0], tr[n - 1][1], tr[n][0], tr[n][1], 10 * q, "#8a6cff"),
+          summonBand(a, tr[n - 1][0], tr[n - 1][1], tr[n][0], tr[n][1], 3 * q, "#5ff0ff");
+      }
+      if (s.phase === "bolt") {
+        let q = s.t / M.bolt;
+        glowAt(a, s.x, s.y - 10, M.r * (0.6 + q), "138,108,255", 0.9 * (1 - q)),
+          (a.globalAlpha = 1 - q),
+          lgRing(a, s.x, s.y, M.r * (0.5 + q * 0.6), "#ffffff", 3);
+        for (let n = 0; n < 8; n++) {
+          let g = (n / 8) * Math.PI * 2 + s.t,
+            x = s.x + Math.cos(g) * M.r,
+            y = s.y + Math.sin(g) * M.r * 0.55;
+          (a.globalAlpha = 0.9 * (1 - q)),
+            (a.strokeStyle = n % 2 ? "#5ff0ff" : "#ffffff"),
+            (a.lineWidth = 2),
+            a.beginPath(),
+            a.moveTo(x, y),
+            a.lineTo((x + s.x) / 2 + Math.sin(n * 3 + s.t) * 8, (y + s.y) / 2 - 6),
+            a.lineTo(s.x, s.y - 4),
+            a.stroke();
+        }
+      }
+      return (a.globalCompositeOperation = "source-over"), (a.globalAlpha = 1), !0;
+    }
     if (s.kind === "groudon") {
       let G = GROUDON,
         rs = [G.r1, G.r2, G.r3];
@@ -28854,6 +29848,26 @@
   }
   // Where the legendary itself is drawn, and how.
   function exLgAir(s, i, t, f, l) {
+    if (s.kind === "koraidon")
+      return {
+        x: s.px,
+        y: s.py - 8,
+        f:
+          s.phase === "warn"
+            ? (i.anims.Rumble ?? i.anims.Charge ?? f)
+            : (i.anims.Walk ?? f),
+        l: Math.atan2(s.dy ?? 0, s.dx ?? 1),
+      };
+    if (s.kind === "miraidon")
+      return {
+        x: s.px ?? s.x,
+        y: (s.py ?? s.y) - 10,
+        f:
+          s.phase === "bolt"
+            ? (i.anims.SpAttack ?? i.anims.Shoot ?? f)
+            : (i.anims.Walk ?? f),
+        l: s.ang ?? Math.PI / 2,
+      };
     if (s.kind === "dialga") {
       let g = Math.atan2(s.y - s.py, s.x - s.px);
       return {
@@ -28911,6 +29925,123 @@
   }
   // The scene backdrop for Groudon and Rayquaza.
   function exLgSky(a, s, i, l, t) {
+    if (s.kind === "koraidon") {
+      // Area Zero long ago: a red sky, a vast swollen sun, the crater rim
+      // in silhouette with giant ferns, and embers rising on the heat.
+      let o = a.createLinearGradient(0, 0, 0, _);
+      o.addColorStop(0, "#2a0604"),
+        o.addColorStop(0.5, "#8a1c08"),
+        o.addColorStop(0.78, "#ff7a2a"),
+        o.addColorStop(1, "#3a0a04"),
+        (a.globalAlpha = 0.95 * i),
+        (a.fillStyle = o),
+        a.fillRect(-60, -60, Y + 120, _ + 120);
+      let sx = Y * 0.5,
+        sy = _ * 0.42;
+      glowAt(a, sx, sy, 230, "255,120,40", 0.55 * i),
+        glowAt(a, sx, sy, 120, "255,210,120", 0.7 * i),
+        (a.globalAlpha = 0.95 * i),
+        (a.fillStyle = "#ffe0a0"),
+        a.beginPath(),
+        a.arc(sx, sy, 62, 0, Math.PI * 2),
+        a.fill();
+      // Rays turning slowly round the sun.
+      a.globalCompositeOperation = "lighter";
+      for (let n = 0; n < 12; n++) {
+        let g = (n / 12) * Math.PI * 2 + t * 0.006;
+        (a.globalAlpha = (n % 2 ? 0.06 : 0.12) * i),
+          (a.fillStyle = "#ffb347"),
+          a.beginPath(),
+          a.moveTo(sx, sy),
+          a.lineTo(sx + Math.cos(g - 0.05) * 600, sy + Math.sin(g - 0.05) * 600),
+          a.lineTo(sx + Math.cos(g + 0.05) * 600, sy + Math.sin(g + 0.05) * 600),
+          a.closePath(),
+          a.fill();
+      }
+      a.globalCompositeOperation = "source-over";
+      // The crater rim and ferns in silhouette.
+      (a.globalAlpha = 0.95 * i), (a.fillStyle = "#1a0402"), a.beginPath(), a.moveTo(-60, _ + 60);
+      for (let x = -60; x <= Y + 60; x += 20)
+        a.lineTo(x, _ * 0.74 - Math.abs(Math.sin(x * 0.013)) * 40 - (x % 60 === 0 ? 14 : 0));
+      a.lineTo(Y + 60, _ + 60), a.closePath(), a.fill();
+      for (let n = 0; n < 7; n++) {
+        let fx = ((n * 97) % Y) + 10,
+          fy = _ * 0.72;
+        for (let k = 0; k < 6; k++) {
+          let g = -Math.PI / 2 + (k - 2.5) * 0.32;
+          (a.strokeStyle = "#1a0402"),
+            (a.lineWidth = 3),
+            a.beginPath(),
+            a.moveTo(fx, fy),
+            a.quadraticCurveTo(fx + Math.cos(g) * 30, fy + Math.sin(g) * 40, fx + Math.cos(g) * 50, fy + Math.sin(g) * 30),
+            a.stroke();
+        }
+      }
+      // Embers on the heat.
+      for (let n = 0; n < 50; n++) {
+        let x = l() * Y,
+          y = (((l() * _ - t * (0.6 + (n % 5) * 0.3)) % _) + _) % _;
+        (a.globalAlpha = (0.4 + 0.5 * l()) * i),
+          (a.fillStyle = n % 3 ? "#ffb347" : "#ffe0a0"),
+          a.fillRect(Math.round(x + Math.sin(t * 0.02 + n) * 6), Math.round(y), 2, 2);
+      }
+      return (a.globalAlpha = 1), !0;
+    }
+    if (s.kind === "miraidon") {
+      // The future: a violet night over a neon grid racing to the horizon,
+      // data streams falling, and a city of light far off.
+      let o = a.createLinearGradient(0, 0, 0, _);
+      o.addColorStop(0, "#05021a"),
+        o.addColorStop(0.55, "#1c0a4a"),
+        o.addColorStop(1, "#06021a"),
+        (a.globalAlpha = 0.96 * i),
+        (a.fillStyle = o),
+        a.fillRect(-60, -60, Y + 120, _ + 120);
+      let hz = _ * 0.52;
+      glowAt(a, Y / 2, hz, 260, "138,108,255", 0.5 * i);
+      // The skyline.
+      (a.globalAlpha = 0.9 * i), (a.fillStyle = "#0c0628");
+      for (let n = 0; n < 24; n++) {
+        let w = 14 + ((n * 7) % 18),
+          h = 20 + ((n * 37) % 70),
+          x = n * (Y / 24) - 6;
+        a.fillRect(x, hz - h, w, h);
+        for (let k = 0; k < 4; k++)
+          (n + k + Math.floor(t / 20)) % 3 === 0 &&
+            ((a.fillStyle = k % 2 ? "#5ff0ff" : "#c8b8ff"),
+            a.fillRect(x + 3, hz - h + 6 + k * 10, 2, 2),
+            (a.fillStyle = "#0c0628"));
+      }
+      // The grid floor, scrolling towards us.
+      a.globalCompositeOperation = "lighter";
+      for (let n = -12; n <= 12; n++)
+        (a.globalAlpha = 0.35 * i),
+          (a.strokeStyle = "#8a6cff"),
+          (a.lineWidth = 1),
+          a.beginPath(),
+          a.moveTo(Y / 2 + n * 8, hz),
+          a.lineTo(Y / 2 + n * 90, _ + 60),
+          a.stroke();
+      for (let n = 0; n < 12; n++) {
+        let q = ((n + (t * 0.03) % 1) / 12),
+          y = hz + Math.pow(q, 2.2) * (_ - hz + 60);
+        (a.globalAlpha = 0.45 * q * i),
+          (a.strokeStyle = n % 3 ? "#8a6cff" : "#5ff0ff"),
+          a.beginPath(),
+          a.moveTo(-60, y),
+          a.lineTo(Y + 60, y),
+          a.stroke();
+      }
+      // Data falling.
+      for (let n = 0; n < 40; n++) {
+        let x = l() * Y,
+          y = ((l() * _ + t * (2 + (n % 4))) % (hz + 20)) - 20;
+        (a.globalAlpha = (0.2 + 0.4 * l()) * i),
+          (a.fillStyle = n % 2 ? "#5ff0ff" : "#c8b8ff"),
+          a.fillRect(Math.round(x), Math.round(y), 1, 6 + (n % 5) * 3);
+      }
+      return (a.globalCompositeOperation = "source-over"), (a.globalAlpha = 1), !0;
+    }
     if (s.kind === "dialga") {
       // Temporal Tower: a vast clock, its hands racing backwards then
       // stopping dead, gears turning in the dark and time streaming past.
@@ -29216,6 +30347,85 @@
   }
   // The scene: the legendary at work on everyone it caught.
   function exLgCineAir(a, e, t, s, i, r, o, sd, fc, l, f, u, h, c, y) {
+    if (t.kind === "koraidon") {
+      // Koraidon wheels round and rams them on every beat, then lines up and
+      // hits them with the full Collision Course.
+      let beat = u.find((M) => o >= M - 6 && o < M + 8),
+        fin = o >= h - 14,
+        b = t.cx + sd * (beat !== void 0 ? 40 - (o - beat + 6) * 4 : fin ? 110 - Math.min(1, (o - h + 14) / 14) * 120 : 84),
+        p = t.cy - 10 + Math.sin(o * 0.1) * 2,
+        k = beat !== void 0 || fin ? "Attack" : "Rumble";
+      o < 14 && (b += sd * (1 - Ee(o / 14)) * 160);
+      a.globalCompositeOperation = "lighter";
+      for (let M of u)
+        if (o >= M && o < M + 10)
+          for (let P of t.caught) {
+            let q = (o - M) / 10;
+            (a.globalAlpha = 1 - q),
+              summonBand(a, P.x + sd * 50, P.y - 12, P.x - sd * 20, P.y - 12, 16 * (1 - q), "#ff5a3c"),
+              summonBand(a, P.x + sd * 50, P.y - 12, P.x - sd * 20, P.y - 12, 5, "#ffe0a0"),
+              glowAt(a, P.x, P.y - 12, 30, r.rgb, 0.6 * (1 - q));
+          }
+      if (o >= h - 4 && o < h + 24) {
+        let q = Math.max(0, (o - h) / 24);
+        for (let P of t.caught)
+          glowAt(a, P.x, P.y - 12, 90, "255,200,120", 0.9 * (1 - q)),
+            (a.globalAlpha = 1 - q),
+            lgRing(a, P.x, P.y - 6, 20 + q * 90, "#ffe0a0", 4),
+            lgRing(a, P.x, P.y - 6, 10 + q * 60, "#ff5a3c", 3);
+      }
+      return (
+        (a.globalCompositeOperation = "source-over"),
+        glowAt(a, b, p - 26, 60, r.rgb, 0.4 * f),
+        lgBig(a, s, k, i, fc, b, p, 1.5, f, y),
+        !0
+      );
+    }
+    if (t.kind === "miraidon") {
+      // Miraidon drifts circles round them, striking with lightning on
+      // each beat, then discharges everything in an Electro Drift.
+      let g = o * 0.12,
+        b = t.cx + Math.cos(g) * 70,
+        p = t.cy - 16 + Math.sin(g) * 26,
+        k = o >= h - 14 ? "SpAttack" : "Walk";
+      o < 14 && (p -= (1 - Ee(o / 14)) * 60);
+      a.globalCompositeOperation = "lighter";
+      for (let n = 1; n < 16; n++) {
+        let g2 = (o - n) * 0.12;
+        (a.globalAlpha = (1 - n / 16) * 0.7 * f),
+          summonBand(
+            a,
+            t.cx + Math.cos(g2) * 70,
+            t.cy - 16 + Math.sin(g2) * 26,
+            t.cx + Math.cos(g2 + 0.12) * 70,
+            t.cy - 16 + Math.sin(g2 + 0.12) * 26,
+            8,
+            n % 2 ? "#8a6cff" : "#5ff0ff",
+          );
+      }
+      for (let M of u)
+        if (o >= M && o < M + 8)
+          for (let P of t.caught) {
+            let q = (o - M) / 8;
+            (a.globalAlpha = 1 - q), (a.strokeStyle = "#ffffff"), (a.lineWidth = 2.4), a.beginPath(), a.moveTo(b, p - 20);
+            for (let z = 1; z <= 5; z++)
+              a.lineTo(b + ((P.x - b) * z) / 5 + (z < 5 ? Math.sin(o + z * 2) * 8 : 0), p - 20 + ((P.y - 12 - p + 20) * z) / 5);
+            a.stroke(), glowAt(a, P.x, P.y - 12, 26, "95,240,255", 0.7 * (1 - q));
+          }
+      if (o >= h - 4 && o < h + 24) {
+        let q = Math.max(0, (o - h) / 24);
+        glowAt(a, t.cx, t.cy - 12, 140, "200,184,255", 0.9 * (1 - q)),
+          (a.globalAlpha = 1 - q),
+          lgRing(a, t.cx, t.cy, 30 + q * 110, "#ffffff", 4),
+          lgRing(a, t.cx, t.cy, 20 + q * 80, "#5ff0ff", 3);
+      }
+      return (
+        (a.globalCompositeOperation = "source-over"),
+        glowAt(a, b, p - 24, 56, r.rgb, 0.45 * f),
+        lgBig(a, s, k, i, Math.cos(g + Math.PI / 2) > 0 ? 0 : Math.PI, b, p, 1.5, f, y),
+        !0
+      );
+    }
     if (t.kind === "dialga") {
       // Dialga beside them; every beat a clock hand slashes through time,
       // then the Roar of Time pours from its mouth.
@@ -29497,7 +30707,13 @@
   function exLgCineGround(a, e, t, s) {
     let o = t.t,
       k = cineK(t);
-    if (t.kind === "dialga" || t.kind === "palkia" || t.kind === "giratina") {
+    if (
+      t.kind === "dialga" ||
+      t.kind === "palkia" ||
+      t.kind === "giratina" ||
+      t.kind === "koraidon" ||
+      t.kind === "miraidon"
+    ) {
       let col = LG_INFO[t.kind].color;
       for (let n = 0; n < 2; n++) {
         let q = ((o * 1.5 + n * 30) % 60) / 60;
@@ -29982,6 +31198,10 @@
   function r3Field(a, e, f, t) {
     f.kind === "sun" && fieldSun(a, f, t);
     f.kind === "fspin" && fieldSpin(a, f, t);
+    f.kind === "osun" && fieldOSun(a, f, t);
+    f.kind === "eterrain" && fieldETerrain(a, f, t);
+    f.kind === "sludgelob" && fieldSludgeLob(a, f, t);
+    f.kind === "sludge" && fieldSludge(a, f, t);
     f.kind === "pyre" && fieldPyre(a, f, t);
     f.kind === "whirl" && fieldWhirl(a, f, t);
     f.kind === "decoy" && fieldDecoy(a, e, f, t);
@@ -30101,6 +31321,163 @@
     }
     a.restore();
   }
+  // Orichalcum Pulse: harsh sunlight blazing down on a patch of ground,
+  // turning rays and shimmering heat.
+  function fieldOSun(a, f, t) {
+    let k = Math.min(1, f.t / 12) * Math.min(1, (f.life - f.t) / 40),
+      R = f.r;
+    a.save();
+    let g = a.createRadialGradient(f.x, f.y, 0, f.x, f.y, R);
+    g.addColorStop(0, `rgba(255,220,140,${0.45 * k})`),
+      g.addColorStop(0.7, `rgba(255,120,50,${0.3 * k})`),
+      g.addColorStop(1, "rgba(255,90,60,0)"),
+      (a.fillStyle = g),
+      a.beginPath(),
+      a.ellipse(f.x, f.y, R, R * 0.55, 0, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalCompositeOperation = "lighter");
+    for (let n = 0; n < 8; n++) {
+      let ang = (n / 8) * Math.PI * 2 + t * 0.01;
+      (a.globalAlpha = 0.25 * k),
+        (a.fillStyle = "#ffd36a"),
+        a.beginPath(),
+        a.moveTo(f.x, f.y - 70),
+        a.lineTo(f.x + Math.cos(ang) * R * 0.9, f.y + Math.sin(ang) * R * 0.5),
+        a.lineTo(f.x + Math.cos(ang + 0.18) * R * 0.9, f.y + Math.sin(ang + 0.18) * R * 0.5),
+        a.closePath(),
+        a.fill();
+    }
+    for (let n = 0; n < 6; n++) {
+      let ph = ((t + n * 17) % 36) / 36,
+        x = f.x + Math.sin(n * 2.3) * R * 0.6;
+      (a.globalAlpha = k * (1 - ph) * 0.7),
+        (a.fillStyle = "#fff0c0"),
+        a.fillRect(Math.round(x), Math.round(f.y - ph * 22), 1, 3);
+    }
+    a.restore();
+  }
+  // Hadron Engine's Electric Terrain: a neon hex grid humming with current.
+  function fieldETerrain(a, f, t) {
+    let k = Math.min(1, f.t / 12) * Math.min(1, (f.life - f.t) / 40),
+      R = f.r;
+    a.save(),
+      (a.globalAlpha = 0.22 * k),
+      (a.fillStyle = "#3a1c8a"),
+      a.beginPath(),
+      a.ellipse(f.x, f.y, R, R * 0.55, 0, 0, Math.PI * 2),
+      a.fill(),
+      a.clip(),
+      (a.globalCompositeOperation = "lighter");
+    let pulse = 0.5 + 0.5 * Math.sin(t * 0.2);
+    for (let q = -6; q <= 6; q++)
+      for (let w = -6; w <= 6; w++) {
+        let x = f.x + q * 16 + (w % 2 ? 8 : 0),
+          y = f.y + w * 7;
+        (a.globalAlpha = (0.25 + 0.35 * pulse * (((q + w + Math.floor(t / 6)) % 4 === 0) ? 1 : 0.3)) * k),
+          (a.strokeStyle = (q + w) % 3 ? "#8a6cff" : "#5ff0ff"),
+          (a.lineWidth = 1),
+          a.beginPath(),
+          a.moveTo(x - 6, y),
+          a.lineTo(x - 3, y - 3),
+          a.lineTo(x + 3, y - 3),
+          a.lineTo(x + 6, y),
+          a.lineTo(x + 3, y + 3),
+          a.lineTo(x - 3, y + 3),
+          a.closePath(),
+          a.stroke();
+      }
+    a.restore(),
+      (a.globalAlpha = 0.7 * k),
+      (a.strokeStyle = "#5ff0ff"),
+      (a.lineWidth = 1.2),
+      a.beginPath(),
+      a.ellipse(f.x, f.y, R, R * 0.55, 0, 0, Math.PI * 2),
+      a.stroke(),
+      (a.globalAlpha = 1);
+  }
+  // Sludge Bomb in flight: a glob arcing to where it was aimed, with its
+  // landing spot marked on the floor.
+  function fieldSludgeLob(a, f, t) {
+    let q = Math.min(1, f.t / EXK.toxtricity.sbFlight),
+      x = f.sx + (f.x - f.sx) * q,
+      y = f.sy + (f.y - f.sy) * q - Math.sin(q * Math.PI) * 46;
+    a.save(),
+      (a.globalAlpha = 0.35 + 0.4 * q),
+      (a.strokeStyle = "#b06ce0"),
+      (a.lineWidth = 1.2),
+      a.setLineDash([3, 3]),
+      a.beginPath(),
+      a.ellipse(f.x, f.y, f.r * (1.3 - 0.3 * q), f.r * 0.55 * (1.3 - 0.3 * q), 0, 0, Math.PI * 2),
+      a.stroke(),
+      a.setLineDash([]),
+      (a.globalAlpha = 0.3),
+      (a.fillStyle = "#1a1530"),
+      a.beginPath(),
+      a.ellipse(x, f.y + (f.sy - f.y) * (1 - q) + 18 * (1 - q), 6, 2.5, 0, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalAlpha = 1);
+    for (let n = 3; n >= 1; n--)
+      (a.globalAlpha = 0.2 * (4 - n)),
+        (a.fillStyle = "#7a3cb8"),
+        a.beginPath(),
+        a.arc(x - (f.x - f.sx) * 0.02 * n, y + n * 2, 6 - n, 0, Math.PI * 2),
+        a.fill();
+    (a.globalAlpha = 1),
+      (a.fillStyle = "#9a5ce0"),
+      a.beginPath(),
+      a.arc(x, y, 6, 0, Math.PI * 2),
+      a.fill(),
+      (a.fillStyle = "#e0b0ff"),
+      a.fillRect(Math.round(x) - 2, Math.round(y) - 3, 2, 2),
+      a.restore();
+  }
+  // Toxtricity's puddle: bubbling violet sludge; crackling with sparks
+  // while Shock has charged it.
+  function fieldSludge(a, f, t) {
+    let k = Math.min(1, f.t / 6) * Math.min(1, (f.life - f.t) / 30),
+      R = f.r;
+    a.save();
+    let g = a.createRadialGradient(f.x, f.y, 0, f.x, f.y, R);
+    g.addColorStop(0, `rgba(140,70,200,${0.75 * k})`),
+      g.addColorStop(0.7, `rgba(100,40,160,${0.6 * k})`),
+      g.addColorStop(1, "rgba(60,20,90,0)"),
+      (a.fillStyle = g),
+      a.beginPath(),
+      a.ellipse(f.x, f.y, R, R * 0.55, 0, 0, Math.PI * 2),
+      a.fill();
+    // Bubbles rising and popping.
+    for (let n = 0; n < 6; n++) {
+      let ph = ((t + n * 13 + f.id * 7) % 40) / 40,
+        ang = n * 2.1 + f.id,
+        rr = R * 0.65 * (((n * 7) % 10) / 10),
+        x = f.x + Math.cos(ang) * rr,
+        y = f.y + Math.sin(ang) * rr * 0.55;
+      (a.globalAlpha = k * (1 - ph)),
+        (a.strokeStyle = "#e0b0ff"),
+        (a.lineWidth = 1),
+        a.beginPath(),
+        a.arc(x, y - ph * 3, 1 + ph * 2.4, 0, Math.PI * 2),
+        a.stroke();
+    }
+    if (f.charged > 0) {
+      a.globalCompositeOperation = "lighter";
+      for (let n = 0; n < 4; n++) {
+        let ang = t * 0.3 + n * 1.7,
+          x = f.x + Math.cos(ang) * R * 0.7,
+          y = f.y + Math.sin(ang) * R * 0.38;
+        (a.globalAlpha = 0.9 * k),
+          (a.strokeStyle = n % 2 ? "#fff3a0" : "#f8d030"),
+          (a.lineWidth = 1.4),
+          a.beginPath(),
+          a.moveTo(f.x, f.y - 2),
+          a.lineTo((f.x + x) / 2 + Math.sin(t + n) * 4, (f.y + y) / 2 - 3),
+          a.lineTo(x, y),
+          a.stroke();
+      }
+      glowAt(a, f.x, f.y, R, "248,224,64", 0.25 * k);
+    }
+    a.restore();
+  }
   // Inferno's pool: a scorched patch with low flames dancing on it.
   function fieldPyre(a, f, t) {
     let k = Math.min(1, f.t / 8) * Math.min(1, (f.life - f.t) / 30),
@@ -30187,6 +31564,8 @@
   function r3Over(a, e, p, t) {
     p.kit.id === "lurantis" && overLurantis(a, e, p, t);
     p.kit.id === "chandelure" && overChandelure(a, e, p, t);
+    p.kit.id === "toxtricity" && overToxtricity(a, e, p, t);
+    p.kit.id === "gallade" && overGallade(a, e, p, t);
     p.kit.id === "ceruledge" && overCeruledge(a, e, p, t);
     p.kit.id === "volcarona" && overVolcarona(a, e, p, t);
     (p.slot.arT ?? 0) > 0 && overAquaRing(a, p, t);
@@ -30424,6 +31803,53 @@
         a.beginPath(),
         a.ellipse(x, y - hgt * 0.5, 13, hgt * 0.6, 0, 0, Math.PI * 2),
         a.stroke();
+    }
+    a.restore();
+  }
+  // Toxtricity charging Overdrive: the ring it will reach, pulsing with the
+  // strum, and sound waves rising off its chest.
+  function overToxtricity(a, e, p, t) {
+    if (p.state !== "smashCharge") return;
+    let c = EXK.toxtricity,
+      R = c.odR + c.odRGrow * (p.smashCharge ?? 0),
+      beat = (t % 12) / 12;
+    a.save(),
+      (a.globalAlpha = 0.5 + 0.3 * (1 - beat)),
+      (a.strokeStyle = "#f8e040"),
+      (a.lineWidth = 1.6),
+      a.setLineDash([5, 4]),
+      (a.lineDashOffset = -t * 0.8),
+      a.beginPath(),
+      a.ellipse(p.x, p.y, R, R * 0.55, 0, 0, Math.PI * 2),
+      a.stroke(),
+      a.setLineDash([]),
+      (a.globalAlpha = 0.12),
+      (a.fillStyle = "#c06cff"),
+      a.fill(),
+      (a.globalCompositeOperation = "lighter");
+    let y = p.y - p.z - p.kit.tall * Bz(p) * 0.6;
+    for (let n = 0; n < 3; n++) {
+      let q = ((t * 0.04 + n / 3) % 1),
+        r = 6 + q * 20;
+      (a.globalAlpha = 0.8 * (1 - q)),
+        (a.strokeStyle = n % 2 ? "#c06cff" : "#f8e040"),
+        (a.lineWidth = 1.4),
+        a.beginPath(),
+        a.arc(p.x, y, r, -Math.PI * 0.85, -Math.PI * 0.15),
+        a.stroke();
+    }
+    a.restore();
+  }
+  // Gallade with its guard down after Close Combat: a red flicker.
+  function overGallade(a, e, p, t) {
+    if (!((p.slot.ccT ?? 0) > 0)) return;
+    let y = p.y - p.z - p.kit.tall * Bz(p) * 0.5;
+    a.save(), (a.globalCompositeOperation = "lighter");
+    for (let n = 0; n < 4; n++) {
+      let g = (n / 4) * Math.PI * 2 + t * 0.08;
+      (a.globalAlpha = 0.55 + 0.3 * Math.sin(t * 0.4 + n)),
+        (a.fillStyle = n % 2 ? "#ff6a4a" : "#e05a3a"),
+        a.fillRect(Math.round(p.x + Math.cos(g) * 11), Math.round(y + Math.sin(g) * 9), 2, 3);
     }
     a.restore();
   }
@@ -30702,6 +32128,18 @@
         a.restore();
       return !0;
     }
+    if (h.kind === "psychocut") {
+      // A crescent of psychic blade, pink at the edge, white at the core.
+      a.save(), a.translate(c, y), a.rotate(ang), (a.globalCompositeOperation = "lighter");
+      for (let n = 3; n >= 0; n--)
+        (a.globalAlpha = n ? 0.18 * (4 - n) : 1),
+          (a.strokeStyle = n ? "#ff7ad0" : "#ffe0f4"),
+          (a.lineWidth = n ? 5 - n : 2.4),
+          a.beginPath(),
+          a.arc(-n * 5, 0, 11, -1.1, 1.1),
+          a.stroke();
+      return a.restore(), !0;
+    }
     if (h.kind === "hexbolt") {
       // A curse bolt: a violet streak with a pale eye at its head.
       a.save(), (a.globalCompositeOperation = "lighter");
@@ -30956,6 +32394,12 @@
       return l.disguise
         ? ue(`ILLUSION: ${xe[l.disguise]?.name ?? "?"}`, "#b03050", v, E)
         : hint("Strike from a disguise: ambush");
+    if (id === "toxtricity")
+      return hint("Overdrive sets off your puddles");
+    if (id === "gallade")
+      return (l.ccT ?? 0) > 0
+        ? ue(`GUARD DOWN ${Math.ceil(l.ccT / 60)}`, "#e05a3a", v, E)
+        : hint("Sacred Sword cuts through guard");
     if (id === "pikachu")
       return t.state === "ex" && t.exMove === "qatk"
         ? ue("QUICK ATTACK", "#f8d030", v, E)
@@ -35390,7 +36834,7 @@
   // ---- Team select ----
   // A versus layout: your side's card on the left, the opponent's on the right,
   // the roster in three columns in the middle, and a VS emblem below it.
-  var RG = { x: H / 2 - 92, y: 33, tile: 24, gap: 2.5, pitch: 36.5, cols: 7 },
+  var RG = { x: H / 2 - 86, y: 33, tile: 22, gap: 2.5, pitch: 30.5, cols: 7 },
     // Roster tiles lean only slightly, so the square portraits keep their
     // corners.
     RG_SK = 0.09;
@@ -35524,7 +36968,9 @@
     ["dialga", "Roar of Time", "Stops time round", "the target, then roars"],
     ["palkia", "Spacial Rend", "Three rifts tear", "space across the arena"],
     ["giratina", "Shadow Force", "Hunts from below,", "through any defence"],
-    ["random", "Any of the nine", "Rolled fresh for", "every battle"],
+    ["koraidon", "Collision Course", "Charges a lane, then", "the sun powers you"],
+    ["miraidon", "Electro Drift", "Drifts a ring, then", "terrain speeds you"],
+    ["random", "Any of the eleven", "Rolled fresh for", "every battle"],
     ["off", "No legendaries", "Battle without", "summons"],
   ];
   // ---- Ready screen and Training briefing --------------------------------
@@ -35575,6 +37021,8 @@
       },
       inteleon: { A: "17 · 18 · 29", RS: "32–112", X: "3 × ~9", Y: "~19" },
       pikachu: { A: "26 · 28 · 52", RS: "86–138", X: "~41", Y: "2 × ~24" },
+      toxtricity: { A: "43 · 46 · 83", RS: "79–193 + puddles", X: "~49 + puddle", Y: "~40 · ~60 poisoned" },
+      gallade: { A: "33 · 35 · 61", RS: "4–11 × 14", X: "~41", Y: "~35" },
       gengar: { A: "21 · 22 · 37", RS: "30–48 · ×2.2 asleep", X: "sleep", Y: "~37" },
       milotic: { A: "20 · 22 · 33", RS: "6 × ~8", X: "~22", Y: "+10% HP" },
       volcarona: { A: "18 · 19 · 32", RS: "29–46", X: "~23", Y: "+12% dmg" },
@@ -35661,6 +37109,14 @@
       zoroark: [
         "Illusionist. You start each round disguised as someone else: make your first hit count, it is an ambush. Illusion leaves a decoy for them to chase while you vanish and re-disguise. Night Daze punishes crowding, and Foul Play hits the strongest Pok\xE9mon hardest.",
         ["ambush", "daze"],
+      ],
+      toxtricity: [
+        "Chemist. Lob Sludge Bomb to lay toxic puddles, then Overdrive, strummed on your chest, sets off every puddle in reach. Shock anyone who closes in: a poisoned foe is paralysed by it. You are rooted while Overdrive charges, so pick your moment.",
+        ["poison", "para", "zone"],
+      ],
+      gallade: [
+        "Duelist. Teleport Slash behind a foe, Psycho Cut from range, and finish the combo with Sacred Sword, which cuts through a guard. Close Combat is your big flurry, but it drops your defences for four seconds: land it, then play safe.",
+        ["pierce", "counter"],
       ],
       pikachu: [
         "Speedster. The fastest Pok\xE9mon and the frailest: dart in with Quick Attack, chip from range with Thunderbolt, and get out. Volt Tackle is the biggest charge in the game and paralyses, but the recoil hurts you and a miss leaves you wide open. Static can paralyse anyone who hits you up close.",
@@ -36534,23 +37990,24 @@
         g.haze,
         { align: "center" },
       );
-    let i = 96,
+    let i = 86,
       r = 56,
-      o = 8,
-      l = (H - (i * 4 + o * 3)) / 2;
+      o = 5,
+      LC = 5,
+      l = (H - (i * LC + o * (LC - 1))) / 2;
     LG_CARDS.forEach(([f, u, h, c], y) => {
       let b = a.lgCursor === y,
         p = LG_INFO[f],
         k = p?.color ?? (f === "random" ? g.gold : g.dim),
         M =
           l +
-          (y % 4) * (i + o) +
-          ((4 - Math.min(4, LG_CARDS.length - Math.floor(y / 4) * 4)) *
+          (y % LC) * (i + o) +
+          ((LC - Math.min(LC, LG_CARDS.length - Math.floor(y / LC) * LC)) *
             (i + o)) /
             2,
         P =
           54 +
-          Math.floor(y / 4) * (r + 6) +
+          Math.floor(y / LC) * (r + 6) +
           (1 - s) * 20 +
           (b ? -3 + Math.sin(t * 0.12) * 1.2 : 0);
       tapRect(M, P, i, r, () => {
@@ -36564,15 +38021,15 @@
         Ae(M, P, i, r, k, { bright: b });
       let C = e[f];
       C
-        ? Oe(C, b ? "Determined" : "Normal", M + 6, P + 6, 40, {
+        ? Oe(C, b ? "Determined" : "Normal", M + 5, P + 8, 34, {
             bg: k,
             frame: !1,
             slash: !0,
           })
-        : (te(M + 6, P + 6, 40, 40, "#191530", 6),
+        : (te(M + 5, P + 8, 34, 34, "#191530", 6),
           V(
             f === "random" ? "?" : "OFF",
-            M + 26,
+            M + 22,
             P + (f === "random" ? 38 : 31),
             f === "random" ? 26 : 11,
             k,
@@ -36583,15 +38040,15 @@
           )),
         V(
           f === "random" ? "RANDOM" : f === "off" ? "OFF" : p.name,
-          M + 49,
+          M + 43,
           P + 16,
-          8,
+          Math.min(8, (8 * (i - 46)) / Math.max(1, ye(f === "random" ? "RANDOM" : f === "off" ? "OFF" : p.name, 8, He, 900))),
           b ? g.chalk : k,
           { outline: 1.6 },
         ),
-        G(u, M + 49, P + 25, 5.2, k, { weight: 700 }),
-        G(h, M + 49, P + 34, 4.8, g.haze),
-        G(c, M + 49, P + 41, 4.8, g.haze);
+        G(u, M + 43, P + 25, Math.min(5.2, (5.2 * (i - 46)) / Math.max(1, ye(u, 5.2, je, 700))), k, { weight: 700 }),
+        G(h, M + 43, P + 34, Math.min(4.8, (4.8 * (i - 46)) / Math.max(1, ye(h, 4.8))), g.haze),
+        G(c, M + 43, P + 41, Math.min(4.8, (4.8 * (i - 46)) / Math.max(1, ye(c, 4.8))), g.haze);
     });
     let f = 244;
     G(
@@ -36892,7 +38349,7 @@
     }
     // Light lines running across the screen between the roster's rows.
     d.save(), (d.globalCompositeOperation = "lighter");
-    for (let M = 0; M < 2; M++) {
+    for (let M = 0; M < Math.ceil((ge.length + 1) / RG.cols) - 1; M++) {
       let P = RG.y + RG.tile + 9 + M * RG.pitch + 1,
         C = d.createLinearGradient(0, 0, m(H), 0);
       C.addColorStop(0, "rgba(51,214,255,0)"),
@@ -37153,7 +38610,8 @@
           E.name,
           C + v / 2 - 1,
           x + v + 6.5,
-          4.6,
+          // Long names shrink to fit their tile.
+          Math.min(4.6, (4.6 * (RG.tile + RG.gap - 1)) / Math.max(1, ye(E.name, 4.6, He, 900))),
           Q >= 0 ? g.p1 : K ? "#ffffff" : g.chalk,
           { align: "center", outline: 1.2 },
         ),
@@ -38707,6 +40165,72 @@
         "PASSIVE",
       ],
     ],
+    toxtricity: [
+      [
+        "A",
+        "Poison Jab \xB7 Spark",
+        "Two jabs that may poison, then an electric uppercut.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Overdrive",
+        "Strum a shockwave all round you. Charge it to grow it; it sets off every toxic puddle in reach. You can't move while charging.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Sludge Bomb",
+        "Lob a glob that splashes and leaves a toxic puddle for five seconds.",
+        "RANGED",
+      ],
+      [
+        "Y",
+        "Shock",
+        "A burst all round you. A poisoned foe is paralysed; your puddles it touches are charged and shock.",
+        "BURST",
+      ],
+      ["B", "Dash", "A quick dash.", "DODGE"],
+      [
+        "*",
+        "Punk Rock",
+        "Your sound hits 25% harder and sound moves hurt you half as much.",
+        "PASSIVE",
+      ],
+    ],
+    gallade: [
+      [
+        "A",
+        "Slash \xB7 Sacred Sword",
+        "Two elbow-blade slashes, then Sacred Sword, which cuts through a guard.",
+        "COMBO",
+      ],
+      [
+        "RS",
+        "Close Combat",
+        "A lunging flurry of hits: four, more the longer you charge. Afterwards your defences drop: you take 30% more for four seconds.",
+        "OPTIONAL CHARGE",
+      ],
+      [
+        "X",
+        "Teleport Slash",
+        "Vanish and reappear behind the foe for a heavy slash. With nobody in range you blink ahead and are open.",
+        "MOBILITY",
+      ],
+      [
+        "Y",
+        "Psycho Cut",
+        "A crescent of psychic blade that slices through everyone in its path.",
+        "RANGED",
+      ],
+      ["B", "Teleport", "A short, untouchable blink.", "DODGE"],
+      [
+        "*",
+        "Sharpness",
+        "Your blades (combo, Teleport Slash, Psycho Cut) hit 15% harder.",
+        "PASSIVE",
+      ],
+    ],
     pikachu: [
       [
         "A",
@@ -39804,7 +41328,15 @@
       },
       cry(a, e = 0) {
         O() &&
-          (a === "dialga"
+          (a === "koraidon"
+            ? (I("saw", 180, 110, 0.7, 0.2, e, { vib: 30 }),
+              I("sq", 360, 240, 0.6, 0.1, e + 0.1, { vib: 20 }),
+              X(0.7, "bandpass", 900, 1, 0.14, 400, e, !0))
+            : a === "miraidon"
+            ? (I("saw", 260, 520, 0.5, 0.16, e, { vib: 40 }),
+              I("sq", 520, 780, 0.5, 0.08, e + 0.12, { vib: 50 }),
+              X(0.6, "bandpass", 2600, 1.5, 0.12, 1200, e, !0))
+            : a === "dialga"
             ? (I("saw", 140, 90, 0.9, 0.2, e, { vib: 12 }),
               I("sq", 280, 180, 0.8, 0.1, e + 0.06, { vib: 8 }),
               X(0.8, "bandpass", 1200, 1, 0.14, 500, e, !0))
@@ -39820,6 +41352,13 @@
                   ? (I("saw", 440, 330, 0.25, 0.09, e, { vib: 30 }),
                     I("p25", 660, 880, 0.2, 0.06, e + 0.08),
                     X(0.2, "bandpass", 1400, 2, 0.06, 900, e + 0.05))
+                  : a === "toxtricity"
+                    ? (I("saw", 220, 330, 0.18, 0.08, e, { vib: 40 }),
+                      I("saw", 330, 220, 0.22, 0.07, e + 0.12, { vib: 50 }),
+                      X(0.25, "bandpass", 1600, 2, 0.06, 800, e + 0.05))
+                  : a === "gallade"
+                    ? (I("tri", 523, 659, 0.18, 0.08, e, { vib: 15 }),
+                      I("p25", 784, 523, 0.25, 0.06, e + 0.1, { vib: 20 }))
                   : a === "pikachu"
                     ? (I("sq", 1320, 1760, 0.08, 0.06, e, { vib: 25 }),
                       I("sq", 1760, 1175, 0.18, 0.06, e + 0.1, { vib: 30 }))
@@ -41198,7 +42737,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 38,
+  var NETV = 39,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -45351,7 +46890,9 @@
               ? (s.lgCursor + N - 1) % N
               : D === "right"
                 ? (s.lgCursor + 1) % N
-                : (s.lgCursor + 4) % N),
+                : D === "up"
+                  ? (s.lgCursor + N - 5) % N
+                  : (s.lgCursor + 5) % N),
             S.ui(D !== "left"),
             LG_INFO[LG_CARDS[s.lgCursor][0]] &&
               S.cry(LG_CARDS[s.lgCursor][0], 0.02);
@@ -46118,6 +47659,21 @@
           break;
         case "infernoLand":
           P("fireBig", n.x, n.y - 8, 0.7 + 0.5 * n.charge);
+          break;
+        case "overdrive":
+          P("zapBurst2", n.x, n.y - 12, 0.6 + 0.6 * n.charge);
+          break;
+        case "collision":
+          P("boomGiant", n.x2, n.y2 - 14, 0.8);
+          break;
+        case "electroDrift":
+          P("zapBurst2", n.x, n.y - 14, 1.2), t.sheet("bolt", n.x, n.y, 1.2);
+          break;
+        case "toxicShock":
+          P("poison", n.x, n.y - 8, 0.7), P("zapBurst", n.x, n.y - 10, 0.5);
+          break;
+        case "shockBurst":
+          P("zapBurst3", n.x, n.y - 12, 0.5);
           break;
         case "fireSpin":
           P("fireOrchid", n.x, n.y - 6, 0.8);
@@ -47631,6 +49187,78 @@
           break;
         case "wispOut":
           S.wisp();
+          break;
+        case "koraidonWarn":
+          S.cry("koraidon", 0.02), S.charge(), t.ring(n.x, n.y, 10, 2, 18, "#ff8a3d");
+          break;
+        case "collision":
+          S.ultHit?.(), S.boom?.(), t.shake(0, 3, 14);
+          break;
+        case "koraidonDust":
+          t.dust(n.x, n.y, 4, 0, 0, 1.6);
+          break;
+        case "miraidonDrift":
+          S.cry("miraidon", 0.02), S.thunder(), t.ring(n.x, n.y, 10, 2, 18, "#8a6cff");
+          break;
+        case "electroDrift":
+          S.ultHit?.(),
+            S.thunder(),
+            t.shake(0, 3, 12),
+            t.ring(n.x, n.y, 10, 5, 20, "#5ff0ff", !0),
+            t.motes(n.x, n.y - 10, 24, n.r, "#c8b8ff", 2);
+          break;
+        case "terrainZap":
+          I("sq", F(80), F(72), 0.05, 0.03), t.motes(n.x, n.y - 2, 4, n.r, "#5ff0ff", 1.4);
+          break;
+        case "sludgeThrow":
+          S.swing(!1), I("sq", F(48), F(60), 0.12, 0.05);
+          break;
+        case "sludgeLand":
+          S.splash?.(),
+            t.ring(n.x, n.y, 6, 2.6, 14, "#b06ce0"),
+            t.motes(n.x, n.y - 4, 10, n.r, "#c080f0", 1.2);
+          break;
+        case "sludgeCharge":
+          S.thunder(), t.ring(n.x, n.y, n.r * 0.6, 1.6, 12, "#f8d030", !0);
+          break;
+        case "sludgeZap":
+          I("sq", F(76), F(70), 0.05, 0.03), t.motes(n.x, n.y - 4, 3, n.r, "#fff3a0", 1.4);
+          break;
+        case "shockBurst":
+          S.thunder(),
+            t.ring(n.x, n.y - 10, 6, 3.2, 12, "#f8e040", !0),
+            t.motes(n.x, n.y - 14, 12, n.r * 0.6, "#fff3a0", 1.8);
+          break;
+        case "toxicJolt":
+          t.popup(n.x, n.y - 40, "TOXIC JOLT", "#e0a0ff", !1);
+          break;
+        case "toxicShock":
+          S.closeCall(),
+            t.shake(0, 1.4, 6),
+            t.ring(n.x, n.y, 8, 3.6, 18, "#c06cff", !0),
+            t.ring(n.x, n.y, 4, 2.4, 14, "#f8e040", !0),
+            t.motes(n.x, n.y - 6, 16, n.r + 10, "#e0b0ff", 1.8),
+            t.popup(n.x, n.y - 30, "TOXIC SHOCK!", "#e0a0ff", !0);
+          break;
+        case "overdrive":
+          S.ultHit?.(),
+            I("saw", F(40), F(52), 0.35, 0.09, 0, { vib: 60 }),
+            t.shake(0, 1 + n.charge * 2, 8),
+            t.ring(n.x, n.y - 10, 10, n.r / 9, 16, "#f8e040", !0),
+            t.ring(n.x, n.y - 10, 6, n.r / 12, 20, "#c06cff", !0),
+            t.ring(n.x, n.y - 10, 2, n.r / 16, 24, "#ffffff", !0);
+          break;
+        case "teleSlash":
+          S.dodge(),
+            t.ring(n.x0, n.y0 - 12, 4, 2.2, 10, "#8fe0a8", !0),
+            t.ring(n.x, n.y - 12, 10, -0.6, 12, "#8fe0a8", !0),
+            t.motes(n.x, n.y - 14, 8, 10, "#c8ffd8", 1.2);
+          break;
+        case "psychoCut":
+          S.swing(!0), I("tri", F(84), F(91), 0.12, 0.05);
+          break;
+        case "ccDrop":
+          t.popup(n.who.x, n.who.y - 46, "GUARD DOWN", "#e05a3a", !1);
           break;
         case "fireSpinCast":
           S.charge(), t.ring(n.x, n.y, 6, 2, 12, "#ff8a3d");

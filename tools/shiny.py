@@ -33,7 +33,8 @@ DEX = dict(charizard="0006", venusaur="0003", blastoise="0009", dragapult="0887"
            rhyperior="0464", froslass="0478", gardevoir="0282", metagross="0376",
            greninja="0658", aegislash="0681", lurantis="0754", chandelure="0609",
            ceruledge="0937", volcarona="0637", milotic="0350", inteleon="0818",
-           zoroark="0571", pikachu="0025", gengar="0094")
+           zoroark="0571", pikachu="0025", gengar="0094",
+           toxtricity="0849", gallade="0475")
 PATHS = {k: f"{v}/0000/0001" for k, v in DEX.items()}
 PATHS["aegislashBlade"] = "0681/0001/0001"
 # Pidgey Sweep's rare shiny Pidgey.
