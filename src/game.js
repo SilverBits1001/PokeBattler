@@ -2194,8 +2194,8 @@
         xCd: 150,
         yCd: 600,
       },
-      // The luring chandelier. It burns the spirits it draws in: Will-O-Wisp
-      // sets foes alight from afar and Hex cashes the burns in for double.
+      // The luring chandelier. It traps a foe in Fire Spin, sets it alight
+      // with Inferno, then eats the burn with Hex: double damage that heals.
       // It floats and it is fragile; Overheat is a huge blast that leaves it
       // drained. Flash Fire turns fire aimed at it into fuel.
       chandelure: {
@@ -2213,7 +2213,7 @@
         hurtR: 11,
         size: 0.95,
         tall: 38,
-        role: "Zoner \xB7 soul burner",
+        role: "Trapper \xB7 soul burner",
         ex: !0,
         flier: !0,
         flashFire: !0,
@@ -2232,6 +2232,7 @@
             reach: 27,
             radius: 11,
             mtype: "FIRE",
+            fang: EXK.chandelure.emBurn,
           },
           {
             anim: "Double",
@@ -2246,6 +2247,7 @@
             reach: 28,
             radius: 11,
             mtype: "FIRE",
+            fang: EXK.chandelure.emBurn,
           },
           {
             anim: "Shoot",
@@ -2254,7 +2256,7 @@
             recovery: 15,
             lunge: 2,
             dmg: 28,
-            kb: 5,
+            kb: 6.2,
             heavy: !0,
             shape: "circle",
             reach: 30,
@@ -2270,27 +2272,28 @@
           cooldown: 32,
           anim: "Idle",
         },
+        // Inferno: a slow fireball that always burns and leaves a burning
+        // pool where it lands. Rooted to cast, long to recover.
         smash: {
-          name: "OVERHEAT",
+          name: "INFERNO",
           anim: "Emit",
-          windup: 14,
-          maxCharge: 48,
-          active: 8,
-          recovery: 30,
+          windup: 16,
+          maxCharge: 50,
+          active: 6,
+          recovery: 38,
           lunge: 0,
-          dmg: 36,
-          kb: 7,
+          dmg: 26,
+          kb: 5,
           shape: "circle",
           reach: 20,
-          radius: 16,
-          beam: { len: 84, grow: 40, r: 16, style: "soulfire" },
+          radius: 14,
           mtype: "FIRE",
-          overheat: !0,
+          custom: "inferno",
         },
-        xName: "WILL-O-WISP",
+        xName: "FIRE SPIN",
         yName: "HEX",
-        xCd: 210,
-        yCd: 150,
+        xCd: 360,
+        yCd: 110,
       },
       // The fire blades. A fallen warrior's armour wielding blades of ghostly
       // fire. It lives in your face: Bitter Blade heals it for half the damage
@@ -3184,24 +3187,42 @@
       },
       chandelure: {
         pref: 120,
-        // Will-O-Wisp: three slow homing ghost flames that burn.
-        wwWind: 12,
-        wwN: 3,
-        wwEvery: 5,
-        wwSpeed: 2.3,
-        wwHome: 0.05,
-        wwDmg: 8,
-        wwRec: 10,
-        // Hex: a curse flame bursts on the spot after a beat; double vs burned.
-        hxWind: 10,
-        hxRange: 230,
-        hxDelay: 30,
-        hxR: 28,
-        hxDmg: 24,
-        hxRec: 8,
-        // Overheat: Chandelure's damage drops this much for ohT after.
-        ohT: 240,
-        ohMult: 0.7,
+        // Ember: each of the first two flicks may burn.
+        emBurn: 0.15,
+        // Fire Spin: a vortex on the aimed spot. It arms for fsArm (time to
+        // step out), then for fsT drags foes to its eye and holds them in
+        // the flames with a hit every fsEvery.
+        fsWind: 12,
+        fsRange: 210,
+        fsArm: 14,
+        fsT: 60,
+        fsR: 28,
+        fsPull: 1.2,
+        fsEvery: 12,
+        fsDmg: 5,
+        fsRec: 14,
+        // Hex: a fast curse bolt. On a burned foe it hits hxHot times as
+        // hard, eats the burn and heals Chandelure for hxDrain of it.
+        hxWind: 8,
+        hxSpeed: 4.4,
+        hxLife: 60,
+        hxDmg: 14,
+        hxHot: 2,
+        hxDrain: 0.4,
+        hxRec: 10,
+        // Inferno: the fireball grows with charge (damage, reach), and so
+        // does the pool it leaves. The pool burns whoever stands in it.
+        inSpeed: 3,
+        inLife: 48,
+        inLifeGrow: 30,
+        inHome: 0.03,
+        inGrow: 16,
+        inPoolR: 22,
+        inPoolRGrow: 14,
+        inPoolT: 150,
+        inPoolTGrow: 90,
+        inPoolEvery: 20,
+        inPoolDmg: 3,
         // Flash Fire: fire taken is halved and fuels its fire moves.
         ffTaken: 0.5,
         ffT: 240,
@@ -3525,7 +3546,7 @@
         this.punishedT = -1;
       }
       think(e, t) {
-        let i = this.adapt(e, t, this.decide(e, t));
+        let i = this.adapt(e, t, this.modeLayer(e, t, this.decide(e, t)));
         if (t.state === "move" && e.tick - t.lastKoTick === 40) {
           let s = e.nearestTarget(t.team, t.x, t.y);
           (!s || s.state === "faint" || Math.hypot(s.x - t.x, s.y - t.y) > 110) &&
@@ -3538,11 +3559,27 @@
         }
         return i;
       }
-      // Arena awareness layered over the fighting brain: berries, cover and line of sight.
-      adapt(e, t, i) {
+      // ---- Mode play ----
+      // The fighting brain is the same everywhere; this layer gives each mode
+      // its own goals. Higher levels follow them more closely. modeOff turns
+      // it off (used to measure what it is worth).
+      modeK() {
+        return [0.45, 0.75, 1][this.level ?? A.cpuLevel] ?? 1;
+      }
+      // Steer the stick towards (x, y) by weight w (0 keeps the brain's own).
+      steer(i, t, x, y, w, sy = 1) {
+        let dx = x - t.x,
+          dy = (y - t.y) * sy,
+          d = Math.hypot(dx, dy);
+        if (d < 1) return;
+        (i.mx = i.mx * (1 - w) + (dx / d) * w),
+          (i.my = i.my * (1 - w) + (dy / d / sy) * w);
+      }
+      // The mode play before this layer (zone drift, fleeing whoever is it),
+      // kept so tests can measure the layer against it.
+      modeOld(e, t, i) {
         if (t.state === "faint" || e.match.phase !== "fight" || e.intro > 20)
           return i;
-        // You're It!: run from whoever is it (ranged shots still fly).
         let it = e.it?.who;
         if (it && it !== t && t.state === "move" && !it.out) {
           let dx = t.x - it.x,
@@ -3551,6 +3588,270 @@
           d < IT.flee &&
             ((i.mx = dx / d), (i.my = dy / d), i.pressed.delete("attack"));
         }
+        let z =
+          e.zoneNext && (this.level ?? A.cpuLevel) > 0 ? e.zoneNext : e.zone;
+        if (
+          z &&
+          t.state === "move" &&
+          !i.pressed.has("special1") &&
+          !i.pressed.has("attack")
+        ) {
+          let l = z.x - t.x,
+            f = (z.y - t.y) * 1.6,
+            u = Math.hypot(l, f);
+          if (u > z.r * 0.55) {
+            let h = 0.45 + 0.2 * (this.level ?? A.cpuLevel);
+            (i.mx = i.mx * (1 - h) + (l / u) * h),
+              (i.my = i.my * (1 - h) + (f / u / 1.6) * h);
+          }
+        }
+        return i;
+      }
+      modeTarget(e, t, o) {
+        if (this.modeOff || this.modeLegacy || t.state === "faint") return null;
+        let ts = e.targetsFor(t.team).filter((v) => v.kind === "player");
+        if (ts.length < 2 && !e.zone) return null;
+        let k = this.modeK(),
+          d = (v) => Math.hypot(v.x - t.x, v.y - t.y),
+          best = null,
+          bs = 1 / 0;
+        // Zone Control: whoever is on (or nearest) the ring.
+        if (e.zone) {
+          let z = e.zone;
+          for (let v of ts) {
+            let c = Math.hypot(v.x - z.x, (v.y - z.y) * 1.6) + d(v) * 0.35;
+            c < bs && ((bs = c), (best = v));
+          }
+          return best;
+        }
+        // You're It!: whoever is it hunts the nearest it may pass to.
+        let I = e.it;
+        if (I) {
+          if (I.who !== t) return null;
+          for (let v of ts) {
+            if (v === I.prev && e.tick < I.until) continue;
+            let c = d(v);
+            c < bs && ((bs = c), (best = v));
+          }
+          return best;
+        }
+        let ally = e.players.find(
+          (q) => q !== t && q.team === t.team && !q.out && q.state !== "faint",
+        );
+        // 2v2: help the partner. Peel for it when it is low; otherwise
+        // focus its target when that is in reach.
+        if (ally) {
+          let ah = ally.slot.hp / ally.slot.maxHp;
+          if (ah < 0.3) {
+            for (let v of ts) {
+              let c = Math.hypot(v.x - ally.x, v.y - ally.y);
+              c < 80 && c < bs && ((bs = c), (best = v));
+            }
+            if (best) return best;
+          }
+          let al = ally.lock;
+          return al && ts.includes(al) && d(al) < 120 + 100 * k ? al : null;
+        }
+        // Free-for-All (and Thin Ice parties): the best prey, not just the
+        // nearest. Hurt fighters, fighters busy with someone else, fighters
+        // on thin ice; leave the healthy leader to the others.
+        for (let v of ts) {
+          let hp = v.slot.hp / v.slot.maxHp,
+            busy =
+              (v.state === "hurt" || v.state === "attack" || v.state === "ex") &&
+              v.lastHitBy &&
+              v.lastHitBy !== t,
+            c =
+              d(v) +
+              hp * 70 * k -
+              (busy ? 40 * k : 0) -
+              (e.tice && e.ticeBad(v.x, v.y) ? 50 * k : 0);
+          c < bs && ((bs = c), (best = v));
+        }
+        return best;
+      }
+      modeLayer(e, t, i) {
+        if (this.modeLegacy) return this.modeOld(e, t, i);
+        if (
+          this.modeOff ||
+          t.state === "faint" ||
+          e.match.phase !== "fight" ||
+          e.intro > 20
+        )
+          return i;
+        let k = this.modeK(),
+          free = t.state === "move",
+          r = this.rand;
+        // ---- Zone Control ----
+        let z0 = e.zone;
+        if (z0 && free) {
+          let side = t.team === e.players[0].team ? 0 : 1,
+            lead = (e.zscore?.[side] ?? 0) - (e.zscore?.[1 - side] ?? 0),
+            foes = e.players.filter(
+              (q) => q.team !== t.team && !q.out && q.state !== "faint",
+            ),
+            down = foes.length === 0,
+            // Move early for a ring that is about to jump.
+            z = e.zoneNext && k > 0.5 ? e.zoneNext : z0,
+            inR = (q, f = 1) =>
+              Math.hypot(q.x - z.x, (q.y - z.y) * 1.6) < z.r * f,
+            me = inR(t, 0.85),
+            foeIn = foes.some((q) => inR(q, 1.05));
+          if (down) {
+            // Their fighter is down: the ring is free, take it now.
+            this.steer(i, t, z.x, z.y, me ? 0.5 : 0.95, 1.6),
+              i.pressed.delete("dodge");
+          } else if (me) {
+            // Holding: fight from inside the ring, never chase out of it.
+            let nx = t.x + i.mx * 14,
+              ny = t.y + i.my * 14;
+            Math.hypot(nx - z.x, (ny - z.y) * 1.6) > z.r * 0.8 &&
+              this.steer(i, t, z.x, z.y, 0.6 + 0.4 * k, 1.6);
+            // Ahead and pressed close: guard the lead.
+            lead > 12 &&
+              foes.some(
+                (q) =>
+                  Math.hypot(q.x - t.x, q.y - t.y) < 40 &&
+                  (q.state === "attack" || q.state === "smash"),
+              ) &&
+              r() < 0.35 * k &&
+              (i.held.add("guard"), i.pressed.clear());
+          } else {
+            // Off the ring: get on it, harder when behind or contested.
+            let w = (lead < 0 || foeIn ? 0.65 : 0.5) + 0.3 * k;
+            i.pressed.has("attack") && !foeIn && (w *= 0.6),
+              this.steer(i, t, z.x, z.y, Math.min(0.95, w), 1.6);
+          }
+          return i;
+        }
+        // ---- You're It! ----
+        let I = e.it;
+        if (I && I.who && free) {
+          let it = I.who;
+          if (it === t) {
+            // It: only melee passes it on, so chase and swing; the
+            // specials are wasted. Dash in when close enough.
+            let o = t.lock;
+            if (o) {
+              let od = Math.hypot(o.x - t.x, o.y - t.y) || 1;
+              this.steer(i, t, o.x, o.y, 0.6 + 0.35 * k),
+                i.pressed.delete("special1"),
+                i.pressed.delete("special2"),
+                (i.ax = i.ay = 0),
+                od < 30 && i.pressed.add("attack");
+              od > 40 &&
+                od < 70 &&
+                r() < 0.06 * k &&
+                ((i.mx = (o.x - t.x) / od),
+                (i.my = (o.y - t.y) / od),
+                i.pressed.add("dodge"));
+            }
+          } else if (!it.out) {
+            // Not it: keep clear and chip it from range. Safe from a
+            // tag-back for a moment after passing it on.
+            let safe = I.prev === t && e.tick < I.until,
+              dx = t.x - it.x,
+              dy = t.y - it.y,
+              dd = Math.hypot(dx, dy) || 1;
+            if (!safe && dd < IT.flee * (0.8 + 0.4 * k)) {
+              (i.mx = dx / dd), (i.my = dy / dd), i.pressed.delete("attack"), (i.ax = i.ay = 0);
+              // It is lunging in: get out of the way.
+              dd < 34 &&
+                (it.state === "attack" || it.state === "dodge") &&
+                r() < 0.5 * k &&
+                i.pressed.add("dodge");
+            }
+          }
+          return i;
+        }
+        // ---- Thin Ice ----
+        let T = e.tice;
+        if (T && free) {
+          let o = t.lock,
+            here = e.ticeCell(t.x, t.y);
+          // Every attack wears the slab you stand on: before it goes, step
+          // onto sound ice next door.
+          if (here >= 0 && !T.st[here] && T.hp[here] < TICE.hp * 0.55) {
+            let best = null,
+              bd = 1 / 0;
+            for (let c = 0; c < T.st.length; c++) {
+              if (T.st[c] || T.hp[c] < TICE.hp * 0.8) continue;
+              let [hx, hy] = e.ticeAt(c),
+                q = Math.hypot(hx - t.x, hy - t.y);
+              q < 70 && q < bd && ((bd = q), (best = [hx, hy]));
+            }
+            best && this.steer(i, t, best[0], best[1], 0.6 * k);
+          }
+          // Knock them into the water: come at them from the far side of
+          // the nearest hole, so the hits send them over it.
+          if (o && !i.pressed.size) {
+            let best = null,
+              bd = 1 / 0;
+            for (let c = 0; c < T.st.length; c++) {
+              if (!T.st[c] && T.hp[c] > TICE.hp * 0.3) continue;
+              let [hx, hy] = e.ticeAt(c),
+                q = Math.hypot(hx - o.x, hy - o.y);
+              q < bd && ((bd = q), (best = [hx, hy]));
+            }
+            if (best && bd < 90) {
+              let ux = (o.x - best[0]) / (bd || 1),
+                uy = (o.y - best[1]) / (bd || 1),
+                px = o.x + ux * 30,
+                py = o.y + uy * 30;
+              !e.hazardAt(px, py) &&
+                !e.ticeBad(px, py) &&
+                Math.hypot(px - t.x, py - t.y) > 10 &&
+                this.steer(i, t, px, py, 0.35 * k);
+            }
+          }
+          // Late on, the lake shrinks: drift towards the solid middle.
+          if (T.thawing) {
+            let cx = 0,
+              cy = 0,
+              n = 0;
+            for (let c = 0; c < T.st.length; c++)
+              if (!T.st[c]) {
+                let [hx, hy] = e.ticeAt(c);
+                (cx += hx), (cy += hy), n++;
+              }
+            n &&
+              Math.hypot(cx / n - t.x, cy / n - t.y) > 60 &&
+              this.steer(i, t, cx / n, cy / n, 0.25 * k);
+          }
+        }
+        // ---- Crowds (Free-for-All, parties) ----
+        if (free && e.players.length > 2) {
+          let near = e.players.filter(
+            (q) =>
+              q !== t &&
+              q.team !== t.team &&
+              !q.out &&
+              q.state !== "faint" &&
+              Math.hypot(q.x - t.x, q.y - t.y) < 70,
+          );
+          let ally = e.players.find(
+            (q) => q !== t && q.team === t.team && !q.out && q.state !== "faint",
+          );
+          // Free-for-All: two or more on top of you, back out of the scrum.
+          if (!ally && near.length >= 2 && !i.pressed.has("attack")) {
+            let cx = near.reduce((a, q) => a + q.x, 0) / near.length,
+              cy = near.reduce((a, q) => a + q.y, 0) / near.length;
+            this.steer(i, t, 2 * t.x - cx, 2 * t.y - cy, 0.5 * k);
+          }
+          // 2v2: don't stand in your partner's way.
+          if (ally && Math.hypot(ally.x - t.x, ally.y - t.y) < 22) {
+            let ax = t.x - ally.x,
+              ay = t.y - ally.y,
+              ad = Math.hypot(ax, ay) || 1;
+            (i.mx += (-ay / ad) * 0.4 * k), (i.my += (ax / ad) * 0.4 * k);
+          }
+        }
+        return i;
+      }
+      // Arena awareness layered over the fighting brain: berries, cover and line of sight.
+      adapt(e, t, i) {
+        if (t.state === "faint" || e.match.phase !== "fight" || e.intro > 20)
+          return i;
         let s = e.nearestTarget(t.team, t.x, t.y),
           r = t.slot,
           o = e.item;
@@ -3574,23 +3875,6 @@
           ) {
             let u = Math.max(1, l);
             (i.mx = (o.x - t.x) / u), (i.my = (o.y - t.y) / u);
-          }
-        }
-        let z =
-          e.zoneNext && (this.level ?? A.cpuLevel) > 0 ? e.zoneNext : e.zone;
-        if (
-          z &&
-          t.state === "move" &&
-          !i.pressed.has("special1") &&
-          !i.pressed.has("attack")
-        ) {
-          let l = z.x - t.x,
-            f = (z.y - t.y) * 1.6,
-            u = Math.hypot(l, f);
-          if (u > z.r * 0.55) {
-            let h = 0.45 + 0.2 * (this.level ?? A.cpuLevel);
-            (i.mx = i.mx * (1 - h) + (l / u) * h),
-              (i.my = i.my * (1 - h) + (f / u / 1.6) * h);
           }
         }
         // Arena benefits: drift toward a spotlight, live pylon, heat vent or rune when
@@ -3739,6 +4023,11 @@
           Math.hypot(rv.x - t.x, rv.y - t.y) < REVENGE.r &&
           e.targetsFor(t.team).includes(rv) &&
           ((o = rv), (t.lock = rv));
+        // Each mode has its own idea of who is worth fighting.
+        if (o && o !== rv) {
+          let mt = this.modeTarget(e, t, o);
+          mt && mt !== o && ((o = mt), (t.lock = mt));
+        }
         if (t.state === "faint" || e.match.phase !== "fight" || e.intro > 20)
           return (this.holdX = this.holdY = this.holdB = 0), i;
         if (!o) {
@@ -4539,29 +4828,45 @@
                   ? smash(4 + Math.floor(r() * 20))
                   : y > 60 && y < 130 && r() < 0.18 && dash(b);
         } else if (f === "chandelure") {
-          // Keep away: wisps to burn, Hex on a burned foe, flicker away from
-          // anyone who closes in, Overheat as the finisher.
+          // Trap, burn, cash in: Fire Spin a foe in range, Inferno one that
+          // is held (or reeling), Hex one that burns. Flicker away from
+          // anyone who rushes in; Ember only when there is no way out.
           let burnt = op && (op.slot.burnT ?? 0) > 0,
-            close = y < 46;
+            held =
+              op &&
+              e.fields.some(
+                (q) =>
+                  q.kind === "fspin" &&
+                  q.owner === t &&
+                  Math.hypot(op.x - q.x, op.y - q.y) < q.r + 14,
+              ),
+            close = y < 46,
+            // Lower levels lean on the safe tools: Hex pokes and Ember.
+            lv = this.level ?? A.cpuLevel;
           close && u.cdDodge === 0 && r() < 0.35
             ? dash(b + Math.PI + (r() - 0.5) * 1.2)
-            : u.cdY === 0 && burnt && y < 220 && r() < 0.6
+            : u.cdY === 0 && burnt && los && y < 240 && r() < 0.7
               ? i.pressed.add("special2")
-              : u.cdX === 0 && y < 260 && r() < 0.5
-                ? i.pressed.add("special1")
-                : y < 36 || (N && y < 48)
-                  ? i.pressed.add("attack")
-                  : !(u.ohT > 0) &&
-                      y < 96 &&
-                      y > 30 &&
-                      (op?.state === "hurt" ||
-                        op?.state === "stunned" ||
-                        r() < 0.03)
-                    ? smash(6 + Math.floor(r() * 30))
-                    : u.cdY === 0 &&
-                      y < 200 &&
-                      r() < 0.06 &&
-                      i.pressed.add("special2");
+              : held && y < 170 && r() < 0.5
+                ? smash(Math.floor(r() * 16))
+                : u.cdX === 0 &&
+                    y > 40 &&
+                    y < [140, 180, 200][lv] &&
+                    r() < [0.25, 0.4, 0.45][lv]
+                  ? i.pressed.add("special1")
+                  : y < 36 || (N && y < 48)
+                    ? i.pressed.add("attack")
+                    : y > 50 &&
+                        y < 150 &&
+                        (op?.state === "hurt" ||
+                          op?.state === "stunned" ||
+                          (lv > 0 && r() < 0.03))
+                      ? smash(6 + Math.floor(r() * 24))
+                      : u.cdY === 0 &&
+                        los &&
+                        y < 220 &&
+                        r() < [0.3, 0.15, 0.05][lv] &&
+                        i.pressed.add("special2");
         } else if (f === "lurantis") {
           // Plant the sun and duel inside it, where Solar Blade is instant;
           // X-Scissor through from mid range; long charges only outside.
@@ -5130,7 +5435,7 @@
     TEAM_POW = {
       // Roster 3: a zoner behind a partner is safer still; a berserker or
       // sniper alone in the middle needs a little more.
-      chandelure: 0.8,
+      chandelure: 1.55,
       volcarona: 0.88,
       ceruledge: 1.25,
       inteleon: 1.25,
@@ -5189,7 +5494,7 @@
     // one who passed it. Whoever is it is a little faster, and hits between
     // fighters do less damage so the drain is the real threat.
     // [sprite, colour] of the sticker.
-    // Thin Ice: the fight is on a frozen lake of ice slabs. Every hit cracks
+    // Thin Ice: the fight is on a frozen lake of ice slabs. Every attack cracks
     // the slab under whoever takes it (heavy hits crack the slabs round it
     // too); a slab that cracks through creaks for a moment, then gives way
     // to open water. Fall in and you are out (a life, in Lives). After a
@@ -5250,7 +5555,9 @@
         sneakOut: [12, "r"],
         pfStrike: [14, 28],
         whirlpool: [8, 28],
-        hexMark: [10, 22],
+        infernoLand: [14, 30],
+        fireSpin: [8, "r"],
+        pyreTick: [3, "r"],
         shadowPunch: [10, 22, 26],
         flurryHit: [6, 18, 22],
         airSlash: [8, 22, 30],
@@ -7745,6 +8052,7 @@
           this.pushApart(),
           this.updateMatch(),
           this.arenaPost(),
+          this.infernoPools(),
           this.ticeTick();
         for (let i of this.bodies())
           i.flash > 0 && i.flash--,
@@ -14321,7 +14629,9 @@
               (e.chill || e.daze || e.flinch || e.exTag) &&
                 this.exOnHit(e, t, t.kind !== "player" || t.slot.hp < hp0),
               e.poison && this.poison(t),
-              e.burns && this.burn(t),
+              e.burns &&
+                (e.burns === !0 || this.rand() < e.burns) &&
+                this.burn(t),
               e.sleep &&
                 t.kind === "player" &&
                 (this.fallAsleep(t, e.sleep), (t.nightmareBy = e.owner)),
@@ -14452,6 +14762,7 @@
               }
               e.pierce ? e.hits.push(t) : (e.dead = !0);
               let s = Math.hypot(e.vx, e.vy) || 1;
+              e.kind === "hexbolt" && this.hexPrime(e, t);
               e.mtype && (this.moveType = e.mtype);
               let fh = t.kind === "player" ? t.slot.hp : 0;
               this.applyHit(
@@ -14626,10 +14937,10 @@
             go("sunny", "Charge"), (sl.cdY = e.kit.yCd);
             break;
           case "chandelurex":
-            go("wisp", "Shoot"), (sl.cdX = e.kit.xCd);
+            go("fspin", "Shoot"), (sl.cdX = e.kit.xCd);
             break;
           case "chandelurey":
-            go("hex", "Charge"), (sl.cdY = e.kit.yCd);
+            go("hexbolt", "Charge"), (sl.cdY = e.kit.yCd);
             break;
           case "ceruledgex":
             go("fcharge", "Charge"), (sl.cdX = e.kit.xCd);
@@ -15175,6 +15486,14 @@
         let sl = o.slot,
           X = EXK;
         switch (h.fx) {
+          case "hex":
+            if (h.hot) {
+              let n = Math.max(1, Math.round(dealt * X.chandelure.hxDrain));
+              (sl.hp = Math.min(sl.maxHp, sl.hp + n)),
+                v.kind === "player" ? (v.slot.burnT = 0) : (v.burnT = 0),
+                this.emit({ type: "hexDrain", who: o, v, n, x: v.x, y: v.y });
+            }
+            break;
           case "fdance":
             (sl.qd ?? 0) < X.volcarona.qdMax &&
               this.rand() < X.volcarona.fdStack &&
@@ -15225,9 +15544,28 @@
         let s = e.kit.smash,
           o = Math.cos(e.atkDir),
           l = Math.sin(e.atkDir);
-        s.overheat &&
-          ((e.slot.ohT = EXK.chandelure.ohT),
-          this.emit({ type: "overheatDrop", who: e }));
+        if (s.custom === "inferno") {
+          let c = EXK.chandelure;
+          this.exProj(e, e.team, e.atkDir, {
+            kind: "inferno",
+            speed: c.inSpeed,
+            r: 9 + 3 * i,
+            life: Math.round(c.inLife + c.inLifeGrow * i),
+            dmg: Math.round(s.dmg + c.inGrow * i),
+            kb: s.kb * (1 + 0.4 * i),
+            hitstun: A.hitstunHeavy,
+            hitstop: 8,
+            heavy: !0,
+            color: "#ff8a3d",
+            mtype: "FIRE",
+            homing: c.inHome,
+            target: e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+            burns: !0,
+            z: 16,
+          }),
+            (this.projectiles[this.projectiles.length - 1].charge = i),
+            this.emit({ type: "infernoCast", who: e, charge: i });
+        }
         if (s.custom === "snipe") {
           let c = EXK.inteleon,
             x1 = e.x + o * 12,
@@ -15461,10 +15799,10 @@
             return this.exXScissor(e, P);
           case "sunny":
             return this.exSunny(e);
-          case "wisp":
-            return this.exWisp(e, P);
-          case "hex":
-            return this.exHex(e, P);
+          case "fspin":
+            return this.exFireSpin(e, P);
+          case "hexbolt":
+            return this.exHexBolt(e, P);
           case "fcharge":
             return this.exFlameCharge(e, P);
           case "polter":
@@ -16752,7 +17090,7 @@
       }
       // Timers on a fighter's slot (also ticking while it is tagged out).
       r3Slot(e, s) {
-        s.ohT > 0 && s.ohT--, s.ffT > 0 && s.ffT--;
+        s.ffT > 0 && s.ffT--;
         s.fcT > 0 && --s.fcT === 0 && (s.fcN = 0);
         s.waT > 0 && s.waT--;
         s.steadyT > 0 && s.steadyT--;
@@ -16901,9 +17239,8 @@
             (p) => p.kind === "pblade" && p.owner === t && !p.dead,
           ) &&
           (m *= X.ceruledge.pgBare);
-        // Overheat drains Chandelure; Flash Fire fuels its fire moves.
-        sl.ohT > 0 && (m *= X.chandelure.ohMult),
-          d.flashFire &&
+        // Flash Fire fuels Chandelure's fire moves.
+        d.flashFire &&
             sl.ffT > 0 &&
             this.attackerType(t) === "FIRE" &&
             (m *= X.chandelure.ffMult);
@@ -16964,6 +17301,30 @@
             this.emit({ type: "weakArmor", who: w }));
         }
         return re;
+      }
+      // An Inferno fireball that ended this tick leaves its burning pool.
+      infernoPools() {
+        for (let v of this.events) {
+          let q = v.type === "projDie" ? v.p : null;
+          if (!q || q.kind !== "inferno" || q.pooled || !q.owner) continue;
+          let c = EXK.chandelure,
+            ch = q.charge ?? 0,
+            x = me(q.x, B.x0 + 14, B.x1 - 14),
+            y = me(q.y, B.y0 + 10, B.y1 - 8);
+          (q.pooled = !0),
+            this.fields.push({
+              id: this.nextId++,
+              kind: "pyre",
+              x,
+              y,
+              r: c.inPoolR + c.inPoolRGrow * ch,
+              life: Math.round(c.inPoolT + c.inPoolTGrow * ch),
+              t: 0,
+              owner: q.owner,
+              team: q.team,
+            }),
+            this.emit({ type: "infernoLand", who: q.owner, x, y, charge: ch });
+        }
       }
       // Persistent zones: tick, apply, expire.
       fieldTick() {
@@ -17065,41 +17426,60 @@
           }
           k && this.emit({ type: "whirlChurn", x: f.x, y: f.y });
         }
-        if (f.kind === "hex" && f.t === X.chandelure.hxDelay) {
+        if (f.kind === "fspin") {
           let c = X.chandelure,
-            n = 0,
-            hot = 0;
-          for (let v of this.victimsFor(f.team)) {
-            let dx = v.x - f.x,
-              dy = v.y - f.y,
-              d = Math.hypot(dx, dy);
-            if (d > f.r + v.hurtR) continue;
-            let burnt = v.kind === "player" && (v.slot.burnT ?? 0) > 0;
-            this.exHit(
-              v,
-              o,
-              burnt ? c.hxDmg * 2 : c.hxDmg,
-              burnt ? 6.4 : 3.4,
-              d > 1 ? dx / d : 1,
-              d > 1 ? dy / d : 0,
-              {
-                src: "hexflame",
-                mtype: "GHOST",
-                heavy: burnt,
-                hitstun: burnt ? 30 : 20,
-                color: "#a070ff",
-              },
-            ) && (n++, burnt && hot++);
+            q = f.t - c.fsArm;
+          q === 1 && this.emit({ type: "fireSpin", who: o, x: f.x, y: f.y, r: f.r });
+          if (q > 0 && q <= c.fsT) {
+            let k = q % c.fsEvery === 1;
+            for (let v of this.victimsFor(f.team)) {
+              if (v.heldBy) continue;
+              let dx = f.x - v.x,
+                dy = f.y - v.y,
+                d = Math.hypot(dx, dy);
+              if (d > f.r + 20 + v.hurtR) continue;
+              // Drawn round and in towards the eye of the flames.
+              d > 3 &&
+                v.state !== "faint" &&
+                this.moveBody(
+                  v,
+                  (dx / d) * c.fsPull - (dy / d) * 0.4,
+                  (dy / d) * c.fsPull + (dx / d) * 0.4,
+                );
+              k &&
+                d < f.r + v.hurtR &&
+                this.exHit(v, o, c.fsDmg, 0.2, -dx / (d || 1), -dy / (d || 1), {
+                  src: "firespin",
+                  mtype: "FIRE",
+                  hitstun: c.fsEvery + 3,
+                  hitstop: 2,
+                  multi: !0,
+                  color: "#ff8a3d",
+                });
+            }
+            k && this.emit({ type: "fireSpinTick", x: f.x, y: f.y });
           }
-          this.emit({
-            type: "hexBurst",
-            who: o,
-            x: f.x,
-            y: f.y,
-            r: f.r,
-            n,
-            hot,
-          });
+        }
+        if (f.kind === "pyre" && f.t % X.chandelure.inPoolEvery === 2) {
+          let c = X.chandelure;
+          for (let v of this.victimsFor(f.team)) {
+            // Fire on the ground: floating Pokemon pass over it.
+            if (this.floating(v) || v.airborne || v.heldBy) continue;
+            let dx = v.x - f.x,
+              dy = (v.y - f.y) * 1.6,
+              d = Math.hypot(dx, dy);
+            d < f.r + v.hurtR * 0.5 &&
+              this.exHit(v, o, c.inPoolDmg, 0.2, dx / (d || 1), dy / (d || 1), {
+                src: "inferno-pool",
+                mtype: "FIRE",
+                hitstun: 6,
+                hitstop: 0,
+                multi: !0,
+                color: "#ff6a3d",
+              }) &&
+              this.burn(v);
+          }
+          this.emit({ type: "pyreTick", x: f.x, y: f.y, r: f.r });
         }
         if (f.kind === "sun") {
           (o.slot.sunLeft = f.life - f.t), (o.sunLit = this.inSun(o));
@@ -17191,61 +17571,71 @@
         e.t >= c.sunCast + c.sunRec && this.exEnd(e);
       }
       // Chandelure -----------------------------------------------------------
-      exWisp(e, P) {
+      // Fire Spin: cast on the foe (or ahead), it arms, then pulls and holds.
+      exFireSpin(e, P) {
         let c = EXK.chandelure;
-        this.locomote(e, 0, 0);
-        if (e.t <= c.wwWind) {
-          this.exAim(e, P, 260), this.exFr(e, "Shoot", 2, !1);
-          return;
-        }
-        let k = e.t - c.wwWind - 1;
-        if (k >= 0 && k % c.wwEvery === 0 && k / c.wwEvery < c.wwN) {
-          let n = k / c.wwEvery,
-            tg = e.lock ?? this.nearestTarget(e.team, e.x, e.y);
-          this.exProj(e, e.team, e.dir2 + (n - 1) * 0.55, {
-            kind: "wwisp",
-            speed: c.wwSpeed,
-            r: 6,
-            life: 170,
-            dmg: c.wwDmg,
-            kb: 1.2,
-            hitstun: 14,
-            hitstop: 3,
-            color: "#9a6cff",
-            mtype: "FIRE",
-            homing: c.wwHome,
-            target: tg,
-            ghost: !0,
-            burns: !0,
-          }),
-            this.emit({ type: "wispOut", who: e, n });
-        }
-        (e.exRec = k >= c.wwEvery * c.wwN),
-          this.exFr(e, "Shoot", 2, !1),
-          k >= c.wwEvery * (c.wwN - 1) + c.wwRec && this.exEnd(e);
-      }
-      exHex(e, P) {
-        let c = EXK.chandelure;
-        this.locomote(e, 0, 0), this.exFr(e, "Charge", 2, !0);
-        if (e.t === c.hxWind) {
+        this.locomote(e, 0, 0), this.exFr(e, "Shoot", 2, !1);
+        e.t < c.fsWind && this.exAim(e, P, c.fsRange);
+        if (e.t === c.fsWind) {
           let tg = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
-            ok = tg && Math.hypot(tg.x - e.x, tg.y - e.y) < c.hxRange,
-            x = ok ? tg.x : e.x + Math.cos(e.dir2) * 140,
-            y = ok ? tg.y : e.y + Math.sin(e.dir2) * 140;
+            ok = tg && Math.hypot(tg.x - e.x, tg.y - e.y) < c.fsRange,
+            x = me(ok ? tg.x : e.x + Math.cos(e.dir2) * 130, B.x0 + 16, B.x1 - 16),
+            y = me(ok ? tg.y : e.y + Math.sin(e.dir2) * 130, B.y0 + 12, B.y1 - 10);
           this.fields.push({
             id: this.nextId++,
-            kind: "hex",
-            x: me(x, B.x0 + 10, B.x1 - 10),
-            y: me(y, B.y0 + 8, B.y1 - 6),
-            r: c.hxR,
-            life: c.hxDelay + 18,
+            kind: "fspin",
+            x,
+            y,
+            r: c.fsR,
+            life: c.fsArm + c.fsT + 12,
             t: 0,
             owner: e,
             team: e.team,
           }),
-            this.emit({ type: "hexMark", who: e, x, y });
+            this.emit({ type: "fireSpinCast", who: e, x, y });
         }
-        (e.exRec = e.t > c.hxWind), e.t >= c.hxWind + c.hxRec && this.exEnd(e);
+        (e.exRec = e.t > c.fsWind), e.t >= c.fsWind + c.fsRec && this.exEnd(e);
+      }
+      // Hex: a quick curse bolt; the burn check happens when it lands.
+      exHexBolt(e, P) {
+        let c = EXK.chandelure;
+        this.locomote(e, 0, 0), this.exFr(e, "Charge", 2, !0);
+        e.t <= c.hxWind && this.exAim(e, P, 280);
+        e.t === c.hxWind + 1 &&
+          (this.exProj(e, e.team, e.dir2, {
+            kind: "hexbolt",
+            speed: c.hxSpeed,
+            r: 6,
+            life: c.hxLife,
+            dmg: c.hxDmg,
+            kb: 2.2,
+            hitstun: 16,
+            hitstop: 4,
+            color: "#a070ff",
+            mtype: "GHOST",
+            homing: 0.02,
+            target: e.lock ?? this.nearestTarget(e.team, e.x, e.y),
+            ghost: !0,
+            fx: "hex",
+          }),
+          this.emit({ type: "hexCast", who: e }));
+        (e.exRec = e.t > c.hxWind + 1),
+          e.t >= c.hxWind + 1 + c.hxRec && this.exEnd(e);
+      }
+      // Hex on contact: double on a burned foe, which also marks the hit to
+      // eat the burn and heal (in exFx, once the damage is known).
+      hexPrime(p, v) {
+        let c = EXK.chandelure,
+          hot =
+            v.kind === "player"
+              ? (v.slot.burnT ?? 0) > 0
+              : v.kind === "dummy" && (v.burnT ?? 0) > 0;
+        hot &&
+          ((p.hot = !0),
+          (p.dmg = Math.round(p.dmg * c.hxHot)),
+          (p.heavy = !0),
+          (p.hitstun = A.hitstunHeavy),
+          (p.hitstop = 8));
       }
       // Ceruledge ------------------------------------------------------------
       exFlameCharge(e, P) {
@@ -22821,6 +23211,8 @@
     hurricane: ["201,166,255", 34],
     leaf: ["120,200,80", 8],
     fireblast: ["255,138,61", 30],
+    inferno: ["255,138,61", 34],
+    hexbolt: ["160,112,255", 16],
     fist: ["138,107,224", 22],
     moon: ["255,143,216", 26],
   };
@@ -29589,7 +29981,8 @@
   }
   function r3Field(a, e, f, t) {
     f.kind === "sun" && fieldSun(a, f, t);
-    f.kind === "hex" && fieldHex(a, f, t);
+    f.kind === "fspin" && fieldSpin(a, f, t);
+    f.kind === "pyre" && fieldPyre(a, f, t);
     f.kind === "whirl" && fieldWhirl(a, f, t);
     f.kind === "decoy" && fieldDecoy(a, e, f, t);
   }
@@ -29658,51 +30051,84 @@
     }
     a.restore();
   }
-  // Hex: a ring of curse runes that tightens, then violet flames.
-  function fieldHex(a, f, t) {
-    let D = EXK.chandelure.hxDelay,
-      q = Math.min(1, f.t / D),
-      boom = f.t >= D;
+  // Fire Spin: a ring of rising flame that tightens while it arms (the
+  // warning), then a roaring vortex of flame tongues round a bright eye.
+  function fieldSpin(a, f, t) {
+    let c = EXK.chandelure,
+      q = f.t - c.fsArm,
+      R = f.r,
+      out = Math.min(1, (f.life - f.t) / 12);
     a.save();
-    if (!boom) {
-      let rr = f.r * (1.6 - 0.6 * q);
-      (a.globalAlpha = 0.25 + 0.5 * q),
-        (a.strokeStyle = "#a070ff"),
+    if (q <= 0) {
+      let k = f.t / c.fsArm,
+        rr = R * (1.7 - 0.7 * k);
+      (a.globalAlpha = 0.3 + 0.5 * k),
+        (a.strokeStyle = "#ff8a3d"),
         (a.lineWidth = 1.5),
+        a.setLineDash([4, 3]),
+        (a.lineDashOffset = -t * 0.6),
         a.beginPath(),
-        a.ellipse(f.x, f.y, rr, rr * 0.5, 0, 0, Math.PI * 2),
+        a.ellipse(f.x, f.y, rr, rr * 0.55, 0, 0, Math.PI * 2),
         a.stroke(),
-        (a.globalAlpha = 0.15 + 0.25 * q),
-        (a.fillStyle = "#5a3ca8"),
+        a.setLineDash([]),
+        (a.globalAlpha = 0.18 * k),
+        (a.fillStyle = "#ff6a3d"),
         a.fill();
-      for (let n = 0; n < 6; n++) {
-        let g = (n / 6) * Math.PI * 2 - t * 0.05;
-        (a.globalAlpha = 0.6 + 0.4 * q),
-          (a.fillStyle = n % 2 ? "#e0c8ff" : "#a070ff"),
-          a.fillRect(
-            Math.round(f.x + Math.cos(g) * rr) - 1,
-            Math.round(f.y + Math.sin(g) * rr * 0.5) - 2,
-            2,
-            3,
-          );
-      }
     } else {
-      let k = 1 - (f.t - D) / 18;
-      a.globalCompositeOperation = "lighter";
-      for (let n = 0; n < 9; n++) {
-        let g = (n / 9) * Math.PI * 2,
-          d = (f.r * 0.6 * ((n * 7) % 10)) / 10,
-          x = f.x + Math.cos(g) * d,
-          y = f.y + Math.sin(g) * d * 0.5,
-          h = (14 + ((n * 5) % 9)) * (0.4 + 0.6 * k);
-        (a.globalAlpha = 0.7 * k),
-          (a.fillStyle = n % 2 ? "#8a5ce0" : "#c9a6ff"),
+      let g = a.createRadialGradient(f.x, f.y, 0, f.x, f.y, R * 1.2);
+      g.addColorStop(0, `rgba(255,236,170,${0.75 * out})`),
+        g.addColorStop(0.45, `rgba(255,120,40,${0.55 * out})`),
+        g.addColorStop(1, "rgba(160,40,20,0)"),
+        (a.fillStyle = g),
+        a.beginPath(),
+        a.ellipse(f.x, f.y, R * 1.2, R * 0.66, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalCompositeOperation = "lighter");
+      // Flame tongues racing round the ring and licking upward.
+      for (let n = 0; n < 14; n++) {
+        let ang = t * 0.22 + (n / 14) * Math.PI * 2,
+          rr = R * (0.55 + 0.45 * (((n * 7) % 10) / 10)),
+          x = f.x + Math.cos(ang) * rr,
+          y = f.y + Math.sin(ang) * rr * 0.55,
+          h = (8 + ((n * 5 + t) % 9)) * out;
+        (a.globalAlpha = 0.75 * out),
+          (a.fillStyle = n % 3 ? "#ff8a3d" : "#ffd36a"),
           a.beginPath(),
-          a.moveTo(x - 3, y),
-          a.quadraticCurveTo(x, y - h * 1.3, x + 3, y),
+          a.moveTo(x - 2.5, y),
+          a.quadraticCurveTo(x + Math.sin(t * 0.3 + n) * 3, y - h, x + 2.5, y),
           a.fill();
       }
-      glowAt(a, f.x, f.y - 6, f.r * 1.3, "160,112,255", 0.5 * k);
+    }
+    a.restore();
+  }
+  // Inferno's pool: a scorched patch with low flames dancing on it.
+  function fieldPyre(a, f, t) {
+    let k = Math.min(1, f.t / 8) * Math.min(1, (f.life - f.t) / 30),
+      R = f.r;
+    a.save();
+    let g = a.createRadialGradient(f.x, f.y, 0, f.x, f.y, R);
+    g.addColorStop(0, `rgba(255,150,60,${0.55 * k})`),
+      g.addColorStop(0.6, `rgba(190,60,30,${0.45 * k})`),
+      g.addColorStop(1, "rgba(60,20,20,0)"),
+      (a.fillStyle = g),
+      a.beginPath(),
+      a.ellipse(f.x, f.y, R, R * 0.55, 0, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalCompositeOperation = "lighter");
+    let n = Math.round(6 + R / 5);
+    for (let i = 0; i < n; i++) {
+      let ang = (i / n) * Math.PI * 2 + i,
+        rr = R * 0.8 * (((i * 7) % 10) / 10),
+        x = f.x + Math.cos(ang) * rr,
+        y = f.y + Math.sin(ang) * rr * 0.55,
+        ph = ((t + i * 9) % 24) / 24,
+        h = (5 + (i % 4) * 2) * Math.sin(ph * Math.PI) * k;
+      (a.globalAlpha = 0.8 * k),
+        (a.fillStyle = i % 2 ? "#ff8a3d" : "#ffc36a"),
+        a.beginPath(),
+        a.moveTo(x - 2, y),
+        a.quadraticCurveTo(x, y - h * 1.6, x + 2, y),
+        a.fill();
     }
     a.restore();
   }
@@ -30001,25 +30427,10 @@
     }
     a.restore();
   }
-  // Chandelure: smoke when drained by Overheat, flames when Flash Fire burns.
+  // Chandelure: flames round it while Flash Fire burns.
   function overChandelure(a, e, p, t) {
     let x = p.x,
       y = p.y - p.z - p.kit.tall * Bz(p);
-    if ((p.slot.ohT ?? 0) > 0)
-      for (let n = 0; n < 3; n++) {
-        let g = ((t * 0.7 + n * 17) % 40) / 40;
-        (a.globalAlpha = 0.45 * (1 - g)),
-          (a.fillStyle = "#6a6a7a"),
-          a.beginPath(),
-          a.arc(
-            x + Math.sin(n * 2 + t * 0.05) * 6,
-            y + 6 - g * 18,
-            3 + g * 4,
-            0,
-            Math.PI * 2,
-          ),
-          a.fill();
-      }
     if ((p.slot.ffT ?? 0) > 0) {
       a.save(), (a.globalCompositeOperation = "lighter");
       for (let n = 0; n < 4; n++) {
@@ -30258,6 +30669,64 @@
     let t = e.tick,
       ang = Math.atan2(h.vy, h.vx);
     if (r3DrawProj(a, e, h, c, y, ang)) return !0;
+    if (h.kind === "inferno") {
+      // A roiling fireball: a smoky tail, an orange body, a white-hot core.
+      let R = h.r,
+        f = 1 + Math.sin(h.age * 0.6) * 0.08;
+      a.save(), (a.globalCompositeOperation = "lighter");
+      for (let n = 5; n >= 1; n--)
+        (a.globalAlpha = 0.09 * (6 - n)),
+          (a.fillStyle = n > 3 ? "#c0401c" : "#ff8a3d"),
+          a.beginPath(),
+          a.arc(
+            c - Math.cos(ang) * n * R * 0.55,
+            y - Math.sin(ang) * n * R * 0.55 - n * 0.6,
+            R * (1 - n * 0.12),
+            0,
+            Math.PI * 2,
+          ),
+          a.fill();
+      (a.globalAlpha = 0.9),
+        (a.fillStyle = "#ff8a3d"),
+        a.beginPath(),
+        a.arc(c, y, R * f, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#ffd36a"),
+        a.beginPath(),
+        a.arc(c, y, R * 0.62 * f, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#fff6d8"),
+        a.beginPath(),
+        a.arc(c, y, R * 0.3, 0, Math.PI * 2),
+        a.fill(),
+        a.restore();
+      return !0;
+    }
+    if (h.kind === "hexbolt") {
+      // A curse bolt: a violet streak with a pale eye at its head.
+      a.save(), (a.globalCompositeOperation = "lighter");
+      for (let n = 4; n >= 1; n--)
+        (a.globalAlpha = 0.14 * (5 - n)),
+          (a.fillStyle = "#7b4fe0"),
+          a.beginPath(),
+          a.arc(
+            c - Math.cos(ang) * n * 4,
+            y - Math.sin(ang) * n * 4,
+            4.5 - n * 0.6,
+            0,
+            Math.PI * 2,
+          ),
+          a.fill();
+      (a.globalAlpha = 1),
+        (a.fillStyle = "#a070ff"),
+        a.beginPath(),
+        a.arc(c, y, 4, 0, Math.PI * 2),
+        a.fill(),
+        (a.fillStyle = "#efe2ff"),
+        a.fillRect(Math.round(c) - 1, Math.round(y) - 1, 2, 2),
+        a.restore();
+      return !0;
+    }
     if (h.kind === "shadowball") {
       let k = 1 + Math.sin(h.age * 0.4) * 0.12;
       for (let n = 3; n >= 1; n--)
@@ -30516,11 +30985,9 @@
             ? ue("WEAK ARMOR", "#e05a3a", v, E)
             : hint("Bitter Blade heals you");
     if (id === "chandelure")
-      return l.ohT > 0
-        ? ue(`OVERHEATED ${Math.ceil(l.ohT / 60)}`, "#8a8aa0", v, E)
-        : l.ffT > 0
-          ? ue("FLASH FIRE", "#ff8a3d", v, E)
-          : hint("Hex hits burned foes double");
+      return l.ffT > 0
+        ? ue("FLASH FIRE", "#ff8a3d", v, E)
+        : hint("Hex a burned foe: double, and it heals");
     if (id === "lurantis")
       return t.sunLit
         ? ue(`SUNNY DAY ${Math.ceil((l.sunLeft ?? 0) / 60)}`, "#ffc83d", v, E)
@@ -35119,9 +35586,9 @@
       },
       chandelure: {
         A: "17 · 18 · 29",
-        RS: "38–61",
-        X: "3 × ~8",
-        Y: "25 / 50",
+        RS: "32–55 + pool",
+        X: "5 × ~6",
+        Y: "15 / 30 + heal",
       },
       lurantis: { A: "28 · 31 · 51", RS: "40–64", X: "~43", Y: "zone" },
       greninja: {
@@ -35220,8 +35687,8 @@
         ["lifesteal", "speed"],
       ],
       chandelure: [
-        "Zoner. Burn them from range with Will-O-Wisp, then Hex for double damage. You float over ground attacks but you are fragile: flicker away when they close in. Overheat is a huge finisher that drains you.",
-        ["burn", "zone"],
+        "Trapper. Catch them in Fire Spin, land Inferno while they are held to set them alight, then Hex the burn: double damage, and it heals you. Inferno roots you and leaves a burning pool, so a miss costs you. You float over ground attacks but you are fragile: flicker away when they close in.",
+        ["burn", "zone", "lifesteal"],
       ],
       lurantis: [
         "Duelist. Plant Sunny Day and fight inside it: Solar Blade needs no charge there, Synthesis heals and Leaf Guard blocks status. Outside it, Solar Blade is a long charge. Leaf Blade can crit; X-Scissor cuts straight through.",
@@ -36566,7 +37033,7 @@
             : A.gameMode === 8
               ? `You're It!: melee hits pass it on; being it drains you. ${cpuNeed()} CPU rivals, RT to change.`
               : A.gameMode === 9
-              ? "Thin Ice: every hit cracks the ice. Knock them into the water."
+              ? "Thin Ice: every attack cracks the ice. Knock them into the water."
               : A.gameMode === 10
               ? `Thin Ice Party: last one standing on the ice. ${cpuNeed()} CPU rivals, RT to change.`
               : A.gameMode === 2
@@ -38421,33 +38888,38 @@
     chandelure: [
       [
         "A",
-        "Flame flicks",
-        "Short-range puffs of fire; the last is a ghost flame.",
+        "Ember · Astonish",
+        "Two fire flicks that may burn, then a ghostly shove that knocks them back.",
         "COMBO",
       ],
       [
         "RS",
-        "Overheat",
-        "A huge soul-fire blast. Afterwards your damage drops for four seconds.",
+        "Inferno",
+        "A slow fireball that always burns and leaves a burning pool. Charge it for more. You are rooted while you cast.",
         "OPTIONAL CHARGE",
       ],
       [
         "X",
-        "Will-O-Wisp",
-        "Three slow homing ghost flames that burn.",
-        "RANGED",
+        "Fire Spin",
+        "A flame vortex on your target: after a beat it drags them in and holds them.",
+        "TRAP",
       ],
       [
         "Y",
         "Hex",
-        "A curse flame bursts on the target a moment later. Double damage to burned foes.",
+        "A quick curse bolt. On a burned foe: double damage, it eats the burn, and heals you.",
         "RANGED",
       ],
-      ["B", "Phase", "Flicker a short way.", "DODGE"],
+      [
+        "B",
+        "Phase",
+        "A short, untouchable blink.",
+        "DODGE",
+      ],
       [
         "*",
         "Flash Fire",
-        "Fire hits on you are halved and power up your fire moves for four seconds.",
+        "Fire hits deal half damage to you and power up your fire moves for four seconds.",
         "PASSIVE",
       ],
     ],
@@ -40726,7 +41198,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 37,
+  var NETV = 38,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -42798,16 +43270,27 @@
   // Mode Select: every local mode as a card, in three rows.
   var MODE_ROWS = ["Duels", "Party \u00b7 three or four fighters", "Specials"],
     MODE_CARDS = [
-      { gm: 0, label: "VS CPU", desc: "One on one against the CPU.", tag: "1V1", mon: "charizard", color: "#ff8a3d" },
-      { gm: 6, label: "Tag Team", desc: "Two Pok\u00e9mon each. Switch, and call your partner in.", tag: "1V1 \u00b7 2 EACH", mon: "lucario", color: "#4aa3ff" },
-      { gm: 4, label: "Zone Control", desc: "Hold the ring to score. First to the goal wins.", tag: "1V1", mon: "venusaur", color: "#4df08a" },
-      { gm: 2, label: "Free-for-All", desc: "Last one standing among three or four fighters.", tag: "3\u20134 FIGHTERS", mon: "garchomp", color: "#ff4f6d" },
-      { gm: 3, label: "Team 2v2", desc: "You and a CPU partner against two CPUs.", tag: "2V2", mon: "blastoise", color: "#33d6ff" },
-      { gm: 8, label: "You're It!", desc: "Melee hits pass the Slugma on. Being it drains you.", tag: "3\u20134 FIGHTERS", mon: "snorlax", color: "#ff7a3c" },
-      { gm: 9, label: "Thin Ice", desc: "Every hit cracks the ice. Knock them into the water.", tag: "1V1", mon: "froslass", color: "#7fd0ff" },
-      { gm: 10, label: "Thin Ice Party", desc: "A cracking lake and three or four fighters.", tag: "3\u20134 FIGHTERS", mon: "greninja", color: "#9fe0ff" },
-      { gm: 7, label: "Pidgey Sweep", desc: "Clear the Stadium of Pidgey in 60 seconds.", tag: "SOLO", mon: "pidgeotto", color: "#ffd166" },
+      { gm: 0, label: "VS CPU", desc: "One on one against the CPU.", tag: "1V1", icon: "vs", color: "#ff8a3d" },
+      { gm: 6, label: "Tag Team", desc: "Two Pok\u00e9mon each. Switch, and call your partner in.", tag: "1V1 \u00b7 2 EACH", icon: "tag", color: "#4aa3ff" },
+      { gm: 4, label: "Zone Control", desc: "Hold the ring to score. First to the goal wins.", tag: "1V1", icon: "zone", color: "#4df08a" },
+      { gm: 2, label: "Free-for-All", desc: "Last one standing among three or four fighters.", tag: "3\u20134 FIGHTERS", icon: "ffa", color: "#ff4f6d" },
+      { gm: 3, label: "Team 2v2", desc: "You and a CPU partner against two CPUs.", tag: "2V2", icon: "team", color: "#33d6ff" },
+      { gm: 8, label: "You're It!", desc: "Melee hits pass the Slugma on. Being it drains you.", tag: "3\u20134 FIGHTERS", icon: "it", color: "#ff7a3c" },
+      { gm: 9, label: "Thin Ice", desc: "Every attack cracks the ice. Knock them into the water.", tag: "1V1", icon: "thin", color: "#7fd0ff" },
+      { gm: 10, label: "Thin Ice Party", desc: "A cracking lake and three or four fighters.", tag: "3\u20134 FIGHTERS", icon: "thinparty", color: "#9fe0ff" },
+      { gm: 7, label: "Pidgey Sweep", desc: "Clear the Stadium of Pidgey in 60 seconds.", tag: "SOLO", icon: "sweep", color: "#ffd166" },
     ];
+  // Mode Select emblems (assets/modes/*.png, inlined by the build).
+  var MODE_ICONS = {};
+  function modeIcon(k) {
+    let src = window.__MODE_ICONS__?.[k];
+    if (!src) return null;
+    let im = MODE_ICONS[k];
+    return (
+      im || ((im = MODE_ICONS[k] = new Image()), (im.src = src)),
+      im.complete && im.naturalWidth ? im : null
+    );
+  }
   // Small line icons for the menu buttons.
   function menuIcon(a, e, t, s, i) {
     (d.strokeStyle = i),
@@ -43131,16 +43614,24 @@
         te(x + 1.5, y + 2, w, h, "rgba(0,0,0,0.45)", 8),
           te(x, y, w, h, "rgba(28,24,48,0.94)", 8),
           te(x + 6, y, 3, h, c.color, 0.6);
-      // The mode's Pokemon, cropped by the card.
-      let mon = e[c.mon],
-        an = mon?.anims.Idle ?? mon?.anims.Walk;
-      an &&
-        (d.save(),
-        ze(x, y, w, h, 8),
-        d.clip(),
-        (d.globalAlpha *= on ? 1 : 0.55),
-        et(d, an, on ? Be(an, t, 1) : 0, 0, m(x + w - 22), m(y + h - 3), 1.6 * Fe * Math.min(1, xe[c.mon]?.size ?? 1), mon.ground),
-        d.restore());
+      // The mode's emblem: lit and bobbing on the card you are on.
+      let em = modeIcon(c.icon);
+      if (em) {
+        let S2 = 30,
+          ex = x + w - S2 - 8,
+          ey = y + (h - S2) / 2 + (on ? Math.sin(t * 0.08) * 1.2 : 0);
+        d.save(),
+          on &&
+            ((d.globalAlpha = 0.35),
+            (d.fillStyle = "#ffffff"),
+            d.beginPath(),
+            d.arc(m(ex + S2 / 2), m(ey + S2 / 2), m(S2 * 0.55), 0, Math.PI * 2),
+            d.fill()),
+          (d.globalAlpha = on ? 1 : 0.6),
+          (d.imageSmoothingEnabled = !1),
+          d.drawImage(em, m(ex), m(ey), m(S2), m(S2)),
+          d.restore();
+      }
       let ink = on ? g.night : g.chalk;
       V(c.label, x + 14, y + 16, 11.5, ink),
         wrapText(c.desc, 6, w - 62)
@@ -43707,7 +44198,7 @@
         "Wobbuffet: CHUNSOFT",
         "Fonts: Lilita One (Juan Montoreano), Fredoka (Milena Brandao, Hafontia)",
         "Effects: Super Pixel Effects Gigapack - Will Tice / unTied Games",
-        "PVFX Foundry by Pixel VFX Studio \xB7 arena effects made with PixelLab",
+        "PVFX Foundry by Pixel VFX Studio \xB7 arena effects and mode emblems made with PixelLab",
         "Pok\xE9mon is \xA9 Nintendo / Creatures / GAME FREAK.",
         "Fan project for personal use. Not for sale.",
       ]);
@@ -45625,6 +46116,15 @@
         case "nightmare":
           P("absorb", n.x, n.y - 10, 0.6);
           break;
+        case "infernoLand":
+          P("fireBig", n.x, n.y - 8, 0.7 + 0.5 * n.charge);
+          break;
+        case "fireSpin":
+          P("fireOrchid", n.x, n.y - 6, 0.8);
+          break;
+        case "hexDrain":
+          P("ghostBoom", n.x, n.y - 12, 0.7), P("absorb", w.x, w.y - 14, 0.6);
+          break;
         case "bitterHeal":
           t.pfx("sparkle2", 0, 0, fit("sparkle2", w, 1), {
             follow: w,
@@ -47132,19 +47632,36 @@
         case "wispOut":
           S.wisp();
           break;
-        case "hexMark":
-          S.charge(), t.ring(n.x, n.y, 6, 2, 12, "#a070ff");
+        case "fireSpinCast":
+          S.charge(), t.ring(n.x, n.y, 6, 2, 12, "#ff8a3d");
           break;
-        case "hexBurst":
-          n.hot
-            ? (S.ultHit?.(),
-              t.shake(0, 1, 4),
-              t.popup(n.x, n.y - 36, "HEX!", "#c9a6ff", !0))
-            : S.wisp(),
+        case "fireSpin":
+          S.overheat(),
+            t.ring(n.x, n.y, 6, 3.2, 16, "#ffd36a", !0),
+            t.motes(n.x, n.y - 6, 10, n.r, "#ff8a3d", 1.4);
+          break;
+        case "fireSpinTick":
+          S.ember();
+          break;
+        case "infernoCast":
+          S.overheat(),
+            t.motes(n.who.x, n.who.y - 20, 6 + Math.round(6 * n.charge), 10, "#ffb347", 1.2);
+          break;
+        case "infernoLand":
+          S.burn?.(),
+            t.shake(0, 1 + n.charge * 1.5, 6),
+            t.ring(n.x, n.y, 6, 3 + n.charge * 2, 18, "#ff8a3d", !0),
+            t.motes(n.x, n.y - 4, 12, 14 + n.charge * 10, "#ffd36a", 1.6);
+          break;
+        case "hexCast":
+          S.wisp();
+          break;
+        case "hexDrain":
+          S.ultHit?.(),
+            t.shake(0, 1, 4),
+            t.popup(n.x, n.y - 36, "HEX!", "#c9a6ff", !0),
+            t.popup(n.who.x, n.who.y - 44, `+${n.n}`, "#7fe0a0", !1),
             t.wisps(n.x, n.y, 12, 8, "#a070ff", 10);
-          break;
-        case "overheatDrop":
-          S.overheat(), t.smoke(n.who.x, n.who.y - 20, 10, 8);
           break;
         case "flashFire":
           t.popup(n.who.x, n.who.y - 44, "FLASH FIRE", "#ff8a3d", !1);

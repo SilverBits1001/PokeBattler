@@ -23,8 +23,14 @@ shiny = shiny_js.read_text(encoding="utf-8").rstrip("\n") if shiny_js.exists() e
 music = (ROOT / "assets/music.js").read_text(encoding="utf-8").rstrip("\n")
 peerjs = (ROOT / "assets/vendor/peerjs.min.js").read_text(encoding="utf-8").rstrip("\n")
 game = (ROOT / "src/game.js").read_text(encoding="utf-8").rstrip("\n")
+# Mode Select emblems: assets/modes/*.png as data URLs.
+import base64 as _b64, json as _json
+modes = "window.__MODE_ICONS__=" + _json.dumps({
+    p.stem: "data:image/png;base64," + _b64.b64encode(p.read_bytes()).decode()
+    for p in sorted((ROOT / "assets/modes").glob("*.png"))
+}) + ";"
 
-body = f"{page}\n<script>{sprites}</script>\n<script>{tiles}</script>\n<script>{vfx}</script>\n<script>{fxpack}</script>\n<script>{layouts}</script>\n<script>{music}</script>\n<script>{arenas}</script>\n<script>{stages}</script>\n<script>{shiny}</script>\n<script>/* PeerJS 1.5.4, MIT licence (assets/vendor/peerjs-LICENSE.txt) */\n{peerjs}</script>\n<script>\n{game}\n</script>\n"
+body = f"{page}\n<script>{sprites}</script>\n<script>{tiles}</script>\n<script>{vfx}</script>\n<script>{fxpack}</script>\n<script>{layouts}</script>\n<script>{music}</script>\n<script>{arenas}</script>\n<script>{stages}</script>\n<script>{shiny}</script>\n<script>{modes}</script>\n<script>/* PeerJS 1.5.4, MIT licence (assets/vendor/peerjs-LICENSE.txt) */\n{peerjs}</script>\n<script>\n{game}\n</script>\n"
 
 skeleton_head = (
     "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"

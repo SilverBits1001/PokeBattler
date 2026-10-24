@@ -40,6 +40,19 @@ controller is used.
 
 ## What's new
 
+**Chandelure, reworked.** Trap, burn, cash in: **Fire Spin** holds a foe in a flame
+vortex, **Inferno** (a slow fireball you are rooted to cast) always burns and leaves a
+burning pool, and **Hex** eats the burn for double damage and heals you. Design and test
+numbers in `docs/plan-chandelure.md`.
+
+**CPUs that play the mode.** CPUs now chase the objective: in Zone Control they take
+the ring while you are down and never chase out of it; in You're It! whoever is it hunts
+with melee while the rest keep clear; in Free-for-All they pick off the hurt and the
+distracted; in 2v2 they peel for a hurt partner; on Thin Ice they step off worn slabs and
+knock you towards the holes. Details and A/B numbers in `docs/plan-mode-cpu.md`.
+
+**Mode Select emblems.** Each mode card now has its own emblem instead of a Pokémon.
+
 **Menus, reorganised.** The main menu is now Play, Arcade, Online, Training and
 Options. **Play** opens **Mode Select**: one card per mode (VS CPU, Tag Team, Zone
 Control, Free-for-All, Team 2v2, You're It!, Thin Ice, Thin Ice Party, Pidgey Sweep),
@@ -93,9 +106,11 @@ around one idea from its lore and typing, with a payoff that a commitment buys
 - **Lurantis** (Grass, duelist) plants **Sunny Day** and fights inside it: there,
   **Solar Blade** (the longest blade in the game) needs no charge, Synthesis heals
   and Leaf Guard blocks status. Leaf Blade can crit; X-Scissor cuts straight through.
-- **Chandelure** (Ghost/Fire, zoner) floats, burns foes with homing **Will-O-Wisp**
-  and cashes the burns in with **Hex** (double damage). **Overheat** is a huge
-  soul-fire blast that drains it afterwards. Flash Fire turns fire into fuel.
+- **Chandelure** (Ghost/Fire, trapper) floats and plays a three-step loop: **Fire
+  Spin** traps a foe in a flame vortex, **Inferno** (a slow fireball it is rooted to
+  cast) always burns and leaves a burning pool, and **Hex** eats the burn for double
+  damage and heals it. Ember can burn too. Flash Fire turns fire into fuel. See
+  `docs/plan-chandelure.md`.
 - **Ceruledge** (Fire/Ghost, berserker) heals with **Bitter Blade**, gets faster with
   each **Flame Charge** hit and throws its blades as a **Poltergeist** boomerang,
   fighting bare-handed until they return. Weak Armor speeds it up when hit hard.
@@ -474,12 +489,14 @@ F2 (or tap the readout) for a diagnostics panel.
 | `editor.html` | The arena editor (built from `tools/editor.html` with `assets/editor/` backdrops): draw solid, water and layer shapes, test them in the game (`index.html?layouts=local`), export JSON |
 | `assets/fonts/` | Lilita One and Fredoka (embedded in `src/page.html`) |
 | `assets/tiles.js` | Arena floor tilesets as data URIs (`window.__TILES__`); source PNGs in `assets/tiles/` |
+| `assets/modes/` | Mode Select emblems (PixelLab), inlined by the build as `window.__MODE_ICONS__` |
 | `tools/build.py` | Assembles `index.html` and `dist/artifact.html` |
 
 After editing anything in `src/` or `assets/`, run `python3 tools/build.py`.
 
 Sprites and portraits: PMD Sprite Repository (sprites.pmdcollab.org).
 Arena floor tiles: generated with PixelLab (16px top-down Wang tilesets, recoloured).
+Mode Select emblems: generated with PixelLab.
 Fonts: Lilita One (Juan Montoreano) and Fredoka (Milena Brandao, Hafontia), SIL Open Font License.
 Effects: Super Pixel Effects Gigapack (free version) - Will Tice / unTied Games (used in the game with credit;
 the pack itself is not redistributed, only the frames the game uses are packed into `assets/fxpack.js`), and
