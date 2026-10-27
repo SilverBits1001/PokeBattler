@@ -357,7 +357,7 @@ All eight phases are in the game. This part records what shipped, where it diffe
 - **Support slot**: the supports are roster Pokémon whose assist works without a partner: Charizard (Flamethrower), Blastoise (Hydro Pump), Snorlax (quake), Magnezone (Lock-On) and Milotic (Aqua Ring, heals 10%). There is no art for Emolga, Fennekin or Togekiss. The cooldown is 15 s. The CPU calls its support too. Online, everyone uses the host's support choice.
 - **Local multiplayer**: the second keyboard layout is the number pad only. In 2v2 a second pad takes your ally's place first, then the rival's.
 - **Daily Challenge**: the legendary setting follows Options.
-- **Snorlax Launch**: only a Smash launches during the ten seconds; after the bell, any hit does, or the last two seconds launch it with what is on the meter. Distance = (damage × 0.9 + knockback × 40) × the attacker's heft factor.
+- **Snorlax Launch**: only a Smash launches during the ten seconds; after the bell any hit does, and if none lands within five seconds it launches on its own. Distance = (damage × 0.9 + knockback × 40) × the attacker's heft factor.
 - **Raid**:
   - The attacks are a set of telegraphed patterns themed per boss, not the summon moves cut into pieces: lane charges, bolt marks (in threes in phase 3), tracking pillars, shock rings, marked dives, rifts, Dialga's time stop, Darkrai's sleep pools, Ho-Oh's heal ring, Giratina's hunt and Miraidon's drift.
   - The arena is the Stadium with the boss's sky painted faintly over it. There are no per-boss floors.
