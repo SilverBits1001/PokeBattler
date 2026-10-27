@@ -6305,9 +6305,9 @@
       wind: 180,
       intro: 20,
       // Strong enough that spending half the meter on it is worth a legendary
-      // (Burst-only against legendary-only CPUs: 0.47).
-      mega: { out: 1.9, taken: 0.5, speed: 1.2 },
-      tera: { out: 1.85, stab: 1.35, taken: 0.55 },
+      // (Burst-only against legendary-only CPUs: 0.49 over 114 games).
+      mega: { out: 2.1, taken: 0.5, speed: 1.2 },
+      tera: { out: 2.05, stab: 1.35, taken: 0.55 },
     },
     // Mega forms (sprite key) and each one's twist.
     // Mega Evolutions: [SpriteCollab Mega sheet or null, the change, and for

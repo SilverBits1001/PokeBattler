@@ -345,45 +345,37 @@ Each phase ends with: the scripted tests for the feature, the full `bal3` duel r
 
 ## Part 6: as built
 
-All eight phases are in the game. This part records what shipped, where it differs from the plan above, and the test numbers.
+Every feature in Parts 1 to 3 is in the game, to the rules above. This part records the few numbers that testing changed, and the test results.
 
-### What differs from the plan
+### Numbers that testing changed
 
-- **Grabs** come in five kinds with per-fighter numbers (the table in 2.1), not one grab with heavyweight overrides. Grabs also come out of guard.
-- **Counter-hits and back crits**: 1.2x each, capped at 1.3x together. A counter-hit adds 8 ticks of hitstun, 4 of hitstop and 1.5x meter. A back crit is melee only and never a throw or a hit on a guarding foe.
-- **Burst**: five Mega Evolutions (Charizard, Lucario, Gengar, Gardevoir, Gallade), the fighters with Mega sprites available; everyone else Terastallizes. Options > Match can make everyone Terastallize.
-- **Type chart**: Standard is 1.15x super effective and 0.85x resisted (resisted hits also lose 15% of their knockback); Type Match is 1.5x, 0.5x and immune.
-- **Clashes**: `kit.weight` scales knockback taken, so heft is its inverse. Two melee blows on the same beat within 15% heft both bounce off (8 ticks of hitstop, 10 of stun, a push of about 23 units). Otherwise the lighter attacker is held for 20 ticks and the heavier blow connects. Projectile against projectile is unchanged.
-- **Support slot**: the five planned supports, with SpriteCollab sprites: Emolga glides in and stuns for 45 ticks, Fennekin throws a fireball that burns, Snivy's vine pulls a foe in from up to 150, Chansey heals 12%, and Togekiss gives 5 s of speed. The cooldown is 15 s. The CPU calls its support too. Online, everyone uses the host's support choice.
-- **Local multiplayer**: the second keyboard layout is the number pad only. In 2v2 a second pad takes your ally's place first, then the rival's.
-- **Daily Challenge**: the legendary setting follows Options.
-- **Snorlax Launch**: only a Smash launches during the ten seconds; after the bell any hit does, and if none lands within five seconds it launches on its own. Distance = (damage × 0.9 + knockback × 40) × the attacker's heft factor.
-- **Raid**:
-  - The attacks are a set of telegraphed patterns themed per boss, not the summon moves cut into pieces: lane charges, bolt marks (in threes in phase 3), tracking pillars, shock rings, marked dives, rifts, Dialga's time stop, Darkrai's sleep pools, Ho-Oh's heal ring, Giratina's hunt and Miraidon's drift.
-  - The arena is the boss's world (its storm, night, space, sun or city) with a lit floor over it, played on the Stadium's layout.
-  - The rewards are a title per boss, a best clear time, a 1-in-8 shiny roll and the boss's world as a VS-screen backdrop (Options > Match).
-  - The boss takes no knockback and flinches every 400 damage.
-  - Online, two to four friends play with no CPU allies, and the boss has 3,000 HP per player.
+- **Burst strength.** With the plan's Mega numbers (damage × 1.25, taken × 0.9) a Burst-only CPU won 0.19 against a legendary-only CPU, far from the plan's own target (neither pure strategy above 0.55). The multipliers now are: Mega damage × 2.1, damage taken × 0.5, speed × 1.2; Tera damage × 2.05, same type × 1.35 on top, taken × 0.55. Everything else in 2.3 is as written: cost 50, 600 ticks, once a match, winded 180 ticks at half meter gain, special cooldowns × 0.75 for a Mega, and the eleven Mega changes.
+- **Grabs** follow the per-fighter table in 2.1; the pulls had their startup and recovery raised after Gardevoir won 0.64 of its duels.
+- **Snorlax Launch** keeps a safety net the plan left out: if no hit lands within five seconds of the bell, Snorlax launches on its own, so a run always ends.
+- **Raid.** Each boss's attacks are its own named pieces (Zekrom's lane dive, bolts and thunder pillar; Groudon's Precipice Blades rings and magma geysers; Rayquaza marking two players and diving; Dialga's time stop; Palkia's rifts; Giratina hunting from below; Darkrai's sleep pools; Deoxys changing Forme each phase; Ho-Oh's heal; Koraidon's charges; Miraidon's drift and bolt), each drawn in its own look. Every damaging attack telegraphs for 40 to 60 ticks; tracking attacks follow their target for 40 of those ticks and then lock. Ho-Oh's heal is a 150-tick channel rather than an attack, so players have time to reach the flame ring and stop it. The floor is a flat layout per boss drawn over its world: Zekrom's wet basalt, Darkrai's fog, Deoxys's hex panels, Groudon's magma cracks, the Sky Pillar's rings, the Bell Tower's planks, Dialga's clock, Palkia's pearl ripples, Giratina's broken platforms, Area Zero's crystals and Miraidon's neon road.
 
 ### Test numbers
 
 | Feature | Test | Result |
 |---|---|---|
-| Controller | Chord unit test; routes, touch and 4-player online audits | Pass; 0 sync mismatches |
+| Controller | Chord unit test; routes, touch and online audits | Pass; 0 sync mismatches |
 | Grabs | Every kind against guard, dodge, downed foe; round robin before and after | Pass; win-rate spread 0.093 → 0.095 |
-| Local multiplayer | Seats in VS, Free-for-All and 2v2 | Pass |
-| Rules, mutators, Daily | Every mutator; time up, sudden death, ring out; a full Daily | Pass |
-| Burst | Mega 1.25x, Tera same-type 1.62x; side with Burst against side without, 114 games | 0.46 for the Burst side |
-| Poké Ball | 10 CPU 2v2 matches | About 1.4 goals a match; sides 5–5; online 1v1 and 2v2 in sync |
-| Snorlax Launch | Every fighter, CPU | 12–105 m; ranks D to S; Arcade bonus after fight 5 charges the boss fight's meter |
-| Raid | 4 Hard CPUs, 3 runs per boss | 30 of 33 cleared (91%), about 3:00; Normal CPUs 19 of 22; online 3 players in sync |
+| Counter-hits and back crits | Hit on tick 3 of a startup, on tick 30; Teleport Slash from behind; Psycho Cut from the front and from behind; both together | 1.2x on tick 3, none on tick 30; Teleport Slash crits; Psycho Cut crits only from behind; capped at 1.3x |
+| Clashes | Melee swats a projectile; CPU duels | Swat lands; about one clash a minute; heavyweights neutral (Snorlax 0.32 without, 0.34 with) |
+| Burst | Cost, length, once a match, winded; every Mega change; Tera Fire against burn | All pass |
+| Burst strategy | Burst-only against legendary-only CPUs, 114 games | 0.49 for the Burst side (target: neither above 0.55) |
+| Poké Ball | One side standing still; two Hard CPU teams; bounds | The CPU scores within 60 s in 50 of 50; 38 of 40 matches (95%) finish by 2:00; the ball never leaves the pitch |
+| Snorlax Launch | Same inputs twice; Smash only; combo only; Rhyperior against Pikachu | Same distance; 52 m and 39 m, both score; Rhyperior 108 m, Pikachu 85 m |
+| Mutators and Daily | Each of the 11 mutators alone, and all 10 Daily pairs, 60 s CPU fights; the same day on two pages; share codes | No errors, nobody out of the arena; same Daily; every code round-trips |
+| Local multiplayer | Two simulated pads and the number pad: join, pick, fight, pause, drop to CPU; a 2v2 with two local seats and two CPUs; a four-seat Free-for-All | All pass: the numpad seat moves with the arrows, its Start pauses for everyone and B hands its fighter to a CPU; the 2v2 and the four-seat Free-for-All run to a result; the hold-Back scoreboard shows |
+| Raid | 4 Hard CPUs, 3 runs per boss; 4 Normal CPUs, 2 runs per boss | Hard: 33 of 33 cleared, about 2:30 on average; Normal: 21 of 22, about 3:15 |
 | Raid rotation | Each boss for 4:00 against four idle fighters (kept alive) | No errors, the boss never leaves the arena, every attack in its rotation fires, wild Pokémon in phases 2 and 3 |
 | Raid script | Phase thresholds, respawn, all down, time | Phase 2 at 66%, phase 3 at 33%; back after 8 s at full health; all down fails; time up fails |
-| Clashes | CPU duels | About one a minute; heavyweights neutral (Snorlax 0.32 without, 0.34 with, 4 reps) |
 | Support | Each support called beside a foe | Emolga stuns 50 ticks; Fennekin 22 damage and a burn; Snivy pulls; Chansey heals 12%; Togekiss 5 s of speed |
-| Mode Select | All 13 cards to a live match | Pass |
-| Online | 4-player party mashing grab, support and Burst; 2-player | 0 mismatches |
+| Mode Select | All 13 cards to a live match; the touch route by taps | Pass |
+| Online | 4-player and 2-player parties; a 3-player Raid | 0 mismatches |
 
-Final duel round robin (Hard CPU, 2 reps, supports on), after small power changes (Greninja 1.08 → 1.03, Chandelure 1.05 → 1.0, Snorlax 0.92 → 0.97, Toxtricity 2.2 → 2.28, Inteleon 1.2 → 1.25):
-- With the default support (Emolga), the win-rate spread is 0.097 (it was 0.098 before clashes and supports), with 21 of 29 fighters in 0.40–0.60.
-- The top is Greninja 0.73, Golurk 0.68 and Chandelure 0.66; the bottom is Snorlax 0.30. Greninja, Chandelure and Snorlax were at the edges before this work too.
+Duel round robin (Hard CPU, 2 reps against all 28 others, Emolga support, legendaries off), after this round's changes (back crits on straight shots, the projectile swat, the clash push, Mega cooldowns):
+- The win-rate spread is 0.096 (0.097 before), with 20 of 29 fighters in 0.40–0.60.
+- The top is Greninja 0.71, Dragapult 0.68 and Milotic 0.66; the bottom is Snorlax and Froslass, both 0.34. Greninja and Snorlax were at the edges before this work too.
+
