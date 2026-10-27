@@ -6620,7 +6620,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       togekiss: { id: "togekiss", name: "Togekiss", color: "#f4f0ff", type: "fairy", size: 1, role: "Enhance: a burst of speed" },
     },
     // Clashes: melee on the same beat. Within 15% weight both bounce off.
-    CLASH = { even: 1.15, push: 3.2, stop: 8, stun: 10 },
+    CLASH = { even: 1.15, push: 2.8, stop: 8, stun: 10 },
     // Raid: a party of four (CPU allies fill the empty places) against a giant
     // legendary. Three phases by HP, each adding an attack to the rotation;
     // every attack telegraphs before it lands. A K.O. is an 8 s wait while an
@@ -8560,8 +8560,6 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         let d = Math.max(1, Math.round(dmg * ae.dmg * this.exOut(t, dmg, k, tg)));
         (L.dmg += d), L.hits++, (tg.flash = 3), (tg.hitstop = 4), (t.hitstop = Math.max(t.hitstop ?? 0, 3));
         this.emit({ type: "launchHit", who: tg, dmg: d, total: L.dmg, x: tg.x, y: tg.y });
-        // A Smash launches it; so does any hit once time is up, and any
-        // hit heavy enough to knock it off the tee early.
         // A Smash launches it, as does any hit after the bell; a heavy hit
         // before you mean it knocks it off the tee early and the run ends short.
         (/:smash/.test(String(k)) || L.phase === "over" || kb >= 7.5) && this.doLaunch(t, kb);
@@ -8731,14 +8729,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             for (let w = 0; w < 3; w++) for (let q of up) a.zones.push(circ(q.x, q.y, 30, w * 28, { wave: w, follow: w ? q : null }));
             break;
           case "pillar":
-            a.zones.push(circ(near.x, near.y, 40, 0, { follow: near, track: 70 })), (a.warn = 90);
+            a.zones.push(circ(near.x, near.y, 40, 0, { follow: near, track: 40 })), (a.warn = 60);
             break;
           case "ring":
             a.zones.push({ shape: "ring", x: b.x, y: b.y, rr: 0, max: 300, at: 0 });
             break;
           case "mark":
-            for (let q of up.slice(0, 2)) a.zones.push(circ(q.x, q.y, 36, 0, { follow: q, track: 55 }));
-            (a.warn = 70), a.zones[1] && (a.zones[1].at = 22);
+            for (let q of up.slice(0, 2)) a.zones.push(circ(q.x, q.y, 36, 0, { follow: q, track: 40 }));
+            (a.warn = 60), a.zones[1] && (a.zones[1].at = 22);
             break;
           case "rift":
             for (let w = 0; w < 4; w++) {
@@ -8762,11 +8760,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             break;
           }
           case "hunt":
-            (b.hidden = !0), a.zones.push(circ(tg.x, tg.y, 44, 0, { follow: tg, track: 80, speed: 2 })), (a.warn = 95);
+            (b.hidden = !0), a.zones.push(circ(tg.x, tg.y, 44, 0, { follow: tg, track: 42, speed: 2 })), (a.warn = 60);
             break;
           case "drift": {
             let ang = Math.atan2(tg.y - Te, tg.x - Se);
-            a.zones.push(circ(Se + Math.cos(ang) * 120, Te + Math.sin(ang) * 70, 50, 0, { ang, track: 80 })), (a.warn = 95);
+            a.zones.push(circ(Se + Math.cos(ang) * 120, Te + Math.sin(ang) * 70, 50, 0, { ang, track: 42 })), (a.warn = 60);
             break;
           }
         }
@@ -9931,6 +9929,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (e.slot.cdX > 0 && e.slot.cdX--,
           e.slot.cdY > 0 && e.slot.cdY--,
           this.tick % 30 === 0 && this.emit({ type: "charging", who: e }));
+        // A Mega's specials come back a quarter sooner (cooldowns x 0.75).
+        e.burstT > 0 &&
+          e.burstKind === "mega" &&
+          this.tick % 3 === 0 &&
+          (e.slot.cdX > 0 && e.slot.cdX--, e.slot.cdY > 0 && e.slot.cdY--);
         for (let v of e.slots)
           v.cdX > 0 && v.cdX--,
             v.cdY > 0 && v.cdY--,
@@ -28319,22 +28322,288 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   function raidEll(a, x, y, r) {
     a.beginPath(), a.ellipse(x, y, Math.max(0.5, r), Math.max(0.5, r * 0.87), 0, 0, Math.PI * 2);
   }
+  // Each boss's floor, drawn over its world so the world still shows at the
+  // edges: Zekrom's wet basalt, Darkrai's fog, Deoxys's hex panels, Groudon's
+  // magma cracks, the Sky Pillar's rings, the Bell Tower's planks, Dialga's
+  // clock, Palkia's pearl ripples, Giratina's broken platforms, Area Zero's
+  // crystals and Miraidon's neon road. Seeded, so it holds still.
+  function raidFloor(a, kind, form, t) {
+    let W = B.x1 - B.x0,
+      Hh = B.y1 - B.y0,
+      g = rt(kind.length * 131 + 7),
+      fill = (c) => ((a.fillStyle = c), a.fillRect(B.x0, B.y0, W, Hh)),
+      seam = (c, lw = 1) => ((a.strokeStyle = c), (a.lineWidth = lw)),
+      line = (x1, y1, x2, y2) => (a.beginPath(), a.moveTo(x1, y1), a.lineTo(x2, y2), a.stroke()),
+      flash = kind === "zekrom" && t % 97 < 3;
+    a.save(), a.beginPath(), a.rect(B.x0, B.y0, W, Hh), a.clip();
+    switch (kind) {
+      case "zekrom": {
+        fill("rgba(14,20,36,0.8)");
+        for (let r = 0, y = B.y0; y < B.y1; r++, y += 40)
+          for (let x = B.x0 - (r % 2) * 29; x < B.x1; x += 58)
+            (a.fillStyle = `rgba(${26 + g() * 14},${34 + g() * 14},${56 + g() * 18},0.7)`), a.fillRect(x + 1, y + 1, 56, 38);
+        for (let k = 0; k < 8; k++) {
+          let x = B.x0 + 30 + g() * (W - 60),
+            y = B.y0 + 20 + g() * (Hh - 40),
+            r = 14 + g() * 22;
+          (a.fillStyle = flash ? "rgba(210,236,255,0.55)" : "rgba(70,110,170,0.28)"), raidEll(a, x, y, r), a.fill();
+          let q = (t * 0.7 + k * 23) % 40;
+          (a.globalAlpha = 1 - q / 40), seam("rgba(170,210,255,0.5)"), raidEll(a, x + (k % 3) * 4, y, q * 0.35), a.stroke(), (a.globalAlpha = 1);
+        }
+        break;
+      }
+      case "darkrai": {
+        fill("rgba(10,6,20,0.82)"), seam("rgba(120,90,200,0.12)");
+        for (let k = 0; k < 16; k++) {
+          let x = B.x0 + g() * W,
+            y = B.y0 + g() * Hh;
+          a.beginPath(), a.moveTo(x, y);
+          for (let j = 0; j < 4; j++) (x += (g() - 0.5) * 70), (y += (g() - 0.5) * 40), a.lineTo(x, y);
+          a.stroke();
+        }
+        (a.fillStyle = "rgba(230,220,255,0.1)"), a.beginPath(), a.arc(Se + 150, B.y0 + 60, 26, 0, Math.PI * 2), a.fill();
+        (a.fillStyle = "rgba(10,6,20,0.9)"), a.beginPath(), a.arc(Se + 160, B.y0 + 54, 24, 0, Math.PI * 2), a.fill();
+        for (let k = 0; k < 10; k++) {
+          let y = B.y0 + 20 + g() * (Hh - 40),
+            x = B.x0 + ((g() * W + t * (0.15 + g() * 0.2)) % (W + 160)) - 80;
+          (a.fillStyle = "rgba(150,130,190,0.07)"), a.beginPath(), a.ellipse(x, y, 70, 14, 0, 0, Math.PI * 2), a.fill();
+        }
+        break;
+      }
+      case "deoxys": {
+        fill("rgba(6,10,24,0.84)");
+        let col = form === "speed" ? "90,220,255" : form === "attack" ? "255,90,90" : form === "defense" ? "120,255,160" : "255,120,90";
+        a.lineWidth = 1;
+        for (let r = 0, y = B.y0; y < B.y1 + 20; r++, y += 19)
+          for (let x = B.x0 + (r % 2) * 17; x < B.x1 + 20; x += 34) {
+            let d = Math.hypot(x - Se, y - Te),
+              p = 0.1 + 0.25 * Math.max(0, Math.sin(d * 0.04 - t * 0.08));
+            (a.strokeStyle = `rgba(${col},${p})`), a.beginPath();
+            for (let j = 0; j < 6; j++) {
+              let q = (j / 6) * Math.PI * 2 + Math.PI / 6;
+              j ? a.lineTo(x + Math.cos(q) * 11, y + Math.sin(q) * 11 * 0.9) : a.moveTo(x + Math.cos(q) * 11, y + Math.sin(q) * 11 * 0.9);
+            }
+            a.closePath(), a.stroke();
+          }
+        break;
+      }
+      case "groudon": {
+        fill("rgba(34,16,10,0.86)");
+        for (let k = 0; k < 40; k++)
+          (a.fillStyle = `rgba(${50 + g() * 30},${24 + g() * 12},${16 + g() * 8},0.6)`), raidEll(a, B.x0 + g() * W, B.y0 + g() * Hh, 10 + g() * 26), a.fill();
+        for (let k = 0; k < 14; k++) {
+          let x = B.x0 + g() * W,
+            y = B.y0 + g() * Hh,
+            pts = [[x, y]];
+          for (let j = 0; j < 5; j++) (x += (g() - 0.5) * 60), (y += (g() - 0.5) * 34), pts.push([x, y]);
+          let glow = 0.35 + 0.3 * Math.sin(t * 0.05 + k);
+          for (let [lw, c] of [[5, `rgba(255,90,30,${glow * 0.35})`], [1.6, `rgba(255,180,80,${glow + 0.2})`]]) {
+            seam(c, lw), a.beginPath();
+            pts.forEach(([u, v], i) => (i ? a.lineTo(u, v) : a.moveTo(u, v))), a.stroke();
+          }
+        }
+        for (let [x, y] of [[B.x0 + 40, B.y1 - 30], [B.x1 - 50, B.y0 + 30], [B.x1 - 70, B.y1 - 24]]) {
+          (a.fillStyle = "rgba(255,90,30,0.55)"), raidEll(a, x, y, 26), a.fill();
+          (a.fillStyle = "rgba(255,210,100,0.5)"), raidEll(a, x + 4 * Math.sin(t * 0.03), y, 12), a.fill();
+        }
+        break;
+      }
+      case "rayquaza": {
+        fill("rgba(30,44,40,0.84)"), seam("rgba(160,220,190,0.16)", 1.4);
+        for (let r = 50; r < 340; r += 46) raidEll(a, Se, Te, r), a.stroke();
+        for (let k = 0; k < 24; k++) {
+          let q = (k / 24) * Math.PI * 2;
+          line(Se + Math.cos(q) * 50, Te + Math.sin(q) * 43, Se + Math.cos(q) * 340, Te + Math.sin(q) * 296);
+        }
+        for (let k = 0; k < 18; k++) (a.fillStyle = "rgba(80,150,90,0.22)"), raidEll(a, B.x0 + g() * W, B.y0 + g() * Hh, 6 + g() * 14), a.fill();
+        seam("rgba(255,255,255,0.14)", 1.2);
+        for (let k = 0; k < 12; k++) {
+          let y = B.y0 + g() * Hh,
+            x = B.x0 + ((g() * W + t * 4) % (W + 120)) - 60;
+          line(x, y, x + 40, y - 3);
+        }
+        break;
+      }
+      case "hooh": {
+        fill("rgba(58,32,16,0.86)");
+        for (let r = 0, y = B.y0; y < B.y1; r++, y += 18) {
+          (a.fillStyle = r % 2 ? "rgba(98,58,28,0.7)" : "rgba(84,48,22,0.7)"), a.fillRect(B.x0, y, W, 17);
+          seam("rgba(30,14,6,0.5)");
+          for (let x = B.x0 + ((r * 37) % 90); x < B.x1; x += 90) line(x, y, x, y + 17);
+        }
+        seam("rgba(255,200,90,0.35)", 1.5), raidEll(a, Se, Te, 90), a.stroke(), raidEll(a, Se, Te, 70), a.stroke();
+        for (let k = 0; k < 18; k++) {
+          let x = B.x0 + g() * W,
+            y = B.y1 - ((g() * Hh + t * (0.4 + g() * 0.4)) % Hh);
+          (a.fillStyle = `rgba(255,${150 + g() * 80},60,${0.5 + 0.3 * Math.sin(t * 0.1 + k)})`), a.fillRect(x, y, 2, 2);
+        }
+        break;
+      }
+      case "dialga": {
+        fill("rgba(40,52,74,0.84)"), seam("rgba(200,220,255,0.1)", 1);
+        for (let k = 0; k < 12; k++) {
+          let x = B.x0 + g() * W,
+            y = B.y0 + g() * Hh;
+          a.beginPath(), a.moveTo(x, y), a.quadraticCurveTo(x + (g() - 0.5) * 80, y + (g() - 0.5) * 40, x + (g() - 0.5) * 140, y + (g() - 0.5) * 60), a.stroke();
+        }
+        let R0 = 112;
+        seam("rgba(159,196,255,0.4)", 2), raidEll(a, Se, Te, R0), a.stroke(), raidEll(a, Se, Te, R0 - 8), a.stroke();
+        for (let k = 0; k < 12; k++) {
+          let q = (k / 12) * Math.PI * 2;
+          seam("rgba(159,196,255,0.55)", k % 3 ? 1.5 : 3), line(Se + Math.cos(q) * (R0 - 18), Te + Math.sin(q) * (R0 - 18) * 0.87, Se + Math.cos(q) * (R0 - 9), Te + Math.sin(q) * (R0 - 9) * 0.87);
+        }
+        for (let [sp, L, lw] of [[0.002, 56, 4], [0.024, 84, 2]]) {
+          let q = t * sp - Math.PI / 2;
+          seam("rgba(200,225,255,0.5)", lw), line(Se, Te, Se + Math.cos(q) * L, Te + Math.sin(q) * L * 0.87);
+        }
+        break;
+      }
+      case "palkia": {
+        fill("rgba(48,30,60,0.8)");
+        for (let k = 0; k < 5; k++) {
+          let x = B.x0 + 60 + g() * (W - 120),
+            y = B.y0 + 40 + g() * (Hh - 80);
+          for (let j = 0; j < 3; j++) {
+            let q = (t * 0.5 + j * 45 + k * 31) % 135;
+            (a.globalAlpha = 0.35 * (1 - q / 135)), seam("#ffb8e8", 1.5), raidEll(a, x, y, q), a.stroke();
+          }
+        }
+        a.globalAlpha = 1;
+        seam("rgba(255,200,240,0.1)", 6);
+        for (let k = 0; k < 6; k++) {
+          let x = B.x0 + ((k * 120 + t * 0.6) % (W + 200)) - 100;
+          line(x, B.y0, x + 120, B.y1);
+        }
+        break;
+      }
+      case "giratina": {
+        fill("rgba(4,2,10,0.7)");
+        (a.fillStyle = `rgba(110,40,160,${0.12 + 0.06 * Math.sin(t * 0.04)})`), a.fillRect(B.x0, B.y0, W, Hh);
+        for (let k = 0; k < 9; k++) {
+          let cx = B.x0 + 50 + (k % 3) * ((W - 100) / 2) + (g() - 0.5) * 40,
+            cy = B.y0 + 46 + Math.floor(k / 3) * ((Hh - 92) / 2) + (g() - 0.5) * 24,
+            n = 7,
+            pts = [];
+          for (let j = 0; j < n; j++) {
+            let q = (j / n) * Math.PI * 2,
+              r = 70 + g() * 30;
+            pts.push([cx + Math.cos(q) * r, cy + Math.sin(q) * r * 0.55]);
+          }
+          let poly = (dy, c) => ((a.fillStyle = c), a.beginPath(), pts.forEach(([u, v], i) => (i ? a.lineTo(u, v + dy) : a.moveTo(u, v + dy))), a.closePath(), a.fill());
+          poly(7, "rgba(20,10,30,0.9)"), poly(0, `rgba(${70 + g() * 20},${62 + g() * 16},${84 + g() * 20},0.88)`);
+        }
+        seam("rgba(40,10,60,0.6)", 3);
+        for (let k = 0; k < 6; k++) {
+          let x = B.x0 + g() * W;
+          a.beginPath(), a.moveTo(x, B.y1);
+          for (let j = 1; j < 8; j++) a.lineTo(x + Math.sin(t * 0.03 + j + k) * 10, B.y1 - j * 12);
+          a.stroke();
+        }
+        break;
+      }
+      case "koraidon": {
+        fill("rgba(70,28,16,0.84)");
+        for (let k = 0; k < 30; k++) (a.fillStyle = `rgba(${110 + g() * 40},${44 + g() * 20},${24},0.35)`), raidEll(a, B.x0 + g() * W, B.y0 + g() * Hh, 12 + g() * 30), a.fill();
+        for (let k = 0; k < 9; k++) {
+          let side = k % 3,
+            x = side === 0 ? B.x0 + 20 + g() * 60 : side === 1 ? B.x1 - 20 - g() * 60 : B.x0 + g() * W,
+            y = side === 2 ? (g() < 0.5 ? B.y0 + 14 : B.y1 - 10) : B.y0 + g() * Hh,
+            hue = Math.floor(g() * 360);
+          for (let j = 0; j < 3; j++) {
+            let h = 14 + g() * 18,
+              w = 4 + g() * 3,
+              dx = (j - 1) * 7;
+            (a.fillStyle = `hsla(${hue + j * 30},90%,70%,0.75)`), a.beginPath(), a.moveTo(x + dx - w, y), a.lineTo(x + dx + (j - 1) * 3, y - h), a.lineTo(x + dx + w, y), a.closePath(), a.fill();
+          }
+          (t + k * 40) % 160 < 8 && ((a.fillStyle = "rgba(255,255,255,0.9)"), a.fillRect(x - 1, y - 18, 2, 2));
+        }
+        break;
+      }
+      case "miraidon": {
+        fill("rgba(8,6,24,0.86)");
+        let off = (t * 0.6) % 40;
+        seam("rgba(255,60,200,0.22)", 1);
+        for (let x = B.x0 - 40 + off; x < B.x1; x += 40) line(x, B.y0, x, B.y1);
+        seam("rgba(60,220,255,0.22)", 1);
+        for (let y = B.y0 + 20; y < B.y1; y += 40) line(B.x0, y, B.x1, y);
+        a.setLineDash([18, 14]), (a.lineDashOffset = -t * 1.5), seam("rgba(255,224,102,0.5)", 3), line(B.x0, Te, B.x1, Te), a.setLineDash([]);
+        seam("rgba(255,60,200,0.5)", 2), line(B.x0, Te - 70, B.x1, Te - 70), line(B.x0, Te + 70, B.x1, Te + 70);
+        break;
+      }
+      default:
+        fill("rgba(8,6,18,0.32)");
+    }
+    a.restore();
+  }
+  // A shock ring as it rolls out, in the boss's look: Groudon's Precipice
+  // Blades, Rayquaza's gusts, Dialga's clock ticks, Palkia's ripple,
+  // Koraidon's dust.
+  function raidRingLook(a, kind, z, t) {
+    let n = Math.max(10, Math.round(z.rr / 9)),
+      at = (k, r) => [z.x + Math.cos((k / n) * Math.PI * 2) * r, z.y + Math.sin((k / n) * Math.PI * 2) * r * 0.87];
+    a.globalAlpha = 1;
+    if (kind === "groudon") {
+      for (let k = 0; k < n; k++) {
+        let [x, y] = at(k + 0.5 * (k % 2), z.rr - (k % 2) * 6);
+        lgBlade(a, x, y, 26 + ((k * 7) % 12), 8, !0);
+      }
+      for (let k = 0; k < n; k += 2) {
+        let [x, y] = at(k, Math.max(0, z.rr - 26));
+        lgBlade(a, x, y, 15, 6, !1);
+      }
+    } else if (kind === "rayquaza") {
+      (a.strokeStyle = "#c8ffd8"), (a.lineWidth = 2);
+      for (let k = 0; k < 8; k++) {
+        let q = (k / 8) * Math.PI * 2 + t * 0.05;
+        a.beginPath(), a.ellipse(z.x, z.y, z.rr + 6, (z.rr + 6) * 0.87, 0, q, q + 0.35), a.stroke();
+      }
+    } else if (kind === "dialga") {
+      (a.strokeStyle = "#dfe9ff"), (a.lineWidth = 2);
+      for (let k = 0; k < 12; k++) {
+        let [x1, y1] = at((k * n) / 12, z.rr - 8),
+          [x2, y2] = at((k * n) / 12, z.rr + 8);
+        a.beginPath(), a.moveTo(x1, y1), a.lineTo(x2, y2), a.stroke();
+      }
+    } else if (kind === "palkia") {
+      (a.globalAlpha = 0.6), (a.strokeStyle = "#ffb8e8"), (a.lineWidth = 3), raidEll(a, z.x, z.y, z.rr * 0.82), a.stroke();
+    } else if (kind === "koraidon") {
+      a.fillStyle = "rgba(160,96,52,0.8)";
+      for (let k = 0; k < n; k++) {
+        let [x, y] = at(k, z.rr + ((k * 5) % 7) - 3);
+        raidEll(a, x, y, 4 + (k % 3)), a.fill();
+      }
+    }
+  }
+  // Behind a charging boss (lane and charge), in local lane space.
+  function raidTrail(a, kind, L, w, t) {
+    if (L < 2) return;
+    a.globalAlpha = 0.85;
+    if (kind === "zekrom" || kind === "miraidon") {
+      (a.strokeStyle = kind === "zekrom" ? "#bfe6ff" : "#ffe066"), (a.lineWidth = 2.5), a.beginPath(), a.moveTo(0, 0);
+      for (let q = 12; q < L; q += 12) a.lineTo(q, ((q * 13 + t * 7) % 17) - 8);
+      a.stroke();
+    } else if (kind === "koraidon" || kind === "groudon" || kind === "hooh") {
+      let gr = a.createLinearGradient(0, 0, L, 0);
+      gr.addColorStop(0, "rgba(255,120,40,0)"), gr.addColorStop(1, "rgba(255,190,80,0.75)"), (a.fillStyle = gr), a.fillRect(0, -w * 0.35, L, w * 0.7);
+    } else if (kind === "darkrai" || kind === "giratina") {
+      (a.fillStyle = "rgba(20,8,36,0.7)"), a.fillRect(0, -w * 0.4, L, w * 0.8);
+    } else {
+      let c = LG_INFO[kind]?.rgb ?? "255,255,255",
+        gr = a.createLinearGradient(0, 0, L, 0);
+      gr.addColorStop(0, `rgba(${c},0)`), gr.addColorStop(1, `rgba(${c},0.6)`), (a.fillStyle = gr), a.fillRect(0, -w * 0.3, L, w * 0.6);
+    }
+    a.globalAlpha = 1;
+  }
   function raidGround(a, e) {
     let R = e.raid,
       t = e.tick,
       b = R.boss,
       rgb = LG_INFO[R.kind]?.rgb ?? "255,255,255";
     a.save(), raidScene(a, R.kind, b.form, t), a.restore();
-    // The scene is the arena: a floor over it, edged in the boss's colour.
+    // The scene is the arena: the boss's own floor over it, edged in its colour.
+    raidFloor(a, R.kind, b.form, t);
     a.save(),
-      (a.fillStyle = "rgba(8,6,18,0.32)"),
-      a.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0),
-      (a.globalAlpha = 0.07),
-      (a.strokeStyle = "#ffffff"),
-      (a.lineWidth = 1);
-    for (let x = B.x0 + 40; x < B.x1; x += 40) a.beginPath(), a.moveTo(x, B.y0), a.lineTo(x, B.y1), a.stroke();
-    for (let y = B.y0 + 40; y < B.y1; y += 40) a.beginPath(), a.moveTo(B.x0, y), a.lineTo(B.x1, y), a.stroke();
-    (a.globalAlpha = 0.55 + 0.15 * Math.sin(t * 0.05)),
+      (a.globalAlpha = 0.55 + 0.15 * Math.sin(t * 0.05)),
       (a.strokeStyle = `rgb(${rgb})`),
       (a.lineWidth = 2),
       a.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0),
@@ -28356,6 +28625,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           a.fillRect(0, -z.w / 2, L * p, 2), a.fillRect(0, z.w / 2 - 2, L * p, 2);
           (a.globalAlpha = 0.3 + 0.3 * p), (a.strokeStyle = "#ffffff"), (a.lineWidth = 2);
           for (let q = (t * 2) % 26; q < L; q += 26) a.beginPath(), a.moveTo(q, -8), a.lineTo(q + 8, 0), a.lineTo(q, 8), a.stroke();
+          // The charge itself: a trail behind the boss in its own look.
+          z.live && raidTrail(a, R.kind, Math.min(L, Math.hypot(b.x - z.x1, b.y - z.y1)), z.w, t);
         } else if (z.shape === "ring") {
           if (zt < K.warn) {
             let r = b.r + 8 + 14 * p;
@@ -28363,6 +28634,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           } else {
             (a.globalAlpha = 0.75), (a.strokeStyle = `rgb(${col})`), (a.lineWidth = 9), raidEll(a, z.x, z.y, z.rr), a.stroke();
             (a.lineWidth = 2), (a.strokeStyle = "#ffffff"), raidEll(a, z.x, z.y, z.rr), a.stroke();
+            raidRingLook(a, R.kind, z, t);
           }
         } else {
           K.k === "hunt" && ((a.globalAlpha = 0.55), (a.fillStyle = "#05030a"), raidEll(a, z.x, z.y, z.r * 0.7), a.fill());
@@ -46325,7 +46597,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 47,
+  var NETV = 48,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -52839,16 +53111,52 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         case "raidWarn":
           Math.random() < 0.35 && S.cry(n.kind, 0.05);
           break;
+        // Each boss strikes in its own look (the effect sheets where one fits).
         case "raidBolt": {
-          let c = LG_INFO[n.kind]?.color ?? "#ffffff";
-          n.kind === "zekrom" || n.kind === "miraidon"
-            ? t.bolt(n.x, n.y - 140, n.x, n.y, "#bfe6ff", 8, 10, 2)
-            : t.motes(n.x, n.y - 6, 16, n.r, c, 2);
+          let c = LG_INFO[n.kind]?.color ?? "#ffffff",
+            k = n.kind;
+          k === "zekrom" || k === "miraidon"
+            ? (t.bolt(n.x, n.y - 140, n.x, n.y, k === "zekrom" ? "#bfe6ff" : "#ffe066", 8, 10, 2), t.sheet("zapStrike", n.x, n.y - 10, 0.9))
+            : k === "groudon"
+              ? (t.sheet("eruption", n.x, n.y, 0.55), t.embers(n.x, n.y, 6, 10))
+              : k === "hooh" || k === "koraidon"
+                ? (t.sheet("fireBig", n.x, n.y - 8, 0.8), t.embers(n.x, n.y, 6, 8))
+                : k === "darkrai" || k === "giratina"
+                  ? (t.sheet("void", n.x, n.y - 8, 0.9), t.wisps(n.x, n.y, 4, 8, "#8a5cff", n.r * 0.5))
+                  : k === "palkia"
+                    ? (t.sheet("rift", n.x, n.y - 8, 0.7), t.splash(n.x, n.y, 2, 12))
+                    : k === "dialga"
+                      ? (t.sheet("steel", n.x, n.y - 8, 0.9), t.motes(n.x, n.y - 6, 12, n.r, "#9fc4ff", 2))
+                      : k === "deoxys"
+                        ? (t.sheet("psychic", n.x, n.y - 8, 0.9), t.motes(n.x, n.y - 6, 12, n.r, c, 2))
+                        : (t.sheet("hitHeavy", n.x, n.y - 8, 0.9), t.motes(n.x, n.y - 6, 16, n.r, c, 2));
           t.ring(n.x, n.y, n.r * 0.4, n.r / 10, 14, c, !0), t.shake(0, 2, 8), I("saw", F(40), F(28), 0.12, 0.06);
           break;
         }
         case "raidPillar": {
-          let c = LG_INFO[n.kind]?.color ?? "#ffffff";
+          let c = LG_INFO[n.kind]?.color ?? "#ffffff",
+            k = n.kind;
+          // Zekrom's thunder pillar, Groudon's magma geyser, Rayquaza's dive,
+          // Giratina rising from below, Miraidon's bolt, and so on.
+          k === "zekrom"
+            ? (t.sheet("ultBolt", n.x, n.y + 4, 0.9), S.thunder())
+            : k === "groudon"
+              ? (t.sheet("eruption", n.x, n.y - 4, 1.1), t.embers(n.x, n.y, 10, 22))
+              : k === "rayquaza"
+                ? (t.sheet("ultHit", n.x, n.y - 12, 1.6), t.speedLines(n.x, n.y, 10, "#c8ffd8"))
+                : k === "giratina"
+                  ? (t.sheet("ghostBoom", n.x, n.y - 10, 1.2), t.wisps(n.x, n.y, 4, 16, "#b04aff", n.r * 0.5))
+                  : k === "miraidon"
+                    ? (t.sheet("ultBolt", n.x, n.y + 4, 0.8), t.sheet("zapBurst", n.x, n.y - 10, 1))
+                    : k === "darkrai"
+                      ? t.sheet("ultPulse", n.x, n.y - 8, 1)
+                      : k === "hooh" || k === "koraidon"
+                        ? (t.sheet("ultBoom", n.x, n.y - 8, 0.9), t.sheet("fireBig", n.x, n.y - 8, 1.1))
+                        : k === "deoxys"
+                          ? (t.sheet("ultBoom", n.x, n.y - 8, 0.9), t.sheet("psychic", n.x, n.y - 8, 1.2))
+                          : k === "dialga"
+                            ? (t.pfx("ultBoom", n.x, n.y - 8, 0.9, { tint: "#6fa8ff" }), t.sheet("steel", n.x, n.y - 8, 1.3), t.sheet("hourglass", n.x, n.y - 20, 0.8))
+                          : (t.sheet("ultBoom", n.x, n.y - 8, 0.9), t.sheet("hitHeavy", n.x, n.y - 8, 1.2));
           S.boom(), t.shake(0, 3, 14), t.ring(n.x, n.y, n.r * 0.5, n.r / 8, 18, c, !0), t.motes(n.x, n.y - 10, 26, n.r, c, 2.6);
           break;
         }
@@ -52856,15 +53164,18 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           S.boom(), t.shake(0, 2, 10), t.dust(n.x, n.y, 10);
           break;
         case "raidStop":
-          t.ring(n.x, n.y, n.r * 0.3, n.r / 9, 22, "#6fa8ff", !0), t.popup(n.x, n.y - 30, "TIME STOP", "#9fc4ff", !1);
+          t.sheet("hourglass", n.x, n.y - 16, 1.1),
+            t.ring(n.x, n.y, n.r * 0.3, n.r / 9, 22, "#6fa8ff", !0),
+            t.popup(n.x, n.y - 30, "TIME STOP", "#9fc4ff", !1);
           break;
         case "raidPool":
-          t.ring(n.x, n.y, 30, 3, 20, "#8a5cff", !0);
+          t.sheet("void", n.x, n.y - 6, 1.2), t.ring(n.x, n.y, 30, 3, 20, "#8a5cff", !0);
           break;
         case "raidSleep":
           t.popup(n.x, n.y - 30, "ASLEEP", "#c8a8ff", !1);
           break;
         case "raidHeal":
+          t.sheet("healSpell", n.x, n.y - 30, 1.4),
           t.popup(n.x, n.y - 46, "HEALED", "#4df08a", !0), t.banner("HO-OH HEALS", "#ff8a3d", 70, "stand on the flame ring to stop it");
           break;
         case "raidHealStop":

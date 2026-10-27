@@ -6,15 +6,17 @@ A top-down Pokémon arena brawler that runs in one HTML file.
 
 Open `index.html` in a browser. A gamepad is recommended; the keyboard works too
 (WASD move, J attack, K dodge, L and I specials, arrows smash, O guard, U grab,
-Shift lock, Q switch, E assist or support, R legendary, G Burst, T taunt).
+Shift lock, Q switch, E assist or support, R legendary, G or Y Burst, T taunt).
+With a second keyboard player joined, the arrows move P2 and P1's Smash moves to H
+(fired the way P1 last moved).
 
 On an Xbox-style pad: A attack, B dodge, X and Y specials, right stick Smash, RT
 guard, RB grab, LB lock (switch in Tag Team), LT assist or support, LT+RT together
 for the legendary, D-pad up Burst, D-pad down taunt, D-pad left and right quick
 phrases online. Options > Controls shows the full layout.
 
-**Taunts and emotes**: T (R3 on a pad, EMOTE on touch) taunts; the stick picks the
-emote: neutral Taunt, up Cheer, right Show off, down Yawn, left Sing. Each plays an
+**Taunts and emotes**: T (D-pad down on a pad; on touch, the emote row at the top
+of the pause menu) taunts; the stick picks the emote: neutral Taunt, up Cheer, right Show off, down Yawn, left Sing. Each plays an
 animation and cry with a speech bubble over the fighter. It takes a second and
 can't be cancelled, so a taunt in a rival's face can be punished; CPUs taunt
 now and then after a K.O. Taunts go over the network like any other input.
@@ -29,7 +31,8 @@ are built for one thumb on each side:
   them; Switch and Assist (Tag Team) are on the stick side.
 - **Auto-target**: moves aim at the nearest foe, and follow a foe that comes much
   closer. Tap empty space on the button side to switch to the next foe.
-- Pause, Emote and Fullscreen are at the bottom centre.
+- Pause and Fullscreen are at the bottom centre. Pausing shows the emote row: tap one
+  to resume with that taunt.
 
 On wide phones the controls move out into the bars beside the arena, so thumbs
 don't cover the fight. Every button shows its own cooldown: the button dims, a
@@ -57,27 +60,42 @@ controller is used.
   Pull). Every fighter has its own startup, reach, damage and a twist, listed in
   its move list. You can also grab out of guard.
 - **Counter-hits and back crits.** A hit during a foe's startup is a COUNTER (more
-  damage, longer stun, more meter); melee from behind is a CRITICAL.
+  damage, longer stun, more meter); a hit from behind is a CRITICAL (melee, and
+  straight shots; homing and area moves never crit). Options > Accessibility > Hit
+  callouts picks icons and words, icons, or off.
+- **Type match-ups you can feel.** A SUPER EFFECTIVE pop only on real super-effective
+  hits, a dull thud on resisted ones, and each Pokémon's briefing lists what it is
+  weak to.
 - **Clashes.** Two melee blows on the same beat: close in weight, both bounce off
-  unhurt; otherwise the heavier blow wins and the lighter attacker staggers.
+  unhurt; otherwise the heavier blow wins and the lighter attacker staggers. A melee
+  hitbox also swats a projectile out of the air.
 - **Burst: Mega Evolution and Terastallization.** At half the legendary meter,
-  D-pad up Bursts once a match for ten seconds. Charizard, Lucario, Gengar, Gardevoir
-  and Gallade Mega Evolve (new sprites, a twist each); everyone else
-  Terastallizes into their type (bigger same-type hits, new defensive typing).
+  D-pad up (G or Y on the keyboard, tap the meter on touch) Bursts once a match for
+  ten seconds. Eleven Megas, each with a twist: Charizard X (Dragon fire that burns)
+  or Y (fire 1.25x), Blastoise (Mega Launcher), Venusaur (roots on the move), Lucario
+  (homing Aura Sphere), Gengar (no Shadow Sneak cooldown), Gardevoir (lifts two),
+  Gallade (no Guard Down), Metagross (Meteor Mash never misses), Garchomp (Rage
+  holds), Scizor (five Bullet Punches). Specials come back a quarter sooner. Everyone
+  else Terastallizes. On the VS screen, X picks Mega or Tera and the Tera type.
 - **Type match-ups.** Standard super effective is 1.15x (more meter, too); the Type
   Match rule uses the full chart with immunities.
 - **Support Pokémon.** With one Pokémon (no Tag Team partner), LT calls a support on
   its own cooldown: Emolga glides in and stuns, Fennekin throws a fireball, Snivy
   pulls a foe in with a vine, Chansey heals, Togekiss speeds you up. Options > Match
   picks it.
-- **Local multiplayer.** A second pad (or the number pad) joins with A on team
-  select and takes the next place: the rival in VS, an ally in 2v2 and Raid, a
-  rival in the party modes. Up to four pads.
+- **Local multiplayer.** A second pad joins with A on team select (a second keyboard
+  player with Numpad 1: arrows and the number pad) and takes the next place: the
+  rival in VS, an ally in 2v2 and Raid, a rival in the party modes. Up to four
+  players, each with its own colour on the cursor and over its fighter. Any seat's
+  Start pauses for everyone, and B on that pad drops the player to a CPU. Hold Back
+  in a party mode for the scoreboard.
 - **Rules and mutators.** Time limit with sudden death, ring outs, hazards on or
   off, Tournament and Party presets, and eleven mutators (Giant, Tiny, Fast, Slow,
   Mirror, Sudden Death, Metal, Fog, Cooldown Chaos, Bouncy, Invisible).
 - **Daily Challenge.** One seed a day: a fixed fighter, stage, two mutators and
-  three rivals; a score, a 30-day calendar, a share code and titles.
+  three rivals; a score, a 30-day calendar, a 6-character share code and titles.
+  On the results, Compare code takes a friend's code and shows their day and score
+  against yours.
 - **Poké Ball.** 2v2 (or 1v1) football with knockback: first to two goals, golden
   goal at time. Also online for two or four friends.
 - **Snorlax Launch.** Ten seconds to pile damage on a sleeping Snorlax, then Smash it
@@ -89,7 +107,9 @@ controller is used.
   Dialga's time stop, Darkrai's sleep pools, Ho-Oh's heal ring (stand on it to stop
   it), Giratina hunting from below. Wild Pokémon join in phases two and three. Four
   minutes; K.O.s come back after 8 s while an ally stands. The arena is the boss's
-  own world. A clear earns a title, a best time, a 1 in 8 shiny roll and that world
+  own world with its own floor (Zekrom's wet basalt, Groudon's magma cracks, Dialga's
+  clock, Miraidon's neon road and so on), and each boss strikes in its own look:
+  Groudon's blade rings and magma geysers, Zekrom's thunder pillar, Rayquaza's dive. A clear earns a title, a best time, a 1 in 8 shiny roll and that world
   as a VS-screen backdrop.
 
 **Toxtricity and Gallade.** Two new fighters, each built round one idea with a payoff
