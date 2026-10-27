@@ -6072,7 +6072,7 @@
       volcarona: 0.58,
       milotic: 0.6,
       inteleon: 0.5,
-      zoroark: 0.95,
+      zoroark: 0.85,
       // Roster 4: a crowd keeps waking Gengar's sleepers and feeding it; Pikachu
       // picks off the weakened.
       pikachu: 0.95,
@@ -6084,7 +6084,7 @@
       lurantis: 1.15,
       ceruledge: 1.35,
       // Shield Forme and King's Shield shine in a crowd.
-      aegislash: 0.74,
+      aegislash: 0.65,
       gardevoir: 0.75,
       garchomp: 0.88,
       froslass: 0.69,
