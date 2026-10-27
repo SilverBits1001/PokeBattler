@@ -6304,10 +6304,10 @@
       t: 600,
       wind: 180,
       intro: 20,
-      // Set by the plan's balance test (2.3): Burst-only against
-      // legendary-only CPUs wins 0.49 over 114 games (0.22 at 1.25x).
-      mega: { out: 2.1, taken: 0.5, speed: 1.2 },
-      tera: { out: 2.05, stab: 1.35, taken: 0.55 },
+      // The plan's numbers (2.3): Mega 1.25x damage, 1.1x speed, 0.9x taken;
+      // Tera 1.2x damage and 1.35x on its own type.
+      mega: { out: 1.25, taken: 0.9, speed: 1.1 },
+      tera: { out: 1.2, stab: 1.35, taken: 1 },
     },
     // Mega forms (sprite key) and each one's twist.
     // Mega Evolutions: [SpriteCollab Mega sheet or null, the change, and for
