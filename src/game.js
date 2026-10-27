@@ -8495,16 +8495,17 @@
           "guard",
           "smash",
           "legend",
+          "grab",
+          "burst",
         ];
         for (let v of r)
           v !== "smash" && t.pressed.has(v) && (e.buf[v] = A.bufferTicks + 1);
-        // With no partner to call, the assist button calls the legendary.
-        e.slots.length === 1 &&
-          t.pressed.has("assist") &&
-          (e.buf.legend = A.bufferTicks + 1);
+        // Online quick phrases: a speech bubble, nothing else.
+        for (let v of ["phraseL", "phraseR"])
+          t.pressed.has(v) && this.emit({ type: "phrase", who: e, which: v });
         let o = Math.hypot(t.ax, t.ay);
         e.rsHeld = o > 0.6;
-        let l = t.held.has("lock") && this.targetsFor(e.team).length > 1;
+        let l = this.lockHeld(e, t) && this.targetsFor(e.team).length > 1;
         e.rsHeld &&
           !e.rsPrev &&
           !l &&
@@ -9106,8 +9107,14 @@
           (e.sqy = 1.5),
           this.emit({ type: "lifeBack", who: e, lives: e.lives, x: e.x, y: e.y });
       }
+      // Lock: Shift on the keyboard, or LB when there is no partner to switch to.
+      lockHeld(e, t) {
+        return (
+          t.held.has("lock") || (t.held.has("lbLock") && e.slots.length < 2)
+        );
+      }
       updateLock(e, t) {
-        let s = t.held.has("lock"),
+        let s = this.lockHeld(e, t),
           i = this.targetsFor(e.team);
         if (!s) {
           e.lock &&
@@ -20410,6 +20417,10 @@
       KeyO: ["guard"],
       KeyF: ["guard"],
       KeyT: ["taunt"],
+      KeyU: ["grab"],
+      KeyG: ["burst"],
+      Digit1: ["phraseL"],
+      Digit2: ["phraseR"],
       Backspace: ["back"],
       Enter: ["start", "confirm"],
       Escape: ["start", "back"],
@@ -20444,6 +20455,15 @@
       addEventListener("keyup", (a) => kt.delete(a.code)),
       addEventListener("blur", () => kt.clear());
   }
+  // In a fight the D-pad is Burst (up), Taunt (down) and the online quick
+  // phrases (left, right); everywhere else it moves the cursor. The main loop
+  // sets this before reading input.
+  var padFight = !1,
+    // LT + RT together call the legendary. LT alone (assist / support) waits
+    // CHORD ticks for RT so the pair is never read as an assist first; RT
+    // (guard) is never delayed.
+    CHORD = 5,
+    chordState = new Map();
   function na(a) {
     let e = (y) => !!a.buttons[y]?.pressed,
       t = new Set(),
@@ -20456,27 +20476,62 @@
       f && (t.add("dodge"), t.add("back")),
       u && t.add("special1"),
       h && t.add("special2"),
-      e(4) && t.add("switch"),
-      e(6) && t.add("assist"),
-      e(10) && t.add("legend"),
-      e(11) && t.add("taunt"),
-      e(5) && t.add("lock"),
-      (e(7) || (a.buttons[7]?.value ?? 0) > 0.35) && t.add("guard"),
-      e(9) && t.add("start"),
-      e(8) && t.add("select"),
-      e(12) && t.add("up"),
-      e(13) && t.add("down"),
-      e(14) && t.add("left"),
-      e(15) && t.add("right");
+      // LB: switch partner in Tag Team, lock target otherwise (the engine
+      // picks); RB: grab.
+      e(4) && (t.add("switch"), t.add("lbLock")),
+      e(5) && t.add("grab");
+    let lt = e(6) || (a.buttons[6]?.value ?? 0) > 0.35,
+      rt = e(7) || (a.buttons[7]?.value ?? 0) > 0.35;
+    rt && t.add("guard"), lt && t.add("ltHeld");
+    e(9) && t.add("start"), e(8) && t.add("select");
+    padFight
+      ? (e(12) && t.add("burst"),
+        e(13) && t.add("taunt"),
+        e(14) && t.add("phraseL"),
+        e(15) && t.add("phraseR"))
+      : (e(12) && t.add("up"),
+        e(13) && t.add("down"),
+        e(14) && t.add("left"),
+        e(15) && t.add("right"));
     let c = a.axes[9];
     if (a.mapping !== "standard" && c !== void 0 && c >= -1.01 && c <= 1.01) {
       let y = Math.round((c + 1) * 3.5);
-      [7, 0, 1].includes(y) && t.add("up"),
-        [1, 2, 3].includes(y) && t.add("right"),
-        [3, 4, 5].includes(y) && t.add("down"),
-        [5, 6, 7].includes(y) && t.add("left");
+      padFight
+        ? ([7, 0, 1].includes(y) && t.add("burst"),
+          [3, 4, 5].includes(y) && t.add("taunt"))
+        : ([7, 0, 1].includes(y) && t.add("up"),
+          [1, 2, 3].includes(y) && t.add("right"),
+          [3, 4, 5].includes(y) && t.add("down"),
+          [5, 6, 7].includes(y) && t.add("left"));
     }
     return t;
+  }
+  // The LT / RT chord, once per tick per pad: turns raw held triggers into
+  // "assist" (LT alone, CHORD ticks late) or "legend" + "assist" (both; the
+  // engine prefers the legendary and falls back to the assist when the meter
+  // is not full). `pressed` gets the result; `held` keeps "guard".
+  function chordTick(key, held, pressed) {
+    let c = chordState.get(key);
+    c ||
+      chordState.set(key, (c = { lt: !1, rt: !1, wait: 0, done: !1, leg: !1 }));
+    let lt = held.has("ltHeld"),
+      rt = held.has("guard"),
+      ltDown = lt && !c.lt,
+      rtDown = rt && !c.rt;
+    ltDown && ((c.wait = CHORD), (c.done = !1)),
+      lt && rt && (ltDown || rtDown) && !c.done
+        ? (pressed.add("legend"),
+          pressed.add("assist"),
+          (c.done = c.leg = !0),
+          (c.wait = 0))
+        : c.wait > 0 &&
+          (--c.wait === 0 || !lt) &&
+          !c.done &&
+          (pressed.add("assist"), (c.done = !0));
+    // Both held after a chord: the legendary's aim is held too (hold to aim,
+    // release to fire).
+    lt && rt && c.leg && held.add("legend");
+    lt || ((c.done = c.leg = !1), (c.wait = 0)), (c.lt = lt), (c.rt = rt);
   }
   function oa() {
     let a = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -20488,7 +20543,8 @@
     let a = oa();
     if (!a) return;
     let e = na(a);
-    for (let t of e) ta.has(t) || (Ue.add(t), (wt = "pad"), Dt?.());
+    for (let t of e)
+      ta.has(t) || t === "ltHeld" || (Ue.add(t), (wt = "pad"), Dt?.());
     ta = e;
   }
   function aa(a, e) {
@@ -20507,6 +20563,7 @@
       r = new Set();
     if (a) {
       for (let p of na(a)) r.add(p);
+      chordTick(a.index, r, Ue);
       ([e, t] = aa(a.axes[0] ?? 0, a.axes[1] ?? 0)),
         ([s, i] = aa(a.axes[2] ?? 0, a.axes[3] ?? 0)),
         (Math.hypot(e, t) > 0.1 || Math.hypot(s, i) > 0.1) && (wt = "pad");
@@ -33256,9 +33313,28 @@
     START: "Esc",
     RS: "Arrows",
     LS: "WASD",
+    LB: "Q",
+    RB: "U",
+    LOCK: "Shift",
+    GRAB: "U",
+    LEGEND: "R",
+    BURST: "G",
+    TAUNT: "T",
+  };
+  // On a pad, prompts use the Xbox names; the actions below have their own.
+  var PE_PAD = {
+    L1: "LB",
+    R1: "RB",
+    L2: "LT",
+    R2: "RT",
+    LOCK: "LB",
+    GRAB: "RB",
+    LEGEND: "LT+RT",
+    BURST: "D-UP",
+    TAUNT: "D-DOWN",
   };
   function peKey(a) {
-    return wt === "keys" && PE_KEYS[a] ? PE_KEYS[a] : a;
+    return wt === "keys" && PE_KEYS[a] ? PE_KEYS[a] : (PE_PAD[a] ?? a);
   }
   function Pe(a, e, t, s = 4.2, i = !1) {
     a = peKey(a);
@@ -34958,14 +35034,7 @@
         t === a.player &&
         !(t.brain?.net && !t.brain.local) &&
         e.source !== "touch"),
-        (btn =
-          e.source === "pad"
-            ? t.slots.length === 1
-              ? "L2"
-              : "L3"
-            : t.slots.length === 1
-              ? "E"
-              : "R");
+        (btn = e.source === "pad" ? "LT+RT" : "R");
       G(
         `★ ${f?.name ?? "LEGEND"} READY`,
         x + w / 2,
@@ -35135,7 +35204,7 @@
         Pe("L2", s + 51, i + b + 7, 2.6, !(t.assistCd === 0 && x)))
       : t.legend &&
         Pe(
-          e.source === "pad" ? "L2" : "E",
+          e.source === "pad" ? "LEGEND" : "R",
           s + 44,
           i + b + 7,
           3,
@@ -35177,7 +35246,7 @@
       // Touch auto-target keeps a lock all fight: the target ring is enough.
       s.lock &&
         !(touchOn() && A.touchLock) &&
-        (Pe("R1", 14, 64, 3.4),
+        (Pe("LOCK", 14, 64, 3.4),
         G("Locked on", 22, 66.5, 7, s.kit.color, {
           weight: 700,
           italic: !0,
@@ -35232,7 +35301,7 @@
     }
     s.lock &&
       !(touchOn() && A.touchLock) &&
-      (Pe("R1", 14, 74, 3.4),
+      (Pe("LOCK", 14, 74, 3.4),
       G("Locked on", 22, 76.5, 7, s.kit.color, {
         weight: 700,
         italic: !0,
@@ -35940,7 +36009,7 @@
       ];
     t.legend &&
       f.push([
-        r ? (o ? "L2" : "L3") : o ? "E" : "R",
+        r ? "LEGEND" : "R",
         LG_INFO[t.legend]?.name ? tc(LG_INFO[t.legend].name) : "Legend",
         Math.min(1, t.lgMeter / 100),
         t.lgMeter >= 100 ? "" : `${Math.floor(t.lgMeter)}%`,
@@ -36065,10 +36134,10 @@
               ["RS", "Smash"],
               ["B", s],
               ["R2", "Guard"],
+              ["GRAB", "Grab"],
               ["X", tt(t.xName)],
               ["Y", tt(t.yName)],
-              ["R1", "Lock"],
-              ["L1", "Switch"],
+              ["L1", a.player.slots.length > 1 ? "Switch" : "Lock"],
               ["L2", "Assist"],
             ]
           : [
@@ -36076,6 +36145,7 @@
               ["Arrows", "Smash"],
               ["K", s],
               ["O", "Guard"],
+              ["U", "Grab"],
               ["L", tt(t.xName)],
               ["I", tt(t.yName)],
               ["Shift", "Lock"],
@@ -40742,26 +40812,33 @@
   }
   function fs(a, e, t) {
     let s = [
-      ["L-STICK", "Move"],
+      ["LS", "Move"],
       ["A", "Attack. The combo continues only if hits land"],
-      ["R-STICK", "Smash attack: flick to fire, hold to charge"],
+      ["RS", "Smash attack: flick to fire, hold to charge"],
       ["B", "Dodge. Press it as you land from a launch to tech"],
-      ["R2", "Guard covers your front. Raise it just before a hit to parry"],
       ["X", "Special 1"],
       ["Y", "Special 2"],
-      ["R1", "Hold to lock on (with R-stick: pick a target)"],
-      ["L1", "Switch to your partner"],
-      ["L2", "Call your partner as an assist"],
+      ["R2", "Guard covers your front. Raise it just before a hit to parry"],
+      ["GRAB", "Grab: beats guard; hold a direction to aim the throw"],
+      ["L1", "Lock on (Tag Team: switch to your partner)"],
+      ["L2", "Call your partner (Tag Team) or your support"],
+      ["LEGEND", "Call your legendary when READY; hold to aim, release"],
+      ["BURST", "Burst: Mega Evolve or Terastallize (half the meter)"],
+      ["TAUNT", "Taunt. Left / right: quick phrases online"],
       ["START", "Pause"],
     ];
-    s.forEach(([i, r], o) => {
-      let l = e + 16 + o * 15;
-      Pe(i, a + 36, l, 3.8), G(r, a + 58, l + 2.6, 7.4, "#d9d4f2");
-    }),
+    // The pad's buttons, whatever was used last; the keys are in the line below.
+    let w0 = wt;
+    (wt = "pad"),
+      s.forEach(([i, r], o) => {
+        let l = e + 14 + o * 12.2;
+        Pe(i, a + 40, l, 3.4), G(r, a + 66, l + 2.4, 6.8, "#d9d4f2");
+      }),
+      (wt = w0),
       G(
-        "Keyboard: WASD move, J attack, K dodge, L and I specials, arrows Smash, O guard, Shift lock, Q switch, E assist, Tab arena (team select)",
+        "Keys: WASD move · J attack · K dodge · L / I specials · arrows Smash · O guard · U grab · Shift lock · Q switch · E assist · R legend · G Burst · T taunt",
         a + t / 2,
-        e + 16 + s.length * 15 + 3,
+        e + 14 + s.length * 12.2 + 2,
         5.8,
         g.dim,
         { align: "center" },
@@ -42737,7 +42814,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 39,
+  var NETV = 40,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -42754,6 +42831,10 @@
         "guard",
         "legend",
         "taunt",
+        "grab",
+        "burst",
+        "phraseL",
+        "phraseR",
       ],
       held: [
         "attack",
@@ -42764,6 +42845,7 @@
         "special2",
         "legend",
         "assist",
+        "lbLock",
       ],
     },
     // Settings that only change how this screen looks or sounds; everything
@@ -42808,7 +42890,7 @@
       m: null,
       sent: "",
     };
-  // One tick of input as 7 characters: three of button bits, then the four
+  // One tick of input as 8 characters: four of button bits, then the four
   // stick axes quantised to 63 steps. Both sides simulate the decoded value.
   function netEnc(a) {
     let e = 0;
@@ -42821,6 +42903,7 @@
       B64[e & 63] +
       B64[(e >> 6) & 63] +
       B64[(e >> 12) & 63] +
+      B64[(e >> 18) & 63] +
       t(a.mx) +
       t(a.my) +
       t(a.ax) +
@@ -42831,7 +42914,8 @@
     let e =
         B64.indexOf(a[0]) |
         (B64.indexOf(a[1]) << 6) |
-        (B64.indexOf(a[2]) << 12),
+        (B64.indexOf(a[2]) << 12) |
+        (B64.indexOf(a[3]) << 18),
       t = (r) => (B64.indexOf(a[r]) - 32) / 31,
       s = new Set(),
       i = new Set();
@@ -42839,10 +42923,10 @@
       NET_BUTTONS.held.forEach(
         (r, o) => e & (1 << (o + NET_BUTTONS.pressed.length)) && i.add(r),
       );
-    let r = t(3),
-      o = t(4),
-      l = t(5),
-      f = t(6);
+    let r = t(4),
+      o = t(5),
+      l = t(6),
+      f = t(7);
     return {
       mx: r,
       my: o,
@@ -42854,7 +42938,9 @@
       source: "keys",
     };
   }
-  var NET_IDLE = "AAAgggg";
+  var NET_IDLE = "AAAAgggg",
+    // Characters per tick of input (see netEnc).
+    NET_W = NET_IDLE.length;
   function netShort(a, e = 12) {
     a = String(a ?? "")
       .replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁯]/g, "")
@@ -45273,6 +45359,7 @@
       R("sp2", "Y", ["special2"], 398, 192, 16),
       R("dodge", "B", ["dodge", "back"], 462, 178, 14),
       R("guard", "GUARD", ["guard"], 436, 152, 12),
+      R("grab", "GRAB", ["grab"], 470, 208, 10),
       ...(e.player.legend
         ? [R("legend", "LEGEND", ["legend"], 466, 132, 11)]
         : []),
@@ -45862,6 +45949,13 @@
     }
     // ---- Main menu ----
     function toMenu() {
+      // Once: the controller layout changed (grab, legendary chord, D-pad).
+      try {
+        localStorage.getItem("pb-controls-v2") ||
+          (localStorage.setItem("pb-controls-v2", "1"),
+          (s.toast = "New controls: RB grab · LT+RT legendary · D-pad Burst / Taunt"),
+          (s.toastT = 420));
+      } catch {}
       (s.screen = "menu"),
         (s.paused = !1),
         (s.menuT = 0),
@@ -45903,7 +45997,7 @@
     function menuInput(n) {
       if (s.menuOpts) {
         n.pressed.has("switch") && optTabStep(-1),
-          n.pressed.has("lock") && optTabStep(1);
+          (n.pressed.has("lock") || n.pressed.has("grab")) && optTabStep(1);
         w(n, (R) => {
           R === "up" && N(-1),
             R === "down" && N(1),
@@ -46274,8 +46368,8 @@
           D.inS[k] &&
           R.e === D.epoch &&
           typeof R.d === "string" &&
-          R.d.length % 7 === 0 &&
-          R.d.length <= 7 * 400 &&
+          R.d.length % NET_W === 0 &&
+          R.d.length <= NET_W * 400 &&
           Number.isInteger(R.b) &&
           R.b >= 0 &&
           /^[A-Za-z0-9_-]*$/.test(R.d)
@@ -46289,11 +46383,11 @@
               R.dl >= 0 &&
               R.dl < 60 &&
               (D.dlS[k] = R.dl);
-          let T = R.d.length / 7,
+          let T = R.d.length / NET_W,
             I = D.inS[k];
           for (let Z = 0; Z < T; Z++) {
             let ne = R.b + Z;
-            I[ne] === void 0 && (I[ne] = R.d.slice(Z * 7, Z * 7 + 7));
+            I[ne] === void 0 && (I[ne] = R.d.slice(Z * NET_W, Z * NET_W + NET_W));
           }
           for (; I[D.ackS[k] + 1] !== void 0; ) D.ackS[k]++;
         }
@@ -47100,7 +47194,7 @@
         D = Vx[s.tab].id;
       D === "tuning" &&
         (n.pressed.has("switch") && optTabStep(-1),
-        n.pressed.has("lock") && optTabStep(1));
+        (n.pressed.has("lock") || n.pressed.has("grab")) && optTabStep(1));
       if (
         (w(n, (R) => {
           if (!s.inContent) {
@@ -48190,6 +48284,22 @@
           break;
         case "orb":
           S.orb(), t.motes(n.x, n.y, 10, 8, L.cool);
+          break;
+        case "phrase":
+          // Online only: a quick word over your head.
+          NET.m &&
+            (S.ui(!1),
+            t.popups.push({
+              x: n.who.x,
+              y: n.who.y - 46,
+              text: n.which === "phraseL" ? "GG!" : "NICE ONE!",
+              life: 90,
+              max: 90,
+              color: "#ffffff",
+              big: !0,
+              icon: null,
+              vy: -0.25,
+            }));
           break;
         case "taunt": {
           let w = n.who,
@@ -51377,7 +51487,14 @@
       st = performance.now();
     function it(n) {
       let D = Math.min(100, n - st);
-      (st = n), la(), netFrame();
+      (padFight =
+        s.screen === "play" &&
+        !s.paused &&
+        !s.netMenu &&
+        e.match.phase === "fight"),
+        (st = n),
+        la(),
+        netFrame();
       let R = NET.m ? 1 : ([1, 0.5, 0.25][A.slowmo] ?? 1),
         W = s.screen === "play" && !s.paused && e.match.phase !== "results";
       // Never carry more than a few steps of backlog: on a slow frame the game
