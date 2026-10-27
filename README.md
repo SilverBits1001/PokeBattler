@@ -67,8 +67,9 @@ controller is used.
 - **Type match-ups.** Standard super effective is 1.15x (more meter, too); the Type
   Match rule uses the full chart with immunities.
 - **Support Pokémon.** With one Pokémon (no Tag Team partner), LT calls a support on
-  its own cooldown: Charizard or Blastoise attack, Snorlax or Magnezone disrupt,
-  Milotic heals. Options > Match picks it.
+  its own cooldown: Emolga glides in and stuns, Fennekin throws a fireball, Snivy
+  pulls a foe in with a vine, Chansey heals, Togekiss speeds you up. Options > Match
+  picks it.
 - **Local multiplayer.** A second pad (or the number pad) joins with A on team
   select and takes the next place: the rival in VS, an ally in 2v2 and Raid, a
   rival in the party modes. Up to four pads.
@@ -87,8 +88,9 @@ controller is used.
   on the floor: lanes, bolt marks, tracking pillars, shock rings to roll through,
   Dialga's time stop, Darkrai's sleep pools, Ho-Oh's heal ring (stand on it to stop
   it), Giratina hunting from below. Wild Pokémon join in phases two and three. Four
-  minutes; K.O.s come back after 8 s while an ally stands. A clear earns a title, a
-  best time and a 1 in 8 shiny roll.
+  minutes; K.O.s come back after 8 s while an ally stands. The arena is the boss's
+  own world. A clear earns a title, a best time, a 1 in 8 shiny roll and that world
+  as a VS-screen backdrop.
 
 **Toxtricity and Gallade.** Two new fighters, each built round one idea with a payoff
 that costs something (see [docs/plan-roster-5.md](docs/plan-roster-5.md)):

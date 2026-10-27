@@ -59,6 +59,8 @@
       burstPref: 0,
       // Raid boss: 0 Random, else 1 + an index into LEGENDS.
       raidBoss: 0,
+      // VS screen backdrop: 0 the usual one, else 1 + a cleared Raid boss.
+      vsScene: 0,
       // Support Pokemon for single-Pokemon battles (index into SUPPORTS).
       support: 1,
       mutGiant: 0,
@@ -265,7 +267,13 @@
       kind: "choice",
       key: "support",
       label: "Support (LT)",
-      options: ["Off", "Charizard: Flamethrower", "Blastoise: Hydro Pump", "Snorlax: Body Slam quake", "Magnezone: Lock-On", "Milotic: Aqua Ring heal"],
+      options: ["Off", "Emolga: glide stun", "Fennekin: fireball", "Snivy: vine pull", "Chansey: heal", "Togekiss: speed boost"],
+    },
+    {
+      kind: "choice",
+      key: "vsScene",
+      label: "VS backdrop (clear its Raid)",
+      options: ["Default", "Zekrom", "Darkrai", "Deoxys", "Groudon", "Rayquaza", "Ho-Oh", "Dialga", "Palkia", "Giratina", "Koraidon", "Miraidon"],
     },
     {
       kind: "choice",
@@ -6405,11 +6413,19 @@
       ],
       key: "pocketbrawl-launch-v1",
     },
-    // Support slot: with one Pokemon (no tag partner), LT calls a support on
-    // its own cooldown. Attack (Charizard, Blastoise), disrupt (Snorlax,
-    // Magnezone) or enhance (Milotic's Aqua Ring heals you).
-    SUPPORTS = ["", "charizard", "blastoise", "snorlax", "magnezone", "milotic"],
-    SUPPORT = { cd: 900, heal: 0.1 },
+    // Support slot (Pokken-style): with one Pokemon (no tag partner), LT
+    // calls a support on its own cooldown. Attack: Emolga glides in and
+    // stuns, Fennekin throws a fireball. Disrupt: Snivy's vine pulls a foe in.
+    // Enhance: Chansey heals you, Togekiss speeds you up.
+    SUPPORTS = ["", "emolga", "fennekin", "snivy", "chansey", "togekiss"],
+    SUPPORT = { cd: 900, heal: 0.12, stun: 45, fireball: 14, pull: 150, haste: 300 },
+    SUPPORT_KITS = {
+      emolga: { id: "emolga", name: "Emolga", color: "#f8d030", type: "electric", size: 0.9, role: "Attack: glides in and stuns" },
+      fennekin: { id: "fennekin", name: "Fennekin", color: "#ff7a3d", type: "fire", size: 0.9, role: "Attack: a fireball that burns" },
+      snivy: { id: "snivy", name: "Snivy", color: "#5ac85a", type: "grass", size: 0.9, role: "Disrupt: a vine pulls a foe in" },
+      chansey: { id: "chansey", name: "Chansey", color: "#ffb0c8", type: "normal", size: 1, role: "Enhance: heals you" },
+      togekiss: { id: "togekiss", name: "Togekiss", color: "#f4f0ff", type: "fairy", size: 1, role: "Enhance: a burst of speed" },
+    },
     // Clashes: melee on the same beat. Within 15% weight both bounce off.
     CLASH = { even: 1.15, push: 3.2, stop: 8, stun: 10 },
     // Raid: a party of four (CPU allies fill the empty places) against a giant
@@ -10967,7 +10983,7 @@
         let s = e.assistSlot(),
           i =
             s === null && e.support
-              ? { kit: xe[e.support], mon: this.mons[e.support] }
+              ? { kit: SUPPORT_KITS[e.support], mon: this.mons[e.support] }
               : e.slots[s],
           r = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
           o = r ? Math.atan2(r.y - e.y, r.x - e.x) : t,
@@ -13982,6 +13998,67 @@
             break;
         }
       }
+      // The five support Pokemon.
+      supportTick(e, t, s) {
+        let k = e.kit.id,
+          w = e.summoner,
+          col = e.kit.color;
+        if (k === "emolga") {
+          // Glides at the foe; the first one it touches is stunned.
+          e.t <= 12 && s && (e.dir = Math.atan2(s.y - e.y, s.x - e.x));
+          if (e.t < 10) e.animName = "Charge";
+          else if (e.t <= 32) {
+            (e.animName = "Walk"),
+              (e.x = me(e.x + Math.cos(e.dir) * 5.5, B.x0 + 8, B.x1 - 8)),
+              (e.y = me(e.y + Math.sin(e.dir) * 5.5, B.y0 + 6, B.y1 - 4));
+            if (!e.hitDone)
+              for (let v of this.victimsFor(t))
+                if (Math.hypot(v.x - e.x, v.y - e.y) < e.r + (v.hurtR ?? 10) + 6) {
+                  (e.hitDone = !0),
+                    this.applyHit(v, e, 8, 1.5, Math.cos(e.dir), Math.sin(e.dir), !1, 6, SUPPORT.stun, col, v.x, v.y, !1, !0, "support:emolga"),
+                    this.emit({ type: "supportHit", kit: k, x: v.x, y: v.y });
+                  break;
+                }
+          }
+        } else if (k === "fennekin") {
+          (e.animName = e.t >= 10 && e.t < 22 ? "Shoot" : "Idle"),
+            e.t === 12 &&
+              (e.fb = { x: e.x + Math.cos(e.dir) * 10, y: e.y + Math.sin(e.dir) * 10, vx: Math.cos(e.dir) * 5, vy: Math.sin(e.dir) * 5, life: 40 });
+          let f = e.fb;
+          if (f) {
+            (f.x += f.vx), (f.y += f.vy);
+            let hit = this.victimsFor(t).find((v) => Math.hypot(v.x - f.x, v.y - f.y) < (v.hurtR ?? 10) + 8);
+            hit &&
+              (this.applyHit(hit, e, SUPPORT.fireball, 5, f.vx / 5, f.vy / 5, !0, 8, 20, col, hit.x, hit.y, !1, !0, "support:fennekin"),
+              hit.kind === "player" && this.burn(hit));
+            (hit || --f.life <= 0 || f.x < B.x0 || f.x > B.x1 || f.y < B.y0 || f.y > B.y1) &&
+              (this.emit({ type: "supportBoom", kit: k, x: f.x, y: f.y }), (e.fb = null));
+          }
+        } else if (k === "snivy") {
+          // Vine Whip: the target is yanked toward Snivy.
+          e.animName = e.t >= 12 && e.t < 26 ? "Attack" : "Idle";
+          if (e.t === 14 && s && Math.hypot(s.x - e.x, s.y - e.y) < SUPPORT.pull) {
+            let dx = e.x - s.x,
+              dy = e.y - s.y,
+              d = Math.hypot(dx, dy) || 1;
+            (e.vine = { x: s.x, y: s.y }),
+              this.applyHit(s, e, 6, 6.5, dx / d, dy / d, !1, 6, 22, col, s.x, s.y, !1, !0, "support:snivy"),
+              this.emit({ type: "supportHit", kit: k, x: s.x, y: s.y });
+          }
+          e.vine && e.t > 26 && (e.vine = null);
+        } else if (k === "chansey") {
+          (e.animName = e.t < 20 ? "Charge" : "Idle"),
+            e.t === 20 &&
+              w.state !== "faint" &&
+              ((w.slot.hp = Math.min(w.slot.maxHp, w.slot.hp + Math.round(w.slot.maxHp * SUPPORT.heal))),
+              this.emit({ type: "heal", x: w.x, y: w.y, amount: Math.round(w.slot.maxHp * SUPPORT.heal), who: w }));
+        } else if (k === "togekiss") {
+          (e.animName = e.t < 16 ? "Charge" : "Idle"),
+            e.t === 16 &&
+              w.state !== "faint" &&
+              ((w.scarfT = Math.max(w.scarfT ?? 0, SUPPORT.haste)), this.emit({ type: "supportBuff", x: w.x, y: w.y, who: w }));
+        }
+      }
       updateAssist(e) {
         e.t++,
           (e.scale =
@@ -14164,14 +14241,8 @@
                 : Math.floor(e.t / 3) % 8),
             (e.t === 14 || e.t === 20) &&
               this.launchDreepy(e, t, null, e.t === 14 ? 0 : 1, !0, s);
-        } else if (e.support && e.kit.id === "milotic") {
-          (e.animName = e.t < 20 ? "Charge" : "Idle"), (e.animFrame = Math.floor(e.t / 3) % 4);
-          let w = e.summoner;
-          e.t === 20 &&
-            w.state !== "faint" &&
-            ((w.slot.hp = Math.min(w.slot.maxHp, w.slot.hp + Math.round(w.slot.maxHp * SUPPORT.heal))),
-            this.emit({ type: "heal", x: w.x, y: w.y, amount: Math.round(w.slot.maxHp * SUPPORT.heal), who: w }));
-        } else e.kit.ex && this.exAssist(e, t, s);
+        } else if (e.support && SUPPORT_KITS[e.kit.id]) this.supportTick(e, t, s);
+        else e.kit.ex && this.exAssist(e, t, s);
         e.t === 52 && this.emit({ type: "assistOut", who: e }),
           e.t >= 60 && (e.done = !0);
       }
@@ -27859,7 +27930,55 @@
   // Raid: the boss's own scene faint behind the arena, its telegraphs on the
   // floor (a lane, a ring, a circle that fills to the edge, white just
   // before it lands), Darkrai's pools and the wild Pokemon.
+  // A legendary's world, in arena coordinates: the Raid arena, and the VS
+  // backdrop a clear unlocks.
+  function raidScene(c, kind, form, t) {
+      let fk = { kind: kind, form: form, id: 7, t, caught: [], owner: { x: Se, y: Te }, cx: Se, cy: Te },
+        gr = c.createLinearGradient(0, 0, 0, _),
+        cols =
+          kind === "zekrom"
+            ? ["#02040c", "#0a1636", "#04081a"]
+            : kind === "darkrai"
+              ? ["#04020a", "#180a2e", "#08030f"]
+              : kind === "groudon"
+                ? ["#1a0500", "#5a1204", "#200600"]
+                : kind === "rayquaza"
+                  ? ["#000a12", "#06323a", "#021418"]
+                  : ["#000003", "#0e0420", "#02010a"];
+      gr.addColorStop(0, cols[0]), gr.addColorStop(0.55, cols[1]), gr.addColorStop(1, cols[2]);
+      (c.globalAlpha = 1), (c.fillStyle = gr), c.fillRect(-60, -60, Y + 120, _ + 120);
+      if (!exLgSky(c, fk, 1, rt(7), t)) {
+        // Storm, night or space: rain for Zekrom, stars for the others.
+        let rr = rt(11);
+        (c.strokeStyle = kind === "zekrom" ? "#7fa8d8" : "#ffffff"), (c.fillStyle = "#ffffff");
+        for (let u = 0; u < 90; u++) {
+          let h = ((rr() * (Y + 200) + (kind === "zekrom" ? t * 3 : 0)) % (Y + 200)) - 100,
+            q = ((rr() * (_ + 120) + (kind === "zekrom" ? t * 11 + u * 3 : 0)) % (_ + 120)) - 60;
+          (c.globalAlpha = 0.2 + rr() * 0.3),
+            kind === "zekrom" ? (c.beginPath(), c.moveTo(h, q), c.lineTo(h - 3, q + 10), c.stroke()) : c.fillRect(h, q, 1, 1);
+        }
+        kind === "zekrom" && t % 97 < 3 && ((c.globalAlpha = 0.25), (c.fillStyle = "#9fd8ff"), c.fillRect(-60, -60, Y + 120, _ + 120));
+      }
+  }
   var RAID_CV = null;
+  // Bosses this device has cleared (a VS backdrop each).
+  function raidCleared() {
+    try {
+      return JSON.parse(localStorage.getItem(RAID.key))?.cleared ?? [];
+    } catch {
+      return [];
+    }
+  }
+  // The VS screen behind the face-off: a cleared boss's world, if chosen.
+  function vsSceneBg(t) {
+    let k = LEGENDS[(A.vsScene | 0) - 1];
+    if (!k || !raidCleared().includes(k)) return;
+    let cv = (RAID_CV ??= document.createElement("canvas"));
+    (cv.width !== Y * 2 || cv.height !== _ * 2) && ((cv.width = Y * 2), (cv.height = _ * 2));
+    let c = cv.getContext("2d");
+    c.setTransform(2, 0, 0, 2, 0, 0), c.clearRect(-60, -60, Y + 120, _ + 120), c.save(), raidScene(c, k, null, t), c.restore();
+    d.save(), (d.globalAlpha = 0.8), d.drawImage(cv, 0, 0, m(H), m(oe)), d.restore();
+  }
   function raidEll(a, x, y, r) {
     a.beginPath(), a.ellipse(x, y, Math.max(0.5, r), Math.max(0.5, r * 0.87), 0, 0, Math.PI * 2);
   }
@@ -27868,39 +27987,21 @@
       t = e.tick,
       b = R.boss,
       rgb = LG_INFO[R.kind]?.rgb ?? "255,255,255";
-    try {
-      let cv = (RAID_CV ??= document.createElement("canvas"));
-      (cv.width !== a.canvas.width || cv.height !== a.canvas.height) && ((cv.width = a.canvas.width), (cv.height = a.canvas.height));
-      let c = cv.getContext("2d");
-      c.setTransform(1, 0, 0, 1, 0, 0), c.clearRect(0, 0, cv.width, cv.height), c.setTransform(a.getTransform());
-      let fk = { kind: R.kind, form: b.form, id: 7, t, caught: [], owner: b, cx: Se, cy: Te },
-        gr = c.createLinearGradient(0, 0, 0, _),
-        cols =
-          R.kind === "zekrom"
-            ? ["#02040c", "#0a1636", "#04081a"]
-            : R.kind === "darkrai"
-              ? ["#04020a", "#180a2e", "#08030f"]
-              : R.kind === "groudon"
-                ? ["#1a0500", "#5a1204", "#200600"]
-                : R.kind === "rayquaza"
-                  ? ["#000a12", "#06323a", "#021418"]
-                  : ["#000003", "#0e0420", "#02010a"];
-      gr.addColorStop(0, cols[0]), gr.addColorStop(0.55, cols[1]), gr.addColorStop(1, cols[2]);
-      (c.globalAlpha = 1), (c.fillStyle = gr), c.fillRect(-60, -60, Y + 120, _ + 120);
-      if (!exLgSky(c, fk, 1, rt(7), t)) {
-        // Storm, night or space: rain for Zekrom, stars for the others.
-        let rr = rt(11);
-        (c.strokeStyle = R.kind === "zekrom" ? "#7fa8d8" : "#ffffff"), (c.fillStyle = "#ffffff");
-        for (let u = 0; u < 90; u++) {
-          let h = ((rr() * (Y + 200) + (R.kind === "zekrom" ? t * 3 : 0)) % (Y + 200)) - 100,
-            q = ((rr() * (_ + 120) + (R.kind === "zekrom" ? t * 11 + u * 3 : 0)) % (_ + 120)) - 60;
-          (c.globalAlpha = 0.2 + rr() * 0.3),
-            R.kind === "zekrom" ? (c.beginPath(), c.moveTo(h, q), c.lineTo(h - 3, q + 10), c.stroke()) : c.fillRect(h, q, 1, 1);
-        }
-        R.kind === "zekrom" && t % 97 < 3 && ((c.globalAlpha = 0.25), (c.fillStyle = "#9fd8ff"), c.fillRect(-60, -60, Y + 120, _ + 120));
-      }
-      a.save(), a.setTransform(1, 0, 0, 1, 0, 0), (a.globalAlpha = 0.58), a.drawImage(cv, 0, 0), a.restore();
-    } catch {}
+    a.save(), raidScene(a, R.kind, b.form, t), a.restore();
+    // The scene is the arena: a floor over it, edged in the boss's colour.
+    a.save(),
+      (a.fillStyle = "rgba(8,6,18,0.32)"),
+      a.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0),
+      (a.globalAlpha = 0.07),
+      (a.strokeStyle = "#ffffff"),
+      (a.lineWidth = 1);
+    for (let x = B.x0 + 40; x < B.x1; x += 40) a.beginPath(), a.moveTo(x, B.y0), a.lineTo(x, B.y1), a.stroke();
+    for (let y = B.y0 + 40; y < B.y1; y += 40) a.beginPath(), a.moveTo(B.x0, y), a.lineTo(B.x1, y), a.stroke();
+    (a.globalAlpha = 0.55 + 0.15 * Math.sin(t * 0.05)),
+      (a.strokeStyle = `rgb(${rgb})`),
+      (a.lineWidth = 2),
+      a.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0),
+      a.restore();
     let K = R.atk;
     if (K)
       for (let z of K.zones) {
@@ -27984,6 +28085,34 @@
           ((a.fillStyle = "#ffd166"), (a.font = "bold 10px sans-serif"), (a.textAlign = "center"), a.fillText("!", q.x, q.y - 33));
       }
       a.restore();
+    }
+  }
+  // Fennekin's fireball and Snivy's vine.
+  function supportAir(a, e) {
+    for (let q of e.assists) {
+      if (q.fb) {
+        let f = q.fb;
+        a.save(),
+          glowAt(a, f.x, f.y - 10, 16, "255,140,60", 0.7),
+          (a.fillStyle = "#ffd27a"),
+          a.beginPath(),
+          a.arc(f.x, f.y - 10, 3.5, 0, Math.PI * 2),
+          a.fill(),
+          a.restore();
+      }
+      if (q.vine) {
+        a.save(),
+          (a.strokeStyle = "#3f9a3f"),
+          (a.lineWidth = 2.5),
+          a.beginPath(),
+          a.moveTo(q.x, q.y - 8),
+          a.quadraticCurveTo((q.x + q.vine.x) / 2, (q.y + q.vine.y) / 2 - 18, q.vine.x, q.vine.y - 8),
+          a.stroke(),
+          (a.strokeStyle = "#8fe08f"),
+          (a.lineWidth = 1),
+          a.stroke(),
+          a.restore();
+      }
     }
   }
   function raidAir(a, e) {
@@ -30343,6 +30472,7 @@
     dropsAir(a, e);
     summonAir(a, e);
     e.raid && raidAir(a, e);
+    supportAir(a, e);
     exAir(a, e);
     r3Air(a, e);
     arenaAir(a, e, t);
@@ -37437,7 +37567,8 @@
           6.4,
           res.shiny ? g.gold : g.haze,
           { weight: 700 },
-        ))
+        ),
+        res.scene && G("New VS backdrop: its world (Options > Match)", $ + 18, y + 38, 6.2, g.gold, { weight: 700 }))
       : G("Dodge the marks on the floor, and stand on Ho-Oh's flame ring.", $ + 18, y + 6, 5.8, g.haze, { weight: 700 });
     d.restore();
   }
@@ -38680,8 +38811,8 @@
       ];
     o &&
       t.support &&
-      xe[t.support] &&
-      f.push([r ? "LT" : "E", tc(xe[t.support].name), ...l(t.assistCd ?? 0, SUPPORT.cd)]);
+      SUPPORT_KITS[t.support] &&
+      f.push([r ? "LT" : "E", tc(SUPPORT_KITS[t.support].name), ...l(t.assistCd ?? 0, SUPPORT.cd)]);
     t.legend &&
       f.push([
         r ? "LEGEND" : "R",
@@ -40584,6 +40715,7 @@
       let raid = A.gameMode === 14;
       raid && ((you = [a.picks[0], ...a.cpuPicks.slice(0, 3)]), (rv = [LEGENDS[A.raidBoss - 1] ?? null]));
       faceBg(t + 400),
+        vsSceneBg(t),
         readySide(
           e,
           you,
@@ -45671,7 +45803,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 44,
+  var NETV = 45,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -51587,7 +51719,8 @@
             try {
               Rc = JSON.parse(localStorage.getItem(RAID.key)) ?? {};
             } catch {}
-            (Rc.plays = (Rc.plays ?? 0) + 1), (Rc.best = Rc.best ?? {});
+            (Rc.plays = (Rc.plays ?? 0) + 1), (Rc.best = Rc.best ?? {}), (Rc.cleared = Rc.cleared ?? []);
+            R.result === "clear" && !Rc.cleared.includes(R.kind) && (Rc.cleared.push(R.kind), (res.scene = !0));
             if (R.result === "clear") {
               let T = Math.floor((RAID.time - R.left) / 60),
                 titles = dailyTitles(),
@@ -52141,6 +52274,15 @@
           break;
         case "launchHit":
           t.popup(n.x, n.y - 36, `${n.dmg}`, "#ffd166", !1);
+          break;
+        case "supportHit":
+          t.ring(n.x, n.y - 8, 4, 1.8, 10, SUPPORT_KITS[n.kit]?.color ?? "#ffffff", !0);
+          break;
+        case "supportBoom":
+          S.boom(), t.ring(n.x, n.y, 6, 2.4, 14, "#ff7a3d", !0), t.motes(n.x, n.y - 4, 12, 10, "#ffb04a", 2);
+          break;
+        case "supportBuff":
+          t.popup(n.x, n.y - 34, "SPEED UP", "#f4f0ff", !1), t.ring(n.x, n.y, 6, 2, 16, "#f4f0ff", !0);
           break;
         case "clash":
           S.boom(),

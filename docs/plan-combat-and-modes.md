@@ -354,14 +354,14 @@ All eight phases are in the game. This part records what shipped, where it diffe
 - **Burst**: five Mega Evolutions (Charizard, Lucario, Gengar, Gardevoir, Gallade), the fighters with Mega sprites available; everyone else Terastallizes. Options > Match can make everyone Terastallize.
 - **Type chart**: Standard is 1.15x super effective and 0.85x resisted (resisted hits also lose 15% of their knockback); Type Match is 1.5x, 0.5x and immune.
 - **Clashes**: `kit.weight` scales knockback taken, so heft is its inverse. Two melee blows on the same beat within 15% heft both bounce off (8 ticks of hitstop, 10 of stun, a push of about 23 units). Otherwise the lighter attacker is held for 20 ticks and the heavier blow connects. Projectile against projectile is unchanged.
-- **Support slot**: the supports are roster Pokémon whose assist works without a partner: Charizard (Flamethrower), Blastoise (Hydro Pump), Snorlax (quake), Magnezone (Lock-On) and Milotic (Aqua Ring, heals 10%). There is no art for Emolga, Fennekin or Togekiss. The cooldown is 15 s. The CPU calls its support too. Online, everyone uses the host's support choice.
+- **Support slot**: the five planned supports, with SpriteCollab sprites: Emolga glides in and stuns for 45 ticks, Fennekin throws a fireball that burns, Snivy's vine pulls a foe in from up to 150, Chansey heals 12%, and Togekiss gives 5 s of speed. The cooldown is 15 s. The CPU calls its support too. Online, everyone uses the host's support choice.
 - **Local multiplayer**: the second keyboard layout is the number pad only. In 2v2 a second pad takes your ally's place first, then the rival's.
 - **Daily Challenge**: the legendary setting follows Options.
 - **Snorlax Launch**: only a Smash launches during the ten seconds; after the bell any hit does, and if none lands within five seconds it launches on its own. Distance = (damage × 0.9 + knockback × 40) × the attacker's heft factor.
 - **Raid**:
   - The attacks are a set of telegraphed patterns themed per boss, not the summon moves cut into pieces: lane charges, bolt marks (in threes in phase 3), tracking pillars, shock rings, marked dives, rifts, Dialga's time stop, Darkrai's sleep pools, Ho-Oh's heal ring, Giratina's hunt and Miraidon's drift.
-  - The arena is the Stadium with the boss's sky painted faintly over it. There are no per-boss floors.
-  - The rewards are a title per boss, a best clear time and a 1-in-8 shiny roll; the boss scene as a VS background is not in.
+  - The arena is the boss's world (its storm, night, space, sun or city) with a lit floor over it, played on the Stadium's layout.
+  - The rewards are a title per boss, a best clear time, a 1-in-8 shiny roll and the boss's world as a VS-screen backdrop (Options > Match).
   - The boss takes no knockback and flinches every 400 damage.
   - Online, two to four friends play with no CPU allies, and the boss has 3,000 HP per player.
 
@@ -377,11 +377,13 @@ All eight phases are in the game. This part records what shipped, where it diffe
 | Poké Ball | 10 CPU 2v2 matches | About 1.4 goals a match; sides 5–5; online 1v1 and 2v2 in sync |
 | Snorlax Launch | Every fighter, CPU | 12–105 m; ranks D to S; Arcade bonus after fight 5 charges the boss fight's meter |
 | Raid | 4 Hard CPUs, 3 runs per boss | 30 of 33 cleared (91%), about 3:00; Normal CPUs 19 of 22; online 3 players in sync |
+| Raid rotation | Each boss for 4:00 against four idle fighters (kept alive) | No errors, the boss never leaves the arena, every attack in its rotation fires, wild Pokémon in phases 2 and 3 |
+| Raid script | Phase thresholds, respawn, all down, time | Phase 2 at 66%, phase 3 at 33%; back after 8 s at full health; all down fails; time up fails |
 | Clashes | CPU duels | About one a minute; heavyweights neutral (Snorlax 0.32 without, 0.34 with, 4 reps) |
-| Support | Each support, 6 CPU duels | All fire; Milotic heals 10% |
+| Support | Each support called beside a foe | Emolga stuns 50 ticks; Fennekin 22 damage and a burn; Snivy pulls; Chansey heals 12%; Togekiss 5 s of speed |
 | Mode Select | All 13 cards to a live match | Pass |
 | Online | 4-player party mashing grab, support and Burst; 2-player | 0 mismatches |
 
 Final duel round robin (Hard CPU, 2 reps, supports on), after small power changes (Greninja 1.08 → 1.03, Chandelure 1.05 → 1.0, Snorlax 0.92 → 0.97, Toxtricity 2.2 → 2.28, Inteleon 1.2 → 1.25):
-- The win-rate spread is 0.103 (it was 0.098 before clashes and supports), with 19 of 29 fighters in 0.40–0.60.
-- The top three are Chandelure 0.73, Greninja 0.70 and Dragapult 0.66; the bottom is Snorlax 0.32. All four were at the edges before this work too.
+- With the default support (Emolga), the win-rate spread is 0.097 (it was 0.098 before clashes and supports), with 21 of 29 fighters in 0.40–0.60.
+- The top is Greninja 0.73, Golurk 0.68 and Chandelure 0.66; the bottom is Snorlax 0.30. Greninja, Chandelure and Snorlax were at the edges before this work too.
