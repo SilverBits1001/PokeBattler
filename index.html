@@ -4301,7 +4301,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         i.aimHeld = !1;
         if (t === chaser) {
           (i.held = new Set([...i.held].filter((k) => k !== "lock"))), (t.lock = null);
-          let dx = gx - b.x,
+          // Off to the side of a narrow goal mouth, cut it back into the
+          // middle first rather than pinning it on the goal line.
+          let side = Math.abs(b.x - gx) < 90 && Math.abs(b.y - Te) > BALL.goalH / 2,
+            tx = side ? gx + (gx > Se ? -90 : 90) : gx,
+            dx = tx - b.x,
             dy = Te - b.y,
             d = Math.hypot(dx, dy) || 1,
             px = b.x - (dx / d) * (b.r + t.r + 4),
@@ -4309,13 +4313,27 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             far = go(px, py),
             bd = Math.hypot(b.x - t.x, b.y - t.y);
           // Lined up behind it: hit it goalwards (now and then a full Smash).
-          far < 10 &&
-            bd < b.r + t.r + 18 &&
+          // Stuck for two seconds: Smash it goalward from wherever you are.
+          // (If that Smash can't reach it, jab it, or just walk it along.)
+          if ((b.idleT ?? 0) > 120 && bd < b.r + t.r + 26) {
+            let ux = (gx - b.x) / (Math.hypot(gx - b.x, Te - b.y) || 1),
+              uy = (Te - b.y) / (Math.hypot(gx - b.x, Te - b.y) || 1),
+              ph = Math.floor(b.idleT / 90) % 3;
+            ph === 0
+              ? ((i.ax = ux), (i.ay = uy), (i.aimHeld = !0))
+              : ph === 1
+                ? ((i.mx = ux), (i.my = uy), i.pressed.add("attack"))
+                : ((i.mx = (b.x - t.x) / (bd || 1)), (i.my = (b.y - t.y) / (bd || 1)));
+            return i;
+          }
+          // Lined up: a long shot is a Smash at the goal, a short one a jab.
+          far < 12 &&
+            bd < b.r + t.r + 22 &&
             ((i.mx = dx / d),
             (i.my = dy / d),
-            this.rand() < 0.25 && d < 220
+            d > 90 && this.rand() < 0.6
               ? ((i.ax = dx / d), (i.ay = dy / d), (i.aimHeld = !0))
-              : this.rand() < 0.5 && i.pressed.add("attack"));
+              : this.rand() < 0.6 && i.pressed.add("attack"));
         } else go(ox * 0.55 + b.x * 0.45, Te * 0.5 + b.y * 0.5);
         return i;
       }
@@ -6648,15 +6666,20 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     // First to `goals`, or ahead at `time`; level at time is golden goal.
     BALL = {
       r: 14,
-      friction: 0.98,
+      friction: 0.96,
       bounce: 0.7,
-      // Velocity per point of a hit's knockback.
-      kick: 1.6,
-      maxV: 13,
-      goalH: 100,
+      // Velocity per point of a hit's knockback; shots nudge it less.
+      kick: 2.4,
+      shot: 0.6,
+      maxV: 26,
+      // Heavy: a fighter walking into it pushes it at half strength.
+      weight: 2,
+      goalH: 60,
       goals: 2,
       time: 7200,
       back: 180,
+      // After a goal: the ball waits on the spot for the whistle.
+      kickoff: 60,
     },
     MODE_NAMES = [
       "VS CPU",
@@ -8488,9 +8511,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
                 spin: 0,
                 score: [0, 0],
                 golden: 0,
+                hold: 0,
                 lastBy: null,
               }
             : null;
+        // Poké Ball: no items unless the Sudden Death mutator brings them.
+        this.ball && (this.itemT = 1e9);
         // Mutators and the time limit.
         (this.sudden = 0), (this.timeLeft = 0);
         for (let o of this.players)
@@ -8544,11 +8570,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         this.emit({ type: "launchHit", who: tg, dmg: d, total: L.dmg, x: tg.x, y: tg.y });
         // A Smash launches it; so does any hit once time is up, and any
         // hit heavy enough to knock it off the tee early.
-        (/:smash/.test(String(k)) || L.phase === "over") && this.doLaunch(t, kb);
+        // A Smash launches it, as does any hit after the bell; a heavy hit
+        // before you mean it knocks it off the tee early and the run ends short.
+        (/:smash/.test(String(k)) || L.phase === "over" || kb >= 7.5) && this.doLaunch(t, kb);
       }
       doLaunch(t, kb) {
         let L = this.launch,
-          w = t ? 0.75 + 0.35 * Math.min(2, 1 / (t.kit.weight || 1)) : 1;
+          // The kit weight factor: a heavy hitter sends it further.
+          w = t ? me(1 / (t.kit.weight || 1), 0.6, 2.2) : 1;
         (L.phase = "fly"),
           (L.kb = kb),
           (L.flyT = 0),
@@ -8968,7 +8997,17 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       // ---- Poké Ball ----
       kickBall(by, kb, dx, dy) {
         let b = this.ball,
-          v = Math.min(BALL.maxV, Math.max(2.2, kb * BALL.kick));
+          v = Math.min(BALL.maxV, Math.max(1.6, kb * BALL.kick));
+        if (b.hold > 0) return;
+        // A kick roughly goalward bends toward the goal you attack.
+        let pl = by?.kind === "assist" ? by.summoner : by;
+        if (pl?.kind === "player") {
+          let gx = pl.team === this.players[0].team ? B.x1 + 10 : B.x0 - 10,
+            ga = Math.atan2(Te - b.y, gx - b.x),
+            ka = Math.atan2(dy, dx),
+            df = Math.atan2(Math.sin(ga - ka), Math.cos(ga - ka));
+          Math.abs(df) < 0.6 && ((ka += df * 0.75), (dx = Math.cos(ka)), (dy = Math.sin(ka)));
+        }
         (b.vx = dx * v), (b.vy = dy * v), (b.lastBy = by ?? null);
         this.emit({ type: "ballHit", x: b.x, y: b.y, v });
       }
@@ -8977,6 +9016,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         let b = this.ball,
           m = this.match;
         if (m.phase !== "fight" || this.intro > 0) return;
+        if (b.hold > 0) {
+          --b.hold === 0 && this.emit({ type: "whistle" });
+          return;
+        }
         (b.x += b.vx), (b.y += b.vy), (b.vx *= BALL.friction), (b.vy *= BALL.friction);
         b.spin += Math.hypot(b.vx, b.vy) * 0.08 * Math.sign(b.vx || 1);
         let inMouth = Math.abs(b.y - Te) < BALL.goalH / 2;
@@ -8987,7 +9030,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             side = left ? 1 : 0;
           b.score[side]++;
           this.emit({ type: "goal", mine: side === 0, x: b.x, y: b.y, score: [...b.score] });
-          this.slow(90, 0.3);
+          this.slow(120, 0.3);
           if (b.score[side] >= BALL.goals || b.golden) {
             this.endRound(side === 0 ? "win" : "lose");
             return;
@@ -9002,7 +9045,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               (q.y = Te + (n ? 50 : -10)),
               (q.kvx = q.kvy = q.mvx = q.mvy = 0);
           }
-          this.emit({ type: "whistle" });
+          b.hold = BALL.kickoff;
           return;
         }
         // Walls (the goal mouths are open).
@@ -9025,9 +9068,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (b.x = q.x + nx * R), (b.y = q.y + ny * R);
           q.state === "guard"
             ? ((b.vx = b.vy = 0), (b.lastBy = q))
-            : ((b.vx += nx * 0.9 + (q.mvx ?? 0) * 0.5),
-              (b.vy += ny * 0.9 + (q.mvy ?? 0) * 0.5));
+            : ((b.vx += (nx * 0.9 + (q.mvx ?? 0) * 0.5) / BALL.weight),
+              (b.vy += (ny * 0.9 + (q.mvy ?? 0) * 0.5) / BALL.weight));
         }
+        // Never pushed out of the pitch; how long it has sat still.
+        (b.x = me(b.x, B.x0 - 30, B.x1 + 30)), (b.y = me(b.y, B.y0 + b.r, B.y1 - b.r));
+        b.idleT = Math.hypot(b.vx, b.vy) < 0.4 ? (b.idleT ?? 0) + 1 : 0;
         // Time: ahead at the whistle wins; level goes to golden goal.
         let el = this.goTick == null ? 0 : this.tick - this.goTick;
         if (el >= BALL.time && !b.golden) {
@@ -10407,7 +10453,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           e.alpha = 0;
           this.match.phase === "fight" &&
             --e.zoneBack <= 0 &&
-            ((e.zoneBack = 0), this.respawn(e, !0));
+            ((e.zoneBack = 0),
+            this.respawn(e, !0),
+            // Poké Ball: back in at your own goal.
+            this.ball &&
+              ((e.x = e.px = e.team === this.players[0].team ? B.x0 + 40 : B.x1 - 40),
+              // beside the mouth, not standing in it.
+              (e.y = e.py = Te + (this.players.indexOf(e) % 2 ? 1 : -1) * (BALL.goalH / 2 + 26)),
+              (e.facing = e.team === this.players[0].team ? 0 : Math.PI)));
           return;
         }
         if (
@@ -21823,7 +21876,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ) {
         this.hitBy = t;
         // Poké Ball: a hit sends the ball off with the hit's knockback.
-        if (e.kind === "ball") return this.kickBall(t, i, r, o);
+        if (e.kind === "ball") return this.kickBall(t, i * (M ? 1 : BALL.shot), r, o);
         // Snorlax Launch: hits on the sleeper add to the launch.
         if (this.launch && e === this.launch.tgt) return this.launchHit(t, s, i, k);
         // Raid: the boss and its wild Pokemon keep their own health.
@@ -37691,9 +37744,22 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         d.fillRect(m(x), m(y0 + h - 18), m(1), m(6)),
         G(`${mk}`, x, y0 + h - 4, 5, "#ffffff", { align: "center", weight: 700 });
     }
-    // Snorlax on an arc: up, then down to land at the end.
-    let arc = Math.sin(Math.min(1, k) * Math.PI) * 60,
-      sy = y0 + h - 22 - arc,
+    // Snorlax on an arc, then a bounce or two before it settles.
+    let arc =
+        k < 0.7
+          ? Math.sin((k / 0.7) * Math.PI) * 60
+          : k < 0.88
+            ? Math.sin(((k - 0.7) / 0.18) * Math.PI) * 16
+            : Math.sin(((k - 0.88) / 0.12) * Math.PI) * 5,
+      land = (k > 0.66 && k < 0.74) || (k > 0.86 && k < 0.9);
+    land &&
+      ((d.globalAlpha = 0.7),
+      (d.fillStyle = "#d8c8a0"),
+      d.beginPath(),
+      d.ellipse(m(H / 2), m(y0 + h - 18), m(18), m(4), 0, 0, Math.PI * 2),
+      d.fill(),
+      (d.globalAlpha = 1));
+    let sy = y0 + h - 22 - arc,
       M = e.mons?.snorlax?.anims?.Rotate ?? e.mons?.snorlax?.anims?.Hurt;
     M && et(d, M, Be(M, t, 1), 0, m(H / 2), m(sy), Fe * 1.2, 0);
     V(`${Math.round(cur)} m`, H / 2, y0 + 22, 16, g.gold, { align: "center", outline: 2.4 }),
@@ -46147,7 +46213,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 46,
+  var NETV = 47,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -52731,6 +52797,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             t.shake(0, 3, 16),
             t.ring(n.x, n.y, 10, 4, 26, col, !0),
             t.motes(n.x, n.y - 10, 30, 40, col, 2.4),
+            // Confetti.
+            ["#ff4a63", "#ffd166", "#4df08a", "#4aa3ff", "#ff7ad0"].forEach((c, k) => t.motes(n.x + (k - 2) * 14, n.y - 30, 10, 50, c, 3)),
             t.banner("GOAL!", col, 90, `${n.score[0]} \u2013 ${n.score[1]}`);
           break;
         }
