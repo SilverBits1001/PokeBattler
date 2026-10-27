@@ -22595,10 +22595,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ) {
         kt.add(a.code), (wt = "keys");
         for (let e of sa[a.code] ?? []) Ue.add(e);
-        a.code === "ArrowUp" && Ue.add("up"),
+        // With a second keyboard player seated, the arrows are theirs.
+        keys2On() ||
+          (a.code === "ArrowUp" && Ue.add("up"),
           a.code === "ArrowDown" && Ue.add("down"),
           a.code === "ArrowLeft" && Ue.add("left"),
-          a.code === "ArrowRight" && Ue.add("right"),
+          a.code === "ArrowRight" && Ue.add("right")),
           Dt?.();
       }
     }),
@@ -22713,6 +22715,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       NumpadDivide: "taunt",
       NumpadEnter: "start",
     };
+  // Each local seat has its own colour: on its cursor and its tag in a fight.
+  var SEAT_COL = ["#33d6ff", "#ff4a63", "#4df08a", "#ffd166"];
+  function curCol(a, rv) {
+    let st = seatTurn();
+    return st ? SEAT_COL[(st.n - 1) % 4] : rv ? g.cpu : "#ffffff";
+  }
+  function keys2On() {
+    return SEATS.some((q) => q.pad === "keys2");
+  }
   function seatsMax() {
     return [0, 4, 6, 9].includes(A.gameMode)
       ? 1
@@ -22731,6 +22742,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ay = 0;
     if (se.pad === "keys2") {
       for (let [k, v] of Object.entries(KEYS2)) kt.has(k) && held.add(v);
+      // Arrows move P2 (the number pad's 8 4 5 6 work too).
+      kt.has("ArrowUp") && held.add("up"),
+        kt.has("ArrowDown") && held.add("down"),
+        kt.has("ArrowLeft") && held.add("left"),
+        kt.has("ArrowRight") && held.add("right");
       let x = (held.has("right") ? 1 : 0) - (held.has("left") ? 1 : 0),
         y = (held.has("down") ? 1 : 0) - (held.has("up") ? 1 : 0);
       if (x || y) {
@@ -22782,7 +22798,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           !SEATS.some((q) => q.pad === pad) &&
           (SEATS.push({ pad, n: SEATS.length + 2, prev: new Set(["attack", "confirm"]) }),
           S.select(),
-          (seatToast = `P${SEATS.length + 1} joined`),
+          (seatToast = pad === "keys2" ? `P${SEATS.length + 1} joined: arrows + number pad (P1 Smash is now H)` : `P${SEATS.length + 1} joined`),
           (seatToastT = 90));
       },
       leave = (pad) => {
@@ -22824,7 +22840,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     think() {
       let i = readSeat(this.se);
-      return i.pressed.has("start") && (seatPauseReq = !0), i.pressed.delete("start"), i;
+      return i.pressed.has("start") && (seatPauseReq = this.se), i.pressed.delete("start"), i;
     }
   }
   // After a match starts: joined seats take over CPU fighters. Order: the
@@ -22886,8 +22902,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       let p = Math.hypot(u, h);
       (e = u / p), (t = h / p);
     }
-    let c = (f("ArrowRight") ? 1 : 0) - (f("ArrowLeft") ? 1 : 0),
-      y = (f("ArrowDown") ? 1 : 0) - (f("ArrowUp") ? 1 : 0);
+    let k2 = keys2On(),
+      c = k2 ? 0 : (f("ArrowRight") ? 1 : 0) - (f("ArrowLeft") ? 1 : 0),
+      y = k2 ? 0 : (f("ArrowDown") ? 1 : 0) - (f("ArrowUp") ? 1 : 0);
+    (u || h) && (ha.ld = Math.atan2(h, u));
+    // ...and P1's Smash moves to H, in the way P1 last moved.
+    k2 && f("KeyH") && ((c = Math.cos(ha.ld ?? 0)), (y = Math.sin(ha.ld ?? 0)));
     if (c || y) {
       let p = Math.hypot(c, y);
       (s = c / p), (i = y / p);
@@ -25050,6 +25070,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         g.arc(p.x, p.y - 10, r, 0, Math.PI * 2),
         g.fill();
     }
+    // Shots glow through the fog.
+    g.fillStyle = "rgba(0,0,0,0.85)";
+    for (let q of e.projectiles) q.dead || (g.beginPath(), g.arc(q.x, q.y - (q.z ?? 0), 9, 0, Math.PI * 2), g.fill());
     a.save(), a.setTransform(1, 0, 0, 1, 0, 0), a.drawImage(c, 0, 0), a.restore();
   }
   // The air layer: fliers, a passing flock, weather, confetti, then light.
@@ -29088,8 +29111,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     if (a.brain?.human)
       return {
         label: a.brain.name,
-        color:
-          e && a.team === e.player.team ? t.ally : t.cpu[(a.brain.seat - 2) % 3],
+        color: SEAT_COL[(a.brain.seat - 1) % 4],
       };
     if (a.brain?.net)
       return a.brain.local
@@ -36701,7 +36723,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     if (a.daily)
       return match.result === "win" && a.stage < ARC.stages - 1
         ? ["Next fight", "Quit"]
-        : ["Quit"];
+        : a.final
+          ? ["Compare code", "Quit"]
+          : ["Quit"];
     return match.mode === "sweep" || match.mode === "launch"
       ? ["Next fight", "Quit"]
       : match.result !== "win"
@@ -36796,8 +36820,53 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
   }
   // A code to compare runs: the day and the score, in base 36.
+  // Six characters: the day (2, counted from 2025-01-01) and the score (4).
+  var DAILY_EPOCH = Date.UTC(2025, 0, 1);
   function dailyCode(seed, score) {
-    return `${seed.toString(36)}-${score.toString(36)}`.toUpperCase();
+    let day = Math.round((Date.UTC(Math.floor(seed / 1e4), Math.floor(seed / 100) % 100 - 1, seed % 100) - DAILY_EPOCH) / 864e5);
+    return (
+      Math.max(0, Math.min(1295, day)).toString(36).padStart(2, "0") +
+      Math.max(0, Math.min(36 ** 4 - 1, score | 0)).toString(36).padStart(4, "0")
+    ).toUpperCase();
+  }
+  function dailyDecode(code) {
+    if (!/^[0-9A-Z]{6}$/.test(code)) return null;
+    let day = parseInt(code.slice(0, 2), 36),
+      score = parseInt(code.slice(2), 36),
+      d = new Date(DAILY_EPOCH + day * 864e5);
+    return { seed: d.getUTCFullYear() * 1e4 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate(), score };
+  }
+  // A friend's code: type it in to see their day's setup and their score.
+  function dailyCodeInput(ui, on) {
+    let el = document.getElementById("daily-code");
+    if (!on) return void (el && (el.blur(), el.remove()));
+    if (el) return;
+    (ui.dailyTyping = ""), (el = document.createElement("input"));
+    (el.id = "daily-code"),
+      (el.maxLength = 6),
+      (el.autocomplete = "off"),
+      (el.spellcheck = !1),
+      el.setAttribute("autocapitalize", "characters"),
+      el.setAttribute("aria-label", "Daily share code"),
+      (el.style.cssText =
+        "position:absolute;left:50%;top:50%;width:40%;height:18%;transform:translate(-50%,-50%);opacity:0.01;font-size:16px;border:0;background:transparent;color:transparent;caret-color:transparent;z-index:5"),
+      el.addEventListener("input", () => {
+        let t = el.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+        (el.value = t), (ui.dailyTyping = t);
+      }),
+      el.addEventListener("keydown", (t) => {
+        t.stopPropagation();
+        if (t.key === "Escape") return (ui.dailyTyping = null), dailyCodeInput(ui, !1);
+        if (t.key !== "Enter") return;
+        let dc = dailyDecode(ui.dailyTyping ?? "");
+        dc &&
+          ((ui.dailyCmp = { ...dc, roll: dailyRoll(dc.seed), mine: dailyRec().days[dc.seed] ?? null }),
+          (ui.dailyTyping = null),
+          dailyCodeInput(ui, !1));
+      }),
+      el.addEventListener("pointerdown", (t) => t.stopPropagation()),
+      document.getElementById("stage").appendChild(el),
+      setTimeout(() => el.focus(), 0);
   }
   function arcClock(t) {
     let s = Math.floor(t / 60);
@@ -37600,6 +37669,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       s.debug && as(e),
       !s.paused && e.match.phase === "fight" && moveTray(e, s),
       e.match.phase === "fight" && ruleHud(e, s),
+      s.board && scoreBoard(e),
       e.match.phase === "results" && os(e, s, o),
       ga(s),
       s.paused && hs(e, s, o),
@@ -40224,7 +40294,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           i + 4,
           "rgba(255,255,255,0.55)",
           (i + 4) * RG_SK,
-          rivalPhase(a) ? g.cpu : "#ffffff",
+          curCol(a, rivalPhase(a)),
           6,
           0.6,
         ),
@@ -40234,7 +40304,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         s - 1.4,
         i + 2.8,
         i + 2.8,
-        r ? (rivalPhase(a) ? g.cpu : "#ffffff") : "rgba(10,8,22,0.95)",
+        r ? curCol(a, rivalPhase(a)) : "rgba(10,8,22,0.95)",
         (i + 2.8) * RG_SK,
       ),
       te(t, s, i, i, "#191530", i * RG_SK),
@@ -41825,7 +41895,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       12,
       22,
       16,
-      stn ? g.gold : rv ? g.cpu : g.chalk,
+      stn ? SEAT_COL[(stn.n - 1) % 4] : rv ? g.cpu : g.chalk,
       {
         skew: !0,
         outline: 2,
@@ -41886,7 +41956,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           v + 4 + $ * 2,
           "rgba(255,255,255,0.55)",
           (v + 4 + $ * 2) * RG_SK,
-          rv ? g.cpu : "#ffffff",
+          curCol(a, rv),
           6,
           0.6,
         ),
@@ -41901,9 +41971,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             : Q >= 0
               ? g.p1
               : K
-                ? rv
-                  ? g.cpu
-                  : "#ffffff"
+                ? curCol(a, rv)
                 : ie
                   ? "#7a1f30"
                   : "rgba(10,8,22,0.95)",
@@ -42504,11 +42572,28 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           G(`Share code ${q.code}`, 34, 112, 6, g.haze, { weight: 700 }),
           q.titles.length &&
             G(`Title earned: ${q.titles.join(", ")}`, 34, 121, 6, "#ffe066", { weight: 700 });
+        // Comparing a friend's code: their day and score against yours.
+        let cm = e.dailyCmp;
+        if (e.dailyTyping != null || cm) {
+          e.dailyTyping != null
+            ? (G("TYPE A FRIEND'S CODE", 34, 136, 4.8, g.dim, { weight: 800 }),
+              V((e.dailyTyping + "______").slice(0, 6).split("").join(" "), 34, 152, 12, g.gold, {}))
+            : (G(`THEIR DAY: ${String(cm.seed).replace(/(\d{4})(\d\d)(\d\d)/, "$1-$2-$3")}`, 34, 136, 4.8, g.dim, { weight: 800 }),
+              G(
+                `${_a(xe[cm.roll.kit]?.name ?? "")} on ${ARENAS[cm.roll.arena]?.name ?? "?"} \xB7 ${cm.roll.muts.map((k2) => Re.find((r) => r.key === k2)?.label ?? k2).join(" + ")}`,
+                34,
+                145,
+                5.6,
+                g.chalk,
+                { weight: 700 },
+              ),
+              G(`Their score ${cm.score}  \xB7  yours ${cm.mine ?? "not played"}`, 34, 155, 6.4, cm.mine != null && cm.mine >= cm.score ? g.gold : "#ff8a8a", { weight: 800 }));
+        }
         // The last 30 days: lit if played, brighter for a clear-level score.
         let rec = dailyRec(),
           now = new Date();
-        G("LAST 30 DAYS", 34, 133, 4.8, g.dim, { weight: 800 });
-        for (let j = 0; j < 30; j++) {
+        e.dailyTyping == null && !cm && G("LAST 30 DAYS", 34, 133, 4.8, g.dim, { weight: 800 });
+        for (let j = 0; j < (e.dailyTyping == null && !cm ? 30 : 0); j++) {
           let dd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (29 - j)),
             sc = rec.days[dailySeed(dd)],
             cx = 34 + (j % 15) * 12.5,
@@ -42657,11 +42742,46 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     return a.kind === "choice" ? (a.options[A[a.key]] ?? "") : "";
   }
+  // Party modes: hold Back for the scoreboard.
+  function scoreBoard(a) {
+    let ps = a.players,
+      w = 260,
+      x = H / 2 - w / 2,
+      y = 70;
+    te(x, y, w, 22 + ps.length * 16, "rgba(8,6,18,0.92)", 6),
+      V("SCOREBOARD", x + 10, y + 15, 9, g.gold, { skew: !0, outline: 1.5 }),
+      G("K.O.s", x + 150, y + 15, 5, g.haze, { align: "center", weight: 800 }),
+      G("DAMAGE", x + 195, y + 15, 5, g.haze, { align: "center", weight: 800 }),
+      G("LIVES", x + 236, y + 15, 5, g.haze, { align: "center", weight: 800 });
+    [...ps]
+      .sort((p, q) => (q.stats.kos ?? 0) - (p.stats.kos ?? 0) || q.stats.dealt - p.stats.dealt)
+      .forEach((p, k) => {
+        let yy = y + 32 + k * 16,
+          tg = tagOf(p, a);
+        te(x + 6, yy - 10, w - 12, 14, k % 2 ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.07)", 3),
+          ue(tg.label, tg.color, x + 10, yy - 7, { size: 4.6, text: g.night }),
+          G(_a(p.kit.name), x + 52, yy, 6.4, p.out ? g.dim : g.chalk, { weight: 700 }),
+          G(`${p.stats.kos ?? 0}`, x + 150, yy, 6.4, g.chalk, { align: "center", weight: 800 }),
+          G(`${Math.round(p.stats.dealt)}`, x + 195, yy, 6.4, g.chalk, { align: "center", weight: 800 }),
+          G(p.out ? "OUT" : `${Math.max(1, p.lives ?? 1)}`, x + 236, yy, 6.4, p.out ? g.cpu : g.chalk, { align: "center", weight: 800 });
+      });
+  }
   function hs(a, e, t) {
     e.pauseT++;
     let s = Ee(e.pauseT / 9);
     (d.fillStyle = `rgba(8,6,18,${0.8 * s})`),
       d.fillRect(0, 0, m(H), m(oe)),
+      // Touch: the emote row. Tap one to resume with that taunt.
+      touchOn() &&
+        a.match.phase === "fight" &&
+        TAUNT.emotes.forEach(([nm, , gl, col], k) => {
+          let x = 122 + k * 46,
+            y = 12;
+          tapRect(x, y, 42, 18, () => ((e.queueTaunt = k), Ue.add("start"))),
+            te(x, y, 42, 18, "rgba(8,6,18,0.9)", 5),
+            cueGlyph(d, gl, m(x + 10), m(y + 9), m(5), col),
+            G(nm, x + 18, y + 11.5, 5.6, g.chalk, { weight: 700 });
+        }),
       d.save(),
       (d.globalAlpha = s),
       d.translate(m((1 - s) * -16), 0),
@@ -48823,8 +48943,6 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           ? [U("assist", "SUPPORT", ["assist"], 44, 124, 10)]
           : []),
       ["start", "II", ["start"], H / 2, oe - 12, 10],
-      // Taunt: the stick picks the emote.
-      ["taunt", "EMOTE", ["taunt"], touchX(H / 2 + 30), oe - 12, 8],
     ];
   }
   function touchXY(a) {
@@ -50217,6 +50335,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     function startDaily() {
       let dy = dailyRoll(dailySeed());
+      (s.dailyCmp = null), (s.dailyTyping = null);
       DAILY_MUT.clear(), dy.muts.forEach((k) => DAILY_MUT.add(k));
       (ARC.stages = 3), (ARC.levels = [0, 1, 2]);
       x(!1);
@@ -50327,6 +50446,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       bonus
         ? (e.match.mode === "sweep" && (a.bonusMedal = sweepMedal(e.sweep?.score ?? 0)), (a.inBonus = !1))
         : (a.time += e.match.ticks ?? 0);
+      if (n === "Compare code") return dailyCodeInput(s, !0);
       if (n === "Next fight" && !bonus && a.stage === 2 && !a.bonusDone)
         return arcBonus();
       if (n === "Next fight" && !bonus && a.stage === 4 && !a.bonus2Done && !a.daily)
@@ -51385,6 +51505,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       switch (n.type) {
         case "hit": {
           hitFlourish(n);
+          // Metal: every hit clanks.
+          mutOn("mutMetal") && (I("sq", F(100), F(94), 0.06, 0.04), I("tri", F(88), F(80), 0.08, 0.04));
           let R = n.victim === e.player,
             W = !!n.attacker && n.attacker.team === e.player.team,
             T = 8,
@@ -55442,10 +55564,31 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           }
           // A local player's Start pauses for everyone.
           seatPauseReq &&
-            ((seatPauseReq = !1),
-            s.paused || NET.m || e.match.phase !== "fight" || ee.pressed.add("start"));
+            (s.paused || NET.m || e.match.phase !== "fight" || (ee.pressed.add("start"), (s.pausedSeat = seatPauseReq), (s.toast = `P${seatPauseReq.n} paused \xB7 B on that pad drops to a CPU`), (s.toastT = 240)),
+            (seatPauseReq = !1));
+          // Paused by a local seat: Back on that seat's pad drops the player
+          // to a CPU and play goes on.
+          if (s.paused && s.pausedSeat) {
+            let ps = s.pausedSeat,
+              si = readSeat(ps);
+            if (si.pressed.has("back")) {
+              let q = e.players.find((z) => z.brain?.se === ps);
+              q && (q.brain = new ft(e.rand)),
+                (SEATS.splice(SEATS.indexOf(ps), 1), SEATS.forEach((z, k) => (z.n = k + 2))),
+                (s.pausedSeat = null),
+                (s.toast = `P${ps.n} dropped out: a CPU takes over`),
+                (s.toastT = 150),
+                ee.pressed.add("start");
+            }
+          }
+          s.paused || ee.pressed.has("start") || (s.pausedSeat = null);
           if (
-            (ee.pressed.has("select") && ((s.debug = !s.debug), S.ui(s.debug)),
+            // Back: held in a party mode, the scoreboard; in a duel, the debug view.
+            (s.board = ee.held.has("select") && e.players.length > 2 && e.match.phase === "fight"),
+            !s.paused &&
+              s.queueTaunt != null &&
+              ((ee.mx = [0, 0, 1, 0, -1][s.queueTaunt]), (ee.my = [0, -1, 0, 1, 0][s.queueTaunt]), ee.pressed.add("taunt"), (s.queueTaunt = null)),
+            (ee.pressed.has("select") && e.players.length <= 2 && ((s.debug = !s.debug), S.ui(s.debug)),
             s.paused)
           ) {
             we(ee);
