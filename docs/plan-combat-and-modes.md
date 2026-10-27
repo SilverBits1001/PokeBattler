@@ -378,3 +378,9 @@ Duel round robin (Hard CPU, 4 reps against all 28 others, 112 games each, Emolga
 - Greninja 1.03 → 0.83, Chandelure 1.0 → 0.8, Dragapult 0.91 → 0.8, Charizard 0.81 → 0.78, Gengar 1.65 → 1.58, Milotic 0.86 → 0.82, Noivern 0.85 → 0.82, Golurk 0.92 → 0.9; Snorlax 0.97 → 1.1, Froslass 1.5 → 1.6, Toxtricity 2.28 → 2.48, Scizor 1.14 → 1.25, Gallade 1.3 → 1.37, Volcarona 1.5 → 1.57, Rhyperior 0.91 → 0.95, Lucario 0.8 → 0.84, Tyrantrum 0.95 → 0.97.
 - The win-rate spread is 0.056 (0.097 before), with 27 of 29 fighters in 0.40–0.60 and none above 0.58.
 - The top is Scizor, Greninja and Chandelure at 0.58; the bottom is Toxtricity 0.39 and Gallade 0.38, inside the run-to-run noise (about ±0.05) of the band.
+
+Party modes after that pass, with each mode's own damage scale retuned (2,000 four-fighter matches per mode, 200–550 appearances per fighter):
+- 2v2 (par 0.50): mean 0.50, spread 0.048, every fighter between 0.41 and 0.58.
+- Free-for-All (par 0.25; 4,000 matches): mean 0.25, spread 0.042, every fighter between 0.17 and 0.32 except Milotic at 0.35, whose Free-for-All scale then went from 0.6 to 0.52.
+- The meter: Burst-only against legendary-only 0.49; mixed beats each pure strategy (0.72 and 0.75), so using both is the strongest play and neither pure plan dominates.
+
