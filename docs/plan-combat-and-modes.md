@@ -175,8 +175,8 @@ Anything not listed uses the base: throw, startup 8, reach 14, damage 16, knockb
 - D-pad Up (Y on keyboard, tap the meter on touch) with the meter at 50 or more and the fighter in a neutral state. Costs 50. Once per fighter per match (per life in Lives mode).
 - Activation: 20 ticks of freeze like the legendary call, camera close on the fighter, a flash, the new look. Invulnerable during the freeze; foes cannot be hit by it, so it is not an attack, but it is a safe reset from pressure, which is part of its value.
 - Lasts 600 ticks (10 s). A bar under the HP drains over that time.
-- **Mega** (Charizard X or Y chosen on the VS screen, Blastoise, Venusaur, Lucario, Gengar, Gardevoir, Gallade, Metagross, Garchomp, Scizor; Aegislash, Chandelure and the rest have none): damage × 1.25, speed × 1.1, damage taken × 0.9, special cooldowns × 0.75, and one kit change each: Charizard X's fire becomes Dragon-typed and burns on every hit; Lucario's Aura Sphere homes; Gengar's Shadow Sneak has no cooldown; Gardevoir's Psychic lifts two foes; Gallade's Close Combat has no Guard Down; Metagross's Meteor Mash never misses; Garchomp's Rage never ends during the Burst; Scizor's Bullet Punch has five charges; Blastoise's shots all count as Mega Launcher; Venusaur's roots spread.
-- **Tera** (everyone else, and anyone who prefers it: a VS-screen toggle): the fighter becomes a single type, chosen on the VS screen from its two types plus one "Tera type" set per kit in the design (Snorlax Tera Ghost, Froslass Tera Fairy, Inteleon Tera Ice, Pikachu Tera Flying, Toxtricity Tera Fire …). Damage × 1.2, moves of the Tera type × 1.35 on top, immune to the statuses that type is immune to (Fire to burn, Electric to paralysis, Poison and Steel to poison, Ice to freeze), and the type chart (2.4) applies to the Tera type only. A crystal shell shimmers on the sprite in the type's colour.
+- **Mega** (Charizard X or Y chosen on the VS screen, Blastoise, Venusaur, Lucario, Gengar, Gardevoir, Gallade, Metagross, Garchomp, Scizor; Aegislash, Chandelure and the rest have none): damage × 2.1, speed × 1.2, damage taken × 0.5, special cooldowns × 0.75, and one kit change each: Charizard X's fire becomes Dragon-typed and burns on every hit; Lucario's Aura Sphere homes; Gengar's Shadow Sneak has no cooldown; Gardevoir's Psychic lifts two foes; Gallade's Close Combat has no Guard Down; Metagross's Meteor Mash never misses; Garchomp's Rage never ends during the Burst; Scizor's Bullet Punch has five charges; Blastoise's shots all count as Mega Launcher; Venusaur's roots spread.
+- **Tera** (everyone else, and anyone who prefers it: a VS-screen toggle): the fighter becomes a single type, chosen on the VS screen from its two types plus one "Tera type" set per kit in the design (Snorlax Tera Ghost, Froslass Tera Fairy, Inteleon Tera Ice, Pikachu Tera Flying, Toxtricity Tera Fire …). Damage × 2.05, moves of the Tera type × 1.35 on top, damage taken × 0.55, immune to the statuses that type is immune to (Fire to burn, Electric to paralysis, Poison and Steel to poison, Ice to freeze), and the type chart (2.4) applies to the Tera type only. A crystal shell shimmers on the sprite in the type's colour.
 - After the Burst ends, 180 ticks of "winded": meter gain halved, the aura flickers out. No stat penalty: the cost is the meter you spent and the legendary you now do not have.
 - Tag Team: each fighter has its own Burst; the meter is shared, so a team can Burst twice and never summon, or save.
 
@@ -192,7 +192,7 @@ Anything not listed uses the base: throw, startup 8, reach 14, damage 16, knockb
 - HUD: the meter gets a mark at 50 and glows there; the Burst bar under HP; the move tray shows the Burst button.
 - Netcode: Mega and Tera choices go into the VS-screen config like the legendary pick.
 
-**Tests.** Scripted: cost, duration, once-per-match, winded halving, each Mega change fires, Tera status immunities. Balance: `legab.js`-style round robin with Burst-only, legendary-only and mixed CPUs; the target is that neither pure strategy wins more than 55% over the other.
+**Tests.** Scripted: cost, duration, once-per-match, winded halving, each Mega change fires, Tera status immunities. Balance: `legab.js`-style round robin with Burst-only, legendary-only and mixed CPUs; the target is that neither pure strategy wins more than 55% over the other. (The first estimate, Mega × 1.25 and Tera × 1.2 with no damage reduction, failed this test: Burst-only won 0.19 against legendary-only, because a legendary summon does 150–200 damage. The multipliers above are the ones that pass it: 0.49 over 114 games.)
 
 ### 2.4 Type matchups you can feel
 
@@ -345,13 +345,8 @@ Each phase ends with: the scripted tests for the feature, the full `bal3` duel r
 
 ## Part 6: as built
 
-Every feature in Parts 1 to 3 is in the game, to the rules above. This part records the one number the plan's balance test set, and the test results.
+Every feature in Parts 1 to 3 is in the game, to the rules above, with grabs to the per-fighter table in 2.1. This part records how the Raid looks and the test results.
 
-### Numbers the plan's own tests set
-
-Everything follows the rules above, with grabs to the per-fighter table in 2.1. One number was set by the plan's test rather than its first estimate:
-
-- **Burst strength.** With the plan's Mega numbers (damage × 1.25, taken × 0.9) a Burst-only CPU won 0.19 against a legendary-only CPU, far from the plan's own target (neither pure strategy above 0.55). The multipliers now are: Mega damage × 2.1, damage taken × 0.5, speed × 1.2; Tera damage × 2.05, same type × 1.35 on top, taken × 0.55. Everything else in 2.3 is as written: cost 50, 600 ticks, once a match, winded 180 ticks at half meter gain, special cooldowns × 0.75 for a Mega, and the eleven Mega changes.
 ### What the Raid looks like
 
 Each boss's attacks are its own named pieces (Zekrom's lane dive, bolts and thunder pillar; Groudon's Precipice Blades rings and magma geysers; Rayquaza marking two players and diving; Dialga's time stop; Palkia's rifts; Giratina hunting from below; Darkrai's sleep pools; Deoxys changing Forme each phase; Ho-Oh's heal; Koraidon's charges; Miraidon's drift and bolt), each drawn in its own look. Every attack telegraphs for 40 to 60 ticks; tracking attacks follow their target for 40 of those ticks and then lock. Ho-Oh's flame ring lands within reach of a player and gives 60 ticks to step onto it and stop the heal. The floor is a flat layout per boss drawn over its world: Zekrom's wet basalt, Darkrai's fog, Deoxys's hex panels, Groudon's magma cracks, the Sky Pillar's rings, the Bell Tower's planks, Dialga's clock, Palkia's pearl ripples, Giratina's broken platforms, Area Zero's crystals and Miraidon's neon road.
