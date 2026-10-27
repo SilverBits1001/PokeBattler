@@ -56,6 +56,7 @@
       timeLimit: 0,
       ringOut: 0,
       typeMatch: 0,
+      burstPref: 0,
       mutGiant: 0,
       mutTiny: 0,
       mutFast: 0,
@@ -249,6 +250,12 @@
       key: "ringOut",
       label: "Ring out",
       options: ["Off", "On"],
+    },
+    {
+      kind: "choice",
+      key: "burstPref",
+      label: "Burst",
+      options: ["Mega Evolve when possible", "Always Terastallize"],
     },
     {
       kind: "choice",
@@ -3930,10 +3937,18 @@
         this.punishedT = -1;
       }
       think(e, t) {
-        let i = this.grabLayer(
+        let i = this.burstLayer(
           e,
           t,
-          this.adapt(e, t, this.modeLayer(e, t, this.decide(e, t))),
+          this.grabLayer(
+            e,
+            t,
+            this.ballLayer(
+              e,
+              t,
+              this.adapt(e, t, this.modeLayer(e, t, this.decide(e, t))),
+            ),
+          ),
         );
         if (t.state === "move" && e.tick - t.lastKoTick === 40) {
           let s = e.nearestTarget(t.team, t.x, t.y);
@@ -4057,6 +4072,66 @@
           c < bs && ((bs = c), (best = v));
         }
         return best;
+      }
+      // Poké Ball: the teammate nearest the ball gets behind it and knocks it
+      // at the goal; the other holds a line between ball and own goal. A foe
+      // right on top of you still gets fought.
+      ballLayer(e, t, i) {
+        let b = e.ball;
+        if (!b || t.state !== "move" || e.match.phase !== "fight") return i;
+        let mine = t.team === e.players[0].team,
+          gx = mine ? B.x1 : B.x0,
+          ox = mine ? B.x0 : B.x1,
+          mates = e.players.filter((q) => q.team === t.team && q.state !== "faint" && !q.zoneBack),
+          chaser = mates.reduce((a, q) =>
+            Math.hypot(q.x - b.x, q.y - b.y) < Math.hypot(a.x - b.x, a.y - b.y) ? q : a,
+          ),
+          foe = e.nearestTarget(t.team, t.x, t.y),
+          close = foe && Math.hypot(foe.x - t.x, foe.y - t.y) < 26;
+        if (close && this.rand() < 0.5) return i;
+        let go = (x, y) => {
+          let dx = x - t.x,
+            dy = y - t.y,
+            d = Math.hypot(dx, dy);
+          d > 4 ? ((i.mx = dx / d), (i.my = dy / d)) : (i.mx = i.my = 0);
+          return d;
+        };
+        i.pressed = new Set([...i.pressed].filter((k) => k !== "attack" && k !== "special1" && k !== "special2"));
+        i.ax = i.ay = 0;
+        i.aimHeld = !1;
+        if (t === chaser) {
+          (i.held = new Set([...i.held].filter((k) => k !== "lock"))), (t.lock = null);
+          let dx = gx - b.x,
+            dy = Te - b.y,
+            d = Math.hypot(dx, dy) || 1,
+            px = b.x - (dx / d) * (b.r + t.r + 4),
+            py = b.y - (dy / d) * (b.r + t.r + 4),
+            far = go(px, py),
+            bd = Math.hypot(b.x - t.x, b.y - t.y);
+          // Lined up behind it: hit it goalwards (now and then a full Smash).
+          far < 10 &&
+            bd < b.r + t.r + 18 &&
+            ((i.mx = dx / d),
+            (i.my = dy / d),
+            this.rand() < 0.25 && d < 220
+              ? ((i.ax = dx / d), (i.ay = dy / d), (i.aimHeld = !0))
+              : this.rand() < 0.5 && i.pressed.add("attack"));
+        } else go(ox * 0.55 + b.x * 0.45, Te * 0.5 + b.y * 0.5);
+        return i;
+      }
+      // Burst: when hurt, or to close out a fight. Hard saves the meter for
+      // the legendary while healthy.
+      burstLayer(e, t, i) {
+        if (!t.legend || t.burstUsed || t.lgMeter < BURST.cost || t.state !== "move")
+          return i;
+        let o = e.nearestTarget(t.team, t.x, t.y),
+          hp = t.slot.hp / t.slot.maxHp,
+          lv = this.level ?? A.cpuLevel ?? 1,
+          want =
+            hp < 0.4 ||
+            (o && o.slot && o.slot.hp / o.slot.maxHp < 0.3 && Math.hypot(o.x - t.x, o.y - t.y) < 90);
+        lv === 2 && hp > 0.6 && t.lgMeter < 95 && (want = !1);
+        return want && this.rand() < 0.03 && (i.pressed = new Set(["burst"])), i;
       }
       // Every CPU grabs: a foe turtling in guard (Hard reads it fast), now
       // and then a foe standing still, and tethers from range.
@@ -5702,7 +5777,7 @@
     Na = 2,
     yt = { strong: 1.05, weak: 0.95 },
     // Banners that may take the middle of the screen: the round's flow only.
-    BANNER_CENTER = /^(READY\?|GO!|K\.O\.!|VICTORY!|DEFEAT|DRAW|TIME|RING OUT|SUDDEN DEATH)/,
+    BANNER_CENTER = /^(READY\?|GO!|K\.O\.!|VICTORY!|DEFEAT|DRAW|TIME|RING OUT|SUDDEN DEATH|GOAL|GOLDEN GOAL|MEGA|TERA)/,
     // Mid-fight words become icons: there is no time to read in a fight.
     // Each callout maps to a glyph (and a sound for statuses); move names and
     // anything the animation already shows are dropped. Numbers stay.
@@ -6092,6 +6167,57 @@
       medals: [25, 50, 75],
       key: "pocketbrawl-sweep-v1",
     },
+    // Burst (D-pad up / G): half the legendary meter buys ten seconds of
+    // Mega Evolution (the five with Mega art) or Terastallization (everyone
+    // else, or anyone with Burst set to Tera). Once per fighter per match.
+    BURST = {
+      cost: 50,
+      t: 600,
+      wind: 180,
+      intro: 20,
+      mega: { out: 1.25, taken: 0.9, speed: 1.1 },
+      tera: { out: 1.2, stab: 1.35 },
+    },
+    // Mega forms (sprite key) and each one's twist.
+    MEGA = {
+      charizard: ["charizardMega", "Mega Charizard X: every hit burns."],
+      lucario: ["lucarioMega", "Mega Lucario: Aura Sphere homes in."],
+      gengar: ["gengarMega", "Mega Gengar: Shadow Sneak has no cooldown."],
+      gardevoir: ["gardevoirMega", "Mega Gardevoir: cooldowns run twice as fast."],
+      gallade: ["galladeMega", "Mega Gallade: Close Combat lowers no guard."],
+    },
+    // Each Pokémon's Tera type.
+    TERA = {
+      charizard: "DRAGON",
+      venusaur: "FAIRY",
+      blastoise: "STEEL",
+      dragapult: "GHOST",
+      magnezone: "FLYING",
+      snorlax: "GHOST",
+      noivern: "FIRE",
+      lucario: "FIGHTING",
+      garchomp: "FIRE",
+      scizor: "FLYING",
+      tyrantrum: "FIRE",
+      golurk: "FIGHTING",
+      rhyperior: "WATER",
+      froslass: "FAIRY",
+      gardevoir: "FIRE",
+      metagross: "PSYCHIC",
+      greninja: "DARK",
+      aegislash: "GHOST",
+      lurantis: "FIRE",
+      chandelure: "GRASS",
+      ceruledge: "FIRE",
+      volcarona: "WATER",
+      milotic: "FAIRY",
+      inteleon: "ICE",
+      zoroark: "NORMAL",
+      pikachu: "FLYING",
+      gengar: "FAIRY",
+      toxtricity: "FIRE",
+      gallade: "FAIRY",
+    },
     // Grabs (RB / U). Every Pokémon grabs its own way, in one of five
     // archetypes:
     //   toss    clinch, then throw where the stick points (the baseline);
@@ -6169,7 +6295,21 @@
     REVENGE = { t: 150, r: 320 },
     // Match modes, indexed by the gameMode option.
     // Tag Team (6) runs the "vs" match with two Pokemon a side.
-    MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag", "sweep", "ffa", "vs", "ffa"],
+    MODES = ["vs", "practice", "ffa", "team", "zone", "online", "tag", "sweep", "ffa", "vs", "ffa", "team", "launch", "vs", "raid"],
+    // Poké Ball: 2v2 (or 1v1) knock a giant ball into the other side's goal.
+    // First to `goals`, or ahead at `time`; level at time is golden goal.
+    BALL = {
+      r: 14,
+      friction: 0.98,
+      bounce: 0.7,
+      // Velocity per point of a hit's knockback.
+      kick: 1.6,
+      maxV: 13,
+      goalH: 100,
+      goals: 2,
+      time: 7200,
+      back: 180,
+    },
     MODE_NAMES = [
       "VS CPU",
       "TRAINING",
@@ -6200,6 +6340,8 @@
     // Free-for-All itself and You're It!.
     isFfa = () => A.gameMode === 2 || A.gameMode === 8 || A.gameMode === 10,
     thinMode = () => A.gameMode === 9 || A.gameMode === 10,
+    // 2v2 team modes: Team 2v2 and Poké Ball.
+    teamMode = () => A.gameMode === 3 || A.gameMode === 11,
     // Lives apply to every mode but Training and Zone Control.
     livesMode = () => A.gameMode !== 1 && A.gameMode !== 4 && A.gameMode !== 7,
     // How many fighters the CPU side rolls on team select: in Free-for-All
@@ -7182,9 +7324,28 @@
   Object.assign(TX.POISON, { FAIRY: 1, GROUND: -1, ROCK: -1 });
   Object.assign(TX.STEEL, { ICE: 1, ROCK: 1, FAIRY: 1 });
   Object.assign(TX.DRAGON, { FAIRY: -1 });
+  // Immunities (Normal can't touch Ghost, Ground can't reach a flier...).
+  // In Standard rules they halve the hit; Type Match makes them zero.
+  var TYPE_IMMUNE = {
+      NORMAL: ["GHOST"],
+      FIGHTING: ["GHOST"],
+      GHOST: ["NORMAL"],
+      ELECTRIC: ["GROUND"],
+      GROUND: ["FLYING"],
+      PSYCHIC: ["DARK"],
+      POISON: ["STEEL"],
+      DRAGON: ["FAIRY"],
+    },
+    // [super effective, resisted, immune] per rules (A.typeMatch).
+    TYPE_MULT = [
+      [1.15, 0.85, 0.5],
+      [1.5, 0.5, 0],
+    ];
   function Ua(a, e) {
+    let tm = TYPE_MULT[A.typeMatch ? 1 : 0];
+    if (TYPE_IMMUNE[a]?.includes(e)) return tm[2];
     let t = TX[a]?.[e];
-    if (t) return t > 0 ? yt.strong : yt.weak;
+    if (t) return t > 0 ? tm[0] : tm[1];
     if (
       ["ELECTRIC", "STEEL", "NORMAL", "FLYING", "FIGHTING", "POISON"].includes(
         a,
@@ -7195,13 +7356,13 @@
     )
       return 1;
     return a === "DRAGON" && e === "DRAGON"
-      ? yt.strong
+      ? tm[0]
       : Wa[e]?.includes(a)
-        ? yt.weak
+        ? tm[1]
         : _t[a] === e
-          ? yt.strong
+          ? tm[0]
           : _t[e] === a
-            ? yt.weak
+            ? tm[1]
             : 1;
   }
   // Seeded generator. Its state lives on the function (`.s`) so online
@@ -7638,8 +7799,9 @@
           // Pidgey Sweep is always on the Stadium.
           ar0 = A.arena;
         e === "sweep" && (A.arena = 0);
-        // Thin Ice is on Frostfall's frozen lake.
+        // Thin Ice is on Frostfall's frozen lake; Poké Ball on the Stadium.
         this.thinGame && e !== "sweep" && (A.arena = 3);
+        this.ballGame && e !== "sweep" && (A.arena = 0);
         if (
           ((r.mode = e),
           (r.you = [...t]),
@@ -7947,6 +8109,26 @@
         // on the frame its main theme comes in (INTRO_GO). Later rounds, and
         // Training, take the short count.
         A.arena = ar0;
+        // Poké Ball: the ball on the centre spot, nil-nil.
+        this.ball =
+          this.ballGame && e !== "sweep" && e !== "practice"
+            ? {
+                kind: "ball",
+                id: -77,
+                x: Se,
+                y: Te,
+                vx: 0,
+                vy: 0,
+                r: BALL.r,
+                hurtR: BALL.r,
+                team: -1,
+                state: "move",
+                spin: 0,
+                score: [0, 0],
+                golden: 0,
+                lastBy: null,
+              }
+            : null;
         // Mutators and the time limit.
         (this.sudden = 0), (this.timeLeft = 0);
         for (let o of this.players) this.mutFighter(o);
@@ -7962,6 +8144,80 @@
             round: r.round,
             cpuKit: (this.cpu ?? this.players[0]).kit,
           });
+      }
+      // ---- Poké Ball ----
+      kickBall(by, kb, dx, dy) {
+        let b = this.ball,
+          v = Math.min(BALL.maxV, Math.max(2.2, kb * BALL.kick));
+        (b.vx = dx * v), (b.vy = dy * v), (b.lastBy = by ?? null);
+        this.emit({ type: "ballHit", x: b.x, y: b.y, v });
+      }
+      // You start on the left: the left goal is your team's to defend.
+      ballTick() {
+        let b = this.ball,
+          m = this.match;
+        if (m.phase !== "fight" || this.intro > 0) return;
+        (b.x += b.vx), (b.y += b.vy), (b.vx *= BALL.friction), (b.vy *= BALL.friction);
+        b.spin += Math.hypot(b.vx, b.vy) * 0.08 * Math.sign(b.vx || 1);
+        let inMouth = Math.abs(b.y - Te) < BALL.goalH / 2;
+        // A goal: the side that scored is 0 (your team) or 1.
+        if (inMouth && (b.x < B.x0 + 20 - b.r || b.x > B.x1 - 20 + b.r)) {
+          let left = b.x < Se,
+            my = this.players[0].team,
+            side = left ? 1 : 0;
+          b.score[side]++;
+          this.emit({ type: "goal", mine: side === 0, x: b.x, y: b.y, score: [...b.score] });
+          this.slow(90, 0.3);
+          if (b.score[side] >= BALL.goals || b.golden) {
+            this.endRound(side === 0 ? "win" : "lose");
+            return;
+          }
+          // Kick-off: ball to the centre, everyone back to their half.
+          (b.x = Se), (b.y = Te), (b.vx = b.vy = 0);
+          for (let q of this.players) {
+            if (q.state === "faint") continue;
+            let mine = q.team === my,
+              n = this.players.filter((z) => (z.team === my) === mine).indexOf(q);
+            (q.x = Se + (mine ? -1 : 1) * (110 + 40 * n)),
+              (q.y = Te + (n ? 50 : -10)),
+              (q.kvx = q.kvy = q.mvx = q.mvy = 0);
+          }
+          this.emit({ type: "whistle" });
+          return;
+        }
+        // Walls (the goal mouths are open).
+        b.x < B.x0 + b.r && !inMouth && ((b.x = B.x0 + b.r), (b.vx = Math.abs(b.vx) * BALL.bounce));
+        b.x > B.x1 - b.r && !inMouth && ((b.x = B.x1 - b.r), (b.vx = -Math.abs(b.vx) * BALL.bounce));
+        b.y < B.y0 + b.r && ((b.y = B.y0 + b.r), (b.vy = Math.abs(b.vy) * BALL.bounce));
+        b.y > B.y1 - b.r && ((b.y = B.y1 - b.r), (b.vy = -Math.abs(b.vy) * BALL.bounce));
+        // Fighters: a guard stops it dead; anyone else nudges it along; a
+        // dodge passes through.
+        for (let q of this.players) {
+          if (q.state === "faint" || q.zoneBack || (q.state === "dodge" && q.invincible))
+            continue;
+          let dx = b.x - q.x,
+            dy = b.y - q.y,
+            d = Math.hypot(dx, dy),
+            R = b.r + q.r;
+          if (d >= R || d < 0.01) continue;
+          let nx = dx / d,
+            ny = dy / d;
+          (b.x = q.x + nx * R), (b.y = q.y + ny * R);
+          q.state === "guard"
+            ? ((b.vx = b.vy = 0), (b.lastBy = q))
+            : ((b.vx += nx * 0.9 + (q.mvx ?? 0) * 0.5),
+              (b.vy += ny * 0.9 + (q.mvy ?? 0) * 0.5));
+        }
+        // Time: ahead at the whistle wins; level goes to golden goal.
+        let el = this.goTick == null ? 0 : this.tick - this.goTick;
+        if (el >= BALL.time && !b.golden) {
+          if (b.score[0] !== b.score[1]) {
+            this.emit({ type: "timeUp" }),
+              this.endRound(b.score[0] > b.score[1] ? "win" : "lose");
+            return;
+          }
+          (b.golden = 1), this.emit({ type: "goldenGoal" });
+        }
       }
       // ---- Rules and mutators ----
       mutFighter(o) {
@@ -8632,6 +8888,8 @@
             t.push(s);
         for (let s of this.dummies)
           s.team !== e && this.canBeHit(s) && t.push(s);
+        // Poké Ball: anyone's attack can hit the ball.
+        this.ball && t.push(this.ball);
         return t;
       }
       inSmoke(e) {
@@ -8715,6 +8973,7 @@
       updateMatch() {
         let e = this.match;
         this.timeTick();
+        this.ball && this.ballTick();
         this.updateZone();
         this.sweep && this.sweepTick();
         this.it && this.itTick();
@@ -8790,6 +9049,7 @@
             e.buf[v] = 0;
           };
         this.updateLock(e, t);
+        this.burstTick(e);
         // Cooldown Chaos: nothing waits more than a second.
         mutOn("mutChaos") &&
           (i.cdX > 60 && (i.cdX = 60),
@@ -9068,6 +9328,16 @@
               u("guard"), this.startWithdraw(e);
               break;
             }
+            if (
+              f("burst") &&
+              !e.burstUsed &&
+              e.legend &&
+              e.lgMeter >= BURST.cost &&
+              !(e.z > 0)
+            ) {
+              u("burst"), this.startBurst(e);
+              break;
+            }
             if (f("grab") && !(e.z > 0)) {
               u("grab"), this.startGrab(e, P);
               break;
@@ -9295,6 +9565,13 @@
         this.applyKnockback(e), this.animatePlayer(e);
       }
       tickFaint(e) {
+        // Poké Ball: a K.O. is a three-second wait, then back in.
+        this.ball &&
+          e.t === 60 &&
+          e.aliveSlot(1) === null &&
+          !e.zoneBack &&
+          ((e.zoneBack = BALL.back),
+          this.emit({ type: "zoneDown", who: e, wait: BALL.back }));
         // Zone Control: down and out of sight until the wait is over.
         if (e.zoneBack) {
           e.alpha = 0;
@@ -10038,6 +10315,8 @@
         if (!(s > 0) || String(i).includes("legend")) return;
         let r = (o, l) => {
           if (!o?.legend || o.lgMeter >= 100) return;
+          // Winded after a Burst: meter fills at half speed for a while.
+          o.windT > 0 && (l *= 0.5);
           (o.lgMeter = Math.min(
             100,
             o.lgMeter +
@@ -10276,7 +10555,10 @@
         let i = t,
           r = 1 / 0,
           o = (A.meleeAssist * Math.PI) / 180;
-        for (let l of this.targetsFor(e.team)) {
+        // Poké Ball: the ball is something to aim at too.
+        for (let l of this.ball
+          ? [...this.targetsFor(e.team), this.ball]
+          : this.targetsFor(e.team)) {
           let f = Math.hypot(l.x - e.x, l.y - e.y);
           if (f > s) continue;
           let u = Math.atan2(l.y - e.y, l.x - e.x),
@@ -11496,7 +11778,8 @@
             kind: "aura",
             color: "#4aa3ff",
             target: s,
-            homing: 0.035,
+            // Mega Lucario's Aura Sphere locks on hard.
+            homing: e.burstT > 0 && e.burstKind === "mega" ? 0.12 : 0.035,
             charge: t,
           }),
           (e.slot.sphere = 0),
@@ -12359,6 +12642,7 @@
       paraFor(e, n) {
         e.kind === "player" &&
           e.state !== "faint" &&
+          !this.teraIs(e, "ELECTRIC") &&
           !this.statusImmune(e) &&
           ((e.paraT = Math.max(e.paraT ?? 0, n)),
           this.emit({ type: "paralyzed", who: e }));
@@ -12366,6 +12650,7 @@
       paralyze(e) {
         e.kind === "player" &&
           e.state !== "faint" &&
+          !this.teraIs(e, "ELECTRIC") &&
           !this.statusImmune(e) &&
           ((e.paraT = MAGNE.para),
           this.emit({ type: "paralyzed", who: e }),
@@ -15544,6 +15829,7 @@
       poison(e) {
         if (e.kind !== "player" || e.state === "faint") return;
         if (
+          this.teraIs(e, "POISON", "STEEL") ||
           e.kit.type === "POISON" ||
           e.kit.type2 === "POISON" ||
           e.kit.type2 === "STEEL" ||
@@ -15564,7 +15850,11 @@
             this.emit({ type: "leafGuard", who: t });
             return;
           }
-          if (t.kit.type === "FIRE" || t.kit.type2 === "FIRE") {
+          if (
+            t.kit.type === "FIRE" ||
+            t.kit.type2 === "FIRE" ||
+            this.teraIs(t, "FIRE")
+          ) {
             this.emit({ type: "burnImmune", who: e });
             return;
           }
@@ -16082,7 +16372,10 @@
           e.kit.clearBody ||
             (e.chill > 0 && (m *= 1 - X.froslass.chillSlow * e.chill),
             e.tombT > 0 && (m *= 0.75)),
-          m * this.r3Speed(e) * (e.mSpeed ?? 1)
+          m *
+          this.r3Speed(e) *
+          (e.mSpeed ?? 1) *
+          (e.burstT > 0 && e.burstKind === "mega" ? BURST.mega.speed : 1)
         );
       }
       // Damage multiplier from the attacker's ability and buffs.
@@ -16106,6 +16399,12 @@
             (m *= X.golurk.ironFist),
           t.slot.rage > 0 && (m *= X.garchomp.rageDmg),
           t.slot.meteorT > 0 && (m *= X.metagross.mmBoost),
+          t.burstT > 0 &&
+            (m *=
+              t.burstKind === "mega"
+                ? BURST.mega.out
+                : BURST.tera.out *
+                  (this.attackerType(t) === t.teraType ? BURST.tera.stab : 1)),
           m * r3
         );
       }
@@ -16157,12 +16456,15 @@
             /:smash/.test(String(k)) && (t.slot.curseSm = X.froslass.curseT),
             this.emit({ type: "cursed", who: t, by: w }));
         }
-        return re;
+        return w.burstT > 0 && w.burstKind === "mega"
+          ? Math.round(re * BURST.mega.taken)
+          : re;
       }
       // Chill: stacks slow you; at three you freeze for a moment, then
       // frost immunity stops a second freeze straight away.
       exChill(v, n, by) {
-        if (v.kind !== "player" || v.state === "faint") return;
+        if (v.kind !== "player" || v.state === "faint" || this.teraIs(v, "ICE"))
+          return;
         if (this.statusImmune(v)) return;
         if (v.frostImmT > 0 || v.frozenT > 0) return;
         let c = EXK.froslass;
@@ -16315,6 +16617,7 @@
           this.emit({ type: "overdrive", who: e, x: e.x, y: e.y, r: R, charge: i });
         }
         s.ccDrop &&
+          !(e.burstT > 0 && e.burstKind === "mega") &&
           ((e.slot.ccT = EXK.gallade.ccT),
           this.emit({ type: "ccDrop", who: e }));
         if (s.custom === "inferno") {
@@ -16566,6 +16869,12 @@
         switch (((e.exDanger = 0), e.exMove)) {
           case "grab":
             return this.exGrab(e, P, mag, ang);
+          case "burst":
+            return (
+              this.locomote(e, 0, 0),
+              this.exFr(e, this.grAnim(e, "RearUp", "Charge"), 4, !1),
+              e.t >= BURST.intro && this.exEnd(e)
+            );
           case "roar":
             return this.exRoar(e);
           case "dig":
@@ -17038,6 +17347,54 @@
               dy: Math.sin(a),
             });
         }
+      }
+      // ---- Burst (see BURST) ----
+      teraIs(v, ...ty) {
+        return (
+          v.kind === "player" &&
+          v.burstT > 0 &&
+          v.burstKind === "tera" &&
+          ty.includes(v.teraType)
+        );
+      }
+      startBurst(e) {
+        let mk = MEGA[e.kit.id] && !A.burstPref && this.mons[MEGA[e.kit.id][0]];
+        (e.lgMeter -= BURST.cost),
+          (e.burstUsed = 1),
+          (e.burstT = BURST.t),
+          (e.burstKind = mk ? "mega" : "tera"),
+          (e.teraType = TERA[e.kit.id] ?? e.kit.type);
+        if (mk) {
+          // The Mega sheet, with the base form's animations it lacks.
+          let base = e.slot.mon;
+          (e.slot.monBase = base),
+            (e.slot.mon = { ...mk, anims: { ...base.anims, ...mk.anims } }),
+            e.applyKit();
+        }
+        (e.state = "ex"),
+          (e.t = 0),
+          (e.exMove = "burst"),
+          (e.exAnim = "Charge"),
+          (e.exFrame = 0),
+          (e.exInv = !0),
+          (e.mvx = e.mvy = 0),
+          this.slow(BURST.intro, 0.35),
+          this.emit({ type: "burst", who: e, kind: e.burstKind, tera: e.teraType });
+      }
+      burstTick(e) {
+        if (e.windT > 0) e.windT--;
+        if (!(e.burstT > 0)) return;
+        let i = e.slot,
+          // Cooldowns run a third faster (Mega Gardevoir: twice as fast).
+          fast = e.burstKind === "mega" && e.kit.id === "gardevoir" ? 2 : 3;
+        this.tick % fast === 0 && (i.cdX > 0 && i.cdX--, i.cdY > 0 && i.cdY--);
+        // Mega Gengar: Shadow Sneak (its Y) is always ready.
+        e.burstKind === "mega" && e.kit.id === "gengar" && (i.cdY = 0);
+        if (--e.burstT > 0) return;
+        e.slot.monBase &&
+          ((e.slot.mon = e.slot.monBase), (e.slot.monBase = null), e.applyKit()),
+          (e.windT = BURST.wind),
+          this.emit({ type: "burstEnd", who: e });
       }
       // ---- Grabs (see GRABS) ----
       grabOf(e) {
@@ -20483,6 +20840,8 @@
         C = 0,
       ) {
         this.hitBy = t;
+        // Poké Ball: a hit sends the ball off with the hit's knockback.
+        if (e.kind === "ball") return this.kickBall(t, i, r, o);
         // A fighter held in a grab (Crunch, Psychic) can only be hurt by the
         // one holding it, so a grab is never a free hit for everyone else.
         if (e.heldBy && t && t !== e.heldBy && t.summoner !== e.heldBy) return;
@@ -20524,10 +20883,12 @@
           E = !1,
           Q =
             e.kind === "player" && !lg
-              ? e.protean
-                ? Ua(this.attackerType(t), e.protean)
-                : Ua(this.attackerType(t), e.kit.type) *
-                  (e.kit.type2 ? Ua(this.attackerType(t), e.kit.type2) : 1)
+              ? e.burstT > 0 && e.burstKind === "tera"
+                ? Ua(this.attackerType(t), e.teraType)
+                : e.protean
+                  ? Ua(this.attackerType(t), e.protean)
+                  : Ua(this.attackerType(t), e.kit.type) *
+                    (e.kit.type2 ? Ua(this.attackerType(t), e.kit.type2) : 1)
               : 1,
           ie = M && t && t.kind === "player" && t.slot.burnT > 0 ? 0.7 : 1,
           an =
@@ -20613,8 +20974,19 @@
         }
         mutOn("mutInvis") &&
           ((e.seenT = this.tick + 10), t && (t.seenT = this.tick + 10));
-        // Counter-hits stun longer and build more legendary meter.
-        (this.hitMeter = cnt ? 1.5 : 1),
+        // Mega Charizard X: every hit burns.
+        t?.kind === "player" &&
+          t.burstT > 0 &&
+          t.burstKind === "mega" &&
+          t.kit.id === "charizard" &&
+          e.kind === "player" &&
+          e.team !== t.team &&
+          e.state !== "guard" &&
+          this.burn(e);
+        // Counter-hits stun longer and build more legendary meter; a
+        // super-effective hit builds more too, a resisted one pushes less.
+        Q < 0.99 && (i *= 0.85);
+        (this.hitMeter = (cnt ? 1.5 : 1) * (Q > 1.01 ? 1.25 : 1)),
           cnt &&
             ((u += 8),
             (f += 4),
@@ -21259,7 +21631,7 @@
   function seatsMax() {
     return [0, 4, 6, 9].includes(A.gameMode)
       ? 1
-      : A.gameMode === 3
+      : teamMode()
         ? 3
         : [2, 8, 10].includes(A.gameMode)
           ? cpuNeed()
@@ -23483,6 +23855,89 @@
         c.flee > 0 ? "Walk" : "Idle",
       );
     }
+  }
+  // Poké Ball: two goal frames with nets (your side blue, theirs red), the
+  // centre circle, and the giant ball itself, rolling.
+  function ballDraw(a, e) {
+    let b = e.ball,
+      t = e.tick,
+      gh = BALL.goalH,
+      tc = TAGC[A.colors] ?? TAGC[0];
+    // The goals sit just inside each end: a netted box, posts, and the
+    // goal line in the side's colour.
+    for (let [gx, col, dir] of [
+      [B.x0, tc.p1, 1],
+      [B.x1, tc.cpu[0], -1],
+    ]) {
+      let x0 = dir > 0 ? gx : gx - 20;
+      a.save(),
+        (a.globalAlpha = 0.28),
+        (a.fillStyle = col),
+        a.fillRect(x0, Te - gh / 2, 20, gh),
+        (a.globalAlpha = 0.55),
+        (a.strokeStyle = "#ffffff"),
+        (a.lineWidth = 0.7);
+      for (let n = 0; n <= 8; n++) {
+        let y = Te - gh / 2 + (gh * n) / 8;
+        a.beginPath(), a.moveTo(x0, y), a.lineTo(x0 + 20, y), a.stroke();
+      }
+      for (let n = 0; n <= 4; n++)
+        a.beginPath(), a.moveTo(x0 + 5 * n, Te - gh / 2), a.lineTo(x0 + 5 * n, Te + gh / 2), a.stroke();
+      (a.globalAlpha = 1),
+        (a.fillStyle = col),
+        a.fillRect(x0, Te - gh / 2 - 2, 20, 3),
+        a.fillRect(x0, Te + gh / 2 - 1, 20, 3),
+        a.fillRect(dir > 0 ? x0 + 19 : x0, Te - gh / 2 - 2, 2.5, gh + 4),
+        a.restore();
+    }
+    let r = b.r;
+    // Shadow, then the ball: red top, white bottom, a black band and the
+    // button, turned by its spin.
+    a.save(),
+      (a.globalAlpha = 0.35),
+      (a.fillStyle = "#000000"),
+      a.beginPath(),
+      a.ellipse(b.x, b.y + r * 0.85, r * 0.9, r * 0.35, 0, 0, Math.PI * 2),
+      a.fill(),
+      (a.globalAlpha = 1),
+      a.translate(b.x, b.y - 2),
+      a.rotate(b.spin),
+      (a.fillStyle = "#ffffff"),
+      a.beginPath(),
+      a.arc(0, 0, r, 0, Math.PI * 2),
+      a.fill(),
+      (a.fillStyle = "#e8403a"),
+      a.beginPath(),
+      a.arc(0, 0, r, Math.PI, Math.PI * 2),
+      a.fill(),
+      (a.fillStyle = "#1a1a24"),
+      a.fillRect(-r, -1.5, r * 2, 3),
+      a.beginPath(),
+      a.arc(0, 0, 4.5, 0, Math.PI * 2),
+      a.fill(),
+      (a.fillStyle = "#ffffff"),
+      a.beginPath(),
+      a.arc(0, 0, 2.6, 0, Math.PI * 2),
+      a.fill(),
+      (a.strokeStyle = "#1a1a24"),
+      (a.lineWidth = 1.2),
+      a.beginPath(),
+      a.arc(0, 0, r, 0, Math.PI * 2),
+      a.stroke(),
+      a.restore();
+    // Fast: a streak behind it.
+    let sp = Math.hypot(b.vx, b.vy);
+    sp > 4 &&
+      (a.save(),
+      (a.globalAlpha = Math.min(0.5, sp / 20)),
+      (a.strokeStyle = "#ffffff"),
+      (a.lineWidth = r),
+      (a.lineCap = "round"),
+      a.beginPath(),
+      a.moveTo(b.x - b.vx * 3, b.y - 2 - b.vy * 3),
+      a.lineTo(b.x, b.y - 2),
+      a.stroke(),
+      a.restore());
   }
   // Fog of War: the arena dark beyond a circle of sight round each fighter
   // played on this screen (P1 and any local players).
@@ -28053,6 +28508,7 @@
     lightPools(a, e);
     for (let h of e.rocks) rockGround(a, h, e.tick);
     e.item && dt2(a, e.item, e.tick);
+    e.ball && ballDraw(a, e);
     for (let h of e.players) dzone(a, e, h);
     // You're It!: a pulsing ring in the sticker's colour under whoever is it.
     if (e.it?.who && e.it.who.state !== "faint") {
@@ -29231,6 +29687,14 @@
         l.fh,
       ),
       (a.filter = "none"),
+      C &&
+        C.burstT > 0 &&
+        C.burstKind === "tera" &&
+        (a.save(),
+        (a.globalCompositeOperation = "lighter"),
+        (a.globalAlpha = (0.3 + 0.12 * Math.sin(t.tick * 0.2)) * v),
+        a.drawImage(l.tints.get(Rt[C.teraType] ?? "#ffffff") ?? l.white, p, k, l.fw, l.fh, M, P, l.fw, l.fh),
+        a.restore()),
       v < 1 &&
         ((a.globalAlpha = 0.5 * v),
         a.drawImage(
@@ -32518,6 +32982,7 @@
     p.kit.id === "toxtricity" && overToxtricity(a, e, p, t);
     p.kit.id === "gallade" && overGallade(a, e, p, t);
     p.state === "ex" && p.exMove === "grab" && overGrab(a, e, p, t);
+    p.burstT > 0 && overBurst(a, e, p, t);
     p.kit.id === "ceruledge" && overCeruledge(a, e, p, t);
     p.kit.id === "volcarona" && overVolcarona(a, e, p, t);
     (p.slot.arT ?? 0) > 0 && overAquaRing(a, p, t);
@@ -32793,6 +33258,61 @@
     a.restore();
   }
   // Gallade with its guard down after Close Combat: a red flicker.
+  // Burst: a Tera jewel crown and facets in the Tera type's colour, or a
+  // Mega's rainbow aura; a ring round the feet runs down with the time left.
+  function overBurst(a, e, p, t) {
+    let x = p.x,
+      y = p.y,
+      hgt = (p.kit.tall ?? 30) * Bz(p),
+      k = p.burstT / BURST.t,
+      tera = p.burstKind === "tera",
+      col = tera ? (Rt[p.teraType] ?? "#ffffff") : "#ffffff";
+    a.save(), (a.globalCompositeOperation = "lighter");
+    // The time-left ring.
+    (a.strokeStyle = tera ? col : `hsl(${(t * 6) % 360},90%,65%)`),
+      (a.globalAlpha = 0.7),
+      (a.lineWidth = 1.6),
+      a.beginPath(),
+      a.ellipse(x, y, 15, 6, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k),
+      a.stroke();
+    if (tera) {
+      // Facets: a few shards round the body, and the jewel crown.
+      for (let n = 0; n < 5; n++) {
+        let q = (n / 5) * Math.PI * 2 + t * 0.03,
+          sx = x + Math.cos(q) * 12,
+          sy = y - hgt * 0.5 + Math.sin(q) * hgt * 0.45;
+        (a.globalAlpha = 0.5 + 0.3 * Math.sin(t * 0.2 + n)),
+          (a.fillStyle = col),
+          a.beginPath(),
+          a.moveTo(sx, sy - 3),
+          a.lineTo(sx + 2, sy),
+          a.lineTo(sx, sy + 3),
+          a.lineTo(sx - 2, sy),
+          a.closePath(),
+          a.fill();
+      }
+      let cy = y - hgt - 6 + Math.sin(t * 0.1);
+      (a.globalAlpha = 0.95), (a.fillStyle = col), a.beginPath();
+      for (let n = 0; n < 5; n++) {
+        let q = -Math.PI / 2 + (n / 5) * Math.PI * 2,
+          r = n % 2 ? 3 : 6;
+        a.lineTo(x + Math.cos(q) * r, cy + Math.sin(q) * r * 0.8);
+      }
+      a.closePath(), a.fill(), (a.fillStyle = "#ffffff"), a.fillRect(x - 1, cy - 2, 2, 2);
+    } else {
+      // A Mega's aura: rainbow motes rising round it.
+      for (let n = 0; n < 8; n++) {
+        let ph = ((t + n * 9) % 40) / 40,
+          q = n * 0.8 + t * 0.05,
+          sx = x + Math.cos(q) * 13,
+          sy = y - ph * hgt * 1.2;
+        (a.globalAlpha = 0.8 * (1 - ph)),
+          (a.fillStyle = `hsl(${(n * 45 + t * 4) % 360},90%,65%)`),
+          a.fillRect(Math.round(sx), Math.round(sy), 2, 2);
+      }
+    }
+    a.restore();
+  }
   // Grabs: a tether's line (vine, water, psychic grip, magnet beam), the
   // shadow a phase grab rises from, and a gleam on the grip as it closes.
   var GRAB_LINE = {
@@ -35756,6 +36276,23 @@
   // Rules on the HUD: the clock (time limit), SUDDEN DEATH, and which
   // mutators are on.
   function ruleHud(e, a) {
+    if (e.ball) {
+      let b = e.ball,
+        tc = TAGC[A.colors] ?? TAGC[0],
+        left = Math.max(0, Math.ceil((BALL.time - (e.goTick == null ? 0 : e.tick - e.goTick)) / 60));
+      te(H / 2 - 34, 40, 68, 16, "rgba(11,9,24,0.8)", 4),
+        V(`${b.score[0]}`, H / 2 - 20, 53, 12, tc.p1, { align: "center", outline: 2 }),
+        V(`${b.score[1]}`, H / 2 + 20, 53, 12, tc.cpu[0], { align: "center", outline: 2 }),
+        G(
+          b.golden ? "GOLDEN GOAL" : `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`,
+          H / 2,
+          50.5,
+          b.golden ? 4.4 : 6,
+          b.golden ? g.gold : "#ffffff",
+          { align: "center", weight: 800 },
+        );
+      return;
+    }
     let T = RULES.times[A.timeLimit | 0] ?? 0,
       mm = MUT_KEYS.filter((k) => mutOn(k)),
       y = 48;
@@ -37106,6 +37643,24 @@
         LG_INFO[t.legend]?.name ? tc(LG_INFO[t.legend].name) : "Legend",
         Math.min(1, t.lgMeter / 100),
         t.lgMeter >= 100 ? "" : `${Math.floor(t.lgMeter)}%`,
+      ]);
+    // Burst: ready at half the meter, once a match; a bar while it lasts.
+    t.legend &&
+      f.push([
+        r ? "BURST" : "G",
+        t.burstT > 0
+          ? t.burstKind === "mega"
+            ? "Mega"
+            : "Tera"
+          : MEGA[t.kit.id] && !A.burstPref
+            ? "Mega"
+            : "Tera",
+        t.burstT > 0
+          ? t.burstT / BURST.t
+          : t.burstUsed
+            ? 0
+            : Math.min(1, t.lgMeter / BURST.cost),
+        t.burstUsed && !(t.burstT > 0) ? "used" : "",
       ]);
     // A skill bar: one key cap per move, a clock-wipe while it recharges
     // with the seconds left, a coloured rim and a glow when it is ready.
@@ -38970,7 +39525,7 @@
       // other rivals (Free-for-All) beside the leads, each side's
       // legendary and the stage between them.
       let sl = (1 - Ee(Math.min(1, t / 16))) * 170,
-        tm = A.gameMode === 3 ? teamExtras(a) : null,
+        tm = teamMode() ? teamExtras(a) : null,
         rv = cpuSide()
           ? isFfa()
             ? a.cpuPicks
@@ -46145,6 +46700,7 @@
       { gm: 3, r: 1, c: 1, label: "Team 2v2", desc: "You and a CPU partner against two CPUs.", tag: "2V2", icon: "team", color: "#33d6ff" },
       { gm: 8, r: 1, c: 2, label: "You're It!", desc: "Melee hits pass the Slugma on. Being it drains you.", tag: "3\u20134 FIGHTERS", icon: "it", color: "#ff7a3c" },
       { gm: 10, r: 1, c: 3, label: "Thin Ice Party", desc: "A cracking lake and three or four fighters.", tag: "3\u20134 FIGHTERS", icon: "thinparty", color: "#9fe0ff" },
+      { gm: 11, r: 2, c: 0, label: "Pok\u00e9 Ball", desc: "2v2 football: knock the giant ball into their goal. First to two.", tag: "2V2", icon: "ball", color: "#e8403a" },
       { gm: 7, r: 2, c: 1, label: "Pidgey Sweep", desc: "Clear the Stadium of Pidgey in 60 seconds.", tag: "SOLO", icon: "sweep", color: "#ffd166" },
       { gm: 13, r: 3, c: 0, label: "Daily Challenge", desc: "Today's fighter, stage and two mutators. Three fights, one score.", tag: "SOLO \u00b7 DAILY", icon: "daily", color: "#ffd166" },
     ];
@@ -46638,6 +47194,9 @@
       R("dodge", "B", ["dodge", "back"], 462, 178, 14),
       R("guard", "GUARD", ["guard"], 436, 152, 12),
       R("grab", "GRAB", ["grab"], 470, 208, 10),
+      ...(e.player.legend && !e.player.burstUsed && e.player.lgMeter >= BURST.cost
+        ? [R("burst", "BURST", ["burst"], 440, 118, 9)]
+        : []),
       ...(e.player.legend
         ? [R("legend", "LEGEND", ["legend"], 466, 132, 11)]
         : []),
@@ -47977,13 +48536,14 @@
       // CPU, the rest come in as the extra fighters.
       isFfa() &&
         (e.match.extraPreset = s.cpuPicks.slice(1).map((R) => [R]));
-      A.gameMode === 3 && (e.match.extraPreset = teamExtras(s));
+      teamMode() && (e.match.extraPreset = teamExtras(s));
       let Ar = A.arena;
       A.gameMode === 7 && (A.arena = 0);
       e.stockN = s.arcade || !livesMode() ? 1 : (A.lives ?? 1);
       e.shinyTeams = [s.picks.map(shinyWant), []];
       e.itGame = A.gameMode === 8 && !s.arcade;
       e.thinGame = thinMode() && !s.arcade;
+      e.ballGame = A.gameMode === 11 && !s.arcade;
       s.arcade &&
         (A.arena = (s.arcade.arena0 + s.arcade.stage) % ARENAS.length);
       e.startMatch(
@@ -50365,6 +50925,46 @@
                 t.ring(n.x, n.y, 8, n.big ? 3.4 : 2.6, 18, "#e9d8b0"),
                 t.dust(n.x, n.y, 10, 0, 0, 1.4))
               : t.dust(n.x, n.y, 4, n.dx, n.dy, 0.8);
+          break;
+        case "burst": {
+          let w = n.who;
+          n.kind === "mega"
+            ? (S.ultHit?.(),
+              t.shake(0, 2, 10),
+              t.ring(w.x, w.y - 14, 6, 3.8, 22, "#ffffff", !0),
+              t.ring(w.x, w.y - 14, 4, 2.6, 18, "#ff7ad0", !0),
+              t.ring(w.x, w.y - 14, 2, 1.8, 14, "#4aa3ff", !0),
+              t.banner("MEGA EVOLUTION", "#ffffff", 70, w.kit.name))
+            : (S.charge(),
+              t.shake(0, 1.4, 8),
+              t.ring(w.x, w.y - 14, 6, 3.4, 20, Rt[n.tera] ?? "#ffffff", !0),
+              t.motes(w.x, w.y - 18, 14, 20, Rt[n.tera] ?? "#ffffff", 1.6),
+              t.banner("TERASTALLIZED", Rt[n.tera] ?? "#ffffff", 70, `${n.tera} type`));
+          break;
+        }
+        case "burstEnd":
+          t.ring(n.who.x, n.who.y - 12, 10, -0.6, 14, "#ffffff", !0), S.back();
+          break;
+        case "ballHit":
+          I("tri", F(52 + Math.min(20, n.v * 2)), F(40), 0.08, 0.03),
+            n.v > 7 && t.ring(n.x, n.y - 2, 4, 1.6, 10, "#ffffff", !0);
+          break;
+        case "goal": {
+          let tc = TAGC[A.colors] ?? TAGC[0],
+            col = n.mine ? tc.p1 : tc.cpu[0];
+          S.boom(),
+            S.callout(3),
+            t.shake(0, 3, 16),
+            t.ring(n.x, n.y, 10, 4, 26, col, !0),
+            t.motes(n.x, n.y - 10, 30, 40, col, 2.4),
+            t.banner("GOAL!", col, 90, `${n.score[0]} \u2013 ${n.score[1]}`);
+          break;
+        }
+        case "whistle":
+          I("sq", F(88), F(88), 0.18, 0.04), I("sq", F(88), F(88), 0.12, 0.04, 0.22);
+          break;
+        case "goldenGoal":
+          S.boom(), t.banner("GOLDEN GOAL", "#ffd166", 90, "next goal wins");
           break;
         case "ringOut":
           S.boom(),
