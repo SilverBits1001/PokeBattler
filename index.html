@@ -209,6 +209,25 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ffaPlayers: 4,
       // Lives per fighter (1 = a single KO ends it).
       lives: 1,
+      // Match rules: a preset (0 Custom, 1 Tournament, 2 Party), arena
+      // hazards, a time limit (index into RULES.times), ring out, the type
+      // chart (0 Standard, 1 Type Match) and the mutators (each 0 / 1).
+      rules: 0,
+      hazards: 1,
+      timeLimit: 0,
+      ringOut: 0,
+      typeMatch: 0,
+      mutGiant: 0,
+      mutTiny: 0,
+      mutFast: 0,
+      mutSlow: 0,
+      mutMirror: 0,
+      mutSudden: 0,
+      mutMetal: 0,
+      mutFog: 0,
+      mutChaos: 0,
+      mutBouncy: 0,
+      mutInvis: 0,
       showHitboxes: 0,
       swapFace: 0,
       // Touch: auto-target the nearest foe, an extra Smash button, button
@@ -275,6 +294,57 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   function jt() {
     Object.assign(A, Xt), Ze();
   }
+  // Rules presets. Changing any of these by hand makes the preset Custom.
+  var RULES = {
+      // Time limits in ticks (index = A.timeLimit).
+      times: [0, 7200, 10800, 18000],
+      // A launch into the arena's edge this fast is a ring out.
+      ringOutSpeed: 4.2,
+    },
+    MUT_KEYS = [
+      "mutGiant",
+      "mutTiny",
+      "mutFast",
+      "mutSlow",
+      "mutMirror",
+      "mutSudden",
+      "mutMetal",
+      "mutFog",
+      "mutChaos",
+      "mutBouncy",
+      "mutInvis",
+    ],
+    RULE_KEYS = [
+      "items",
+      "legends",
+      "hazards",
+      "timeLimit",
+      "ringOut",
+      "typeMatch",
+      ...MUT_KEYS,
+    ];
+  function applyRules(k) {
+    let off = Object.fromEntries(MUT_KEYS.map((m) => [m, 0]));
+    k === 1
+      ? Object.assign(A, off, {
+          items: 0,
+          legends: 0,
+          hazards: 0,
+          ringOut: 1,
+          timeLimit: 2,
+          typeMatch: 0,
+        })
+      : k === 2 &&
+        Object.assign(A, off, {
+          items: 1,
+          legends: 1,
+          hazards: 1,
+          ringOut: 0,
+          timeLimit: 0,
+          typeMatch: 1,
+          mutBouncy: 1,
+        });
+  }
   var Re = [
     { kind: "header", label: "Sound" },
     {
@@ -312,6 +382,48 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       label: "Items",
       options: ["Off", "On"],
     },
+    {
+      kind: "choice",
+      key: "rules",
+      label: "Rules preset",
+      options: ["Custom", "Tournament", "Party"],
+    },
+    {
+      kind: "choice",
+      key: "hazards",
+      label: "Arena hazards",
+      options: ["Off", "On"],
+    },
+    {
+      kind: "choice",
+      key: "timeLimit",
+      label: "Time limit",
+      options: ["Off", "2 min", "3 min", "5 min"],
+    },
+    {
+      kind: "choice",
+      key: "ringOut",
+      label: "Ring out",
+      options: ["Off", "On"],
+    },
+    {
+      kind: "choice",
+      key: "typeMatch",
+      label: "Type match-ups",
+      options: ["Standard", "Type Match (full chart)"],
+    },
+    { kind: "header", label: "Mutators" },
+    { kind: "choice", key: "mutGiant", label: "Giant", options: ["Off", "On"] },
+    { kind: "choice", key: "mutTiny", label: "Tiny", options: ["Off", "On"] },
+    { kind: "choice", key: "mutFast", label: "Fast", options: ["Off", "On"] },
+    { kind: "choice", key: "mutSlow", label: "Slow", options: ["Off", "On"] },
+    { kind: "choice", key: "mutMirror", label: "Mirror match", options: ["Off", "On"] },
+    { kind: "choice", key: "mutSudden", label: "Sudden Death", options: ["Off", "On"] },
+    { kind: "choice", key: "mutMetal", label: "Metal", options: ["Off", "On"] },
+    { kind: "choice", key: "mutFog", label: "Fog of War", options: ["Off", "On"] },
+    { kind: "choice", key: "mutChaos", label: "Cooldown Chaos", options: ["Off", "On"] },
+    { kind: "choice", key: "mutBouncy", label: "Bouncy", options: ["Off", "On"] },
+    { kind: "choice", key: "mutInvis", label: "Invisible", options: ["Off", "On"] },
     { kind: "header", label: "Accessibility" },
     {
       kind: "choice",
@@ -570,6 +682,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     })(),
     OPT_TABS = [
       ["Game", ["Match", "Practice"]],
+      ["Rules", ["Mutators"]],
       ["Audio", ["Sound"]],
       ["Controls", ["Controls"]],
       ["Accessibility", ["Accessibility"]],
@@ -3973,7 +4086,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         this.punishedT = -1;
       }
       think(e, t) {
-        let i = this.adapt(e, t, this.modeLayer(e, t, this.decide(e, t)));
+        let i = this.grabLayer(
+          e,
+          t,
+          this.adapt(e, t, this.modeLayer(e, t, this.decide(e, t))),
+        );
         if (t.state === "move" && e.tick - t.lastKoTick === 40) {
           let s = e.nearestTarget(t.team, t.x, t.y);
           (!s || s.state === "faint" || Math.hypot(s.x - t.x, s.y - t.y) > 110) &&
@@ -4096,6 +4213,41 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           c < bs && ((bs = c), (best = v));
         }
         return best;
+      }
+      // Every CPU grabs: a foe turtling in guard (Hard reads it fast), now
+      // and then a foe standing still, and tethers from range.
+      grabLayer(e, t, i) {
+        if (t.state !== "move" && t.state !== "guard") return i;
+        if (i.pressed.size && !i.pressed.has("attack")) return i;
+        let o = t.lock ?? e.nearestTarget(t.team, t.x, t.y);
+        if (!o || o.kind !== "player") return i;
+        let g = { ...GRAB_BASE, ...(GRABS[t.kit.id] ?? {}) },
+          y = Math.hypot(o.x - t.x, o.y - t.y),
+          R = g.kind === "tether" ? g.reach : t.r + g.reach + o.hurtR * 0.5,
+          lv = this.level ?? A.cpuLevel ?? 1;
+        if (
+          y > R - 2 ||
+          o.heldBy ||
+          o.grabImmT > e.tick ||
+          (!g.air && e.floating(o)) ||
+          o.invincible
+        )
+          return i;
+        let p =
+          o.state === "guard" && o.t > 10
+            ? [0.03, 0.07, 0.13][lv]
+            : o.state === "move" || o.state === "guardEnd"
+              ? (g.kind === "tether" ? 0.007 : 0.008) * (0.5 + 0.5 * lv)
+              : 0;
+        return (
+          this.rand() < p &&
+            ((i.pressed = new Set(["grab"])),
+            (i.held = new Set()),
+            (i.mx = i.my = 0),
+            (i.mx = (o.x - t.x) / y),
+            (i.my = (o.y - t.y) / y)),
+          i
+        );
       }
       modeLayer(e, t, i) {
         if (this.modeLegacy) return this.modeOld(e, t, i);
@@ -5706,7 +5858,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     Na = 2,
     yt = { strong: 1.05, weak: 0.95 },
     // Banners that may take the middle of the screen: the round's flow only.
-    BANNER_CENTER = /^(READY\?|GO!|K\.O\.!|VICTORY!|DEFEAT|DRAW|TIME)/,
+    BANNER_CENTER = /^(READY\?|GO!|K\.O\.!|VICTORY!|DEFEAT|DRAW|TIME|RING OUT|SUDDEN DEATH)/,
     // Mid-fight words become icons: there is no time to read in a fight.
     // Each callout maps to a glyph (and a sound for statuses); move names and
     // anything the animation already shows are dropped. Numbers stay.
@@ -5740,6 +5892,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       [/^SOLAR READY/, "sun"],
       [/^SHIELD CRUSH/, "shieldX"],
       [/^(PARRY|PUNISH|ANALYTIC)/, "spark"],
+      [/^COUNTER/, "bang"],
+      [/^CRITICAL/, "burst"],
       [/^(TECH|SUPER EFFECTIVE)/, "up2"],
       [/^not very effective/, "down2"],
     ],
@@ -6019,6 +6173,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         voltBoom: [18, 42],
         rockSlide: [14, 32],
         rockTomb: [14, 28],
+        grabThrow: [10, 24],
+        grabSlam: [22, 40],
         rockRise: [12, 28],
         rockWrecker: [18, 34, 36],
         icicle: [10, 20],
@@ -6092,7 +6248,63 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       medals: [25, 50, 75],
       key: "pocketbrawl-sweep-v1",
     },
-    // Taunts: T (R3 on a pad) with the stick picking the emote. The fighter
+    // Grabs (RB / U). Every Pokémon grabs its own way, in one of five
+    // archetypes:
+    //   toss    clinch, then throw where the stick points (the baseline);
+    //   slam    slow and short; lifts the foe and slams them down in front;
+    //   bite    fast; chomps a few times, then flicks the foe loose (a
+    //           partner can hit the biter out of it);
+    //   tether  a ranged pull (vine, water, psychic); slow and punishable;
+    //   phase   a ghost or trickster grab: swaps places or reappears behind.
+    // st startup, reach (tethers: their range), dmg and kb of the throw
+    // (before the kit's power), rec ticks of whiff recovery. Extras: bites
+    // (each chomp), hold (ticks held before the throw), air (catches
+    // floaters), status [kind, chance], inv [from, to] i-frames in startup,
+    // armor (can't be hit out of the hold), and the twists named below.
+    // A grab can't be guarded; it whiffs on a dodge, a downed foe and a
+    // foe thrown in the last GRAB_IMMUNE ticks.
+    GRAB_IMMUNE = 40,
+    GRAB_BASE = { kind: "toss", st: 8, reach: 14, dmg: 16, kb: 7.5, rec: 22 },
+    GRABS = {
+      snorlax: { kind: "slam", st: 14, reach: 14, dmg: 26, kb: 6, rec: 26, hold: 14, quake: 1 },
+      rhyperior: { kind: "slam", st: 13, reach: 16, dmg: 24, kb: 8, rec: 24, hold: 12 },
+      golurk: { kind: "slam", st: 14, reach: 18, dmg: 22, kb: 9, rec: 26, hold: 12 },
+      metagross: { kind: "slam", st: 12, reach: 14, dmg: 22, kb: 7, rec: 24, hold: 20, armor: 1 },
+      tyrantrum: { kind: "bite", st: 9, reach: 16, dmg: 8, kb: 7, rec: 22, bites: [6, 6, 6], armor: 1 },
+      garchomp: { kind: "bite", st: 8, reach: 15, dmg: 8, kb: 7.5, rec: 22, bites: [5, 5, 5], drag: 1 },
+      charizard: { kind: "bite", st: 8, reach: 14, dmg: 8, kb: 7, rec: 22, bites: [4, 4, 4], status: ["burn", 1] },
+      noivern: { kind: "bite", st: 7, reach: 14, dmg: 6, kb: 6.5, rec: 22, bites: [4, 4, 4], air: 1 },
+      lucario: { kind: "toss", st: 7, reach: 13, dmg: 16, kb: 8.5, rec: 22, spin: 1 },
+      scizor: { kind: "toss", st: 6, reach: 12, dmg: 14, kb: 7, rec: 22 },
+      gallade: { kind: "toss", st: 7, reach: 14, dmg: 18, kb: 7.5, rec: 22, faceAway: 1 },
+      blastoise: { kind: "toss", st: 11, reach: 13, dmg: 18, kb: 8, rec: 24 },
+      inteleon: { kind: "toss", st: 9, reach: 13, dmg: 10, kb: 6, rec: 30 },
+      volcarona: { kind: "toss", st: 10, reach: 14, dmg: 14, kb: 6, rec: 22, status: ["burn", 1], air: 1 },
+      aegislash: { kind: "toss", st: 10, reach: 13, dmg: 16, kb: 7, rec: 22, blade: { st: 7, dmg: 20, kb: 8 } },
+      ceruledge: { kind: "toss", st: 8, reach: 14, dmg: 16, kb: 7.5, rec: 22, bleed: 1 },
+      pikachu: { kind: "toss", st: 6, reach: 11, dmg: 9, kb: 6, rec: 20, bounce: 1 },
+      toxtricity: { kind: "toss", st: 9, reach: 13, dmg: 14, kb: 7, rec: 22, status: ["para", 0.4] },
+      greninja: { kind: "phase", st: 6, reach: 12, dmg: 10, kb: 5, rec: 22, behind: 1 },
+      zoroark: { kind: "phase", st: 8, reach: 13, dmg: 14, kb: 7, rec: 22, swap: 1 },
+      gengar: { kind: "phase", st: 9, reach: 12, dmg: 14, kb: 6.5, rec: 22, inv: [3, 8], behind: 1 },
+      dragapult: { kind: "phase", st: 8, reach: 14, dmg: 12, kb: 7, rec: 22, inv: [2, 6] },
+      froslass: { kind: "phase", st: 9, reach: 13, dmg: 12, kb: 6, rec: 22, status: ["chill", 1] },
+      chandelure: { kind: "tether", st: 12, reach: 60, dmg: 14, kb: 6, rec: 26, status: ["burn", 1] },
+      venusaur: { kind: "tether", st: 11, reach: 80, dmg: 16, kb: 7, rec: 28 },
+      lurantis: { kind: "tether", st: 10, reach: 55, dmg: 16, kb: 7, rec: 26 },
+      milotic: { kind: "tether", st: 12, reach: 60, dmg: 12, kb: 6, rec: 30, coil: 16 },
+      gardevoir: { kind: "tether", st: 16, reach: 75, dmg: 14, kb: 7, rec: 32 },
+      magnezone: { kind: "tether", st: 13, reach: 70, dmg: 12, kb: 6.5, rec: 28, status: ["para", 0.25], steel: 2 },
+    },
+    // What each kind is called in the move list, and a line on how it plays.
+    GRAB_INFO = {
+      toss: ["Throw", "Grab and throw where you point. Beats guard."],
+      slam: ["Slam", "Slow and short; slams them down hard. Beats guard."],
+      bite: ["Bite", "Fast; chomps three times, then flicks them away. Beats guard."],
+      tether: ["Pull", "Pulls a foe in from range, then throws. Slow; beats guard."],
+      phase: ["Phase grab", "Grabs from a strange angle and throws. Beats guard."],
+    },
+    // Taunts: T (D-pad down on a pad) with the stick picking the emote. The fighter
     // commits to it, so a taunt in a rival's face can be punished.
     // [name, animation (Idle if missing), glyph, colour]
     TAUNT = {
@@ -7286,7 +7498,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           this.applyKit();
       }
       get isCpu() {
-        return !!this.brain && !this.brain.net;
+        return !!this.brain && !this.brain.net && !this.brain.human;
       }
       // For drawing: a CPU, or the other human in an online match.
       get isRival() {
@@ -7301,8 +7513,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       applyKit() {
         let e = this.kit;
         (this.mon = this.slot.mon),
-          (this.r = e.r),
-          (this.hurtR = e.hurtR),
+          (this.r = e.r * (this.mSize ?? 1)),
+          (this.hurtR = e.hurtR * (this.mSize ?? 1)),
           (this.tintColor = e.color);
       }
       get invincible() {
@@ -7891,6 +8103,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         // on the frame its main theme comes in (INTRO_GO). Later rounds, and
         // Training, take the short count.
         A.arena = ar0;
+        // Mutators and the time limit.
+        (this.sudden = 0), (this.timeLeft = 0);
+        for (let o of this.players) this.mutFighter(o);
+        A.mutSudden && A.items && (this.itemT = Math.min(this.itemT, 240));
+        // Arena hazards off: none of the stage's timed events.
+        A.hazards === 0 &&
+          ((this.surgeT = 1e9), (this.sphealT = 1e9), (this.fieldT = 1e9), (this.ventT = 1e9));
         (this.introLen = this.intro =
           r.round === 1 && e !== "practice" ? INTRO_GO + 20 : 70),
           (this.goTick = null),
@@ -7899,6 +8118,47 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             round: r.round,
             cpuKit: (this.cpu ?? this.players[0]).kit,
           });
+      }
+      // ---- Rules and mutators ----
+      mutFighter(o) {
+        let sz = 1,
+          sp = 1,
+          kb = 1,
+          hp = 1;
+        A.mutGiant && ((sz *= 1.6), (hp *= 1.5), (kb *= 0.6), (sp *= 0.9));
+        A.mutTiny && ((sz *= 0.6), (sp *= 1.2), (hp *= 0.7));
+        A.mutMetal && ((kb *= 0.5), (sp *= 0.8));
+        A.mutBouncy && (kb *= 1.5);
+        (o.mSize = sz), (o.mSpeed = sp), (o.mKb = kb), (o.metal = !!A.mutMetal);
+        for (let sl of o.slots)
+          (sl.maxHp = Math.round(sl.maxHp * hp)),
+            (sl.hp = A.mutSudden ? 1 : Math.min(sl.maxHp, Math.round(sl.hp * hp)));
+        o.applyKit();
+      }
+      // Time limit: at zero the side with more lives, then more HP left,
+      // wins; level, and it goes to sudden death (everyone on 1 HP).
+      timeTick() {
+        let m = this.match,
+          T = RULES.times[A.timeLimit | 0] ?? 0;
+        if (!T || this.goTick == null || m.phase !== "fight" || this.sudden) return;
+        if (["practice", "sweep", "zone"].includes(m.mode) || this.it) return;
+        if ((this.timeLeft = T - (this.tick - this.goTick)) > 0) return;
+        let score = new Map();
+        for (let o of this.players) {
+          if (o.out) continue;
+          let v = (o.lives ?? 1) * 1e3 + o.slots.reduce((a, sl) => a + (sl.hp / sl.maxHp) * 100, 0);
+          score.set(o.team, (score.get(o.team) ?? 0) + v);
+        }
+        let rank = [...score.entries()].sort((a, b) => b[1] - a[1]);
+        if (rank.length < 2 || rank[0][1] - rank[1][1] > 1) {
+          this.emit({ type: "timeUp" }),
+            this.endRound(rank[0]?.[0] === this.players[0].team ? "win" : "lose");
+          return;
+        }
+        this.sudden = 1;
+        for (let o of this.players)
+          if (!o.out) for (let sl of o.slots) sl.hp > 0 && (sl.hp = 1), (o.lives = 1);
+        this.emit({ type: "suddenDeath" });
       }
       // ---- You're It! ----
       itTick() {
@@ -8610,6 +8870,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       }
       updateMatch() {
         let e = this.match;
+        this.timeTick();
         this.updateZone();
         this.sweep && this.sweepTick();
         this.it && this.itTick();
@@ -8685,6 +8946,19 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             e.buf[v] = 0;
           };
         this.updateLock(e, t);
+        // Cooldown Chaos: nothing waits more than a second.
+        A.mutChaos &&
+          (i.cdX > 60 && (i.cdX = 60),
+          i.cdY > 60 && (i.cdY = 60),
+          i.cdDodge > 60 && (i.cdDodge = 60));
+        // Ceruledge's grab: two bleed ticks after the throw.
+        e.bleedT > 0 &&
+          (--e.bleedT === 20 || e.bleedT === 0) &&
+          e.state !== "faint" &&
+          e.slot.hp > 1 &&
+          this.match.phase === "fight" &&
+          ((e.slot.hp = Math.max(1, e.slot.hp - 3)),
+          this.emit({ type: "bleed", who: e, x: e.x, y: e.y }));
         let cz = this.cdBoost(e),
           cx = cz > 1 && (cz >= 2 || this.tick % 4 !== 0);
         cx &&
@@ -8950,6 +9224,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               u("guard"), this.startWithdraw(e);
               break;
             }
+            if (f("grab") && !(e.z > 0)) {
+              u("grab"), this.startGrab(e, P);
+              break;
+            }
             if (t.held.has("guard") && e.state === "move") {
               u("guard"), this.startGuard(e);
               break;
@@ -9107,6 +9385,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             this.tickQuickAttack(e);
             break;
           case "guard":
+            // Out of guard, a grab comes straight out (a shield grab).
+            if (f("grab") && h) {
+              u("grab"), this.startGrab(e, P);
+              break;
+            }
             this.tickGuard(e, t, M, p, k);
             break;
           case "guardEnd":
@@ -9260,6 +9543,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           sh = e.slots.map((s) => s.shiny);
         for (let k of Object.keys(e)) k in n || delete e[k];
         Object.assign(e, n, keep),
+          this.mutFighter(e),
           (e.facing = best[0] > Se ? Math.PI : 0),
           e.slots.forEach((s, k) => sh[k] && (s.shiny = !0)),
           (e.wakeT = LIVES.grace),
@@ -9912,14 +10196,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           if (!o?.legend || o.lgMeter >= 100) return;
           (o.lgMeter = Math.min(
             100,
-            o.lgMeter + s * l * (this.players.length > 2 ? LEGEND.crowd : 1),
+            o.lgMeter +
+              s * l * (this.players.length > 2 ? LEGEND.crowd : 1) * (A.mutChaos ? 2 : 1),
           )),
             o.lgMeter >= 100 && this.emit({ type: "legendReady", who: o });
         };
         e.kind === "player" && r(e, LEGEND.taken);
         let o =
           t?.kind === "player" ? t : t?.kind === "assist" ? t.summoner : null;
-        o && o !== e && r(o, LEGEND.dealt);
+        o && o !== e && r(o, LEGEND.dealt * (this.hitMeter ?? 1));
       }
       callAssist(e, t) {
         let s = e.assistSlot(),
@@ -13993,6 +14278,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         this.drops = this.drops.filter((t) => t.t < SURGE.dropWarn);
       }
       updateHazards() {
+        if (A.hazards === 0) return;
         // Ruins: rubble falls where a boulder was destroyed.
         for (let t of this.collapses)
           if (++t.t === RUINS.collapseWarn) {
@@ -14314,10 +14600,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               y: iy,
               state: "warn",
               t: 0,
-              kind: ((r) => {
-                for (let o of ITEMS) if ((r -= o.w) < 0) return o.kind;
-                return "sitrus";
-              })(this.rand() * ITEMS.reduce((r, o) => r + o.w, 0)),
+              kind: A.mutSudden
+                ? "focusband"
+                : ((r) => {
+                    for (let o of ITEMS) if ((r -= o.w) < 0) return o.kind;
+                    return "sitrus";
+                  })(this.rand() * ITEMS.reduce((r, o) => r + o.w, 0)),
             }),
             this.emit({ type: "itemWarn", x: ix, y: iy }));
           return;
@@ -14745,9 +15033,38 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             let o = e.kvx * i + e.kvy * r;
             if (!(o >= 0))
               if (-o > 2.6) {
+                // Ring out: launched hard into the arena's edge (not a rock).
                 if (
-                  ((e.kvx -= 1.55 * o * i),
-                  (e.kvy -= 1.55 * o * r),
+                  A.ringOut &&
+                  !rk &&
+                  e.kind === "player" &&
+                  e.state === "launched" &&
+                  -o > RULES.ringOutSpeed &&
+                  this.match.phase === "fight" &&
+                  this.match.mode !== "practice" &&
+                  (e.x < B.x0 + e.r + 3 ||
+                    e.x > B.x1 - e.r - 3 ||
+                    e.y < B.y0 + e.r + 3 ||
+                    e.y > B.y1 - e.r - 3)
+                ) {
+                  let by = e.lastHitBy;
+                  (e.slot.hp = 0),
+                    (e.state = "faint"),
+                    (e.t = 0),
+                    (e.z = 0),
+                    (e.kvx *= 0.2),
+                    (e.kvy *= 0.2),
+                    by &&
+                      by.kind === "player" &&
+                      by !== e &&
+                      (by.koCount++, (by.lastKoTick = this.tick), by.stats.kos++),
+                    this.emit({ type: "ringOut", who: e, x: e.x, y: e.y }),
+                    this.emit({ type: "faint", who: e, kit: e.kit });
+                  return;
+                }
+                if (
+                  ((e.kvx -= (A.mutBouncy ? 1.95 : 1.55) * o * i),
+                  (e.kvy -= (A.mutBouncy ? 1.95 : 1.55) * o * r),
                   this.emit({
                     type: "wall",
                     who: e,
@@ -15887,6 +16204,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             e.grab && this.exRelease(e))
           : e.grab &&
             e.exMove !== "crunch" &&
+            e.exMove !== "grab" &&
             e.exMove !== "psychic" &&
             e.exMove !== "mpull" &&
             this.exRelease(e);
@@ -15920,7 +16238,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           e.kit.clearBody ||
             (e.chill > 0 && (m *= 1 - X.froslass.chillSlow * e.chill),
             e.tombT > 0 && (m *= 0.75)),
-          m * this.r3Speed(e)
+          m * this.r3Speed(e) * (e.mSpeed ?? 1)
         );
       }
       // Damage multiplier from the attacker's ability and buffs.
@@ -16402,6 +16720,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       }
       tickEx(e, P, mx, my, mag, ang) {
         switch (((e.exDanger = 0), e.exMove)) {
+          case "grab":
+            return this.exGrab(e, P, mag, ang);
           case "roar":
             return this.exRoar(e);
           case "dig":
@@ -16873,6 +17193,346 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               dx: Math.cos(a),
               dy: Math.sin(a),
             });
+        }
+      }
+      // ---- Grabs (see GRABS) ----
+      grabOf(e) {
+        let g = { ...GRAB_BASE, ...(GRABS[e.kit.id] ?? {}) };
+        // King's Shield's blade: Blade Forme grabs faster and cuts deeper.
+        g.blade && e.slot.blade && Object.assign(g, g.blade);
+        return g;
+      }
+      // The animation to use: the first of the names this sprite has.
+      grAnim(e, ...n) {
+        for (let k of n) if (e.mon.anims[k]) return k;
+        return "Idle";
+      }
+      startGrab(e, P) {
+        let g = this.grabOf(e);
+        (e.state = "ex"),
+          (e.t = 0),
+          (e.exMove = "grab"),
+          (e.exAnim = this.grAnim(e, "Charge", "Attack")),
+          (e.exFrame = 0),
+          (e.exHit = !1),
+          (e.exInv = e.exAir = e.exHidden = e.exRec = !1),
+          (e.exArmor = 0),
+          (e.exDanger = 0),
+          (e.armorUsed = 0),
+          (e.exBack = e.exErupt = e.exThrow = 0),
+          (e.exList = []),
+          (e.grab = null),
+          (e.combo = 0),
+          (e.moveId = this.nextId++),
+          (e.mvx *= 0.3),
+          (e.mvy *= 0.3),
+          (e.gr = g),
+          (e.grTip = 0),
+          this.exAim(e, P, g.kind === "tether" ? g.reach + 40 : 60),
+          this.emit({ type: "grabWind", who: e, kind: g.kind });
+      }
+      // Who a grab reaching R along (o, l) catches: the nearest foe in the
+      // grip (tethers: anywhere along the line).
+      grabFind(e, g, o, l, R) {
+        let best = null,
+          bd = 1 / 0;
+        for (let v of this.victimsFor(e.team)) {
+          if (v.kind === "player") {
+            if (
+              v.heldBy ||
+              v.invincible ||
+              v.grabImmT > this.tick ||
+              ["faint", "launched", "down", "getup", "summon"].includes(v.state)
+            )
+              continue;
+            // Floaters are out of reach of a grounded grab, unless it can
+            // catch them (Noivern, Volcarona); Gengar's Levitate escapes.
+            if (this.floating(v) && !g.air && !this.floating(e)) continue;
+          }
+          let dx = v.x - e.x,
+            dy = v.y - e.y,
+            pr = dx * o + dy * l,
+            pe = Math.abs(dx * l - dy * o),
+            // Magnet Pull reaches twice as far for Steel types.
+            Rv =
+              g.steel && v.kind === "player" && [v.kit.type, v.kit.type2].includes("STEEL")
+                ? R * g.steel
+                : R,
+            far = (g.kind === "tether" ? Rv : e.r + Rv) + v.hurtR * 0.5;
+          pr > -4 && pr <= far && pe <= v.hurtR + 6 && pr < bd && ((bd = pr), (best = v));
+        }
+        return best;
+      }
+      grabCatch(e, g, v) {
+        let o = Math.cos(e.dir2),
+          l = Math.sin(e.dir2);
+        if (v.kind !== "player") {
+          this.exHit(v, e, g.dmg, g.kb, o, l, {
+            heavy: !0,
+            src: "grab",
+            pierceGuard: !0,
+            melee: !0,
+          }),
+            (e.exThrow = e.t),
+            (e.grTip = 0);
+          return;
+        }
+        (e.grab = v),
+          (e.grabT = e.t),
+          (e.grTip = 0),
+          (v.heldBy = e),
+          (v.state = "stunned"),
+          (v.t = 0),
+          (v.hitstun = 999),
+          (v.mvx = v.mvy = v.kvx = v.kvy = 0),
+          (v.combo = 0),
+          (v.flameEnd = 0),
+          // A clinch can't be broken by a third fighter, except a bite (a
+          // partner can hit the biter loose) and a tether's pull.
+          (e.exInv = g.kind !== "bite" && g.kind !== "tether"),
+          (e.exArmor = g.armor ? 99 : 0);
+        // Phase grabs: reappear behind them, or swap places.
+        if (g.behind) {
+          let d = e.r + v.r + 2,
+            a = Math.atan2(v.y - e.y, v.x - e.x);
+          (e.x = me(v.x + Math.cos(a) * d, B.x0 + e.r, B.x1 - e.r)),
+            (e.y = me(v.y + Math.sin(a) * d, B.y0 + e.r, B.y1 - e.r)),
+            (e.facing = e.dir2 = a + Math.PI);
+        } else if (g.swap) {
+          let x = e.x,
+            y = e.y;
+          (e.x = v.x), (e.y = v.y), (v.x = x), (v.y = y);
+          let a = Math.atan2(v.y - e.y, v.x - e.x);
+          e.facing = e.dir2 = a;
+        }
+        this.emit({ type: "grabCatch", who: e, v, kind: g.kind, x: v.x, y: v.y });
+      }
+      exGrab(e, P, mag, ang) {
+        let g = e.gr ?? (e.gr = this.grabOf(e)),
+          st = g.st;
+        if (e.grab) return this.exGrabHold(e, g, mag, ang);
+        if (e.exThrow) {
+          (e.exRec = !0),
+            (e.exInv = !1),
+            this.locomote(e, 0, 0),
+            this.exFr(e, this.grAnim(e, "Swing", "Attack"), 2, !1, e.exThrow),
+            e.t >= e.exThrow + 16 && this.exEnd(e);
+          return;
+        }
+        let o = Math.cos(e.dir2),
+          l = Math.sin(e.dir2);
+        if (e.t <= st) {
+          this.locomote(e, 0, 0),
+            e.t <= st - 3 &&
+              this.exAim(e, P, g.kind === "tether" ? g.reach + 40 : 60),
+            (e.exInv = !!(g.inv && e.t >= g.inv[0] && e.t <= g.inv[1])),
+            g.inv && (e.alpha = e.exInv ? 0.45 : 1),
+            this.exFr(e, this.grAnim(e, "Charge", "Attack"), 3, !1),
+            (e.exDanger = e.t > st - 5 ? 20 : 0);
+          return;
+        }
+        (e.exInv = !1), (e.alpha = 1), (e.exDanger = 0);
+        // Active: a tether reaches out over 8 ticks; a grip closes for 4.
+        let act = g.kind === "tether" ? 8 : 4;
+        if (e.t <= st + act) {
+          this.locomote(e, 0, 0),
+            this.exFr(
+              e,
+              g.kind === "bite"
+                ? this.grAnim(e, "Attack")
+                : g.kind === "tether"
+                  ? this.grAnim(e, "Shoot", "Attack")
+                  : this.grAnim(e, "Swing", "Attack"),
+              2,
+              !1,
+              st,
+            );
+          let R = g.kind === "tether" ? g.reach * ((e.t - st) / act) : g.reach;
+          e.grTip = R;
+          let v = this.grabFind(e, g, o, l, R);
+          v && this.grabCatch(e, g, v);
+          return;
+        }
+        // A whiff: open for g.rec ticks.
+        (e.exRec = !0),
+          (e.grTip = 0),
+          this.locomote(e, 0, 0),
+          this.exFr(e, this.grAnim(e, "Idle"), 5, !0),
+          e.t >= st + act + g.rec && this.exEnd(e);
+      }
+      exGrabHold(e, g, mag, ang) {
+        let v = e.grab,
+          q = e.t - e.grabT;
+        if (v.state === "faint" || v.heldBy !== e) {
+          this.exRelease(e), (e.exThrow = e.t);
+          return;
+        }
+        this.locomote(e, 0, 0);
+        let o = Math.cos(e.facing),
+          l = Math.sin(e.facing),
+          d = e.r + v.r + 2,
+          hold = g.hold ?? (g.kind === "phase" ? 8 : 10),
+          keep = () => {
+            (v.state = "stunned"),
+              (v.hitstun = Math.max(v.hitstun, v.t + 8)),
+              (v.mvx = v.mvy = v.kvx = v.kvy = 0);
+          },
+          at = (x, y) => {
+            (v.x = me(x, B.x0 + v.r, B.x1 - v.r)),
+              (v.y = me(y, B.y0 + v.r, B.y1 - v.r));
+          };
+        if (g.kind === "tether") {
+          // Reel them in, then hold (Milotic coils and drains), then throw.
+          let dx = e.x - v.x,
+            dy = e.y - v.y,
+            D = Math.hypot(dx, dy);
+          if (!e.grPulled) {
+            keep(),
+              this.exFr(e, this.grAnim(e, "Shoot", "Attack"), 3, !1, e.grabT);
+            if (D > d + 1) {
+              let k = Math.min(5, D - d);
+              at(v.x + (dx / D) * k, v.y + (dy / D) * k);
+              return;
+            }
+            (e.grPulled = e.t), (e.facing = Math.atan2(-dy, -dx));
+            return;
+          }
+          (hold = g.coil ?? 6), (q = e.t - e.grPulled);
+          g.coil &&
+            q > 0 &&
+            q % 4 === 0 &&
+            (this.exHit(v, e, 3, 0.05, o, l, {
+              src: "grab",
+              multi: !0,
+              hitstun: 40,
+              hitstop: 2,
+              pierceGuard: !0,
+              melee: !0,
+              color: e.kit.color,
+            }),
+            (e.slot.hp = Math.min(e.slot.maxHp, e.slot.hp + 1)),
+            v.state !== "faint" && keep());
+        }
+        g.kind !== "tether" || e.grPulled
+          ? (keep(), at(e.x + o * d, e.y + l * d))
+          : 0;
+        if (g.kind === "slam") {
+          // Lift them overhead, then down.
+          (v.z = Math.sin(Math.min(1, q / hold) * Math.PI) * 16),
+            this.exFr(e, this.grAnim(e, "Rotate", "Swing"), 3, !1, e.grabT);
+        } else if (g.kind === "bite") {
+          // Chomp, chomp, chomp, then flick them away.
+          hold = 28;
+          let n = [6, 14, 22].indexOf(q);
+          n >= 0 &&
+            (this.exHit(v, e, g.bites[n] ?? 4, 0.1, o, l, {
+              src: "grab",
+              multi: !0,
+              hitstun: 40,
+              hitstop: 4,
+              pierceGuard: !0,
+              melee: !0,
+            }),
+            v.state !== "faint" && ((v.state = "stunned"), (v.t = 0), (v.hitstun = 999), (v.kvx = v.kvy = 0)),
+            this.emit({ type: "grabBite", who: e, v, x: v.x, y: v.y }));
+          // Garchomp drags its catch along.
+          g.drag && q < 22 && (this.moveBody(e, o * 0.9, l * 0.9), at(e.x + o * d, e.y + l * d));
+          this.exFr(e, this.grAnim(e, "Double", "Attack"), 2, !0, e.grabT);
+        } else if (g.spin) {
+          // Lucario spins once round with them before letting go.
+          (e.facing += (Math.PI * 2) / hold),
+            this.exFr(e, this.grAnim(e, "Rotate", "Swing"), 2, !0, e.grabT);
+        } else
+          g.kind !== "tether" &&
+            this.exFr(e, this.grAnim(e, "Double", "Swing"), 3, !0, e.grabT);
+        if (q < hold) return;
+        // The throw, where the stick points (or straight ahead).
+        let a = mag > 0.3 ? ang : e.facing,
+          ux = Math.cos(a),
+          uy = Math.sin(a);
+        (v.heldBy = null), (v.z = 0), (e.grab = null), (e.exInv = !1);
+        v.state === "stunned" && (v.state = "move");
+        g.kind === "slam" && at(e.x + ux * d, e.y + uy * d);
+        // A slam puts them down in front of you rather than sending them off.
+        this.exHit(v, e, g.dmg, g.kind === "slam" ? g.kb * 0.5 : g.kb, ux, uy, {
+          heavy: !0,
+          src: "grab",
+          pierceGuard: !0,
+          melee: !0,
+          hitstun: g.kind === "slam" ? A.hitstunHeavy + 12 : void 0,
+          hitstop: g.kind === "slam" ? 12 : 9,
+        }),
+          (v.grabImmT = this.tick + GRAB_IMMUNE);
+        // Slams send a shockwave round the landing spot.
+        g.kind === "slam" &&
+          this.exArea(e, e.team, v.x, v.y, g.quake ? 34 : 26, 6, 3, {
+            src: "grab",
+            list: [v],
+            ground: !0,
+          });
+        let st = g.status;
+        if (st && v.kind === "player" && v.state !== "faint") {
+          let ch = st[0] === "para" && e.kit.id === "toxtricity" && v.slot.poisonT > 0 ? 1 : st[1];
+          (ch >= 1 || this.rand() < ch) &&
+            (st[0] === "burn"
+              ? this.burn(v)
+              : st[0] === "para"
+                ? this.paraFor(v, 60)
+                : st[0] === "chill"
+                  ? this.exChill(v, 1, e)
+                  : this.poison(v));
+        }
+        // Gallade's catch lands facing away: a back-crit waiting to happen.
+        g.faceAway && (v.facing = a);
+        // Pikachu springs back out of reach.
+        g.bounce && this.moveBody(e, -ux * 15, -uy * 15);
+        // Ceruledge's blade leaves them bleeding for two more ticks.
+        g.bleed && ((v.bleedT = 40), (v.bleedBy = e));
+        (e.exThrow = e.t), (e.grPulled = 0);
+        this.emit({
+          type: "grabThrow",
+          who: e,
+          v,
+          kind: g.kind,
+          kb: g.kb,
+          dx: ux,
+          dy: uy,
+          x: v.x,
+          y: v.y,
+          big: !!g.quake,
+        });
+      }
+      // In the startup of an attack (a counter-hit window)?
+      inStartup(v) {
+        if (v.kind !== "player") return !1;
+        switch (v.state) {
+          case "attack":
+            return v.t < (v.kit.basic()[v.combo]?.startup ?? 0);
+          case "smashCharge":
+            return !0;
+          case "ex":
+            return v.exMove === "grab"
+              ? v.t <= (v.gr?.st ?? 8)
+              : v.t < 8 && !v.exInv && !v.exArmor;
+          case "move":
+          case "hurt":
+          case "stunned":
+          case "launched":
+          case "down":
+          case "getup":
+          case "guard":
+          case "guardEnd":
+          case "dodge":
+          case "faint":
+          case "taunt":
+          case "switchIn":
+          case "summon":
+          case "smash":
+          case "withdraw":
+          case "rest":
+            return !1;
+          default:
+            return v.t < 8;
         }
       }
       exRockSlide(e, P) {
@@ -20033,6 +20693,24 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             e.kind === "player" &&
             !p &&
             this.recovering(e),
+          // Counter-hit (caught in an attack's startup) and back attack
+          // (melee from behind): 1.2x each, 1.3x together.
+          cnt =
+            !lg &&
+            e.kind === "player" &&
+            t?.kind === "player" &&
+            t.team !== e.team &&
+            this.inStartup(e),
+          bk =
+            !lg &&
+            !!M &&
+            e.kind === "player" &&
+            t?.kind === "player" &&
+            t.team !== e.team &&
+            e.state !== "guard" &&
+            !/:grab/.test(String(k)) &&
+            r * Math.cos(e.facing) + o * Math.sin(e.facing) > 0.5,
+          cb = Math.min(1.3, (cnt ? 1.2 : 1) * (bk ? 1.2 : 1)),
           K = Math.round(
             s *
               ae.dmg *
@@ -20050,6 +20728,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
                 : 1) *
               Q *
               ie *
+              cb *
               (this.it && e.kind === "player" ? IT.dmg : 1) *
               (an ? MAGNE.analytic : 1) *
               (e.kind === "player" &&
@@ -20088,6 +20767,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           }
           this.emit({ type: "flank", who: e, attacker: t, x: e.x, y: e.y });
         }
+        A.mutInvis &&
+          ((e.seenT = this.tick + 10), t && (t.seenT = this.tick + 10));
+        // Counter-hits stun longer and build more legendary meter.
+        (this.hitMeter = cnt ? 1.5 : 1),
+          cnt &&
+            ((u += 8),
+            (f += 4),
+            this.emit({ type: "counterHit", who: e, by: t, x: e.x, y: e.y })),
+          bk && this.emit({ type: "backCrit", who: e, by: t, x: e.x, y: e.y });
         this.it && this.itTag(e, t, M);
         if (
           (t &&
@@ -20237,7 +20925,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               t &&
                 t.kind === "player" &&
                 (t.koCount++, (t.lastKoTick = this.tick), t.stats.kos++);
-            let N = i * w.kit.weight * 1.7;
+            let N = i * w.kit.weight * 1.7 * (w.mKb ?? 1);
             (w.kvx = r * N),
               (w.kvy = o * N),
               (w.mvx = w.mvy = 0),
@@ -20257,7 +20945,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               (w.spinRow = -1),
               (w.z = 0);
             let fe = l ? 1 : Math.max(0.55, 1 - (v - 1) * 0.1),
-              ce = rt ? 0 : i * w.kit.weight * fe;
+              ce = rt ? 0 : i * w.kit.weight * fe * (w.mKb ?? 1);
             (w.kvx = r * ce),
               (w.kvy = o * ce),
               (w.mvx = w.mvy = 0),
@@ -20698,6 +21386,161 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     let a = navigator.getGamepads ? navigator.getGamepads() : [];
     for (let e of a) if (e && e.connected) return e;
     return null;
+  }
+  // ---- Local multiplayer ----
+  // P1 is the keyboard and the first pad. On team select another pad joins
+  // as P2, P3, P4 by pressing A (B leaves); a second keyboard layout on the
+  // numpad joins with Numpad 1. Joined seats take the fighters that would be
+  // CPUs, in order: the first rival, then (2v2) your ally, then the rest.
+  var SEATS = [],
+    seatJoinPrev = new Map(),
+    seatPauseReq = !1,
+    KEYS2 = {
+      Numpad8: "up",
+      Numpad5: "down",
+      Numpad4: "left",
+      Numpad6: "right",
+      Numpad1: "attack",
+      Numpad3: "dodge",
+      Numpad7: "special1",
+      Numpad9: "special2",
+      Numpad0: "guard",
+      NumpadDecimal: "grab",
+      NumpadAdd: "smash",
+      NumpadSubtract: "legend",
+      NumpadMultiply: "burst",
+      NumpadDivide: "taunt",
+      NumpadEnter: "start",
+    };
+  function seatsMax() {
+    return [0, 4, 6, 9].includes(A.gameMode)
+      ? 1
+      : A.gameMode === 3
+        ? 3
+        : [2, 8, 10].includes(A.gameMode)
+          ? cpuNeed()
+          : 0;
+  }
+  // One seat's input this tick, in the same shape as P1's.
+  function readSeat(se) {
+    let held = new Set(),
+      mx = 0,
+      my = 0,
+      ax = 0,
+      ay = 0;
+    if (se.pad === "keys2") {
+      for (let [k, v] of Object.entries(KEYS2)) kt.has(k) && held.add(v);
+      let x = (held.has("right") ? 1 : 0) - (held.has("left") ? 1 : 0),
+        y = (held.has("down") ? 1 : 0) - (held.has("up") ? 1 : 0);
+      if (x || y) {
+        let p = Math.hypot(x, y);
+        (mx = x / p), (my = y / p), (se.ld = Math.atan2(my, mx));
+      }
+      // Numpad +: a Smash in the way you last moved.
+      held.has("smash") && ((ax = Math.cos(se.ld ?? 0)), (ay = Math.sin(se.ld ?? 0)));
+      padFight && ["up", "down", "left", "right"].forEach((k) => held.delete(k));
+    } else {
+      let g = (navigator.getGamepads ? navigator.getGamepads() : [])[se.pad];
+      if (g && g.connected) {
+        for (let p of na(g)) held.add(p);
+        ([mx, my] = aa(g.axes[0] ?? 0, g.axes[1] ?? 0)),
+          ([ax, ay] = aa(g.axes[2] ?? 0, g.axes[3] ?? 0));
+        let x = (held.has("right") ? 1 : 0) - (held.has("left") ? 1 : 0),
+          y = (held.has("down") ? 1 : 0) - (held.has("up") ? 1 : 0);
+        if (x || y) {
+          let p = Math.hypot(x, y);
+          (mx = x / p), (my = y / p);
+        }
+      }
+    }
+    let pressed = new Set([...held].filter((k) => !se.prev.has(k)));
+    (se.prev = new Set(held)),
+      se.pad !== "keys2" && chordTick("seat" + se.n, held, pressed),
+      pressed.delete("ltHeld"),
+      pressed.has("attack") && pressed.add("confirm"),
+      pressed.has("dodge") && pressed.add("back");
+    return {
+      mx,
+      my,
+      ax,
+      ay,
+      aimHeld: Math.hypot(ax, ay) > 0.45,
+      pressed,
+      held,
+      source: "pad",
+    };
+  }
+  // On team select: pads (and the numpad) join or leave.
+  function seatPoll() {
+    let max = seatsMax();
+    for (; SEATS.length > max; ) SEATS.pop();
+    let p0 = oa()?.index,
+      pads = navigator.getGamepads ? navigator.getGamepads() : [],
+      join = (pad) => {
+        SEATS.length < max &&
+          !SEATS.some((q) => q.pad === pad) &&
+          (SEATS.push({ pad, n: SEATS.length + 2, prev: new Set(["attack", "confirm"]) }),
+          S.select(),
+          (seatToast = `P${SEATS.length + 1} joined`),
+          (seatToastT = 90));
+      },
+      leave = (pad) => {
+        let k = SEATS.findIndex((q) => q.pad === pad);
+        k >= 0 &&
+          (SEATS.splice(k, 1),
+          SEATS.forEach((q, i) => (q.n = i + 2)),
+          S.back(),
+          (seatToast = "A player left"),
+          (seatToastT = 90));
+      };
+    for (let g of pads) {
+      if (!g || !g.connected || g.index === p0) continue;
+      let a = !!g.buttons[0]?.pressed,
+        b = !!g.buttons[1]?.pressed,
+        pr = seatJoinPrev.get(g.index) ?? { a: !0, b: !0 },
+        joined = SEATS.some((q) => q.pad === g.index);
+      a && !pr.a && !joined && join(g.index),
+        b && !pr.b && joined && !seatTurn() && leave(g.index),
+        seatJoinPrev.set(g.index, { a, b });
+    }
+    let k1 = kt.has("Numpad1"),
+      pr = seatJoinPrev.get("keys2") ?? { a: !0 };
+    k1 && !pr.a && join("keys2"), seatJoinPrev.set("keys2", { a: k1 });
+  }
+  var seatToast = "",
+    seatToastT = 0,
+    seatSel = null;
+  // During the rivals' picks, the seat whose fighter is being picked holds
+  // the cursor (null when it's P1's or a CPU's).
+  function seatTurn() {
+    if (!seatSel || !rivalPhase(seatSel)) return null;
+    let j = seatSel.cpuPicks.length;
+    return SEATS[j] ?? null;
+  }
+  class SeatBrain {
+    constructor(se) {
+      (this.se = se), (this.human = !0), (this.seat = se.n), (this.name = "P" + se.n);
+    }
+    think() {
+      let i = readSeat(this.se);
+      return i.pressed.has("start") && (seatPauseReq = !0), i.pressed.delete("start"), i;
+    }
+  }
+  // After a match starts: joined seats take over CPU fighters. Order: the
+  // first rival, then your ally (2v2), then whoever is left.
+  function seatAssign(e) {
+    if (!SEATS.length || !seatsMax()) return;
+    let me = e.players[0],
+      rest = e.players.slice(1),
+      order = [
+        ...rest.filter((q) => q.team !== me.team).slice(0, 1),
+        ...rest.filter((q) => q.team === me.team),
+        ...rest.filter((q) => q.team !== me.team).slice(1),
+      ];
+    SEATS.forEach((se, k) => {
+      let q = order[k];
+      q && ((q.brain = new SeatBrain(se)), (se.prev = new Set(["attack", "confirm", "start"])));
+    });
   }
   var ta = new Set();
   function la() {
@@ -22796,6 +23639,34 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         c.flee > 0 ? "Walk" : "Idle",
       );
     }
+  }
+  // Fog of War: the arena dark beyond a circle of sight round each fighter
+  // played on this screen (P1 and any local players).
+  function fogOfWar(a, e) {
+    let c = fogOfWar.c ?? (fogOfWar.c = document.createElement("canvas"));
+    (c.width !== a.canvas.width || c.height !== a.canvas.height) &&
+      ((c.width = a.canvas.width), (c.height = a.canvas.height));
+    let g = c.getContext("2d"),
+      T = a.getTransform();
+    g.setTransform(1, 0, 0, 1, 0, 0),
+      g.clearRect(0, 0, c.width, c.height),
+      (g.globalCompositeOperation = "source-over"),
+      (g.fillStyle = "rgba(6,8,16,0.86)"),
+      g.fillRect(0, 0, c.width, c.height),
+      g.setTransform(T),
+      (g.globalCompositeOperation = "destination-out");
+    for (let p of e.players) {
+      if (p !== e.players[0] && !p.brain?.human) continue;
+      let r = 90,
+        q = g.createRadialGradient(p.x, p.y - 10, r * 0.55, p.x, p.y - 10, r);
+      q.addColorStop(0, "rgba(0,0,0,1)"),
+        q.addColorStop(1, "rgba(0,0,0,0)"),
+        (g.fillStyle = q),
+        g.beginPath(),
+        g.arc(p.x, p.y - 10, r, 0, Math.PI * 2),
+        g.fill();
+    }
+    a.save(), a.setTransform(1, 0, 0, 1, 0, 0), a.drawImage(c, 0, 0), a.restore();
   }
   // The air layer: fliers, a passing flock, weather, confetti, then light.
   function arenaAir(a, e, fx) {
@@ -26619,6 +27490,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   ];
   function tagOf(a, e) {
     let t = TAGC[A.colors] ?? TAGC[0];
+    // A local player: P2-P4, an ally's colour on your team.
+    if (a.brain?.human)
+      return {
+        label: a.brain.name,
+        color:
+          e && a.team === e.player.team ? t.ally : t.cpu[(a.brain.seat - 2) % 3],
+      };
     if (a.brain?.net)
       return a.brain.local
         ? { label: "YOU", color: t.p1 }
@@ -26637,7 +27515,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   }
   // Drawn scale for a body: its Pokémon's true size relative to Charizard.
   function Bz(a) {
-    return a.kind === "dummy" ? (a.size ?? 0.93) : (a.disgSize ?? a.kit?.size ?? 1);
+    return a.kind === "dummy"
+      ? (a.size ?? 0.93)
+      : (a.disgSize ?? a.kit?.size ?? 1) * (a.mSize ?? 1);
   }
   // The sprite set a body is drawn with: shiny when its Pokemon is.
   function skinOf(a) {
@@ -28312,6 +29192,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     exAir(a, e);
     r3Air(a, e);
     arenaAir(a, e, t);
+    A.mutFog && fogOfWar(a, e);
     for (let h of t.ambient)
       (a.globalAlpha = 0.18 + 0.14 * Math.sin(h.ph * 2)),
         (a.fillStyle = "#f4ead0"),
@@ -28485,6 +29366,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         a.drawImage(l.tints.get("#ff3a2a") ?? l.white, p, k, l.fw, l.fh, M, P, l.fw, l.fh),
         a.restore();
     }
+    // Mutators: Invisible fades everyone (you a little less) except just
+    // after they hit or are hit; Metal turns them to steel.
+    A.mutInvis &&
+      C &&
+      !(C.seenT > t.tick) &&
+      (v *= C === t.players[0] ? 0.4 : 0.15);
+    A.mutMetal && C && (a.filter = "grayscale(1) brightness(1.3) contrast(1.2)");
     if (
       ((a.globalAlpha = (e.alpha ?? 1) * (x ? 0.6 : 1) * v),
       a.drawImage(
@@ -28498,6 +29386,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         l.fw,
         l.fh,
       ),
+      (a.filter = "none"),
       v < 1 &&
         ((a.globalAlpha = 0.5 * v),
         a.drawImage(
@@ -31784,6 +32673,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     p.kit.id === "chandelure" && overChandelure(a, e, p, t);
     p.kit.id === "toxtricity" && overToxtricity(a, e, p, t);
     p.kit.id === "gallade" && overGallade(a, e, p, t);
+    p.state === "ex" && p.exMove === "grab" && overGrab(a, e, p, t);
     p.kit.id === "ceruledge" && overCeruledge(a, e, p, t);
     p.kit.id === "volcarona" && overVolcarona(a, e, p, t);
     (p.slot.arT ?? 0) > 0 && overAquaRing(a, p, t);
@@ -32059,6 +32949,93 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     a.restore();
   }
   // Gallade with its guard down after Close Combat: a red flicker.
+  // Grabs: a tether's line (vine, water, psychic grip, magnet beam), the
+  // shadow a phase grab rises from, and a gleam on the grip as it closes.
+  var GRAB_LINE = {
+    venusaur: ["#3f9a3a", "#8ad16a", "vine"],
+    lurantis: ["#d0507a", "#8ad16a", "vine"],
+    milotic: ["#3a8fd8", "#bfe6ff", "water"],
+    gardevoir: ["#ff7ad0", "#ffe0f4", "psy"],
+    chandelure: ["#8a4ad8", "#d8a8ff", "psy"],
+    magnezone: ["#f8d030", "#fff3a0", "zap"],
+  };
+  function overGrab(a, e, p, t) {
+    let g = p.gr;
+    if (!g) return;
+    let x = p.x,
+      y = p.y - 10,
+      o = Math.cos(p.dir2),
+      l = Math.sin(p.dir2);
+    if (g.kind === "phase" && !p.grab && p.t <= g.st) {
+      // A pool of shadow under them as they sink.
+      let k = Math.min(1, p.t / g.st);
+      a.save(),
+        (a.globalAlpha = 0.5 * k),
+        (a.fillStyle = "#1a1030"),
+        a.beginPath(),
+        a.ellipse(p.x, p.y, 10 + 6 * k, 4 + 2 * k, 0, 0, Math.PI * 2),
+        a.fill(),
+        a.restore();
+    }
+    if (g.kind === "tether") {
+      let L = GRAB_LINE[p.kit.id] ?? [p.kit.color, "#ffffff", "psy"],
+        tx,
+        ty;
+      if (p.grab) (tx = p.grab.x), (ty = p.grab.y - 10);
+      else if (p.grTip > 0) (tx = x + o * p.grTip), (ty = y + l * p.grTip);
+      else return;
+      let dx = tx - x,
+        dy = ty - y,
+        D = Math.hypot(dx, dy) || 1,
+        nx = -dy / D,
+        ny = dx / D,
+        n = Math.max(3, Math.round(D / 6));
+      a.save(), L[2] !== "vine" && (a.globalCompositeOperation = "lighter");
+      for (let w = 1; w >= 0; w--) {
+        (a.strokeStyle = w ? L[0] : L[1]),
+          (a.lineWidth = w ? 3 : 1.2),
+          (a.globalAlpha = w ? 0.9 : 1),
+          a.beginPath();
+        for (let i = 0; i <= n; i++) {
+          let k = i / n,
+            wave =
+              L[2] === "vine"
+                ? Math.sin(k * 9 + t * 0.2) * 2
+                : L[2] === "water"
+                  ? Math.sin(k * 6 - t * 0.4) * 2.5
+                  : L[2] === "zap"
+                    ? (((i * 7 + t) % 5) - 2) * 1.4
+                    : Math.sin(k * 12 + t * 0.5) * 1.2,
+            px = x + dx * k + nx * wave,
+            py = y + dy * k + ny * wave;
+          i ? a.lineTo(px, py) : a.moveTo(px, py);
+        }
+        a.stroke();
+      }
+      // The tip: a leaf, a splash, a glow.
+      (a.fillStyle = L[1]),
+        a.beginPath(),
+        a.arc(tx, ty, p.grab ? 3 : 2.4, 0, Math.PI * 2),
+        a.fill(),
+        a.restore();
+      return;
+    }
+    // The grip closing: two short arcs either side of the catch.
+    if (!p.grab && p.t > g.st && p.t <= g.st + 4) {
+      let cx = x + o * (p.r + g.reach * 0.6),
+        cy = y + l * (p.r + g.reach * 0.6);
+      a.save(),
+        (a.globalCompositeOperation = "lighter"),
+        (a.strokeStyle = "#ffffff"),
+        (a.globalAlpha = 0.8),
+        (a.lineWidth = 1.4);
+      for (let s of [-1, 1])
+        a.beginPath(),
+          a.arc(cx, cy, 6, p.dir2 + s * 1.2 - 0.5, p.dir2 + s * 1.2 + 0.5),
+          a.stroke();
+      a.restore();
+    }
+  }
   function overGallade(a, e, p, t) {
     if (!((p.slot.ccT ?? 0) > 0)) return;
     let y = p.y - p.z - p.kit.tall * Bz(p) * 0.5;
@@ -34822,6 +35799,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       t.cutin && lgCutin(e, t),
       s.debug && as(e),
       !s.paused && e.match.phase === "fight" && moveTray(e, s),
+      e.match.phase === "fight" && ruleHud(e, s),
       e.match.phase === "results" && os(e, s, o),
       ga(s),
       s.paused && hs(e, s, o),
@@ -34844,6 +35822,30 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       d.fillRect(0, 0, m(H), m(oe)),
       (d.globalAlpha = 1),
       a.flash--);
+  }
+  // Rules on the HUD: the clock (time limit), SUDDEN DEATH, and which
+  // mutators are on.
+  function ruleHud(e, a) {
+    let T = RULES.times[A.timeLimit | 0] ?? 0,
+      mm = MUT_KEYS.filter((k) => A[k]),
+      y = 48;
+    if (e.sudden)
+      V("SUDDEN DEATH", H / 2, y, 9, "#ff4a63", { align: "center", outline: 2 });
+    else if (T && e.goTick != null && !["practice", "sweep", "zone"].includes(e.match.mode)) {
+      let left = Math.max(0, Math.ceil((e.timeLeft || T) / 60)),
+        txt = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+      V(txt, H / 2, y, 10, left <= 10 ? "#ff4a63" : "#ffffff", { align: "center", outline: 2 });
+    }
+    mm.length &&
+      e.match.mode !== "practice" &&
+      G(
+        mm.map((k) => Re.find((r) => r.key === k)?.label ?? k).join(" \xB7 "),
+        H / 2,
+        y + 8,
+        4.8,
+        g.gold,
+        { align: "center", weight: 700, outline: 1.5 },
+      );
   }
   function ga(a) {
     if (a.toastT <= 0) return;
@@ -38002,7 +39004,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           ? ue("PASSIVE", "#5a5478", 172, h - 1, { size: 3.8 })
           : Pe(c, 180, h + 3, 3.6),
           G(y, 196, h + 5, 6, g.chalk, { weight: 700 }),
-          u[c] && c !== "*" && G(u[c], 330, h + 5, 6, g.gold, { weight: 700 }),
+          (c === "GRAB" ? grabDmgText(r) : u[c]) &&
+            c !== "*" &&
+            G(c === "GRAB" ? grabDmgText(r) : u[c], 330, h + 5, 6, g.gold, {
+              weight: 700,
+            }),
           p.forEach((M, P) => G(M, 368, h + 4 + P * 5.8, 4.8, g.haze)),
           (d.fillStyle = "rgba(255,255,255,0.06)"),
           d.fillRect(m(172), m(h + k - 4), m(292), m(0.6)),
@@ -38644,7 +39650,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           u + 2,
           0,
           !0,
-          `CPU \xB7 ${i.toUpperCase()}`,
+          SEATS.length && !a.arcade && seatsMax()
+            ? isFfa()
+              ? `P2${SEATS.length > 1 ? `\u2013P${SEATS.length + 1}` : ""} + CPU`
+              : "PLAYER 2"
+            : `CPU \xB7 ${i.toUpperCase()}`,
           a.cpuPicks,
           fr,
         );
@@ -38707,12 +39717,40 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         et(d, P, Be(P, t, 1), 0, m(u + 75), m(160), 2 * Fe, M.ground);
       }
     }
-    V(rv ? "Choose your rival" : "Choose your team", 12, 22, 16, rv ? g.cpu : g.chalk, {
-      skew: !0,
-      outline: 2,
-    }),
+    // Local players: who has joined, whose pick it is, how to join.
+    let stn = seatTurn(),
+      smax = seatsMax();
+    smax &&
+      !a.arcade &&
       G(
-        rv
+        SEATS.length
+          ? SEATS.map((q) => `P${q.n} \u2713`).join("  ") +
+              (SEATS.length < smax ? "  \xB7  A on another controller: join" : "")
+          : "Another controller? Press A on it to join",
+        H - 12,
+        30,
+        5.4,
+        SEATS.length ? g.gold : g.dim,
+        { align: "right", weight: 700 },
+      );
+    seatToastT > 0 &&
+      (seatToastT--,
+      V(seatToast, H / 2, 64, 12, g.gold, { align: "center", outline: 2 }));
+    V(
+      stn ? `P${stn.n}: choose your fighter` : rv ? "Choose your rival" : "Choose your team",
+      12,
+      22,
+      16,
+      stn ? g.gold : rv ? g.cpu : g.chalk,
+      {
+        skew: !0,
+        outline: 2,
+      },
+    ),
+      G(
+        stn
+          ? "Pick with your own controller, or ? for a random one."
+          : rv
           ? `Pick ${cpuNeed() > 1 ? `${cpuNeed() - a.cpuPicks.length} more CPU fighters` : "the CPU's fighter"}, or ? for a random one.`
           : a.arcade
           ? "Arcade: pick the Pok\u00e9mon you'll climb with."
@@ -40820,6 +41858,61 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ],
     ],
   };
+  // Each Pokémon's grab, in its move list (after the specials): the kind's
+  // name and line, then what makes this one different.
+  var GRAB_TWIST = {
+    snorlax: "Body Slam on top of them: the heaviest crack on Thin Ice.",
+    rhyperior: "A heavy slam that throws far.",
+    golurk: "The longest reach of any grab.",
+    metagross: "Magnetic clamp: a long hold no one can break.",
+    tyrantrum: "Crunching jaws: can't be hit out of the bite.",
+    garchomp: "Drags its catch along as it bites.",
+    charizard: "Fire Fang: the bite always burns.",
+    noivern: "Bites from the air: catches floaters.",
+    lucario: "Spins them round: the furthest throw.",
+    scizor: "The fastest grab; Technician powers it up.",
+    gallade: "They land facing away: set up a back crit.",
+    blastoise: "A shell bash: slow but strong.",
+    inteleon: "Weak, and a long whiff: a sniper, not a grappler.",
+    volcarona: "A fiery embrace that burns; catches floaters.",
+    aegislash: "Shield Forme bashes; Blade Forme is faster and cuts deeper.",
+    ceruledge: "A blade hook: they bleed for two more ticks.",
+    pikachu: "Fast and weak; Pikachu springs back out of reach.",
+    toxtricity: "A shocking headlock: may paralyse; always on a poisoned foe.",
+    greninja: "Reappears behind them and shoves: back-crit setup.",
+    zoroark: "Illusion: swaps places with them, then throws.",
+    gengar: "Rises from its shadow behind them; untouchable as it sinks.",
+    dragapult: "Phases out as it reaches: dodges hits in its startup.",
+    froslass: "A frozen touch: chills them.",
+    chandelure: "A soul grip pulls them in and burns.",
+    venusaur: "Vine Whip: the longest pull. Rooted while it pulls.",
+    lurantis: "A leaf pull at mid range.",
+    milotic: "Coils and drains them, healing a little.",
+    gardevoir: "A psychic pull: slowest and longest.",
+    magnezone: "Magnet Pull: twice the range on Steel types; may paralyse.",
+  };
+  // A grab's damage for the briefing: each bite, then the throw.
+  function grabDmgText(id) {
+    let g = { ...GRAB_BASE, ...(GRABS[id] ?? {}) },
+      p = (xe[id]?.power ?? 1) * ae.dmg,
+      n = (v) => Math.round(v * p);
+    return g.bites
+      ? `${g.bites.map(n).join(" · ")} · ${n(g.dmg)}`
+      : g.coil
+        ? `${n(3 * (g.coil / 4))} + ${n(g.dmg)}`
+        : `${n(g.dmg)}`;
+  }
+  for (let [k, rows] of Object.entries(Ra)) {
+    let g = { ...GRAB_BASE, ...(GRABS[k] ?? {}) },
+      [nm, line] = GRAB_INFO[g.kind],
+      at = rows.findIndex((r) => r[0] === "B");
+    rows.splice(at < 0 ? rows.length : at, 0, [
+      "GRAB",
+      nm,
+      `${line} ${GRAB_TWIST[k] ?? ""}`.trim(),
+      g.kind === "tether" ? "RANGED GRAB" : "GRAB",
+    ]);
+  }
   function ds(a, e, t, s, i) {
     let r = ge[a.moveKit],
       o = xe[r];
@@ -42975,7 +44068,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 40,
+  var NETV = 41,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -45990,6 +47083,27 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         "Fan project for personal use. Not for sale.",
       ]);
     (window.__game = e), (window.__fx = t), (window.__ui = s), (window.__touch = TOUCH);
+    // Every match start (new, rematch, stage change) seats the local players.
+    {
+      let sm0 = e.startMatch.bind(e);
+      e.startMatch = (...q) => {
+        // Mirror match: everyone fights as your lead Pokémon.
+        A.mutMirror &&
+          !NET.m &&
+          q[0] !== "practice" &&
+          q[0] !== "sweep" &&
+          q[1]?.length &&
+          ((q[2] = (q[2] ?? []).map(() => q[1][0])),
+          e.match.extraPreset &&
+            (e.match.extraPreset = e.match.extraPreset.map((x) => x.map(() => q[1][0]))));
+        sm0(...q),
+          !NET.m &&
+            !s.arcade &&
+            e.match.mode !== "practice" &&
+            e.match.mode !== "sweep" &&
+            seatAssign(e);
+      };
+    }
     let i = document.getElementById("stage"),
       r = document.getElementById("game"),
       o = document.getElementById("ui"),
@@ -47306,6 +48420,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         let R = D.options.length;
         if (
           ((A[D.key] = (((A[D.key] + n) % R) + R) % R),
+          D.key === "rules"
+            ? applyRules(A.rules)
+            : RULE_KEYS.includes(D.key) && (A.rules = 0),
           D.key === "dummyCount" && e.syncDummies(),
           (D.key === "gameMode" || D.key === "arena") &&
             ie("Applies to your next battle"),
@@ -47917,6 +49034,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           break;
         case "overdrive":
           P("zapBurst2", n.x, n.y - 12, 0.6 + 0.6 * n.charge);
+          break;
+        case "grabThrow":
+          n.kind === "slam"
+            ? (P("landDust", n.x, n.y, n.big ? 1 : 0.8), P("hitHeavy", n.x, n.y - 10, 0.6))
+            : P("hitWall", n.x, n.y - 10, 0.45);
+          break;
+        case "counterHit":
+          P("hitCrit", n.x, n.y - 12, 0.55);
           break;
         case "collision":
           P("boomGiant", n.x2, n.y2 - 14, 0.8);
@@ -49124,6 +50249,60 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         case "crunchThrow":
           S.launch(7),
             t.streaks(n.who.x, n.who.y - 12, n.dx, n.dy, 6, "#c4553a");
+          break;
+        // Grabs: the reach, the catch, bites, the throw.
+        case "grabWind":
+          n.kind === "tether"
+            ? I("tri", F(55), F(67), 0.1, 0.04)
+            : I("sq", F(43), F(48), 0.06, 0.03);
+          break;
+        case "grabCatch":
+          S.hit(!1, "none", 0.6),
+            t.shake(0, 0.6, 4),
+            t.flare(n.x, n.y - 12, 8, 16, "#ffffff", 6),
+            n.kind === "phase" &&
+              t.ring(n.who.x, n.who.y - 12, 10, -0.6, 12, n.who.kit.color, !0),
+            t.ring(n.x, n.y - 10, 4, 1.6, 10, "#ffffff", !0);
+          break;
+        case "grabBite":
+          S.hit(!1, "none", 0.5),
+            t.shake(1, 0, 3),
+            t.burst(n.x, n.y - 10, n.who.kit.color, 8);
+          break;
+        case "grabThrow":
+          S.launch(n.kb),
+            t.streaks(n.x, n.y - 12, n.dx, n.dy, 6, n.who.kit.color),
+            n.kind === "slam"
+              ? (S.boom(),
+                t.shake(0, n.big ? 3 : 2, 10),
+                t.ring(n.x, n.y, 8, n.big ? 3.4 : 2.6, 18, "#e9d8b0"),
+                t.dust(n.x, n.y, 10, 0, 0, 1.4))
+              : t.dust(n.x, n.y, 4, n.dx, n.dy, 0.8);
+          break;
+        case "ringOut":
+          S.boom(),
+            t.shake(0, 3, 14),
+            t.ring(n.x, n.y, 10, 3.6, 22, "#ffffff", !0),
+            t.banner("RING OUT!", "#ffe066", 70);
+          break;
+        case "timeUp":
+          S.boom(), t.banner("TIME!", "#ffffff", 80);
+          break;
+        case "suddenDeath":
+          S.boom(), t.shake(0, 2, 10), t.banner("SUDDEN DEATH", "#ff4a63", 90);
+          break;
+        case "counterHit":
+          I("sq", F(84), F(96), 0.14, 0.05),
+            t.flare(n.x, n.y - 14, 10, 18, "#ffe066", 6),
+            t.popup(n.x, n.y - 44, "COUNTER!", "#ffe066", !0);
+          break;
+        case "backCrit":
+          t.flare(n.x, n.y - 14, 8, 14, "#ffffff", 5),
+            t.popup(n.x, n.y - 36, "CRITICAL!", "#ffffff", !1);
+          break;
+        case "bleed":
+          t.popup(n.x, n.y - 30, "3", "#ff4a63", !1),
+            t.burst(n.x, n.y - 10, "#ff4a63", 4);
           break;
         case "rockSlide":
           S.boom(), t.dust(n.who.x, n.who.y, 6, 0, 0, 1);
@@ -51656,7 +52835,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         (st = n),
         la(),
         netFrame();
-      let R = NET.m ? 1 : ([1, 0.5, 0.25][A.slowmo] ?? 1),
+      let R = NET.m
+        ? 1
+        : ([1, 0.5, 0.25][A.slowmo] ?? 1) *
+          (s.screen === "play" && e.match.mode !== "practice"
+            ? (A.mutFast ? 1.25 : 1) * (A.mutSlow ? 0.8 : 1)
+            : 1),
         W = s.screen === "play" && !s.paused && e.match.phase !== "results";
       // Never carry more than a few steps of backlog: on a slow frame the game
       // briefly slows down instead of snowballing into catch-up stalls.
@@ -51728,9 +52912,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             continue;
           }
           if (s.screen === "select") {
-            U(ee), re();
+            (seatSel = s), seatPoll();
+            let tn = seatTurn();
+            U(tn ? readSeat(tn) : ee), re();
             continue;
           }
+          // A local player's Start pauses for everyone.
+          seatPauseReq &&
+            ((seatPauseReq = !1),
+            s.paused || NET.m || e.match.phase !== "fight" || ee.pressed.add("start"));
           if (
             (ee.pressed.has("select") && ((s.debug = !s.debug), S.ui(s.debug)),
             s.paused)
