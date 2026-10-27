@@ -210,6 +210,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ringOut: 0,
       typeMatch: 0,
       burstPref: 0,
+      // Raid boss: 0 Random, else 1 + an index into LEGENDS.
+      raidBoss: 0,
       mutGiant: 0,
       mutTiny: 0,
       mutFast: 0,
@@ -409,6 +411,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       key: "burstPref",
       label: "Burst",
       options: ["Mega Evolve when possible", "Always Terastallize"],
+    },
+    {
+      kind: "choice",
+      key: "raidBoss",
+      label: "Raid boss",
+      options: ["Random", "Zekrom", "Darkrai", "Deoxys", "Groudon", "Rayquaza", "Ho-Oh", "Dialga", "Palkia", "Giratina", "Koraidon", "Miraidon"],
     },
     {
       kind: "choice",
@@ -4096,10 +4104,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           this.grabLayer(
             e,
             t,
-            this.ballLayer(
+            this.raidLayer(
               e,
               t,
-              this.adapt(e, t, this.modeLayer(e, t, this.decide(e, t))),
+              this.ballLayer(
+                e,
+                t,
+                this.adapt(e, t, this.modeLayer(e, t, this.decide(e, t))),
+              ),
             ),
           ),
         );
@@ -4272,10 +4284,82 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         } else go(ox * 0.55 + b.x * 0.45, Te * 0.5 + b.y * 0.5);
         return i;
       }
+      // Raid: get out of every telegraph before it lands (Hard always reads
+      // it, Rookie often doesn't), roll through Groudon's rings, keep out of
+      // sleep pools, and the nearest ally stands on Ho-Oh's flame ring.
+      raidLayer(e, t, i) {
+        let R = e.raid;
+        if (!R || e.match.phase !== "fight" || (t.state !== "move" && t.state !== "attack")) return i;
+        let lv = this.level ?? A.cpuLevel ?? 1,
+          a = R.atk,
+          flee = null,
+          roll = !1,
+          go = (x, y) => {
+            let dx = x - t.x,
+              dy = y - t.y,
+              d = Math.hypot(dx, dy);
+            d > 3 && ((i.mx = dx / d), (i.my = dy / d));
+          };
+        if (a) {
+          for (let z of a.zones) {
+            if (z.done) continue;
+            let left = (z.at ?? 0) + a.warn - a.t;
+            if (a.k === "heal") {
+              let mine = e.raidAlive().reduce((m, q) =>
+                !m || Math.hypot(q.x - z.x, q.y - z.y) < Math.hypot(m.x - z.x, m.y - z.y) ? q : m, null);
+              mine === t && (go(z.x, z.y), (i.pressed = new Set()));
+              continue;
+            }
+            if (a.k === "ring") {
+              let d = Math.hypot(t.x - z.x, t.y - z.y);
+              left <= 0 && z.rr < d && d - z.rr < 16 && (roll = !0);
+              continue;
+            }
+            if (left > 40 + (2 - lv) * 10 || left < -20) continue;
+            // Rookie and Normal sometimes stay put.
+            z.read ??= new Map();
+            z.read.has(t) || z.read.set(t, this.rand() < [0.45, 0.75, 1][lv]);
+            if (!z.read.get(t)) continue;
+            let pad = { ...z, r: (z.r ?? 0) + 12, w: (z.w ?? 0) + 18 };
+            if (!e.raidIn(pad, t)) continue;
+            if (z.shape === "lane") {
+              let ax = z.x2 - z.x1,
+                ay = z.y2 - z.y1,
+                L = Math.hypot(ax, ay) || 1,
+                nx = -ay / L,
+                ny = ax / L,
+                side = (t.x - z.x1) * nx + (t.y - z.y1) * ny >= 0 ? 1 : -1;
+              flee = [nx * side, ny * side];
+            } else {
+              let dx = t.x - z.x,
+                dy = t.y - z.y,
+                d = Math.hypot(dx, dy) || 1;
+              flee = d < 2 ? [Math.cos(t.facing + 1.6), Math.sin(t.facing + 1.6)] : [dx / d, dy / d];
+            }
+            left < 6 && lv > 0 && (roll = !0);
+          }
+        }
+        for (let o of R.pools)
+          if (Math.hypot(t.x - o.x, (t.y - o.y) * 1.15) < o.r + 6) {
+            let dx = t.x - o.x,
+              dy = t.y - o.y,
+              d = Math.hypot(dx, dy) || 1;
+            flee = [dx / d, dy / d];
+          }
+        if (flee) {
+          // Steer off the walls so a corner doesn't trap it.
+          let fx = flee[0] + (t.x < B.x0 + 30 ? 0.8 : t.x > B.x1 - 30 ? -0.8 : 0),
+            fy = flee[1] + (t.y < B.y0 + 24 ? 0.8 : t.y > B.y1 - 20 ? -0.8 : 0),
+            f = Math.hypot(fx, fy) || 1;
+          (i.mx = fx / f), (i.my = fy / f), (i.pressed = new Set()), (i.ax = i.ay = 0), (i.aimHeld = !1);
+        }
+        roll && t.state === "move" && (i.pressed = new Set(["dodge"]));
+        return i;
+      }
       // Burst: when hurt, or to close out a fight. Hard saves the meter for
       // the legendary while healthy.
       burstLayer(e, t, i) {
-        if (!t.legend || t.burstUsed || t.lgMeter < BURST.cost || t.state !== "move")
+        if (!(t.legend || t.raidMeter) || t.burstUsed || t.lgMeter < BURST.cost || t.state !== "move")
           return i;
         let o = e.nearestTarget(t.team, t.x, t.y),
           hp = t.slot.hp / t.slot.maxHp,
@@ -6466,6 +6550,39 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ],
       key: "pocketbrawl-launch-v1",
     },
+    // Raid: a party of four (CPU allies fill the empty places) against a giant
+    // legendary. Three phases by HP, each adding an attack to the rotation;
+    // every attack telegraphs before it lands. A K.O. is an 8 s wait while an
+    // ally still stands; all down, or the clock, fails the raid.
+    RAID = {
+      hp: 3000,
+      time: 14400,
+      back: 480,
+      team: 7,
+      r: 30,
+      gap: [120, 95, 72],
+      warn: 50,
+      addHp: 260,
+      addN: 2,
+      flinch: 400,
+      shiny: 8,
+      key: "pocketbrawl-raid-v1",
+      dmg: { lane: 110, bolt: 80, pillar: 130, ring: 90, mark: 100, rift: 90, hunt: 120, drift: 110, stop: 40, add: 45 },
+      // Per boss: the wild Pokemon that join it, and the attacks each phase adds.
+      sets: {
+        zekrom: { adds: "pikachu", rot: [["lane", "bolts"], ["pillar"], ["bolts3"]] },
+        darkrai: { adds: "gengar", rot: [["sleep", "bolts"], ["mark"], ["rift"]] },
+        deoxys: { adds: "gardevoir", rot: [["bolts", "pillar"], ["lane"], ["charge", "mark"]] },
+        groudon: { adds: "rhyperior", rot: [["ring", "pillar"], ["lane"], ["bolts3"]] },
+        rayquaza: { adds: "noivern", rot: [["mark", "lane"], ["ring"], ["bolts3"]] },
+        hooh: { adds: "charizard", rot: [["bolts", "heal"], ["ring"], ["mark"]] },
+        dialga: { adds: "metagross", rot: [["ring", "stop"], ["bolts"], ["pillar"]] },
+        palkia: { adds: "milotic", rot: [["rift", "lane"], ["ring"], ["stop"]] },
+        giratina: { adds: "gengar", rot: [["hunt", "bolts"], ["lane"], ["rift"]] },
+        koraidon: { adds: "garchomp", rot: [["charge", "ring"], ["bolts"], ["pillar"]] },
+        miraidon: { adds: "toxtricity", rot: [["drift", "bolts"], ["lane"], ["mark"]] },
+      },
+    },
     // Poké Ball: 2v2 (or 1v1) knock a giant ball into the other side's goal.
     // First to `goals`, or ahead at `time`; level at time is golden goal.
     BALL = {
@@ -6492,6 +6609,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       "YOU'RE IT!",
       "THIN ICE",
       "THIN ICE PARTY",
+      "POK\xC9 BALL",
+      "SNORLAX LAUNCH",
+      "DAILY CHALLENGE",
+      "RAID",
     ],
     // Standard is one Pokemon; Tag Team (and Tag Team online) is two.
     teamSize = () =>
@@ -6515,13 +6636,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     teamMode = () => A.gameMode === 3 || A.gameMode === 11,
     // Lives apply to every mode but Training and Zone Control.
     livesMode = () =>
-      A.gameMode !== 1 && A.gameMode !== 4 && A.gameMode !== 7 && A.gameMode !== 12,
+      A.gameMode !== 1 && A.gameMode !== 4 && A.gameMode !== 7 && A.gameMode !== 12 && A.gameMode !== 14,
     // How many fighters the CPU side rolls on team select: in Free-for-All
     // one per rival, otherwise a team like yours.
     cpuNeed = () =>
       isFfa()
         ? Math.max(2, Math.min(3, (A.ffaPlayers ?? 4) - 1))
-        : teamSize(),
+        : A.gameMode === 14
+          ? 3
+          : teamSize(),
     QUAD = [
       [Se - 150, Te - 50],
       [Se + 150, Te - 50],
@@ -7970,7 +8093,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         let r = this.match,
           // Pidgey Sweep is always on the Stadium.
           ar0 = A.arena;
-        (e === "sweep" || e === "launch") && (A.arena = 0);
+        (e === "sweep" || e === "launch" || e === "raid") && (A.arena = 0);
         // Thin Ice is on Frostfall's frozen lake; Poké Ball on the Stadium.
         this.thinGame && e !== "sweep" && (A.arena = 3);
         this.ballGame && e !== "sweep" && (A.arena = 0);
@@ -8188,7 +8311,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (this.slowTicks = 0),
           e !== "practice" && s.length)
         ) {
-          let q = e === "ffa" || e === "team";
+          let q = e === "ffa" || e === "team" || e === "raid";
           q &&
             ((this.players[0].x = this.players[0].px = QUAD[0][0]),
             (this.players[0].y = this.players[0].py = QUAD[0][1]));
@@ -8196,7 +8319,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             this.mons,
             q ? QUAD[1][0] : Se + 120,
             q ? QUAD[1][1] : Te,
-            e === "ffa" ? 3 : Na,
+            e === "ffa" ? 3 : e === "raid" ? mt : Na,
             s,
           );
           (o.facing = Math.PI),
@@ -8210,7 +8333,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             let nx =
               e === "ffa"
                 ? Math.max(1, Math.min(2, (A.ffaPlayers ?? 4) - 2))
-                : 2;
+                : e === "raid"
+                  ? Math.max(0, Math.min(2, (r.raidN ?? 4) - 2))
+                  : 2;
             r.extraPreset?.length === nx
               ? (r.extra = r.extraPreset)
               : (i && r.extra?.length === nx) ||
@@ -8230,7 +8355,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
                   this.mons,
                   QUAD[f][0],
                   QUAD[f][1],
-                  e === "ffa" ? f + 2 : l === 0 ? mt : Na,
+                  e === "ffa" ? f + 2 : l === 0 || e === "raid" ? mt : Na,
                   r.extra[l],
                 );
               (u.facing = QUAD[f][0] > Se ? Math.PI : 0),
@@ -8246,6 +8371,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         e === "sweep" && this.sweepStart();
         this.launch = null;
         e === "launch" && this.launchStart();
+        this.raid = null;
+        e === "raid" && this.raidStart();
         this.tice = null;
         this.thinGame && e !== "practice" && e !== "sweep" && this.ticeStart();
         this.it =
@@ -8273,7 +8400,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         // Everyone brings a legendary when they are on; Training starts full.
         for (let o of this.players)
           (o.legend =
-            A.legends && e !== "sweep" && e !== "launch"
+            A.legends && e !== "sweep" && e !== "launch" && e !== "raid"
             ? ((o === this.players[0]
                 ? this.match.youLegend
                 : this.match.cpuLegends?.[o.cpuIndex ?? 0]) ?? "zekrom")
@@ -8385,6 +8512,395 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         else if (L.phase === "over" && ++L.t >= LAUNCH.grace) this.doLaunch(null, 0);
         else if (L.phase === "fly" && ++L.flyT >= LAUNCH.fly)
           this.emit({ type: "launchDone", m: L.m, rank: L.rank }), this.endRound("win");
+      }
+      // ---- Raid ----
+      raidStart() {
+        let kind = LEGENDS.includes(this.match.raidBoss) ? this.match.raidBoss : "zekrom",
+          set = RAID.sets[kind],
+          n = this.players.length,
+          b = new bt(this.mons, Se, Te - 6, RAID.team, ["snorlax"]);
+        Object.assign(b, {
+          kind: "boss",
+          boss: kind,
+          form: kind === "deoxys" ? "normal" : null,
+          r: RAID.r,
+          hurtR: RAID.r,
+          facing: Math.PI / 2,
+          hidden: !1,
+          brain: null,
+        });
+        (b.slots[0].maxHp = b.slots[0].hp = RAID.hp * n), (b.slots[0].guard = 100);
+        (this.raid = {
+          kind,
+          set,
+          boss: b,
+          n,
+          phase: 0,
+          left: RAID.time,
+          atk: null,
+          nextT: 150,
+          last: null,
+          adds: [],
+          pools: [],
+          flinch: 0,
+          downs: 0,
+          healed: 0,
+          result: null,
+        }),
+          (this.itemT = Math.max(this.itemT, 900));
+        for (let p of this.players) (p.raidMeter = !0), (p.legend = null), (p.lgMeter = 0);
+      }
+      raidFoes() {
+        let R = this.raid,
+          o = [];
+        R.boss.hidden || R.boss.slots[0].hp <= 0 || o.push(R.boss);
+        for (let a of R.adds) a.slots[0].hp > 0 && o.push(a);
+        return o;
+      }
+      raidAlive() {
+        return this.players.filter((q) => q.state !== "faint" && !q.zoneBack);
+      }
+      // A hit on the boss or a wild Pokemon: no knockback for the boss, a
+      // flinch every RAID.flinch damage; melee from behind still crits.
+      raidHit(e, t, dmg, kb, dx, dy, k, melee) {
+        let R = this.raid;
+        if (!R || this.match.phase !== "fight" || !(dmg > 0)) return;
+        let src = t?.kind === "assist" ? t.summoner : t,
+          back =
+            e.kind === "boss" &&
+            melee &&
+            src?.kind === "player" &&
+            dx * Math.cos(e.facing) + dy * Math.sin(e.facing) > 0.5,
+          d = Math.max(1, Math.round(dmg * ae.dmg * (src?.kind === "player" ? this.exOut(src, dmg, k, e) : 1) * (back ? 1.2 : 1))),
+          sl = e.slots[0];
+        (sl.hp = Math.max(0, sl.hp - d)), (e.flash = 4);
+        src?.kind === "player" &&
+          ((src.stats.dealt += d), (src.stats.landed += 1), this.gainMeter(e, src, d, k), (this.match.dealt += src === this.player ? d : 0));
+        if (e.kind === "add")
+          (e.stagger = 10), (e.kvx = dx * Math.min(6, kb) * 0.8), (e.kvy = dy * Math.min(6, kb) * 0.8), e.state === "wind" && ((e.state = "rest"), (e.t = 0));
+        else (R.flinch += d) >= RAID.flinch && ((R.flinch -= RAID.flinch), (e.hitstop = 10), this.emit({ type: "raidFlinch", x: e.x, y: e.y, kind: R.kind }));
+        this.emit({ type: "raidHit", who: e, by: src, dmg: d, back, x: e.x, y: e.y - (e.kind === "boss" ? 30 : 10) });
+      }
+      raidHurt(v, dmg, x, y, kb = 6) {
+        let dx = v.x - x,
+          dy = v.y - y,
+          d = Math.hypot(dx, dy) || 1;
+        this.applyHit(v, null, dmg, kb, dx / d, dy / d, !0, 6, 16, LG_INFO[this.raid.kind]?.color ?? "#ffffff", v.x, v.y, !1, !0, "legend-raid");
+      }
+      raidIn(z, v) {
+        if (z.shape === "lane") {
+          let ax = z.x2 - z.x1,
+            ay = z.y2 - z.y1,
+            L = ax * ax + ay * ay || 1,
+            u = me(((v.x - z.x1) * ax + (v.y - z.y1) * ay) / L, 0, 1);
+          return Math.hypot(v.x - z.x1 - ax * u, v.y - z.y1 - ay * u) < z.w / 2 + v.hurtR;
+        }
+        if (z.shape === "ring") {
+          let d = Math.hypot(v.x - z.x, v.y - z.y);
+          return Math.abs(d - z.rr) < 12 + v.hurtR;
+        }
+        return Math.hypot(v.x - z.x, (v.y - z.y) * 1.15) < z.r + v.hurtR * 0.5;
+      }
+      // Hit everyone in a zone (once per zone).
+      raidStrike(z, dmg, kb) {
+        z.hit ??= new Set();
+        for (let v of this.victimsFor(RAID.team))
+          v.kind === "player" && !z.hit.has(v) && this.raidIn(z, v) && (z.hit.add(v), this.raidHurt(v, dmg, z.x ?? this.raid.boss.x, z.y ?? this.raid.boss.y, kb));
+      }
+      raidLaneTo(b, tx, ty) {
+        let dx = tx - b.x,
+          dy = ty - b.y,
+          d = Math.hypot(dx, dy) || 1,
+          ux = dx / d,
+          uy = dy / d,
+          L = 0;
+        for (; L < 900; L += 6) {
+          let x = b.x + ux * L,
+            y = b.y + uy * L;
+          if (x < B.x0 + 20 || x > B.x1 - 20 || y < B.y0 + 16 || y > B.y1 - 10) break;
+        }
+        return { shape: "lane", x1: b.x, y1: b.y, x2: b.x + ux * L, y2: b.y + uy * L, w: 46, at: 0 };
+      }
+      raidNext() {
+        let R = this.raid,
+          b = R.boss,
+          up = this.raidAlive();
+        if (!up.length) return void (R.nextT = 30);
+        let pool = R.set.rot.slice(0, R.phase + 1).flat(),
+          k = pool[Math.floor(this.rand() * pool.length)];
+        k === R.last && pool.length > 1 && (k = pool[(pool.indexOf(k) + 1 + Math.floor(this.rand() * (pool.length - 1))) % pool.length]);
+        R.last = k;
+        let tg = up[Math.floor(this.rand() * up.length)],
+          near = up.reduce((a, q) => (Math.hypot(q.x - b.x, q.y - b.y) < Math.hypot(a.x - b.x, a.y - b.y) ? q : a)),
+          a = { k, t: 0, warn: RAID.warn, zones: [], tg, n: 0 },
+          circ = (x, y, r, at = 0, extra = {}) => ({ shape: "circle", x: me(x, B.x0 + 14, B.x1 - 14), y: me(y, B.y0 + 12, B.y1 - 8), r, at, ...extra });
+        switch (k) {
+          case "lane":
+          case "charge":
+            a.zones.push(this.raidLaneTo(b, tg.x, tg.y)), (a.warn = k === "charge" ? 40 : 50);
+            break;
+          case "bolts":
+            for (let q of up.slice(0, R.phase === 0 ? 2 : 4)) a.zones.push(circ(q.x, q.y, 34));
+            break;
+          case "bolts3":
+            a.warn = 44;
+            for (let w = 0; w < 3; w++) for (let q of up) a.zones.push(circ(q.x, q.y, 30, w * 28, { wave: w, follow: w ? q : null }));
+            break;
+          case "pillar":
+            a.zones.push(circ(near.x, near.y, 40, 0, { follow: near, track: 70 })), (a.warn = 90);
+            break;
+          case "ring":
+            a.zones.push({ shape: "ring", x: b.x, y: b.y, rr: 0, max: 300, at: 0 });
+            break;
+          case "mark":
+            for (let q of up.slice(0, 2)) a.zones.push(circ(q.x, q.y, 36, 0, { follow: q, track: 55 }));
+            (a.warn = 70), a.zones[1] && (a.zones[1].at = 22);
+            break;
+          case "rift":
+            for (let w = 0; w < 4; w++) {
+              let q = up[w % up.length],
+                ang = this.rand() * Math.PI * 2,
+                off = w < up.length ? 0 : 60 + this.rand() * 60;
+              a.zones.push(circ(q.x + Math.cos(ang) * off, q.y + Math.sin(ang) * off, 40, w * 8));
+            }
+            a.warn = 60;
+            break;
+          case "stop":
+            a.zones.push(circ(tg.x, tg.y, 48)), (a.warn = 55);
+            break;
+          case "sleep":
+            a.zones.push(circ(tg.x, tg.y, 64)), (a.warn = 40);
+            break;
+          case "heal": {
+            let x = Se + (this.rand() - 0.5) * 300,
+              y = Te + (this.rand() - 0.5) * 140;
+            a.zones.push(circ(x, y, 42)), (a.warn = 150);
+            break;
+          }
+          case "hunt":
+            (b.hidden = !0), a.zones.push(circ(tg.x, tg.y, 44, 0, { follow: tg, track: 80, speed: 2 })), (a.warn = 95);
+            break;
+          case "drift": {
+            let ang = Math.atan2(tg.y - Te, tg.x - Se);
+            a.zones.push(circ(Se + Math.cos(ang) * 120, Te + Math.sin(ang) * 70, 50, 0, { ang, track: 80 })), (a.warn = 95);
+            break;
+          }
+        }
+        (R.atk = a), this.emit({ type: "raidWarn", k, kind: R.kind, x: b.x, y: b.y });
+      }
+      raidAttack(a) {
+        let R = this.raid,
+          b = R.boss,
+          D = RAID.dmg,
+          t = ++a.t,
+          done = !0;
+        for (let z of a.zones) {
+          let zt = t - z.at;
+          if (zt < 0) {
+            done = !1;
+            continue;
+          }
+          // Tracking: chase its target (slower than a fighter can run), then lock.
+          if (z.follow && zt < (z.track ?? 20)) {
+            let f = z.follow,
+              dx = f.x - z.x,
+              dy = f.y - z.y,
+              d = Math.hypot(dx, dy),
+              sp = z.speed ?? 1.7;
+            d > sp ? ((z.x += (dx / d) * sp), (z.y += (dy / d) * sp)) : ((z.x = f.x), (z.y = f.y));
+          }
+          if (z.ang != null && zt < z.track) (z.ang += 0.035), (z.x = Se + Math.cos(z.ang) * 120), (z.y = Te + Math.sin(z.ang) * 70);
+          if (z.done) continue;
+          if (a.k === "ring") {
+            if (zt < a.warn) {
+              done = !1;
+              continue;
+            }
+            (z.rr = (zt - a.warn) * 5.5), (z.live = !0), this.raidStrike(z, D.ring, 7), z.rr >= z.max ? (z.done = !0) : (done = !1);
+            continue;
+          }
+          if (a.k === "lane" || a.k === "charge") {
+            if (zt < a.warn) {
+              (b.facing = Math.atan2(z.y2 - z.y1, z.x2 - z.x1)), (done = !1);
+              continue;
+            }
+            let u = Math.min(1, (zt - a.warn) / 16);
+            (b.x = z.x1 + (z.x2 - z.x1) * u), (b.y = z.y1 + (z.y2 - z.y1) * u), (z.live = !0);
+            this.raidStrike({ shape: "circle", x: b.x, y: b.y, r: b.r + 10, hit: (z.hit ??= new Set()) }, D.lane, 8);
+            zt === a.warn && this.emit({ type: "raidDash", kind: R.kind, x: b.x, y: b.y });
+            if (u < 1) {
+              done = !1;
+              continue;
+            }
+            z.done = !0;
+            // Koraidon's charge goes three times.
+            if (a.k === "charge" && ++a.n < 3) {
+              let up = this.raidAlive(),
+                q = up[Math.floor(this.rand() * up.length)];
+              q && (a.zones.push({ ...this.raidLaneTo(b, q.x, q.y), at: t + 4 }), (done = !1));
+            }
+            continue;
+          }
+          if (zt < a.warn) {
+            done = !1;
+            // Sleep pool and the heal ring act while they are out.
+            continue;
+          }
+          z.done = !0;
+          switch (a.k) {
+            case "bolts":
+            case "bolts3":
+              this.raidStrike(z, D.bolt, 6), this.emit({ type: "raidBolt", kind: R.kind, x: z.x, y: z.y, r: z.r });
+              break;
+            case "pillar":
+              this.raidStrike(z, D.pillar, 9), this.emit({ type: "raidPillar", kind: R.kind, x: z.x, y: z.y, r: z.r });
+              break;
+            case "rift":
+              this.raidStrike(z, D.rift, 7), this.emit({ type: "raidBolt", kind: R.kind, x: z.x, y: z.y, r: z.r });
+              break;
+            case "mark":
+            case "hunt":
+            case "drift":
+              (b.x = z.x), (b.y = z.y - 4), (b.hidden = !1);
+              this.raidStrike(z, D[a.k], 9), this.emit({ type: "raidPillar", kind: R.kind, x: z.x, y: z.y, r: z.r });
+              break;
+            case "stop":
+              for (let v of this.victimsFor(RAID.team))
+                v.kind === "player" && this.raidIn(z, v) && ((v.timeStopT = 120), this.raidHurt(v, D.stop, z.x, z.y, 0));
+              this.emit({ type: "raidStop", x: z.x, y: z.y, r: z.r });
+              break;
+            case "sleep":
+              R.pools.push({ x: z.x, y: z.y, r: z.r, life: 300 }), this.emit({ type: "raidPool", x: z.x, y: z.y });
+              break;
+            case "heal": {
+              let held = this.raidAlive().some((v) => Math.hypot(v.x - z.x, (v.y - z.y) * 1.15) < z.r + 6);
+              held
+                ? this.emit({ type: "raidHealStop", x: z.x, y: z.y })
+                : ((b.slots[0].hp = Math.min(b.slots[0].maxHp, b.slots[0].hp + Math.round(b.slots[0].maxHp * 0.08))),
+                  R.healed++,
+                  this.emit({ type: "raidHeal", x: b.x, y: b.y, kind: R.kind }));
+              break;
+            }
+          }
+        }
+        if (done) (R.atk = null), (b.hidden = !1), (R.nextT = RAID.gap[R.phase]);
+      }
+      raidAdd(n) {
+        let R = this.raid,
+          b = R.boss;
+        for (let k = 0; k < n; k++) {
+          let ang = (k / n) * Math.PI * 2 + this.rand(),
+            a = new bt(this.mons, me(b.x + Math.cos(ang) * 60, B.x0 + 20, B.x1 - 20), me(b.y + Math.sin(ang) * 40, B.y0 + 20, B.y1 - 12), RAID.team, [R.set.adds]);
+          Object.assign(a, { kind: "add", brain: null, t: 0, stagger: 0, spawnT: 30 });
+          (a.slots[0].maxHp = a.slots[0].hp = RAID.addHp), R.adds.push(a);
+        }
+        this.emit({ type: "raidAdds", kind: R.kind, x: b.x, y: b.y });
+      }
+      raidAddsTick() {
+        let R = this.raid;
+        for (let a of R.adds) {
+          a.flash > 0 && a.flash--;
+          (a.px = a.x), (a.py = a.y);
+          if (a.slots[0].hp <= 0) {
+            a.state !== "faint" && ((a.state = "faint"), (a.t = 0), this.emit({ type: "raidAddDown", x: a.x, y: a.y }));
+            ++a.t > 40 && (a.gone = !0);
+            continue;
+          }
+          if (a.spawnT > 0) {
+            a.spawnT--;
+            continue;
+          }
+          if (a.stagger > 0) {
+            a.stagger--, (a.x += a.kvx), (a.y += a.kvy), (a.kvx *= 0.8), (a.kvy *= 0.8);
+          } else {
+            let up = this.raidAlive(),
+              tg = up.reduce((m, q) => (!m || Math.hypot(q.x - a.x, q.y - a.y) < Math.hypot(m.x - a.x, m.y - a.y) ? q : m), null);
+            if (!tg) continue;
+            let dx = tg.x - a.x,
+              dy = tg.y - a.y,
+              d = Math.hypot(dx, dy) || 1;
+            a.t++;
+            if (a.state === "wind") a.t >= 24 && ((a.state = "lunge"), (a.t = 0), (a.lx = dx / d), (a.ly = dy / d), (a.hitSet = new Set()));
+            else if (a.state === "lunge") {
+              (a.x += a.lx * 4.4), (a.y += a.ly * 4.4);
+              for (let v of this.victimsFor(RAID.team))
+                v.kind === "player" && !a.hitSet.has(v) && Math.hypot(v.x - a.x, v.y - a.y) < a.r + v.hurtR + 2 && (a.hitSet.add(v), this.raidHurt(v, RAID.dmg.add, a.x, a.y, 5));
+              a.t >= 10 && ((a.state = "rest"), (a.t = 0));
+            } else if (a.state === "rest") a.t >= 40 && ((a.state = "move"), (a.t = 0));
+            else d < 36 ? ((a.state = "wind"), (a.t = 0)) : ((a.x += (dx / d) * 1.25), (a.y += (dy / d) * 1.25));
+            a.state !== "lunge" && (a.facing = Math.atan2(dy, dx));
+          }
+          (a.x = me(a.x, B.x0 + 10, B.x1 - 10)), (a.y = me(a.y, B.y0 + 10, B.y1 - 6));
+          (a.mvx = a.x - a.px), (a.mvy = a.y - a.py);
+        }
+        R.adds = R.adds.filter((a) => !a.gone);
+      }
+      raidTick() {
+        let R = this.raid,
+          m = this.match,
+          b = R.boss;
+        if (m.phase !== "fight" || this.intro > 0) return;
+        (b.px = b.x), (b.py = b.y), b.flash > 0 && b.flash--, (b.t = (b.t ?? 0) + 1);
+        if (b.slots[0].hp <= 0) {
+          (R.result = "clear"), (R.atk = null), (b.hidden = !1), (R.adds = []), (R.pools = []);
+          this.emit({ type: "raidClear", kind: R.kind, x: b.x, y: b.y }), this.endRound("win");
+          return;
+        }
+        if (--R.left <= 0) {
+          (R.result = "time"), this.emit({ type: "raidFail", why: "time" }), this.endRound("lose");
+          return;
+        }
+        R.left % 60 === 0 && R.left <= 600 && this.emit({ type: "raidTick", left: R.left / 60 });
+        let hp = b.slots[0].hp / b.slots[0].maxHp,
+          ph = hp > 2 / 3 ? 0 : hp > 1 / 3 ? 1 : 2;
+        if (ph > R.phase) {
+          (R.phase = ph), R.kind === "deoxys" && (b.form = ph === 1 ? "attack" : "speed");
+          this.emit({ type: "raidPhase", phase: ph, kind: R.kind, x: b.x, y: b.y }), this.raidAdd(RAID.addN);
+        }
+        this.raidAddsTick();
+        // Darkrai's sleep pools: stand in one too long and you fall asleep.
+        for (let o of R.pools) {
+          o.life--;
+          for (let v of this.raidAlive()) {
+            let inn = Math.hypot(v.x - o.x, (v.y - o.y) * 1.15) < o.r;
+            v.sleepT = inn ? (v.sleepT ?? 0) + 1 : Math.max(0, (v.sleepT ?? 0) - 2);
+            v.sleepT >= 45 &&
+              v.state !== "stunned" &&
+              ((v.sleepT = 0), (v.state = "stunned"), (v.t = 0), (v.hitstun = 90), (v.mvx = v.mvy = 0), this.emit({ type: "raidSleep", who: v, x: v.x, y: v.y }));
+          }
+        }
+        R.pools = R.pools.filter((o) => o.life > 0);
+        if (b.hitstop > 0) b.hitstop--;
+        else if (R.atk) this.raidAttack(R.atk);
+        else {
+          --R.nextT <= 0 && this.raidNext();
+          // Between attacks it drifts toward the party, never into a corner.
+          let up = this.raidAlive();
+          if (up.length && !R.atk) {
+            let cx = up.reduce((s, q) => s + q.x, 0) / up.length,
+              cy = up.reduce((s, q) => s + q.y, 0) / up.length,
+              tx = Se + (cx - Se) * 0.35,
+              ty = Te + (cy - Te) * 0.35,
+              dx = tx - b.x,
+              dy = ty - b.y,
+              d = Math.hypot(dx, dy);
+            d > 2 && ((b.x += (dx / d) * 0.6), (b.y += (dy / d) * 0.6));
+            let nq = up.reduce((a, q) => (Math.hypot(q.x - b.x, q.y - b.y) < Math.hypot(a.x - b.x, a.y - b.y) ? q : a));
+            b.facing = Math.atan2(nq.y - b.y, nq.x - b.x);
+          }
+        }
+        (b.x = me(b.x, B.x0 + 24, B.x1 - 24)), (b.y = me(b.y, B.y0 + 24, B.y1 - 14));
+        (b.mvx = b.x - b.px), (b.mvy = b.y - b.py), (b.kvx = b.kvy = 0), (b.state = "move"), (b.z = 0);
+        // Fighters can't walk through it.
+        if (!b.hidden)
+          for (let p of this.players) {
+            if (p.state === "faint" || p.zoneBack) continue;
+            let dx = p.x - b.x,
+              dy = p.y - b.y,
+              d = Math.hypot(dx, dy) || 1,
+              mn = b.r + p.r;
+            d < mn && ((p.x = b.x + (dx / d) * mn), (p.y = b.y + (dy / d) * mn));
+          }
       }
       // ---- Poké Ball ----
       kickBall(by, kb, dx, dy) {
@@ -9116,6 +9632,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           s.team !== e && s.state !== "faint" && !s.vanished && t.push(s);
         for (let s of this.dummies)
           s.team !== e && this.canBeHit(s) && t.push(s);
+        this.raid && e !== RAID.team && t.push(...this.raidFoes());
         return t;
       }
       // Who team e's attacks can hit. Seeking attacks (Dreepy, homing shots)
@@ -9131,6 +9648,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           s.team !== e && this.canBeHit(s) && t.push(s);
         // Poké Ball: anyone's attack can hit the ball.
         this.ball && t.push(this.ball);
+        this.raid && e !== RAID.team && t.push(...this.raidFoes());
         return t;
       }
       inSmoke(e) {
@@ -9216,6 +9734,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         this.timeTick();
         this.ball && this.ballTick();
         this.launch && this.launchTick();
+        this.raid && this.raidTick();
         this.updateZone();
         this.sweep && this.sweepTick();
         this.it && this.itTick();
@@ -9573,7 +10092,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             if (
               f("burst") &&
               !e.burstUsed &&
-              e.legend &&
+              (e.legend || e.raidMeter) &&
               e.lgMeter >= BURST.cost &&
               !(e.z > 0)
             ) {
@@ -9807,6 +10326,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         this.applyKnockback(e), this.animatePlayer(e);
       }
       tickFaint(e) {
+        // Raid: back in after 8 s while an ally still stands; all down fails.
+        if (this.raid && e.t === 60 && e.aliveSlot(1) === null && !e.zoneBack) {
+          let up = this.players.some((q) => q !== e && q.state !== "faint" && !q.zoneBack);
+          if (!up) return (this.raid.result = "down"), this.emit({ type: "raidFail", why: "down" }), this.endRound("lose");
+          (e.zoneBack = RAID.back), this.raid.downs++, this.emit({ type: "zoneDown", who: e, wait: RAID.back });
+        }
         // Poké Ball: a K.O. is a three-second wait, then back in.
         this.ball &&
           e.t === 60 &&
@@ -10556,7 +11081,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       gainMeter(e, t, s, i) {
         if (!(s > 0) || String(i).includes("legend")) return;
         let r = (o, l) => {
-          if (!o?.legend || o.lgMeter >= 100) return;
+          if (!(o?.legend || o?.raidMeter) || o.lgMeter >= (o.legend ? 100 : BURST.cost)) return;
           // Winded after a Burst: meter fills at half speed for a while.
           o.windT > 0 && (l *= 0.5);
           (o.lgMeter = Math.min(
@@ -14649,7 +15174,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         this.drops = this.drops.filter((t) => t.t < SURGE.dropWarn);
       }
       updateHazards() {
-        if (A.hazards === 0) return;
+        if (A.hazards === 0 || this.raid) return;
         // Ruins: rubble falls where a boulder was destroyed.
         for (let t of this.collapses)
           if (++t.t === RUINS.collapseWarn) {
@@ -21086,6 +21611,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         if (e.kind === "ball") return this.kickBall(t, i, r, o);
         // Snorlax Launch: hits on the sleeper add to the launch.
         if (this.launch && e === this.launch.tgt) return this.launchHit(t, s, i, k);
+        // Raid: the boss and its wild Pokemon keep their own health.
+        if (e.kind === "boss" || e.kind === "add") return this.raidHit(e, t, s, i, r, o, k, M);
         // A fighter held in a grab (Crunch, Psychic) can only be hurt by the
         // one holding it, so a grab is never a free hit for everyone else.
         if (e.heldBy && t && t !== e.heldBy && t.summoner !== e.heldBy) return;
@@ -21875,7 +22402,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   function seatsMax() {
     return [0, 4, 6, 9].includes(A.gameMode)
       ? 1
-      : teamMode()
+      : teamMode() || A.gameMode === 14
         ? 3
         : [2, 8, 10].includes(A.gameMode)
           ? cpuNeed()
@@ -27400,6 +27927,158 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         a.restore();
     }
   }
+  // Raid: the boss's own scene faint behind the arena, its telegraphs on the
+  // floor (a lane, a ring, a circle that fills to the edge, white just
+  // before it lands), Darkrai's pools and the wild Pokemon.
+  var RAID_CV = null;
+  function raidEll(a, x, y, r) {
+    a.beginPath(), a.ellipse(x, y, Math.max(0.5, r), Math.max(0.5, r * 0.87), 0, 0, Math.PI * 2);
+  }
+  function raidGround(a, e) {
+    let R = e.raid,
+      t = e.tick,
+      b = R.boss,
+      rgb = LG_INFO[R.kind]?.rgb ?? "255,255,255";
+    try {
+      let cv = (RAID_CV ??= document.createElement("canvas"));
+      (cv.width !== a.canvas.width || cv.height !== a.canvas.height) && ((cv.width = a.canvas.width), (cv.height = a.canvas.height));
+      let c = cv.getContext("2d");
+      c.setTransform(1, 0, 0, 1, 0, 0), c.clearRect(0, 0, cv.width, cv.height), c.setTransform(a.getTransform());
+      let fk = { kind: R.kind, form: b.form, id: 7, t, caught: [], owner: b, cx: Se, cy: Te },
+        gr = c.createLinearGradient(0, 0, 0, _),
+        cols =
+          R.kind === "zekrom"
+            ? ["#02040c", "#0a1636", "#04081a"]
+            : R.kind === "darkrai"
+              ? ["#04020a", "#180a2e", "#08030f"]
+              : R.kind === "groudon"
+                ? ["#1a0500", "#5a1204", "#200600"]
+                : R.kind === "rayquaza"
+                  ? ["#000a12", "#06323a", "#021418"]
+                  : ["#000003", "#0e0420", "#02010a"];
+      gr.addColorStop(0, cols[0]), gr.addColorStop(0.55, cols[1]), gr.addColorStop(1, cols[2]);
+      (c.globalAlpha = 1), (c.fillStyle = gr), c.fillRect(-60, -60, Y + 120, _ + 120);
+      if (!exLgSky(c, fk, 1, rt(7), t)) {
+        // Storm, night or space: rain for Zekrom, stars for the others.
+        let rr = rt(11);
+        (c.strokeStyle = R.kind === "zekrom" ? "#7fa8d8" : "#ffffff"), (c.fillStyle = "#ffffff");
+        for (let u = 0; u < 90; u++) {
+          let h = ((rr() * (Y + 200) + (R.kind === "zekrom" ? t * 3 : 0)) % (Y + 200)) - 100,
+            q = ((rr() * (_ + 120) + (R.kind === "zekrom" ? t * 11 + u * 3 : 0)) % (_ + 120)) - 60;
+          (c.globalAlpha = 0.2 + rr() * 0.3),
+            R.kind === "zekrom" ? (c.beginPath(), c.moveTo(h, q), c.lineTo(h - 3, q + 10), c.stroke()) : c.fillRect(h, q, 1, 1);
+        }
+        R.kind === "zekrom" && t % 97 < 3 && ((c.globalAlpha = 0.25), (c.fillStyle = "#9fd8ff"), c.fillRect(-60, -60, Y + 120, _ + 120));
+      }
+      a.save(), a.setTransform(1, 0, 0, 1, 0, 0), (a.globalAlpha = 0.58), a.drawImage(cv, 0, 0), a.restore();
+    } catch {}
+    let K = R.atk;
+    if (K)
+      for (let z of K.zones) {
+        let zt = K.t - (z.at ?? 0);
+        if (zt < 0 || z.done) continue;
+        let p = Math.min(1, zt / K.warn),
+          hot = K.warn - zt < 10 && K.warn - zt >= 0 && t % 6 < 3,
+          col = K.k === "stop" ? "111,168,255" : K.k === "heal" ? "255,138,61" : K.k === "sleep" ? "138,92,255" : rgb;
+        a.save();
+        if (z.shape === "lane") {
+          let L = Math.hypot(z.x2 - z.x1, z.y2 - z.y1);
+          a.translate(z.x1, z.y1), a.rotate(Math.atan2(z.y2 - z.y1, z.x2 - z.x1));
+          (a.globalAlpha = 0.16 + 0.26 * p), (a.fillStyle = `rgb(${col})`), a.fillRect(0, -z.w / 2, L, z.w);
+          (a.globalAlpha = 0.6 + 0.4 * p), (a.fillStyle = hot ? "#ffffff" : `rgb(${col})`);
+          a.fillRect(0, -z.w / 2, L * p, 2), a.fillRect(0, z.w / 2 - 2, L * p, 2);
+          (a.globalAlpha = 0.3 + 0.3 * p), (a.strokeStyle = "#ffffff"), (a.lineWidth = 2);
+          for (let q = (t * 2) % 26; q < L; q += 26) a.beginPath(), a.moveTo(q, -8), a.lineTo(q + 8, 0), a.lineTo(q, 8), a.stroke();
+        } else if (z.shape === "ring") {
+          if (zt < K.warn) {
+            let r = b.r + 8 + 14 * p;
+            (a.globalAlpha = 0.35 + 0.45 * p), (a.strokeStyle = hot ? "#ffffff" : `rgb(${col})`), (a.lineWidth = 2), a.setLineDash([5, 4]), raidEll(a, b.x, b.y, r), a.stroke();
+          } else {
+            (a.globalAlpha = 0.75), (a.strokeStyle = `rgb(${col})`), (a.lineWidth = 9), raidEll(a, z.x, z.y, z.rr), a.stroke();
+            (a.lineWidth = 2), (a.strokeStyle = "#ffffff"), raidEll(a, z.x, z.y, z.rr), a.stroke();
+          }
+        } else {
+          K.k === "hunt" && ((a.globalAlpha = 0.55), (a.fillStyle = "#05030a"), raidEll(a, z.x, z.y, z.r * 0.7), a.fill());
+          (a.globalAlpha = 0.12 + 0.16 * p), (a.fillStyle = `rgb(${col})`), raidEll(a, z.x, z.y, z.r), a.fill();
+          (a.globalAlpha = 0.22 + 0.25 * p), (a.fillStyle = hot ? "#ffffff" : `rgb(${col})`), raidEll(a, z.x, z.y, z.r * p), a.fill();
+          (a.globalAlpha = 0.85), (a.lineWidth = 1.5), (a.strokeStyle = hot ? "#ffffff" : `rgb(${col})`), raidEll(a, z.x, z.y, z.r), a.stroke();
+          K.k === "heal" &&
+            ((a.lineWidth = 3), (a.strokeStyle = "#ffd166"), a.beginPath(), a.ellipse(z.x, z.y, z.r + 5, (z.r + 5) * 0.87, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p), a.stroke());
+        }
+        a.restore();
+      }
+    for (let o of R.pools) {
+      let k = Math.min(1, o.life / 30);
+      a.save(),
+        (a.globalAlpha = 0.28 * k),
+        (a.fillStyle = "#3a1a6a"),
+        raidEll(a, o.x, o.y, o.r),
+        a.fill(),
+        (a.globalAlpha = 0.5 * k),
+        (a.strokeStyle = "#8a5cff"),
+        (a.lineWidth = 1.5),
+        a.beginPath(),
+        a.ellipse(o.x, o.y, o.r * 0.7, o.r * 0.6, t * 0.02, 0, Math.PI * 1.4),
+        a.stroke(),
+        a.restore();
+    }
+    for (let q of R.adds) {
+      let mon = e.mons[q.kit.id];
+      if (!mon) continue;
+      let an =
+          q.state === "lunge"
+            ? (mon.anims.Attack ?? mon.anims.Walk)
+            : q.state === "faint"
+              ? (mon.anims.Hurt ?? mon.anims.Idle)
+              : q.state === "wind"
+                ? (mon.anims.Charge ?? mon.anims.Idle)
+                : (mon.anims.Walk ?? mon.anims.Idle),
+        al = q.state === "faint" ? Math.max(0, 1 - q.t / 40) : q.spawnT > 0 ? 1 - q.spawnT / 30 : 1,
+        sc = (q.kit.size ?? 1) * 0.9,
+        fr = Be(an, t, 1),
+        dir = nt(q.facing);
+      a.save(),
+        (a.globalAlpha = 0.3 * al),
+        (a.fillStyle = "#05060f"),
+        a.beginPath(),
+        a.ellipse(q.x, q.y + 1, 9, 3, 0, 0, Math.PI * 2),
+        a.fill(),
+        (a.globalAlpha = al),
+        et(a, an, fr, dir, q.x, q.y, sc, mon.ground),
+        q.flash > 0 && an.white && et(a, { ...an, img: an.white }, fr, dir, q.x, q.y, sc, mon.ground);
+      if (q.state !== "faint") {
+        let k = q.slots[0].hp / q.slots[0].maxHp;
+        (a.globalAlpha = 0.9), (a.fillStyle = "rgba(11,9,24,0.8)"), a.fillRect(q.x - 11, q.y - 30, 22, 3);
+        (a.fillStyle = "#ff4a63"), a.fillRect(q.x - 10, q.y - 29.5, 20 * k, 2);
+        q.state === "wind" &&
+          t % 8 < 5 &&
+          ((a.fillStyle = "#ffd166"), (a.font = "bold 10px sans-serif"), (a.textAlign = "center"), a.fillText("!", q.x, q.y - 33));
+      }
+      a.restore();
+    }
+  }
+  function raidAir(a, e) {
+    let R = e.raid,
+      b = R.boss,
+      t = e.tick,
+      mon = lgSprite(e.mons, R.kind, b.form);
+    if (!mon || b.hidden) return;
+    let K = R.atk,
+      w = K && K.t < K.warn,
+      an = w ? "Charge" : K ? (mon.anims.Attack ? "Attack" : mon.anims.SpAttack ? "SpAttack" : "Walk") : Math.hypot(b.mvx, b.mvy) > 0.3 ? "Walk" : "Idle",
+      y = b.y - 22 + Math.sin(t * 0.05) * 3,
+      sc = LG_SCALE[R.kind] ? 1.75 : R.kind === "zekrom" ? 1.7 : 2,
+      out = R.result === "clear" ? Math.max(0, 1 - (e.match.endT != null ? (150 - e.match.endT) / 90 : 0)) : 1;
+    a.save(),
+      (a.globalAlpha = 0.4 * out),
+      (a.fillStyle = "#05060f"),
+      a.beginPath(),
+      a.ellipse(b.x, b.y + 4, 30, 9, 0, 0, Math.PI * 2),
+      a.fill(),
+      glowAt(a, b.x, y, 74, LG_INFO[R.kind]?.rgb ?? "255,255,255", (0.22 + (w ? 0.22 : 0)) * out),
+      lgBig(a, mon, mon.anims[an] ? an : "Idle", t, b.facing, b.x, y, sc, out, b.flash > 2 ? 0.3 : 0),
+      a.restore();
+  }
   // Looming ground marks for falling rocks and meteors, and the surge set-pieces.
   function surgeGround(a, e) {
     let t = e.tick;
@@ -28747,6 +29426,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     arenaLive(a, e);
     surgeGround(a, e);
     summonGround(a, e);
+    e.raid && raidGround(a, e);
     exGround(a, e);
     r3Ground(a, e);
     lightPools(a, e);
@@ -29733,6 +30413,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     sheetsDraw(a, t, !1);
     dropsAir(a, e);
     summonAir(a, e);
+    e.raid && raidAir(a, e);
     exAir(a, e);
     r3Air(a, e);
     arenaAir(a, e, t);
@@ -36521,6 +37202,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // mutators are on.
   function ruleHud(e, a) {
     if (e.launch) return launchHud(e, a);
+    if (e.raid) return raidHud(e, a);
     if (e.ball) {
       let b = e.ball,
         tc = TAGC[A.colors] ?? TAGC[0],
@@ -36558,6 +37240,34 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         g.gold,
         { align: "center", weight: 700, outline: 1.5 },
       );
+  }
+  // Raid HUD: the boss's health across the top with its three phases, the
+  // clock, and who is waiting to come back.
+  function raidHud(e, a) {
+    let R = e.raid,
+      b = R.boss,
+      info = LG_INFO[R.kind] ?? {},
+      sl = b.slots[0],
+      k = Math.max(0, sl.hp / sl.maxHp),
+      w = 200,
+      x = H / 2 - w / 2,
+      y = 56,
+      left = Math.max(0, Math.ceil(R.left / 60));
+    te(x - 6, y - 8, w + 12, 17, "rgba(11,9,24,0.84)", 4),
+      V(info.name ?? R.kind.toUpperCase(), x, y - 0.5, 6, info.color ?? g.chalk, { outline: 1.5, skew: !0 });
+    for (let i = 0; i < 3; i++)
+      te(x + 58 + i * 8, y - 4.5, 6, 3, i <= R.phase ? (info.color ?? g.gold) : "rgba(255,255,255,0.18)", 1.5);
+    G(`${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`, x + w, y - 0.5, 5.6, left <= 30 ? "#ff4a63" : "#ffffff", {
+      align: "right",
+      weight: 800,
+    }),
+      te(x, y + 2.5, w, 4, "rgba(255,255,255,0.12)", 2),
+      k > 0 && te(x, y + 2.5, Math.max(3, w * k), 4, b.flash > 0 ? "#ffffff" : (info.color ?? "#ff4a63"), 2),
+      (d.fillStyle = "rgba(11,9,24,0.9)"),
+      d.fillRect(m(x + w / 3), m(y + 2.5), m(0.8), m(4)),
+      d.fillRect(m(x + (w * 2) / 3), m(y + 2.5), m(0.8), m(4));
+    R.adds.length &&
+      G(`${R.adds.filter((q) => q.slots[0].hp > 0).length} wild`, x + 90, y - 0.5, 4.6, g.haze, { weight: 700 });
   }
   // Snorlax Launch HUD: damage piled on and the seconds left; once it flies,
   // a strip that follows it down the runway with the metres ticking up.
@@ -36749,6 +37459,59 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   }
   // Pidgey Sweep's results: what you cleared, the score, the medal, best.
   // Snorlax Launch results: the distance, the rank, and your bests.
+  function raidPanel(a, e, s, t) {
+    let R = a.raid;
+    if (!R) return;
+    let $ = 252,
+      y0 = 18,
+      U = 220,
+      se = Ee((s - 18) / 14);
+    if (se <= 0) return;
+    let res = e.raidRes ?? {},
+      info = LG_INFO[R.kind] ?? {},
+      clear = R.result === "clear",
+      T = Math.floor((RAID.time - R.left) / 60),
+      me0 = a.player;
+    d.save(),
+      (d.globalAlpha = se),
+      d.translate(m((1 - se) * 70), 0),
+      Ae($, y0, U, 196, info.color ?? g.gold, { edge: "right", sk: 16 }),
+      V(`${info.name ?? "RAID"} RAID`, $ + 22, y0 + 22, 13, g.chalk, { skew: !0 });
+    let rows = [
+      [clear ? "Clear time" : "Result", clear ? `${Math.floor(T / 60)}:${String(T % 60).padStart(2, "0")}` : R.result === "time" ? "Time up" : "Party down"],
+      ["Boss health left", `${Math.round((R.boss.slots[0].hp / R.boss.slots[0].maxHp) * 100)}%`],
+      ["Your damage", `${me0?.stats.dealt ?? 0}`],
+      ["Party K.O.s", `${R.downs}`],
+    ];
+    rows.forEach(([k, v], i) => {
+      let y = y0 + 46 + i * 18;
+      te($ + 12 - i * 3, y - 10, U - 26, 16, i % 2 ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.06)", 3),
+        G(k, $ + 18 - i * 3, y + 1, 7, "#d9d4f2", { weight: 700 }),
+        V(v, $ + 180, y + 2, 9, g.chalk, { align: "center" });
+    });
+    let y = y0 + 132;
+    (d.fillStyle = "rgba(255,255,255,0.18)"), d.fillRect(m($ + 14), m(y - 12), m(U - 30), m(0.8));
+    clear
+      ? (G(res.title ? `Title: ${res.title}${res.newTitle ? "  NEW!" : ""}` : "", $ + 18, y + 2, 7, res.newTitle ? g.gold : g.chalk, { weight: 800 }),
+        G(
+          res.best != null ? `Best ${Math.floor(res.best / 60)}:${String(res.best % 60).padStart(2, "0")}${res.newBest ? "  NEW!" : ""}` : "",
+          $ + 18,
+          y + 14,
+          6.4,
+          res.newBest ? g.gold : g.haze,
+          { weight: 700 },
+        ),
+        G(
+          res.shiny ? `Shiny ${_a(xe[res.shiny]?.name ?? "")} unlocked!` : "Shiny roll: not this time (1 in 8)",
+          $ + 18,
+          y + 26,
+          6.4,
+          res.shiny ? g.gold : g.haze,
+          { weight: 700 },
+        ))
+      : G("Dodge the marks on the floor, and stand on Ho-Oh's flame ring.", $ + 18, y + 6, 5.8, g.haze, { weight: 700 });
+    d.restore();
+  }
   function launchPanel(a, e, s, t) {
     let L = a.launch;
     if (!L) return;
@@ -37994,7 +38757,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         t.lgMeter >= 100 ? "" : `${Math.floor(t.lgMeter)}%`,
       ]);
     // Burst: ready at half the meter, once a match; a bar while it lasts.
-    t.legend &&
+    (t.legend || t.raidMeter) &&
       f.push([
         r ? "BURST" : "G",
         t.burstT > 0
@@ -39554,7 +40317,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ax = side ? px + pw - 8 : px + 8,
       al = side ? "right" : "left",
       c = k ? xe[k] : null,
-      nm = c ? c.name : "???";
+      nm = c ? c.name : (LG_INFO[k]?.name ?? "???");
     te(px, py, pw, 30, "rgba(8,6,18,0.86)", 5),
       (d.fillStyle = col),
       d.fillRect(m(px + 6), m(py), m(pw - 12), m(1.4)),
@@ -39576,7 +40339,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     G(
       c
         ? c.role.replace(" \xB7 ", ", ")
-        : chip === "ONLINE"
+        : chip === "RAID BOSS"
+          ? "Three phases, four minutes"
+          : chip === "ONLINE"
           ? "Your rival is found next"
           : "Waiting for an opponent",
       ax,
@@ -39882,6 +40647,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           : [null],
         you = a.picks.slice(0, 2);
       tm && ((you = [a.picks[0], tm[0][0]]), (rv = [a.cpuPicks[0], tm[1][0]]));
+      // Raid: your party on the left, the boss on the right.
+      let raid = A.gameMode === 14;
+      raid && ((you = [a.picks[0], ...a.cpuPicks.slice(0, 3)]), (rv = [LEGENDS[A.raidBoss - 1] ?? null]));
       faceBg(t + 400),
         readySide(
           e,
@@ -39889,8 +40657,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           0,
           sl,
           t,
-          tm ? "YOU + ALLY" : "YOU",
-          A.legends ? LG_PICKS[A.legendPick] : null,
+          raid ? "YOU + 3 ALLIES" : tm ? "YOU + ALLY" : "YOU",
+          A.legends && !raid ? LG_PICKS[A.legendPick] : null,
         ),
         readySide(
           e,
@@ -39898,7 +40666,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           1,
           sl,
           t,
-          cpuSide()
+          raid
+            ? "RAID BOSS"
+            : cpuSide()
             ? isFfa()
               ? `${rv.length} CPU RIVALS`
               : tm
@@ -39907,7 +40677,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             : A.gameMode === 5
               ? "ONLINE"
               : null,
-          !A.legends
+          !A.legends || raid
             ? null
             : cpuSide()
               ? (a.cpuLegends?.[0] ?? "random")
@@ -39956,14 +40726,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           weight: 700,
         }),
         V(
-          (ARENAS[A.arena]?.name ?? "Stadium").toUpperCase(),
+          (ARENAS[A.gameMode === 14 ? 0 : A.arena]?.name ?? "Stadium").toUpperCase(),
           H / 2,
           194,
           8.6,
           ac,
           { align: "center" },
         ),
-        G(ARENA_TIPS[A.arena] ?? "", H / 2, 252, 6, g.gold, {
+        G(A.gameMode === 14 ? "Dodge the marks on the floor and break its three phases" : (ARENA_TIPS[A.arena] ?? ""), H / 2, 252, 6, g.gold, {
           align: "center",
           weight: 700,
           italic: !0,
@@ -40013,8 +40783,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       let hy = i ? o - 8 : by,
         hx = i ? r + 62 : null,
         opts = [
-          ["Y", "Legendary", "special2"],
-          ...(!a.arcade && !thinMode() ? [["SELECT", "Stage", "select"]] : []),
+          ["Y", A.gameMode === 14 ? "Boss" : "Legendary", "special2"],
+          ...(!a.arcade && !thinMode() && A.gameMode !== 14 ? [["SELECT", "Stage", "select"]] : []),
         ];
       for (let [k, lab, act] of opts) {
         let wd = ye(lab, 6) + (k === "SELECT" ? 26 : 18);
@@ -40059,13 +40829,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     (d.globalAlpha = s),
       (d.fillStyle = "rgba(5,4,14,0.84)"),
       d.fillRect(0, 0, m(H), m(oe)),
-      V("CHOOSE YOUR LEGENDARY", H / 2, 34, 17, g.gold, {
+      V(A.gameMode === 14 ? "CHOOSE THE RAID BOSS" : "CHOOSE YOUR LEGENDARY", H / 2, 34, 17, g.gold, {
         align: "center",
         skew: !0,
         outline: 2.6,
       }),
       G(
-        "It answers when your meter fills. Pick Off to battle without one.",
+        A.gameMode === 14
+          ? "Three phases, a health bar and four minutes. Random and Off pick one for you."
+          : "It answers when your meter fills. Pick Off to battle without one.",
         H / 2,
         45,
         6.2,
@@ -41073,7 +41845,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       te(-10, 14, 236, 44, "rgba(8,6,18,0.7)", 10),
       (d.fillStyle = b),
       d.fillRect(0, m(56), m(230 * K), m(1.6)),
-      (Ka2T = r.mode === "launch"
+      (Ka2T = r.mode === "raid"
+        ? o
+          ? "Raid clear!"
+          : "Raid failed"
+        : r.mode === "launch"
         ? `${a.launch?.m ?? 0} m!`
         : r.mode === "sweep"
         ? MEDAL[sweepMedal(a.sweep?.score ?? 0)][0]
@@ -41103,7 +41879,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         },
       ),
       G(
-        r.mode === "launch"
+        r.mode === "raid"
+          ? `${LG_INFO[a.raid?.kind]?.name ? _a(LG_INFO[a.raid.kind].name).replace("Ho-oh", "Ho-Oh") : "The boss"} ${o ? "falls" : a.raid?.result === "time" ? "outlasted the clock" : "wiped out the party"}`
+          : r.mode === "launch"
           ? `${_a(c.name)} launched Snorlax \xB7 rank ${a.launch?.rank ?? "D"}`
           : r.mode === "sweep"
           ? `${_a(c.name)} swept the Stadium`
@@ -41121,7 +41899,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ),
       d.restore(),
       d.restore();
-    if (r.mode === "launch") launchPanel(a, e, s, t);
+    if (r.mode === "raid") raidPanel(a, e, s, t);
+    else if (r.mode === "launch") launchPanel(a, e, s, t);
     else if (r.mode === "sweep") sweepPanel(a, e, s, t);
     else {
     let $ = 252,
@@ -41349,7 +42128,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         ? ["Rematch", "New team", "Leave"]
         : e.arcade
           ? arcOpts(e, r)
-          : r.mode === "sweep" || r.mode === "launch"
+          : r.mode === "sweep" || r.mode === "launch" || r.mode === "raid"
             ? ["Play again", "New fighter", "Quit to title"]
             : qa
       ).forEach((q, le) => {
@@ -44959,7 +45738,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 42,
+  var NETV = 43,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -45138,6 +45917,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             (e) => Number.isInteger(e) && e >= 0 && e < ARENAS.length,
           ))) ||
       (a.thin != null && typeof a.thin !== "boolean") ||
+      (a.ball != null && typeof a.ball !== "boolean") ||
+      (a.raid != null && !LEGENDS.includes(a.raid)) ||
       (a.tune.arena != null &&
         !(
           Number.isInteger(a.tune.arena) &&
@@ -46705,11 +47486,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           );
       else if (C.kind === "thin")
         V(
-          NET.thin ? "Mode: Thin Ice" : NET.ball ? "Mode: Poké Ball" : "Mode: Battle",
+          NET.thin ? "Mode: Thin Ice" : NET.ball ? "Mode: Poké Ball" : NET.raid ? "Mode: Raid" : "Mode: Battle",
           Q + 10,
           E + 13,
           10.5,
-          K ? g.night : NET.thin ? "#7fd0ff" : NET.ball ? "#ff6b6b" : g.chalk,
+          K ? g.night : NET.thin ? "#7fd0ff" : NET.ball ? "#ff6b6b" : NET.raid ? "#ffd166" : g.chalk,
         ),
           G(
             "The host's choice is played",
@@ -47056,6 +47837,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       { gm: 10, r: 1, c: 3, label: "Thin Ice Party", desc: "A cracking lake and three or four fighters.", tag: "3\u20134 FIGHTERS", icon: "thinparty", color: "#9fe0ff" },
       { gm: 11, r: 2, c: 0, label: "Pok\u00e9 Ball", desc: "2v2 football: knock the giant ball into their goal. First to two.", tag: "2V2", icon: "ball", color: "#e8403a" },
       { gm: 7, r: 2, c: 1, label: "Pidgey Sweep", desc: "Clear the Stadium of Pidgey in 60 seconds.", tag: "SOLO", icon: "sweep", color: "#ffd166" },
+      { gm: 14, r: 3, c: 1, label: "Raid", desc: "You and three allies against a giant legendary: dodge its attacks, break its phases.", tag: "CO-OP", icon: "raid", color: "#ff4a63" },
       { gm: 12, r: 2, c: 2, label: "Snorlax Launch", desc: "Ten seconds to pile on damage, then Smash Snorlax down the runway.", tag: "SOLO", icon: "launch", color: "#7fb3a5" },
       { gm: 13, r: 3, c: 0, label: "Daily Challenge", desc: "Today's fighter, stage and two mutators. Three fights, one score.", tag: "SOLO \u00b7 DAILY", icon: "daily", color: "#ffd166" },
     ];
@@ -47549,7 +48331,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       R("dodge", "B", ["dodge", "back"], 462, 178, 14),
       R("guard", "GUARD", ["guard"], 436, 152, 12),
       R("grab", "GRAB", ["grab"], 470, 208, 10),
-      ...(e.player.legend && !e.player.burstUsed && e.player.lgMeter >= BURST.cost
+      ...((e.player.legend || e.player.raidMeter) && !e.player.burstUsed && e.player.lgMeter >= BURST.cost
         ? [R("burst", "BURST", ["burst"], 440, 118, 9)]
         : []),
       ...(e.player.legend
@@ -48357,9 +49139,16 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         return p2pStop("Friend link ended"), (s.netCursor = 0), S.back();
       if (R.kind === "party") return netPartyStart();
       if (R.kind === "thin")
-        // Battle, then Thin Ice, then Poké Ball (two or four players).
+        // Battle, then Thin Ice, Poké Ball (two or four players) and Raid
+        // (everyone against the boss picked in Options, or a random one).
         return (
-          NET.thin ? ((NET.thin = !1), (NET.ball = !0)) : NET.ball ? (NET.ball = !1) : (NET.thin = !0),
+          NET.thin
+            ? ((NET.thin = !1), (NET.ball = !0))
+            : NET.ball
+              ? ((NET.ball = !1), (NET.raid = !0))
+              : NET.raid
+                ? (NET.raid = !1)
+                : (NET.thin = !0),
           S.ui(!0),
           netPresence()
         );
@@ -48466,6 +49255,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             thin: !!NET.thin,
             // Poké Ball: 1v1, or 2v2 with seats 1 and 3 against 2 and 4.
             ball: !!NET.ball && N !== 3,
+            raid: NET.raid ? (LEGENDS[A.raidBoss - 1] ?? LEGENDS[Math.floor(Math.random() * LEGENDS.length)]) : null,
             shiny: D.seats.map((x, k) =>
               (k === 0 ? D.myTeam.map(shinyWant) : (D.shinyS[k] ?? [])).slice(
                 0,
@@ -48499,9 +49289,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (e.itGame = !1),
           (e.thinGame = D.thin === !0),
           (e.ballGame = D.ball === !0),
+          (e.match.raidBoss = D.raid ?? null),
+          (e.match.raidN = N),
           (e.shinyTeams = D.shiny ?? null);
         // Three or four players: a Free-for-All, one Pokemon each.
-        N > 2
+        D.raid
+          ? ((e.match.extraPreset = D.teams.slice(2)), e.startMatch("raid", D.teams[0], D.teams[1], D.e > 1))
+          : N > 2
           ? ((A.ffaPlayers = N),
             (e.match.extraPreset = D.teams.slice(2)),
             e.startMatch(e.ballGame ? "team" : "ffa", D.teams[0], D.teams[1], D.e > 1))
@@ -48907,6 +49701,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       e.itGame = A.gameMode === 8 && !s.arcade;
       e.thinGame = thinMode() && !s.arcade;
       e.ballGame = A.gameMode === 11 && !s.arcade;
+      // Raid: your three allies (CPU, or a second pad), and the boss.
+      A.gameMode === 14 &&
+        ((e.match.extraPreset = s.cpuPicks.slice(1, 3).map((R) => [R])),
+        (e.match.raidBoss = LEGENDS[A.raidBoss - 1] ?? LEGENDS[Math.floor(Math.random() * LEGENDS.length)]),
+        (e.match.raidN = 4),
+        (A.arena = 0));
       s.arcade &&
         (A.arena = (s.arcade.arena0 + s.arcade.stage) % ARENAS.length);
       e.startMatch(
@@ -48915,7 +49715,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         A.gameMode === 12
           ? ["snorlax"]
           : n
-            ? isFfa()
+            ? isFfa() || A.gameMode === 14
               ? s.cpuPicks.slice(0, 1)
               : s.cpuPicks
             : [],
@@ -49194,7 +49994,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         s.roulette <= 0 &&
         (s.readyCue > 64 || (s.readyCue > 14 && n.pressed.has("confirm")))
       )
-        return A.gameMode === 7 ? E() : A.gameMode === 5 ? lgOpen() : readyOpen();
+        return A.gameMode === 7 ? E() : A.gameMode === 5 || A.gameMode === 14 ? lgOpen() : readyOpen();
       if (rv && n.pressed.has("confirm")) {
         // A rival: anyone nobody has picked yet; ? rolls one.
         let W =
@@ -49249,7 +50049,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     function lgOpen() {
       (s.lgPhase = !0),
         (s.lgT = 0),
-        (s.lgCursor = A.legends
+        (s.lgCursor = A.gameMode === 14
+          ? Math.max(0, LG_CARDS.findIndex((c) => c[0] === (LEGENDS[A.raidBoss - 1] ?? "random")))
+          : A.legends
           ? Math.max(
               0,
               LG_CARDS.findIndex(
@@ -49276,7 +50078,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               S.cry(LG_CARDS[s.lgCursor][0], 0.02);
         });
       if (s.lgT > 8 && (n.pressed.has("confirm") || n.pressed.has("start"))) {
-        LG_CARDS[s.lgCursor][0] === "off"
+        A.gameMode === 14
+          ? (A.raidBoss = LEGENDS.indexOf(LG_CARDS[s.lgCursor][0]) + 1)
+          : LG_CARDS[s.lgCursor][0] === "off"
           ? (A.legends = 0)
           : ((A.legends = 1),
             (A.legendPick = LG_PICKS.indexOf(LG_CARDS[s.lgCursor][0]))),
@@ -49353,7 +50157,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     // where to fight, or Random. Not in the Arcade (its ladder sets the
     // stages) or online (each player's pick goes to the arena roulette).
     function stageFlow() {
-      return !s.arcade && A.gameMode !== 5 && !thinMode();
+      return !s.arcade && A.gameMode !== 5 && A.gameMode !== 14 && !thinMode();
     }
     function stageOpen() {
       (s.stagePhase = !0),
@@ -50840,6 +51644,37 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           }
           break;
         case "roundEnd":
+          if (e.match.mode === "raid" && e.raid) {
+            let R = e.raid,
+              kid = e.player.kit.id,
+              Rc = {},
+              res = {};
+            try {
+              Rc = JSON.parse(localStorage.getItem(RAID.key)) ?? {};
+            } catch {}
+            (Rc.plays = (Rc.plays ?? 0) + 1), (Rc.best = Rc.best ?? {});
+            if (R.result === "clear") {
+              let T = Math.floor((RAID.time - R.left) / 60),
+                titles = dailyTitles(),
+                tl = `${_a(LG_INFO[R.kind]?.name ?? R.kind).replace("Ho-oh", "Ho-Oh")} Raider`;
+              (res.newBest = Rc.best[R.kind] == null || T < Rc.best[R.kind]),
+                res.newBest && (Rc.best[R.kind] = T),
+                (res.best = Rc.best[R.kind]),
+                (res.title = tl),
+                (res.newTitle = !titles.includes(tl)),
+                res.newTitle && titles.push(tl);
+              // A shiny roll for the fighter you cleared it with.
+              !shinyHave(kid) && Math.random() < 1 / RAID.shiny && (shinyStore.have.push(kid), shinySave(), (res.shiny = kid));
+              try {
+                localStorage.setItem(DAILY.titleKey, JSON.stringify(titles));
+              } catch {}
+            }
+            try {
+              localStorage.setItem(RAID.key, JSON.stringify(Rc));
+            } catch {}
+            (s.raidRes = res), le(), Me.play(R.result === "clear" ? "victory" : "defeat"), (s.resultIndex = 0), (s.resultsT = 0);
+            break;
+          }
           if (e.match.mode === "launch") {
             let L = e.launch,
               kid = e.player.kit.id,
@@ -51371,6 +52206,67 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           break;
         case "launchHit":
           t.popup(n.x, n.y - 36, `${n.dmg}`, "#ffd166", !1);
+          break;
+        case "raidHit":
+          t.popup(n.x + (Math.random() - 0.5) * 16, n.y, `${n.dmg}`, n.back ? "#ffd166" : "#ffffff", !1),
+            n.back && t.ring(n.x, n.y, 4, 1.4, 8, "#ffd166", !0);
+          break;
+        case "raidWarn":
+          Math.random() < 0.35 && S.cry(n.kind, 0.05);
+          break;
+        case "raidBolt": {
+          let c = LG_INFO[n.kind]?.color ?? "#ffffff";
+          n.kind === "zekrom" || n.kind === "miraidon"
+            ? t.bolt(n.x, n.y - 140, n.x, n.y, "#bfe6ff", 8, 10, 2)
+            : t.motes(n.x, n.y - 6, 16, n.r, c, 2);
+          t.ring(n.x, n.y, n.r * 0.4, n.r / 10, 14, c, !0), t.shake(0, 2, 8), I("saw", F(40), F(28), 0.12, 0.06);
+          break;
+        }
+        case "raidPillar": {
+          let c = LG_INFO[n.kind]?.color ?? "#ffffff";
+          S.boom(), t.shake(0, 3, 14), t.ring(n.x, n.y, n.r * 0.5, n.r / 8, 18, c, !0), t.motes(n.x, n.y - 10, 26, n.r, c, 2.6);
+          break;
+        }
+        case "raidDash":
+          S.boom(), t.shake(0, 2, 10), t.dust(n.x, n.y, 10);
+          break;
+        case "raidStop":
+          t.ring(n.x, n.y, n.r * 0.3, n.r / 9, 22, "#6fa8ff", !0), t.popup(n.x, n.y - 30, "TIME STOP", "#9fc4ff", !1);
+          break;
+        case "raidPool":
+          t.ring(n.x, n.y, 30, 3, 20, "#8a5cff", !0);
+          break;
+        case "raidSleep":
+          t.popup(n.x, n.y - 30, "ASLEEP", "#c8a8ff", !1);
+          break;
+        case "raidHeal":
+          t.popup(n.x, n.y - 46, "HEALED", "#4df08a", !0), t.banner("HO-OH HEALS", "#ff8a3d", 70, "stand on the flame ring to stop it");
+          break;
+        case "raidHealStop":
+          t.popup(n.x, n.y - 20, "BLOCKED!", "#4df08a", !1);
+          break;
+        case "raidPhase":
+          S.boom(),
+            t.shake(0, 3, 18),
+            t.banner(`PHASE ${n.phase + 1}`, LG_INFO[n.kind]?.color ?? "#ff4a63", 80, "wild Pok\xE9mon join the fight");
+          break;
+        case "raidAdds":
+          t.ring(n.x, n.y, 10, 4, 18, "#ffffff", !0);
+          break;
+        case "raidAddDown":
+          t.motes(n.x, n.y - 10, 12, 14, "#ffffff", 1.6);
+          break;
+        case "raidFlinch":
+          t.popup(n.x, n.y - 56, "FLINCH!", "#ffd166", !1);
+          break;
+        case "raidTick":
+          I("sq", F(76), F(76), 0.08, 0.03);
+          break;
+        case "raidClear":
+          S.boom(), S.callout(3), t.shake(0, 4, 24), t.banner("RAID CLEAR!", "#ffd166", 120, `${_a(LG_INFO[n.kind]?.name ?? "").replace("Ho-oh", "Ho-Oh")} falls`);
+          break;
+        case "raidFail":
+          t.banner(n.why === "time" ? "TIME UP" : "PARTY DOWN", "#ff4a63", 120, "the raid failed");
           break;
         case "launchTime":
           S.boom(), t.banner("TIME!", "#ffffff", 50, "Smash it!");
