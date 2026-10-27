@@ -374,7 +374,7 @@ Each boss's attacks are its own named pieces (Zekrom's lane dive, bolts and thun
 | Touch audit | A phone viewport: taps from title to a fight, the stick, attack held and tapped, the pause button, an emote from the pause menu | Pass: moves, swings, pauses, and the emote resumes into a taunt |
 | Online | 4-player and 2-player parties; a 3-player Raid | 0 mismatches |
 
-Duel round robin (Hard CPU, 2 reps against all 28 others, Emolga support, legendaries off), after this round's changes (back crits on straight shots, the projectile swat, the clash push, Mega cooldowns):
-- The win-rate spread is 0.096 (0.097 before), with 20 of 29 fighters in 0.40–0.60.
-- The top is Greninja 0.71, Dragapult 0.68 and Milotic 0.66; the bottom is Snorlax and Froslass, both 0.34. Greninja and Snorlax were at the edges before this work too.
-
+Duel round robin (Hard CPU, 4 reps against all 28 others, 112 games each, Emolga support, legendaries off), after a balance pass on fighter power:
+- Greninja 1.03 → 0.83, Chandelure 1.0 → 0.8, Dragapult 0.91 → 0.8, Charizard 0.81 → 0.78, Gengar 1.65 → 1.58, Milotic 0.86 → 0.82, Noivern 0.85 → 0.82, Golurk 0.92 → 0.9; Snorlax 0.97 → 1.1, Froslass 1.5 → 1.6, Toxtricity 2.28 → 2.48, Scizor 1.14 → 1.25, Gallade 1.3 → 1.37, Volcarona 1.5 → 1.57, Rhyperior 0.91 → 0.95, Lucario 0.8 → 0.84, Tyrantrum 0.95 → 0.97.
+- The win-rate spread is 0.056 (0.097 before), with 27 of 29 fighters in 0.40–0.60 and none above 0.58.
+- The top is Scizor, Greninja and Chandelure at 0.58; the bottom is Toxtricity 0.39 and Gallade 0.38, inside the run-to-run noise (about ±0.05) of the band.
