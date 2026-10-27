@@ -103,6 +103,50 @@ Keyboard: WASD move, J attack, K dodge, L and I specials, arrows Smash, O or F g
 
 **Tests.** `moves.js`-style: grab beats a held guard (hit event `throw`), whiffs on a dodge, whiffs on a downed foe, counter-hit lands during grab startup, no second grab inside 40 ticks, Thin Ice crack event at the landing. Then the full `bal3` round robin, since every kit gains a move; expect the heaviest guard users (Blastoise, Aegislash, Metagross) to drop a few points and the grapplers to rise; retune `power` where a kit leaves 0.45–0.55.
 
+**As built: every fighter grabs differently.** The base above became five kinds of grab, and each fighter has its own numbers and a twist. Startup is in ticks, reach in arena units (a tether's reach is its range), damage before the kit's power, and recovery is the whiff recovery.
+
+| Kind | How it plays | Fighters |
+|---|---|---|
+| Throw (toss) | Catch, then throw where the stick points | Lucario, Scizor, Gallade, Blastoise, Inteleon, Volcarona, Aegislash, Ceruledge, Pikachu, Toxtricity |
+| Slam | Slow and short; lifts them and slams them down (half knockback, a big Thin Ice crack) | Snorlax, Rhyperior, Golurk, Metagross |
+| Bite | Fast; three chomps, then a flick away | Tyrantrum, Garchomp, Charizard, Noivern |
+| Phase | Reaches from a strange angle (behind, a swap, untouchable frames) | Greninja, Zoroark, Gengar, Dragapult, Froslass |
+| Pull (tether) | Reaches across the arena, reels them in, then throws; slow and punishable | Chandelure, Venusaur, Lurantis, Milotic, Gardevoir, Magnezone |
+
+| Fighter | Kind | Startup | Reach | Damage | Knockback | Twist |
+|---|---|---|---|---|---|---|
+| Snorlax | Slam | 14 | 14 | 26 | 6 | Body Slam: a quake around the landing |
+| Rhyperior | Slam | 13 | 16 | 24 | 8 | Throws far for a slam |
+| Golurk | Slam | 14 | 18 | 22 | 9 | Longest reach of any grab |
+| Metagross | Slam | 12 | 14 | 22 | 7 | Long magnetic hold; armoured while it holds |
+| Tyrantrum | Bite | 9 | 16 | 8 + 3×6 | 7 | Armoured through the bites |
+| Garchomp | Bite | 8 | 15 | 8 + 3×5 | 7.5 | Drags its catch along |
+| Charizard | Bite | 8 | 14 | 8 + 3×4 | 7 | Fire Fang always burns |
+| Noivern | Bite | 7 | 14 | 6 + 3×4 | 6.5 | Catches floaters |
+| Lucario | Throw | 7 | 13 | 16 | 8.5 | Spins them round: the furthest throw |
+| Scizor | Throw | 6 | 12 | 14 | 7 | The fastest grab |
+| Gallade | Throw | 7 | 14 | 18 | 7.5 | They land facing away: a back-crit setup |
+| Blastoise | Throw | 11 | 13 | 18 | 8 | Slow shell bash, strong |
+| Inteleon | Throw | 9 | 13 | 10 | 6 | Weak, long whiff (30) |
+| Volcarona | Throw | 10 | 14 | 14 | 6 | Burns; catches floaters |
+| Aegislash | Throw | 10 (Blade 7) | 13 | 16 (Blade 20) | 7 (8) | Blade Forme is faster and cuts deeper |
+| Ceruledge | Throw | 8 | 14 | 16 | 7.5 | They bleed for two more ticks |
+| Pikachu | Throw | 6 | 11 | 9 | 6 | Springs back out of reach |
+| Toxtricity | Throw | 9 | 13 | 14 | 7 | 40% paralysis; always on a poisoned foe |
+| Greninja | Phase | 6 | 12 | 10 | 5 | Reappears behind them |
+| Zoroark | Phase | 8 | 13 | 14 | 7 | Swaps places, then throws |
+| Gengar | Phase | 9 | 12 | 14 | 6.5 | Untouchable ticks 3–8; rises behind |
+| Dragapult | Phase | 8 | 14 | 12 | 7 | Untouchable ticks 2–6 |
+| Froslass | Phase | 9 | 13 | 12 | 6 | Chills |
+| Chandelure | Pull | 12 | 60 | 14 | 6 | Burns |
+| Venusaur | Pull | 11 | 80 | 16 | 7 | The longest pull; rooted while it pulls |
+| Lurantis | Pull | 10 | 55 | 16 | 7 | Mid-range leaf pull |
+| Milotic | Pull | 12 | 60 | 12 | 6 | Coils and drains, healing 16 |
+| Gardevoir | Pull | 16 | 75 | 14 | 7 | Slowest and longest psychic pull |
+| Magnezone | Pull | 13 | 70 | 12 | 6.5 | Twice the range on Steel types; 25% paralysis |
+
+Anything not listed uses the base: throw, startup 8, reach 14, damage 16, knockback 7.5, recovery 22. A grab also comes out of guard (a shield grab). The pulls were the strongest kind in testing (Gardevoir won 0.64 of its duels), so their startup and recovery went up and the CPU uses them less often: Gardevoir 0.50, Milotic 0.55.
+
 ### 2.2 Counter-hits and back attacks
 
 **What we are achieving.** Two things the game rewards silently now become visible: hitting someone out of their own startup, and hitting them from behind. Both teach positioning and timing by naming them when they happen.
@@ -296,3 +340,48 @@ Each phase ends with: the scripted tests for the feature, the full `bal3` duel r
 - **Mutators and the Daily:** cheap variety and a daily reason to open the game.
 - **Raid:** the legendaries as bosses, and the game's first co-op.
 - **Local multiplayer:** the party modes on a couch.
+
+---
+
+## Part 6: as built
+
+All eight phases are in the game. This part records what shipped, where it differs from the plan above, and the test numbers.
+
+### What differs from the plan
+
+- **Grabs** come in five kinds with per-fighter numbers (the table in 2.1), not one grab with heavyweight overrides. Grabs also come out of guard.
+- **Counter-hits and back crits**: 1.2x each, capped at 1.3x together. A counter-hit adds 8 ticks of hitstun, 4 of hitstop and 1.5x meter. A back crit is melee only and never a throw or a hit on a guarding foe.
+- **Burst**: five Mega Evolutions (Charizard, Lucario, Gengar, Gardevoir, Gallade), the fighters with Mega sprites available; everyone else Terastallizes. Options > Match can make everyone Terastallize.
+- **Type chart**: Standard is 1.15x super effective and 0.85x resisted (resisted hits also lose 15% of their knockback); Type Match is 1.5x, 0.5x and immune.
+- **Clashes**: `kit.weight` scales knockback taken, so heft is its inverse. Two melee blows on the same beat within 15% heft both bounce off (8 ticks of hitstop, 10 of stun, a push of about 23 units). Otherwise the lighter attacker is held for 20 ticks and the heavier blow connects. Projectile against projectile is unchanged.
+- **Support slot**: the supports are roster Pokémon whose assist works without a partner: Charizard (Flamethrower), Blastoise (Hydro Pump), Snorlax (quake), Magnezone (Lock-On) and Milotic (Aqua Ring, heals 10%). There is no art for Emolga, Fennekin or Togekiss. The cooldown is 15 s. The CPU calls its support too. Online, everyone uses the host's support choice.
+- **Local multiplayer**: the second keyboard layout is the number pad only. In 2v2 a second pad takes your ally's place first, then the rival's.
+- **Daily Challenge**: the legendary setting follows Options.
+- **Snorlax Launch**: only a Smash launches during the ten seconds; after the bell, any hit does, or the last two seconds launch it with what is on the meter. Distance = (damage × 0.9 + knockback × 40) × the attacker's heft factor.
+- **Raid**:
+  - The attacks are a set of telegraphed patterns themed per boss, not the summon moves cut into pieces: lane charges, bolt marks (in threes in phase 3), tracking pillars, shock rings, marked dives, rifts, Dialga's time stop, Darkrai's sleep pools, Ho-Oh's heal ring, Giratina's hunt and Miraidon's drift.
+  - The arena is the Stadium with the boss's sky painted faintly over it. There are no per-boss floors.
+  - The rewards are a title per boss, a best clear time and a 1-in-8 shiny roll; the boss scene as a VS background is not in.
+  - The boss takes no knockback and flinches every 400 damage.
+  - Online, two to four friends play with no CPU allies, and the boss has 3,000 HP per player.
+
+### Test numbers
+
+| Feature | Test | Result |
+|---|---|---|
+| Controller | Chord unit test; routes, touch and 4-player online audits | Pass; 0 sync mismatches |
+| Grabs | Every kind against guard, dodge, downed foe; round robin before and after | Pass; win-rate spread 0.093 → 0.095 |
+| Local multiplayer | Seats in VS, Free-for-All and 2v2 | Pass |
+| Rules, mutators, Daily | Every mutator; time up, sudden death, ring out; a full Daily | Pass |
+| Burst | Mega 1.25x, Tera same-type 1.62x; side with Burst against side without, 114 games | 0.46 for the Burst side |
+| Poké Ball | 10 CPU 2v2 matches | About 1.4 goals a match; sides 5–5; online 1v1 and 2v2 in sync |
+| Snorlax Launch | Every fighter, CPU | 12–105 m; ranks D to S; Arcade bonus after fight 5 charges the boss fight's meter |
+| Raid | 4 Hard CPUs, 3 runs per boss | 30 of 33 cleared (91%), about 3:00; Normal CPUs 19 of 22; online 3 players in sync |
+| Clashes | CPU duels | About one a minute; heavyweights neutral (Snorlax 0.32 without, 0.34 with, 4 reps) |
+| Support | Each support, 6 CPU duels | All fire; Milotic heals 10% |
+| Mode Select | All 13 cards to a live match | Pass |
+| Online | 4-player party mashing grab, support and Burst; 2-player | 0 mismatches |
+
+Final duel round robin (Hard CPU, 2 reps, supports on), after small power changes (Greninja 1.08 → 1.03, Chandelure 1.05 → 1.0, Snorlax 0.92 → 0.97, Toxtricity 2.2 → 2.28, Inteleon 1.2 → 1.25):
+- The win-rate spread is 0.103 (it was 0.098 before clashes and supports), with 19 of 29 fighters in 0.40–0.60.
+- The top three are Chandelure 0.73, Greninja 0.70 and Dragapult 0.66; the bottom is Snorlax 0.32. All four were at the edges before this work too.

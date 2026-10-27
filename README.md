@@ -5,8 +5,13 @@ A top-down Pokémon arena brawler that runs in one HTML file.
 ## Play
 
 Open `index.html` in a browser. A gamepad is recommended; the keyboard works too
-(WASD move, J attack, K dodge, L and I specials, arrows smash, O guard, Shift lock,
-Q switch, E assist, T taunt).
+(WASD move, J attack, K dodge, L and I specials, arrows smash, O guard, U grab,
+Shift lock, Q switch, E assist or support, R legendary, G Burst, T taunt).
+
+On an Xbox-style pad: A attack, B dodge, X and Y specials, right stick Smash, RT
+guard, RB grab, LB lock (switch in Tag Team), LT assist or support, LT+RT together
+for the legendary, D-pad up Burst, D-pad down taunt, D-pad left and right quick
+phrases online. Options > Controls shows the full layout.
 
 **Taunts and emotes**: T (R3 on a pad, EMOTE on touch) taunts; the stick picks the
 emote: neutral Taunt, up Cheer, right Show off, down Yawn, left Sing. Each plays an
@@ -39,6 +44,51 @@ lobby and results are tap to select. The overlay hides again when a keyboard or
 controller is used.
 
 ## What's new
+
+**Combat depth and five new modes** (the full write-up, with numbers, is
+[docs/plan-combat-and-modes.md](docs/plan-combat-and-modes.md)):
+
+- **Grabs that differ per fighter.** RB grabs, and grabs beat guard (attack beats
+  grab, guard beats attack). There are five kinds: throws aimed with the stick,
+  slow heavy **slams** (Snorlax, Rhyperior, Golurk, Metagross), fast three-chomp
+  **bites** (Tyrantrum, Garchomp, Charizard, Noivern), **phase** grabs from strange
+  angles (Greninja and Gengar appear behind you, Zoroark swaps places), and
+  long-range **pulls** (Venusaur's vines, Gardevoir's psychic pull, Magnezone's Magnet
+  Pull). Every fighter has its own startup, reach, damage and a twist, listed in
+  its move list. You can also grab out of guard.
+- **Counter-hits and back crits.** A hit during a foe's startup is a COUNTER (more
+  damage, longer stun, more meter); melee from behind is a CRITICAL.
+- **Clashes.** Two melee blows on the same beat: close in weight, both bounce off
+  unhurt; otherwise the heavier blow wins and the lighter attacker staggers.
+- **Burst: Mega Evolution and Terastallization.** At half the legendary meter,
+  D-pad up Bursts once a match for ten seconds. Charizard, Lucario, Gengar, Gardevoir
+  and Gallade Mega Evolve (new sprites, a twist each); everyone else
+  Terastallizes into their type (bigger same-type hits, new defensive typing).
+- **Type match-ups.** Standard super effective is 1.15x (more meter, too); the Type
+  Match rule uses the full chart with immunities.
+- **Support Pokémon.** With one Pokémon (no Tag Team partner), LT calls a support on
+  its own cooldown: Charizard or Blastoise attack, Snorlax or Magnezone disrupt,
+  Milotic heals. Options > Match picks it.
+- **Local multiplayer.** A second pad (or the number pad) joins with A on team
+  select and takes the next place: the rival in VS, an ally in 2v2 and Raid, a
+  rival in the party modes. Up to four pads.
+- **Rules and mutators.** Time limit with sudden death, ring outs, hazards on or
+  off, Tournament and Party presets, and eleven mutators (Giant, Tiny, Fast, Slow,
+  Mirror, Sudden Death, Metal, Fog, Cooldown Chaos, Bouncy, Invisible).
+- **Daily Challenge.** One seed a day: a fixed fighter, stage, two mutators and
+  three rivals; a score, a 30-day calendar, a share code and titles.
+- **Poké Ball.** 2v2 (or 1v1) football with knockback: first to two goals, golden
+  goal at time. Also online for two or four friends.
+- **Snorlax Launch.** Ten seconds to pile damage on a sleeping Snorlax, then Smash it
+  down the runway for distance and a rank. It is also the Arcade's second bonus
+  round: a B rank or better charges your legendary for the boss.
+- **Raid.** You and three allies (CPU, a second pad, or friends online) against a
+  giant legendary with a health bar and three phases. Every attack is telegraphed
+  on the floor: lanes, bolt marks, tracking pillars, shock rings to roll through,
+  Dialga's time stop, Darkrai's sleep pools, Ho-Oh's heal ring (stand on it to stop
+  it), Giratina hunting from below. Wild Pokémon join in phases two and three. Four
+  minutes; K.O.s come back after 8 s while an ally stands. A clear earns a title, a
+  best time and a 1 in 8 shiny roll.
 
 **Toxtricity and Gallade.** Two new fighters, each built round one idea with a payoff
 that costs something (see [docs/plan-roster-5.md](docs/plan-roster-5.md)):

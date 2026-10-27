@@ -212,6 +212,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       burstPref: 0,
       // Raid boss: 0 Random, else 1 + an index into LEGENDS.
       raidBoss: 0,
+      // Support Pokemon for single-Pokemon battles (index into SUPPORTS).
+      support: 1,
       mutGiant: 0,
       mutTiny: 0,
       mutFast: 0,
@@ -411,6 +413,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       key: "burstPref",
       label: "Burst",
       options: ["Mega Evolve when possible", "Always Terastallize"],
+    },
+    {
+      kind: "choice",
+      key: "support",
+      label: "Support (LT)",
+      options: ["Off", "Charizard: Flamethrower", "Blastoise: Hydro Pump", "Snorlax: Body Slam quake", "Magnezone: Lock-On", "Milotic: Aqua Ring heal"],
     },
     {
       kind: "choice",
@@ -1187,7 +1195,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         color: "#3f8f9e",
         typeInk: "#1f1f12",
         hp: 1060,
-        power: 0.92,
+        power: 0.97,
         speed: 1.85,
         weight: 0.45,
         r: 13,
@@ -1556,7 +1564,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         color: "#3f7fd6",
         typeInk: "#0a1a33",
         hp: 900,
-        power: 1.08,
+        power: 1.03,
         speed: 3.25,
         weight: 0.9,
         r: 8,
@@ -2492,7 +2500,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         color: "#8a5ce0",
         typeInk: "#1a0f33",
         hp: 860,
-        power: 1.05,
+        power: 1.0,
         speed: 2.4,
         weight: 1.25,
         r: 9,
@@ -2884,7 +2892,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         color: "#2f7fd0",
         typeInk: "#08203a",
         hp: 900,
-        power: 1.2,
+        power: 1.25,
         speed: 3,
         weight: 1.05,
         r: 9,
@@ -3269,7 +3277,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         color: "#9a5ce0",
         typeInk: "#1c0d33",
         hp: 1000,
-        power: 2.2,
+        power: 2.28,
         speed: 2.7,
         weight: 1.05,
         r: 9,
@@ -4929,7 +4937,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         )
           return i.pressed.add("switch"), i;
         t.assistCd === 0 &&
-          t.assistSlot() !== null &&
+          (t.assistSlot() !== null || t.support) &&
           y < 170 &&
           r() < 0.012 * s.aggr &&
           i.pressed.add("assist"),
@@ -6550,6 +6558,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ],
       key: "pocketbrawl-launch-v1",
     },
+    // Support slot: with one Pokemon (no tag partner), LT calls a support on
+    // its own cooldown. Attack (Charizard, Blastoise), disrupt (Snorlax,
+    // Magnezone) or enhance (Milotic's Aqua Ring heals you).
+    SUPPORTS = ["", "charizard", "blastoise", "snorlax", "magnezone", "milotic"],
+    SUPPORT = { cd: 900, heal: 0.1 },
+    // Clashes: melee on the same beat. Within 15% weight both bounce off.
+    CLASH = { even: 1.15, push: 3.2, stop: 8, stun: 10 },
     // Raid: a party of four (CPU allies fill the empty places) against a giant
     // legendary. Three phases by HP, each adding an attack to the rotation;
     // every attack telegraphs before it lands. A K.O. is an 8 s wait while an
@@ -8432,7 +8447,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             : null;
         // Mutators and the time limit.
         (this.sudden = 0), (this.timeLeft = 0);
-        for (let o of this.players) this.mutFighter(o);
+        for (let o of this.players)
+          this.mutFighter(o),
+            (o.support = o.slots.length === 1 && !["sweep", "launch"].includes(e) ? SUPPORTS[A.support | 0] || null : null);
         mutOn("mutSudden") && A.items && (this.itemT = Math.min(this.itemT, 240));
         // Arena hazards off: none of the stage's timed events.
         A.hazards === 0 &&
@@ -8485,7 +8502,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       }
       doLaunch(t, kb) {
         let L = this.launch,
-          w = t ? 0.7 + 0.5 * (t.kit.weight ?? 1) : 1;
+          w = t ? 0.75 + 0.35 * Math.min(2, 1 / (t.kit.weight || 1)) : 1;
         (L.phase = "fly"),
           (L.kb = kb),
           (L.flyT = 0),
@@ -10020,7 +10037,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         f("assist") &&
           h &&
           e.assistCd === 0 &&
-          e.assistSlot() !== null &&
+          (e.assistSlot() !== null || (e.support && e.slots.length === 1)) &&
           !["hurt", "stunned", "launched", "down"].includes(e.state) &&
           (u("assist"), this.callAssist(e, P));
         let x =
@@ -10414,6 +10431,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             koCount: e.koCount,
             lastKoTick: e.lastKoTick,
             lives: free ? e.lives : e.lives - 1,
+            support: e.support,
+            raidMeter: e.raidMeter,
+            assistCd: e.assistCd,
           },
           foes = this.players.filter(
             (o) => o !== e && !o.out && o.team !== e.team,
@@ -11098,7 +11118,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       }
       callAssist(e, t) {
         let s = e.assistSlot(),
-          i = e.slots[s],
+          i =
+            s === null && e.support
+              ? { kit: xe[e.support], mon: this.mons[e.support] }
+              : e.slots[s],
           r = e.lock ?? this.nearestTarget(e.team, e.x, e.y),
           o = r ? Math.atan2(r.y - e.y, r.x - e.x) : t,
           l = o + Math.PI / 2,
@@ -11108,9 +11131,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             B.x1 - 12,
           ),
           u = me(e.y + Math.sin(l) * 22 - Math.sin(o) * 6, B.y0 + 8, B.y1 - 6),
-          h = new Ft(i.mon, i.kit, s, e, f, u, o, this.nextId++);
+          h = new Ft(i.mon, i.kit, s ?? -1, e, f, u, o, this.nextId++);
+        s === null && (h.support = !0);
         this.assists.push(h),
-          (e.assistCd = A.assistCooldown),
+          (e.assistCd = s === null ? SUPPORT.cd : A.assistCooldown),
           this.emit({ type: "assist", kit: i.kit, who: h });
       }
       startAttack(e, t, s) {
@@ -14293,6 +14317,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
                 : Math.floor(e.t / 3) % 8),
             (e.t === 14 || e.t === 20) &&
               this.launchDreepy(e, t, null, e.t === 14 ? 0 : 1, !0, s);
+        } else if (e.support && e.kit.id === "milotic") {
+          (e.animName = e.t < 20 ? "Charge" : "Idle"), (e.animFrame = Math.floor(e.t / 3) % 4);
+          let w = e.summoner;
+          e.t === 20 &&
+            w.state !== "faint" &&
+            ((w.slot.hp = Math.min(w.slot.maxHp, w.slot.hp + Math.round(w.slot.maxHp * SUPPORT.heal))),
+            this.emit({ type: "heal", x: w.x, y: w.y, amount: Math.round(w.slot.maxHp * SUPPORT.heal), who: w }));
         } else e.kit.ex && this.exAssist(e, t, s);
         e.t === 52 && this.emit({ type: "assistOut", who: e }),
           e.t >= 60 && (e.done = !0);
@@ -21616,6 +21647,57 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         // A fighter held in a grab (Crunch, Psychic) can only be hurt by the
         // one holding it, so a grab is never a free hit for everyone else.
         if (e.heldBy && t && t !== e.heldBy && t.summoner !== e.heldBy) return;
+        // Clash: two melee blows on the same beat. Close in weight, both
+        // bounce off unhurt; otherwise the heavier blow wins and the lighter
+        // attacker staggers.
+        if (
+          M &&
+          t?.kind === "player" &&
+          e.kind === "player" &&
+          t.team !== e.team &&
+          (e.state === "attack" || e.state === "smash") &&
+          e.meter() === "active" &&
+          e.clashT !== this.tick &&
+          !/:grab/.test(String(k))
+        ) {
+          let dx = t.x - e.x,
+            dy = t.y - e.y,
+            dd = Math.hypot(dx, dy) || 1;
+          if (dd < e.r + t.hurtR + 34 && (dx * Math.cos(e.facing) + dy * Math.sin(e.facing)) / dd > 0.4) {
+            // kit.weight scales knockback taken, so heft is its inverse.
+            let wa = (l || t.state === "smash" ? 1.5 : 1) / (t.kit.weight || 1),
+              wb = (e.state === "smash" || e.combo >= 2 ? 1.5 : 1) / (e.kit.weight || 1),
+              q = wa / wb,
+              mx = (t.x + e.x) / 2,
+              my = (t.y + e.y) / 2;
+            if (q < CLASH.even && q > 1 / CLASH.even) {
+              e.clashT = t.clashT = this.tick;
+              for (let [p, sg] of [
+                [t, 1],
+                [e, -1],
+              ])
+                (p.kvx = (dx / dd) * sg * CLASH.push),
+                  (p.kvy = (dy / dd) * sg * CLASH.push),
+                  (p.hitstop = CLASH.stop),
+                  (p.state = "stunned"),
+                  (p.t = 0),
+                  (p.hitstun = CLASH.stun);
+              this.emit({ type: "clash", x: mx, y: my, a: t, b: e });
+              return;
+            }
+            if (q < 1) {
+              // Held in place, so the heavier blow still connects.
+              (e.clashT = t.clashT = this.tick),
+                (t.state = "stunned"),
+                (t.t = 0),
+                (t.hitstun = CLASH.stun + 10),
+                (t.hitstop = 6),
+                (t.kvx = t.kvy = t.mvx = t.mvy = 0);
+              this.emit({ type: "clash", x: mx, y: my, a: t, b: e, win: e });
+              return;
+            }
+          }
+        }
         if (
           e.kind === "player" &&
           e.state === "detect" &&
@@ -38749,6 +38831,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         [r ? "B" : "K", "Dodge", ...l(i.cdDodge, s.dodge.cooldown)],
         [r ? "RS" : "↑", tc(s.smash.name ?? "Smash"), 1, ""],
       ];
+    o &&
+      t.support &&
+      xe[t.support] &&
+      f.push([r ? "LT" : "E", tc(xe[t.support].name), ...l(t.assistCd ?? 0, SUPPORT.cd)]);
     t.legend &&
       f.push([
         r ? "LEGEND" : "R",
@@ -38915,7 +39001,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       // Switch and Assist only mean something with a partner.
       x0 =
         a.player.slots.length > 1 ||
-        (i = i.filter(([, c]) => c !== "Switch" && c !== "Assist")),
+        (i = i.filter(([, c]) => c !== "Switch" && (c !== "Assist" || a.player.support))),
       r = 3.5,
       o = 0,
       l = i.map(([c, y]) => {
@@ -45738,7 +45824,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 43,
+  var NETV = 44,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -48347,7 +48433,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             U("switch", "SWITCH", ["switch"], 30, 112, 10),
             U("assist", "ASSIST", ["assist"], 60, 124, 10),
           ]
-        : []),
+        : e.player.support
+          ? [U("assist", "SUPPORT", ["assist"], 44, 124, 10)]
+          : []),
       ["start", "II", ["start"], H / 2, oe - 12, 10],
       // Taunt: the stick picks the emote.
       ["taunt", "EMOTE", ["taunt"], touchX(H / 2 + 30), oe - 12, 8],
@@ -52206,6 +52294,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           break;
         case "launchHit":
           t.popup(n.x, n.y - 36, `${n.dmg}`, "#ffd166", !1);
+          break;
+        case "clash":
+          S.boom(),
+            t.shake(0, 2, 8),
+            t.ring(n.x, n.y - 10, 4, 2.2, 12, "#ffffff", !0),
+            t.motes(n.x, n.y - 10, 14, 10, "#ffd166", 2.2),
+            t.popup(n.x, n.y - 30, n.win ? "OVERPOWERED" : "CLASH!", n.win ? "#ff8a3d" : "#ffffff", !1),
+            I("sq", F(96), F(84), 0.1, 0.05),
+            I("sq", F(91), F(79), 0.08, 0.05, 0.03);
           break;
         case "raidHit":
           t.popup(n.x + (Math.random() - 0.5) * 16, n.y, `${n.dmg}`, n.back ? "#ffd166" : "#ffffff", !1),
