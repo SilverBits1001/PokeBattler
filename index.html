@@ -323,6 +323,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       "typeMatch",
       ...MUT_KEYS,
     ];
+  // A mutator is on from Options, or for today's Daily Challenge.
+  var DAILY_MUT = new Set();
+  function mutOn(k) {
+    return !!A[k] || DAILY_MUT.has(k);
+  }
   function applyRules(k) {
     let off = Object.fromEntries(MUT_KEYS.map((m) => [m, 0]));
     k === 1
@@ -8106,7 +8111,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         // Mutators and the time limit.
         (this.sudden = 0), (this.timeLeft = 0);
         for (let o of this.players) this.mutFighter(o);
-        A.mutSudden && A.items && (this.itemT = Math.min(this.itemT, 240));
+        mutOn("mutSudden") && A.items && (this.itemT = Math.min(this.itemT, 240));
         // Arena hazards off: none of the stage's timed events.
         A.hazards === 0 &&
           ((this.surgeT = 1e9), (this.sphealT = 1e9), (this.fieldT = 1e9), (this.ventT = 1e9));
@@ -8125,14 +8130,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           sp = 1,
           kb = 1,
           hp = 1;
-        A.mutGiant && ((sz *= 1.6), (hp *= 1.5), (kb *= 0.6), (sp *= 0.9));
-        A.mutTiny && ((sz *= 0.6), (sp *= 1.2), (hp *= 0.7));
-        A.mutMetal && ((kb *= 0.5), (sp *= 0.8));
-        A.mutBouncy && (kb *= 1.5);
-        (o.mSize = sz), (o.mSpeed = sp), (o.mKb = kb), (o.metal = !!A.mutMetal);
+        mutOn("mutGiant") && ((sz *= 1.6), (hp *= 1.5), (kb *= 0.6), (sp *= 0.9));
+        mutOn("mutTiny") && ((sz *= 0.6), (sp *= 1.2), (hp *= 0.7));
+        mutOn("mutMetal") && ((kb *= 0.5), (sp *= 0.8));
+        mutOn("mutBouncy") && (kb *= 1.5);
+        (o.mSize = sz), (o.mSpeed = sp), (o.mKb = kb), (o.metal = !!mutOn("mutMetal"));
         for (let sl of o.slots)
           (sl.maxHp = Math.round(sl.maxHp * hp)),
-            (sl.hp = A.mutSudden ? 1 : Math.min(sl.maxHp, Math.round(sl.hp * hp)));
+            (sl.hp = mutOn("mutSudden") ? 1 : Math.min(sl.maxHp, Math.round(sl.hp * hp)));
         o.applyKit();
       }
       // Time limit: at zero the side with more lives, then more HP left,
@@ -8947,7 +8952,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           };
         this.updateLock(e, t);
         // Cooldown Chaos: nothing waits more than a second.
-        A.mutChaos &&
+        mutOn("mutChaos") &&
           (i.cdX > 60 && (i.cdX = 60),
           i.cdY > 60 && (i.cdY = 60),
           i.cdDodge > 60 && (i.cdDodge = 60));
@@ -10197,7 +10202,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (o.lgMeter = Math.min(
             100,
             o.lgMeter +
-              s * l * (this.players.length > 2 ? LEGEND.crowd : 1) * (A.mutChaos ? 2 : 1),
+              s * l * (this.players.length > 2 ? LEGEND.crowd : 1) * (mutOn("mutChaos") ? 2 : 1),
           )),
             o.lgMeter >= 100 && this.emit({ type: "legendReady", who: o });
         };
@@ -14600,7 +14605,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               y: iy,
               state: "warn",
               t: 0,
-              kind: A.mutSudden
+              kind: mutOn("mutSudden")
                 ? "focusband"
                 : ((r) => {
                     for (let o of ITEMS) if ((r -= o.w) < 0) return o.kind;
@@ -15063,8 +15068,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
                   return;
                 }
                 if (
-                  ((e.kvx -= (A.mutBouncy ? 1.95 : 1.55) * o * i),
-                  (e.kvy -= (A.mutBouncy ? 1.95 : 1.55) * o * r),
+                  ((e.kvx -= (mutOn("mutBouncy") ? 1.95 : 1.55) * o * i),
+                  (e.kvy -= (mutOn("mutBouncy") ? 1.95 : 1.55) * o * r),
                   this.emit({
                     type: "wall",
                     who: e,
@@ -20767,7 +20772,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           }
           this.emit({ type: "flank", who: e, attacker: t, x: e.x, y: e.y });
         }
-        A.mutInvis &&
+        mutOn("mutInvis") &&
           ((e.seenT = this.tick + 10), t && (t.seenT = this.tick + 10));
         // Counter-hits stun longer and build more legendary meter.
         (this.hitMeter = cnt ? 1.5 : 1),
@@ -29192,7 +29197,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     exAir(a, e);
     r3Air(a, e);
     arenaAir(a, e, t);
-    A.mutFog && fogOfWar(a, e);
+    mutOn("mutFog") && fogOfWar(a, e);
     for (let h of t.ambient)
       (a.globalAlpha = 0.18 + 0.14 * Math.sin(h.ph * 2)),
         (a.fillStyle = "#f4ead0"),
@@ -29368,11 +29373,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     // Mutators: Invisible fades everyone (you a little less) except just
     // after they hit or are hit; Metal turns them to steel.
-    A.mutInvis &&
+    mutOn("mutInvis") &&
       C &&
       !(C.seenT > t.tick) &&
       (v *= C === t.players[0] ? 0.4 : 0.15);
-    A.mutMetal && C && (a.filter = "grayscale(1) brightness(1.3) contrast(1.2)");
+    mutOn("mutMetal") && C && (a.filter = "grayscale(1) brightness(1.3) contrast(1.2)");
     if (
       ((a.globalAlpha = (e.alpha ?? 1) * (x ? 0.6 : 1) * v),
       a.drawImage(
@@ -34984,6 +34989,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // Arcade results: what the buttons offer after each fight.
   function arcOpts(ui, match) {
     let a = ui.arcade;
+    if (a.daily)
+      return match.result === "win" && a.stage < ARC.stages - 1
+        ? ["Next fight", "Quit"]
+        : ["Quit"];
     return match.mode === "sweep"
       ? ["Next fight", "Quit"]
       : match.result !== "win"
@@ -34998,6 +35007,88 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     } catch {
       return {};
     }
+  }
+  // ---- Daily Challenge ----
+  // One seed per calendar day picks a fighter, a stage, two mutators (from
+  // pairs that play well together) and three rivals of rising level. Score:
+  // HP left after each win (x10) plus a time bonus on a clear.
+  var DAILY = {
+    key: "pocketbrawl-daily-v1",
+    titleKey: "pocketbrawl-titles-v1",
+    pairs: [
+      ["mutGiant", "mutBouncy"],
+      ["mutTiny", "mutFast"],
+      ["mutMetal", "mutChaos"],
+      ["mutFog", "mutSlow"],
+      ["mutInvis", "mutChaos"],
+      ["mutSudden", "mutFast"],
+      ["mutMirror", "mutBouncy"],
+      ["mutGiant", "mutMetal"],
+      ["mutTiny", "mutChaos"],
+      ["mutMirror", "mutSlow"],
+    ],
+    // Titles for clearing a daily with each mutator on.
+    titles: {
+      mutGiant: "Giant Slayer",
+      mutTiny: "Pocket Rocket",
+      mutFast: "Speed Demon",
+      mutSlow: "Slow and Steady",
+      mutMirror: "Mirror Master",
+      mutSudden: "One Hit Wonder",
+      mutMetal: "Heavy Metal",
+      mutFog: "In the Fog",
+      mutChaos: "Chaos Theory",
+      mutBouncy: "Pinball Wizard",
+      mutInvis: "Now You See Me",
+    },
+  };
+  function dailySeed(d = new Date()) {
+    return d.getFullYear() * 1e4 + (d.getMonth() + 1) * 100 + d.getDate();
+  }
+  // A small seeded generator (mulberry32), so a day rolls the same anywhere.
+  function dailyRand(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      return (
+        (t = Math.imul(t ^ (t >>> 15), t | 1)),
+        (t ^= t + Math.imul(t ^ (t >>> 7), t | 61)),
+        ((t ^ (t >>> 14)) >>> 0) / 4294967296
+      );
+    };
+  }
+  function dailyRoll(seed) {
+    let r = dailyRand(seed),
+      pick = (L) => L[Math.floor(r() * L.length)],
+      kit = pick(ge),
+      muts = pick(DAILY.pairs),
+      arena = Math.floor(r() * ARENAS.length),
+      pool = ge.filter((k) => k !== kit),
+      rivals = [];
+    for (; rivals.length < 3; ) {
+      let k = pick(pool);
+      rivals.includes(k) || rivals.push(k);
+    }
+    return { seed, kit, muts, arena, rivals };
+  }
+  function dailyRec() {
+    try {
+      return JSON.parse(localStorage.getItem(DAILY.key)) ?? { days: {} };
+    } catch {
+      return { days: {} };
+    }
+  }
+  function dailyTitles() {
+    try {
+      return JSON.parse(localStorage.getItem(DAILY.titleKey)) ?? [];
+    } catch {
+      return [];
+    }
+  }
+  // A code to compare runs: the day and the score, in base 36.
+  function dailyCode(seed, score) {
+    return `${seed.toString(36)}-${score.toString(36)}`.toUpperCase();
   }
   function arcClock(t) {
     let s = Math.floor(t / 60);
@@ -35827,7 +35918,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // mutators are on.
   function ruleHud(e, a) {
     let T = RULES.times[A.timeLimit | 0] ?? 0,
-      mm = MUT_KEYS.filter((k) => A[k]),
+      mm = MUT_KEYS.filter((k) => mutOn(k)),
       y = 48;
     if (e.sudden)
       V("SUDDEN DEATH", H / 2, y, 9, "#ff4a63", { align: "center", outline: 2 });
@@ -38534,10 +38625,21 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         outline: 2.6,
       },
     ),
-      G(`ARCADE · ${ARENAS[ar]?.name ?? "Stadium"}`, H / 2, 41, 6.4, g.haze, {
-        align: "center",
-        weight: 700,
-      });
+      G(
+        q.daily
+          ? `DAILY CHALLENGE · ${ARENAS[ar]?.name ?? "Stadium"} · ${q.daily.muts
+              .map((k) => Re.find((r) => r.key === k)?.label ?? k)
+              .join(" + ")}`
+          : `ARCADE · ${ARENAS[ar]?.name ?? "Stadium"}`,
+        H / 2,
+        41,
+        6.4,
+        q.daily ? g.gold : g.haze,
+        {
+          align: "center",
+          weight: 700,
+        },
+      );
     // The ladder.
     for (let o = 0; o < ARC.stages; o++) {
       let l = 51 + o * 66,
@@ -40372,7 +40474,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }),
       G(
         e.arcade
-          ? `Arcade \xB7 stage ${e.arcade.stage + 1} of ${ARC.stages}`
+          ? `${e.arcade.daily ? "Daily Challenge \xB7 fight" : "Arcade \xB7 stage"} ${e.arcade.stage + 1} of ${ARC.stages}`
           : `Series: ${r.wins} win${r.wins === 1 ? "" : "s"}, ${r.losses} loss${r.losses === 1 ? "" : "es"}`,
         $ + U - 22,
         w + re - 7,
@@ -40382,8 +40484,49 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ),
       d.restore();
     }
+    // Daily Challenge over: the score, the share code, titles and the month.
+    if (e.arcade?.final?.daily) {
+      let q = e.arcade.final,
+        dy = e.arcade.daily,
+        k = Ee(Math.min(1, (s - 30) / 14));
+      if (k > 0) {
+        d.save(), (d.globalAlpha = k), te(24, 70, 210, 100, "rgba(11,9,24,0.86)", 6);
+        (d.fillStyle = g.gold), d.fillRect(m(28), m(70), m(202), m(1.4));
+        cueGlyph(d, "star", m(40), m(87), m(8), g.gold),
+          V(q.clear ? "DAILY CLEAR!" : "DAILY OVER", 52, 91, 13, q.clear ? g.gold : "#ff8a8a", {
+            skew: !0,
+            outline: 2,
+          }),
+          G(
+            `Score ${q.score}${q.best ? "  NEW BEST!" : ""}   \xB7   ${dy.muts
+              .map((k2) => Re.find((r) => r.key === k2)?.label ?? k2)
+              .join(" + ")}`,
+            34,
+            103,
+            6,
+            q.best ? g.gold : g.chalk,
+            { weight: 700 },
+          ),
+          G(`Share code ${q.code}`, 34, 112, 6, g.haze, { weight: 700 }),
+          q.titles.length &&
+            G(`Title earned: ${q.titles.join(", ")}`, 34, 121, 6, "#ffe066", { weight: 700 });
+        // The last 30 days: lit if played, brighter for a clear-level score.
+        let rec = dailyRec(),
+          now = new Date();
+        G("LAST 30 DAYS", 34, 133, 4.8, g.dim, { weight: 800 });
+        for (let j = 0; j < 30; j++) {
+          let dd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (29 - j)),
+            sc = rec.days[dailySeed(dd)],
+            cx = 34 + (j % 15) * 12.5,
+            cy = 137 + Math.floor(j / 15) * 12.5;
+          te(cx, cy, 10, 10, sc == null ? "rgba(255,255,255,0.08)" : sc >= 3e3 ? g.gold : "#8a7cff", 2);
+          j === 29 && ((d.strokeStyle = "#ffffff"), (d.lineWidth = m(0.8)), d.strokeRect(m(cx), m(cy), m(10), m(10)));
+        }
+        d.restore();
+      }
+    }
     // Arcade cleared: the run's time, continues and best.
-    if (e.arcade?.final && o) {
+    if (e.arcade?.final && !e.arcade.final.daily && o) {
       let q = e.arcade,
         k = Ee(Math.min(1, (s - 30) / 14));
       k > 0 &&
@@ -46147,18 +46290,50 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     },
   ];
   // Mode Select: every local mode as a card, in three rows.
-  var MODE_ROWS = ["Duels", "Party \u00b7 three or four fighters", "Specials"],
+  // Mode Select: four rows of up to four cards; r / c place each card.
+  var MODE_ROWS = [
+      "Duels",
+      "Party \u00b7 three or four fighters",
+      "Specials",
+      "Challenges",
+    ],
     MODE_CARDS = [
-      { gm: 0, label: "VS CPU", desc: "One on one against the CPU.", tag: "1V1", icon: "vs", color: "#ff8a3d" },
-      { gm: 6, label: "Tag Team", desc: "Two Pok\u00e9mon each. Switch, and call your partner in.", tag: "1V1 \u00b7 2 EACH", icon: "tag", color: "#4aa3ff" },
-      { gm: 4, label: "Zone Control", desc: "Hold the ring to score. First to the goal wins.", tag: "1V1", icon: "zone", color: "#4df08a" },
-      { gm: 2, label: "Free-for-All", desc: "Last one standing among three or four fighters.", tag: "3\u20134 FIGHTERS", icon: "ffa", color: "#ff4f6d" },
-      { gm: 3, label: "Team 2v2", desc: "You and a CPU partner against two CPUs.", tag: "2V2", icon: "team", color: "#33d6ff" },
-      { gm: 8, label: "You're It!", desc: "Melee hits pass the Slugma on. Being it drains you.", tag: "3\u20134 FIGHTERS", icon: "it", color: "#ff7a3c" },
-      { gm: 9, label: "Thin Ice", desc: "Every attack cracks the ice. Knock them into the water.", tag: "1V1", icon: "thin", color: "#7fd0ff" },
-      { gm: 10, label: "Thin Ice Party", desc: "A cracking lake and three or four fighters.", tag: "3\u20134 FIGHTERS", icon: "thinparty", color: "#9fe0ff" },
-      { gm: 7, label: "Pidgey Sweep", desc: "Clear the Stadium of Pidgey in 60 seconds.", tag: "SOLO", icon: "sweep", color: "#ffd166" },
+      { gm: 0, r: 0, c: 0, label: "VS CPU", desc: "One on one against the CPU.", tag: "1V1", icon: "vs", color: "#ff8a3d" },
+      { gm: 6, r: 0, c: 1, label: "Tag Team", desc: "Two Pok\u00e9mon each. Switch, and call your partner in.", tag: "1V1 \u00b7 2 EACH", icon: "tag", color: "#4aa3ff" },
+      { gm: 4, r: 0, c: 2, label: "Zone Control", desc: "Hold the ring to score. First to the goal wins.", tag: "1V1", icon: "zone", color: "#4df08a" },
+      { gm: 9, r: 0, c: 3, label: "Thin Ice", desc: "Every attack cracks the ice. Knock them into the water.", tag: "1V1", icon: "thin", color: "#7fd0ff" },
+      { gm: 2, r: 1, c: 0, label: "Free-for-All", desc: "Last one standing among three or four fighters.", tag: "3\u20134 FIGHTERS", icon: "ffa", color: "#ff4f6d" },
+      { gm: 3, r: 1, c: 1, label: "Team 2v2", desc: "You and a CPU partner against two CPUs.", tag: "2V2", icon: "team", color: "#33d6ff" },
+      { gm: 8, r: 1, c: 2, label: "You're It!", desc: "Melee hits pass the Slugma on. Being it drains you.", tag: "3\u20134 FIGHTERS", icon: "it", color: "#ff7a3c" },
+      { gm: 10, r: 1, c: 3, label: "Thin Ice Party", desc: "A cracking lake and three or four fighters.", tag: "3\u20134 FIGHTERS", icon: "thinparty", color: "#9fe0ff" },
+      { gm: 7, r: 2, c: 1, label: "Pidgey Sweep", desc: "Clear the Stadium of Pidgey in 60 seconds.", tag: "SOLO", icon: "sweep", color: "#ffd166" },
+      { gm: 13, r: 3, c: 0, label: "Daily Challenge", desc: "Today's fighter, stage and two mutators. Three fights, one score.", tag: "SOLO \u00b7 DAILY", icon: "daily", color: "#ffd166" },
     ];
+  // Moving round the Mode Select grid: the nearest card in that direction.
+  function modeStep(D, R) {
+    let c0 = MODE_CARDS[D],
+      dr = R === "up" ? -1 : R === "down" ? 1 : 0,
+      dc = R === "left" ? -1 : R === "right" ? 1 : 0,
+      best = D,
+      bd = 1 / 0;
+    if (dc) {
+      let row = MODE_CARDS.map((c, k) => [c, k]).filter(([c]) => c.r === c0.r);
+      row.sort((a, b) => a[0].c - b[0].c);
+      let i = row.findIndex(([, k]) => k === D);
+      return row[(i + dc + row.length) % row.length][1];
+    }
+    let rows = MODE_ROWS.length;
+    for (let s1 = 1; s1 <= rows; s1++) {
+      let rr = (c0.r + dr * s1 + rows * 4) % rows;
+      MODE_CARDS.forEach((c, k) => {
+        if (c.r !== rr) return;
+        let d1 = Math.abs(c.c - c0.c);
+        d1 < bd && ((bd = d1), (best = k));
+      });
+      if (best !== D) break;
+    }
+    return best;
+  }
   // Mode Select emblems (assets/modes/*.png, inlined by the build).
   var MODE_ICONS = {};
   function modeIcon(k) {
@@ -46465,20 +46640,20 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       d.fillRect(0, 0, m(H), m(oe));
     V("Choose a mode", 12, 22, 16, g.chalk, { skew: !0, outline: 2 }),
       G("Every way to play here. Arcade and Online are on the main menu.", 13, 31.5, 6.4, g.haze);
-    let x0 = 22,
-      gap = 8,
-      w = (H - x0 * 2 - gap * 2) / 3,
-      h = 50;
+    let x0 = 18,
+      gap = 6,
+      w = (H - x0 * 2 - gap * 3) / 4,
+      h = 40;
     MODE_ROWS.forEach((lab, row) => {
-      let y = 46 + row * 66;
-      G(lab.toUpperCase(), x0 + 2, y + 2, 5.6, g.gold, { weight: 800 });
+      let y = 41 + row * 50;
+      G(lab.toUpperCase(), x0 + 2, y + 2, 5.2, g.gold, { weight: 800 });
     });
     MODE_CARDS.forEach((c, k) => {
-      let col = k % 3,
-        row = Math.floor(k / 3),
+      let col = c.c,
+        row = c.r,
         on = k === sel,
-        x = x0 + col * (w + gap) - row * 4,
-        y = 52 + row * 66 + (1 - i) * 20;
+        x = x0 + col * (w + gap) - row * 3,
+        y = 46 + row * 50 + (1 - i) * 20;
       tapRect(x, y, w, h, () =>
         on ? Ue.add("confirm") : (a.modeIndex = k),
       );
@@ -46496,7 +46671,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       // The mode's emblem: lit and bobbing on the card you are on.
       let em = modeIcon(c.icon);
       if (em) {
-        let S2 = 30,
+        let S2 = 24,
           ex = x + w - S2 - 8,
           ey = y + (h - S2) / 2 + (on ? Math.sin(t * 0.08) * 1.2 : 0);
         d.save(),
@@ -46511,15 +46686,25 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           d.drawImage(em, m(ex), m(ey), m(S2), m(S2)),
           d.restore();
       }
+      // Modes without an emblem get a glyph.
+      em ||
+        cueGlyph(
+          d,
+          { daily: "star", ball: "ball", launch: "up2", raid: "burst" }[c.icon] ?? "star",
+          m(x + w - 18),
+          m(y + h / 2),
+          m(9),
+          on ? g.night : c.color,
+        );
       let ink = on ? g.night : g.chalk;
-      V(c.label, x + 14, y + 16, 11.5, ink),
-        wrapText(c.desc, 6, w - 62)
+      V(c.label, x + 12, y + 13, c.label.length > 13 ? 8.4 : 9.5, ink),
+        wrapText(c.desc, 5, w - 44)
           .slice(0, 2)
           .forEach((ln, j) =>
-            G(ln, x + 14 - j * 1.6, y + 26.5 + j * 8, 6, on ? g.night : g.haze),
+            G(ln, x + 12 - j * 1.2, y + 21.5 + j * 6.4, 5, on ? g.night : g.haze),
           ),
-        ue(c.tag, on ? g.night : c.color, x + 12 - 3, y + h - 10, {
-          size: 5,
+        ue(c.tag, on ? g.night : c.color, x + 10 - 3, y + h - 6.5, {
+          size: 4.2,
           text: on ? c.color : g.night,
         }),
         d.restore();
@@ -47088,7 +47273,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       let sm0 = e.startMatch.bind(e);
       e.startMatch = (...q) => {
         // Mirror match: everyone fights as your lead Pokémon.
-        A.mutMirror &&
+        mutOn("mutMirror") &&
           !NET.m &&
           q[0] !== "practice" &&
           q[0] !== "sweep" &&
@@ -47224,6 +47409,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     // ---- Main menu ----
     function toMenu() {
+      // Leaving a Daily Challenge for the menu ends it.
+      (DAILY_MUT.size || s.arcade?.daily) &&
+        (s.arcade?.daily && (s.arcade = null), endDaily());
       // Once: the controller layout changed (grab, legendary chord, D-pad).
       try {
         localStorage.getItem("pb-controls-v2") ||
@@ -47248,20 +47436,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     // Mode Select: a 3x3 grid; A picks, B goes back to the main menu.
     function modesInput(n) {
-      let N = MODE_CARDS.length,
-        D = s.modeIndex ?? 0;
+      let D = s.modeIndex ?? 0;
       w(n, (R) => {
-        let c = D % 3,
-          r = Math.floor(D / 3);
-        R === "left" && (c = (c + 2) % 3),
-          R === "right" && (c = (c + 1) % 3),
-          R === "up" && (r = (r + 2) % 3),
-          R === "down" && (r = (r + 1) % 3),
-          (D = s.modeIndex = Math.min(N - 1, r * 3 + c)),
-          S.ui(R === "right" || R === "down");
+        (D = s.modeIndex = modeStep(D, R)), S.ui(R === "right" || R === "down");
       });
       if (n.pressed.has("back")) return toMenu();
       if (!n.pressed.has("confirm") && !n.pressed.has("start")) return;
+      if (MODE_CARDS[D].gm === 13) return startDaily();
       (s.arcade = null),
         (A.gameMode = MODE_CARDS[D].gm),
         (A.onlineTag = 0),
@@ -47311,6 +47492,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         return;
       }
       s.fromModes = !1;
+      R === "arcade" && endDaily();
       (s.arcade =
         R === "arcade"
           ? {
@@ -47987,10 +48169,37 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     function Q() {
       return freshPicks(cpuNeed(), s.picks);
     }
+    function startDaily() {
+      let dy = dailyRoll(dailySeed());
+      DAILY_MUT.clear(), dy.muts.forEach((k) => DAILY_MUT.add(k));
+      (ARC.stages = 3), (ARC.levels = [0, 1, 2]);
+      x(!1);
+      (s.arcade = {
+        stage: 0,
+        continues: 0,
+        time: 0,
+        arena0: dy.arena,
+        bonusDone: !0,
+        rivals: dy.rivals,
+        legends: dy.rivals.map(() => lgRoll()),
+        forPick: dy.kit,
+        daily: { ...dy, hp: [], score: 0 },
+      }),
+        (A.gameMode = 0),
+        (s.picks = [dy.kit]),
+        (s.cpuPicks = [arcRival()]),
+        (s.readyPhase = !0),
+        (s.readyT = 0);
+    }
+    // Leaving the Daily: the Arcade ladder and Options' mutators are back.
+    function endDaily() {
+      DAILY_MUT.clear(), (ARC.stages = 6), (ARC.levels = [0, 0, 1, 1, 2, 2]);
+    }
     // Arcade: the ladder's rivals are drawn once per run, never your pick.
     function arcRival() {
       let a = s.arcade;
-      (!a.rivals || a.forPick !== s.picks[0]) &&
+      !a.daily &&
+        (!a.rivals || a.forPick !== s.picks[0]) &&
         ((a.rivals = freshPicks(ARC.stages, s.picks)),
         (a.legends = a.rivals.map(() => lgRoll())),
         (a.forPick = s.picks[0]));
@@ -49854,8 +50063,47 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               (s.resultsT = 0);
             break;
           }
+          // Daily Challenge: HP left after each win; the score when the run
+          // ends (a loss, or the third win), saved per day.
+          if (s.arcade?.daily && !s.arcade.saved) {
+            let a = s.arcade,
+              dy = a.daily;
+            n.result === "win" &&
+              dy.hp.push(Math.round((e.player.slot.hp / e.player.slot.maxHp) * 100));
+            if (n.result !== "win" || a.stage === ARC.stages - 1) {
+              let T = a.time + (e.match.ticks ?? 0),
+                clear = n.result === "win",
+                score =
+                  dy.hp.reduce((x, y) => x + y, 0) * 10 +
+                  (clear ? Math.max(0, 600 - Math.floor(T / 60)) * 5 : 0),
+                rec = dailyRec(),
+                prev = rec.days[dy.seed],
+                titles = dailyTitles(),
+                got = [];
+              (a.saved = !0), (rec.days[dy.seed] = Math.max(prev ?? 0, score));
+              clear &&
+                dy.muts.forEach((k) => {
+                  let tl = DAILY.titles[k];
+                  tl && !titles.includes(tl) && (titles.push(tl), got.push(tl));
+                });
+              try {
+                localStorage.setItem(DAILY.key, JSON.stringify(rec)),
+                  localStorage.setItem(DAILY.titleKey, JSON.stringify(titles));
+              } catch {}
+              a.final = {
+                daily: !0,
+                score,
+                best: prev == null || score > prev,
+                clear,
+                time: T,
+                code: dailyCode(dy.seed, score),
+                titles: got,
+              };
+            }
+          }
           if (
             s.arcade &&
+            !s.arcade.daily &&
             n.result === "win" &&
             s.arcade.stage === ARC.stages - 1 &&
             !s.arcade.saved
@@ -52839,7 +53087,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         ? 1
         : ([1, 0.5, 0.25][A.slowmo] ?? 1) *
           (s.screen === "play" && e.match.mode !== "practice"
-            ? (A.mutFast ? 1.25 : 1) * (A.mutSlow ? 0.8 : 1)
+            ? (mutOn("mutFast") ? 1.25 : 1) * (mutOn("mutSlow") ? 0.8 : 1)
             : 1),
         W = s.screen === "play" && !s.paused && e.match.phase !== "results";
       // Never carry more than a few steps of backlog: on a slow frame the game
