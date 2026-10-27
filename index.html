@@ -218,6 +218,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ringOut: 0,
       typeMatch: 0,
       burstPref: 0,
+      // Burst picked on the VS screen ("mega", "megaY" or "tera:TYPE"; "" is
+      // the default for the fighter).
+      burstPick: "",
+      // Counter-hit and back-crit callouts: 0 icons and words, 1 icons, 2 off.
+      hitCalls: 0,
       // Raid boss: 0 Random, else 1 + an index into LEGENDS.
       raidBoss: 0,
       // VS screen backdrop: 0 the usual one, else 1 + a cleared Raid boss.
@@ -484,6 +489,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       key: "cueText",
       label: "Battle callouts",
       options: ["Icons", "Icons + words"],
+    },
+    {
+      kind: "choice",
+      key: "hitCalls",
+      label: "Hit callouts (counter, crit)",
+      options: ["Icons + words", "Icons", "Off"],
     },
     {
       kind: "choice",
@@ -4290,7 +4301,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         i.aimHeld = !1;
         if (t === chaser) {
           (i.held = new Set([...i.held].filter((k) => k !== "lock"))), (t.lock = null);
-          let dx = gx - b.x,
+          // Off to the side of a narrow goal mouth, cut it back into the
+          // middle first rather than pinning it on the goal line.
+          let side = Math.abs(b.x - gx) < 90 && Math.abs(b.y - Te) > BALL.goalH / 2,
+            tx = side ? gx + (gx > Se ? -90 : 90) : gx,
+            dx = tx - b.x,
             dy = Te - b.y,
             d = Math.hypot(dx, dy) || 1,
             px = b.x - (dx / d) * (b.r + t.r + 4),
@@ -4298,13 +4313,27 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             far = go(px, py),
             bd = Math.hypot(b.x - t.x, b.y - t.y);
           // Lined up behind it: hit it goalwards (now and then a full Smash).
-          far < 10 &&
-            bd < b.r + t.r + 18 &&
+          // Stuck for two seconds: Smash it goalward from wherever you are.
+          // (If that Smash can't reach it, jab it, or just walk it along.)
+          if ((b.idleT ?? 0) > 120 && bd < b.r + t.r + 26) {
+            let ux = (gx - b.x) / (Math.hypot(gx - b.x, Te - b.y) || 1),
+              uy = (Te - b.y) / (Math.hypot(gx - b.x, Te - b.y) || 1),
+              ph = Math.floor(b.idleT / 90) % 3;
+            ph === 0
+              ? ((i.ax = ux), (i.ay = uy), (i.aimHeld = !0))
+              : ph === 1
+                ? ((i.mx = ux), (i.my = uy), i.pressed.add("attack"))
+                : ((i.mx = (b.x - t.x) / (bd || 1)), (i.my = (b.y - t.y) / (bd || 1)));
+            return i;
+          }
+          // Lined up: a long shot is a Smash at the goal, a short one a jab.
+          far < 12 &&
+            bd < b.r + t.r + 22 &&
             ((i.mx = dx / d),
             (i.my = dy / d),
-            this.rand() < 0.25 && d < 220
+            d > 90 && this.rand() < 0.6
               ? ((i.ax = dx / d), (i.ay = dy / d), (i.aimHeld = !0))
-              : this.rand() < 0.5 && i.pressed.add("attack"));
+              : this.rand() < 0.6 && i.pressed.add("attack"));
         } else go(ox * 0.55 + b.x * 0.45, Te * 0.5 + b.y * 0.5);
         return i;
       }
@@ -6436,17 +6465,28 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       t: 600,
       wind: 180,
       intro: 20,
-      mega: { out: 1.25, taken: 0.9, speed: 1.1 },
-      tera: { out: 1.2, stab: 1.35 },
+      // Strong enough that spending half the meter on it is worth a legendary
+      // (Burst-only against legendary-only CPUs: 0.49 over 114 games).
+      mega: { out: 2.1, taken: 0.5, speed: 1.2 },
+      tera: { out: 2.05, stab: 1.35, taken: 0.55 },
     },
     // Mega forms (sprite key) and each one's twist.
+    // Mega Evolutions: [SpriteCollab Mega sheet or null, the change, and for
+    // a Mega with no sheet the colour its sprite is washed in]. Charizard has
+    // two, picked on the VS screen.
     MEGA = {
-      charizard: ["charizardMega", "Mega Charizard X: every hit burns."],
+      charizard: ["charizardMega", "Mega Charizard X: its fire turns Dragon-type and every hit burns."],
       lucario: ["lucarioMega", "Mega Lucario: Aura Sphere homes in."],
       gengar: ["gengarMega", "Mega Gengar: Shadow Sneak has no cooldown."],
-      gardevoir: ["gardevoirMega", "Mega Gardevoir: cooldowns run twice as fast."],
+      gardevoir: ["gardevoirMega", "Mega Gardevoir: Psychic lifts two foes at once."],
       gallade: ["galladeMega", "Mega Gallade: Close Combat lowers no guard."],
+      blastoise: [null, "Mega Blastoise: Mega Launcher; every shot hits 1.3x harder.", "#5ab0ff"],
+      venusaur: [null, "Mega Venusaur: roots in a moment, even while it walks.", "#ff7ab8"],
+      metagross: [null, "Mega Metagross: Meteor Mash never misses.", "#9fd8ff"],
+      garchomp: [null, "Mega Garchomp: Outrage never ends while it lasts.", "#ff5a5a"],
+      scizor: [null, "Mega Scizor: Bullet Punch holds five charges.", "#ff3a3a"],
     },
+    MEGA_Y = { charizard: [null, "Mega Charizard Y: Drought; fire hits 1.25x harder.", "#ffb02e"] },
     // Each Pokémon's Tera type.
     TERA = {
       charizard: "DRAGON",
@@ -6588,7 +6628,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       togekiss: { id: "togekiss", name: "Togekiss", color: "#f4f0ff", type: "fairy", size: 1, role: "Enhance: a burst of speed" },
     },
     // Clashes: melee on the same beat. Within 15% weight both bounce off.
-    CLASH = { even: 1.15, push: 3.2, stop: 8, stun: 10 },
+    CLASH = { even: 1.15, push: 2.8, stop: 8, stun: 10 },
     // Raid: a party of four (CPU allies fill the empty places) against a giant
     // legendary. Three phases by HP, each adding an attack to the rotation;
     // every attack telegraphs before it lands. A K.O. is an 8 s wait while an
@@ -6626,15 +6666,20 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     // First to `goals`, or ahead at `time`; level at time is golden goal.
     BALL = {
       r: 14,
-      friction: 0.98,
+      friction: 0.96,
       bounce: 0.7,
-      // Velocity per point of a hit's knockback.
-      kick: 1.6,
-      maxV: 13,
-      goalH: 100,
+      // Velocity per point of a hit's knockback; shots nudge it less.
+      kick: 2.4,
+      shot: 0.6,
+      maxV: 26,
+      // Heavy: a fighter walking into it pushes it at half strength.
+      weight: 2,
+      goalH: 60,
       goals: 2,
       time: 7200,
       back: 180,
+      // After a goal: the ball waits on the spot for the whistle.
+      kickoff: 60,
     },
     MODE_NAMES = [
       "VS CPU",
@@ -8466,9 +8511,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
                 spin: 0,
                 score: [0, 0],
                 golden: 0,
+                hold: 0,
                 lastBy: null,
               }
             : null;
+        // Poké Ball: no items unless the Sudden Death mutator brings them.
+        this.ball && (this.itemT = 1e9);
         // Mutators and the time limit.
         (this.sudden = 0), (this.timeLeft = 0);
         for (let o of this.players)
@@ -8520,13 +8568,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         let d = Math.max(1, Math.round(dmg * ae.dmg * this.exOut(t, dmg, k, tg)));
         (L.dmg += d), L.hits++, (tg.flash = 3), (tg.hitstop = 4), (t.hitstop = Math.max(t.hitstop ?? 0, 3));
         this.emit({ type: "launchHit", who: tg, dmg: d, total: L.dmg, x: tg.x, y: tg.y });
-        // A Smash launches it; so does any hit once time is up, and any
-        // hit heavy enough to knock it off the tee early.
-        (/:smash/.test(String(k)) || L.phase === "over") && this.doLaunch(t, kb);
+        // A Smash launches it, as does any hit after the bell; a heavy hit
+        // before you mean it knocks it off the tee early and the run ends short.
+        (/:smash/.test(String(k)) || L.phase === "over" || kb >= 7.5) && this.doLaunch(t, kb);
       }
       doLaunch(t, kb) {
         let L = this.launch,
-          w = t ? 0.75 + 0.35 * Math.min(2, 1 / (t.kit.weight || 1)) : 1;
+          // The kit weight factor: a heavy hitter sends it further.
+          w = t ? me(1 / (t.kit.weight || 1), 0.6, 2.2) : 1;
         (L.phase = "fly"),
           (L.kb = kb),
           (L.flyT = 0),
@@ -8688,14 +8737,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             for (let w = 0; w < 3; w++) for (let q of up) a.zones.push(circ(q.x, q.y, 30, w * 28, { wave: w, follow: w ? q : null }));
             break;
           case "pillar":
-            a.zones.push(circ(near.x, near.y, 40, 0, { follow: near, track: 70 })), (a.warn = 90);
+            a.zones.push(circ(near.x, near.y, 40, 0, { follow: near, track: 40 })), (a.warn = 60);
             break;
           case "ring":
             a.zones.push({ shape: "ring", x: b.x, y: b.y, rr: 0, max: 300, at: 0 });
             break;
           case "mark":
-            for (let q of up.slice(0, 2)) a.zones.push(circ(q.x, q.y, 36, 0, { follow: q, track: 55 }));
-            (a.warn = 70), a.zones[1] && (a.zones[1].at = 22);
+            for (let q of up.slice(0, 2)) a.zones.push(circ(q.x, q.y, 36, 0, { follow: q, track: 40 }));
+            (a.warn = 60), a.zones[1] && (a.zones[1].at = 22);
             break;
           case "rift":
             for (let w = 0; w < 4; w++) {
@@ -8719,11 +8768,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             break;
           }
           case "hunt":
-            (b.hidden = !0), a.zones.push(circ(tg.x, tg.y, 44, 0, { follow: tg, track: 80, speed: 2 })), (a.warn = 95);
+            (b.hidden = !0), a.zones.push(circ(tg.x, tg.y, 44, 0, { follow: tg, track: 42, speed: 2 })), (a.warn = 60);
             break;
           case "drift": {
             let ang = Math.atan2(tg.y - Te, tg.x - Se);
-            a.zones.push(circ(Se + Math.cos(ang) * 120, Te + Math.sin(ang) * 70, 50, 0, { ang, track: 80 })), (a.warn = 95);
+            a.zones.push(circ(Se + Math.cos(ang) * 120, Te + Math.sin(ang) * 70, 50, 0, { ang, track: 42 })), (a.warn = 60);
             break;
           }
         }
@@ -8946,7 +8995,17 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       // ---- Poké Ball ----
       kickBall(by, kb, dx, dy) {
         let b = this.ball,
-          v = Math.min(BALL.maxV, Math.max(2.2, kb * BALL.kick));
+          v = Math.min(BALL.maxV, Math.max(1.6, kb * BALL.kick));
+        if (b.hold > 0) return;
+        // A kick roughly goalward bends toward the goal you attack.
+        let pl = by?.kind === "assist" ? by.summoner : by;
+        if (pl?.kind === "player") {
+          let gx = pl.team === this.players[0].team ? B.x1 + 10 : B.x0 - 10,
+            ga = Math.atan2(Te - b.y, gx - b.x),
+            ka = Math.atan2(dy, dx),
+            df = Math.atan2(Math.sin(ga - ka), Math.cos(ga - ka));
+          Math.abs(df) < 0.6 && ((ka += df * 0.75), (dx = Math.cos(ka)), (dy = Math.sin(ka)));
+        }
         (b.vx = dx * v), (b.vy = dy * v), (b.lastBy = by ?? null);
         this.emit({ type: "ballHit", x: b.x, y: b.y, v });
       }
@@ -8955,6 +9014,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         let b = this.ball,
           m = this.match;
         if (m.phase !== "fight" || this.intro > 0) return;
+        if (b.hold > 0) {
+          --b.hold === 0 && this.emit({ type: "whistle" });
+          return;
+        }
         (b.x += b.vx), (b.y += b.vy), (b.vx *= BALL.friction), (b.vy *= BALL.friction);
         b.spin += Math.hypot(b.vx, b.vy) * 0.08 * Math.sign(b.vx || 1);
         let inMouth = Math.abs(b.y - Te) < BALL.goalH / 2;
@@ -8965,7 +9028,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             side = left ? 1 : 0;
           b.score[side]++;
           this.emit({ type: "goal", mine: side === 0, x: b.x, y: b.y, score: [...b.score] });
-          this.slow(90, 0.3);
+          this.slow(120, 0.3);
           if (b.score[side] >= BALL.goals || b.golden) {
             this.endRound(side === 0 ? "win" : "lose");
             return;
@@ -8980,7 +9043,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               (q.y = Te + (n ? 50 : -10)),
               (q.kvx = q.kvy = q.mvx = q.mvy = 0);
           }
-          this.emit({ type: "whistle" });
+          b.hold = BALL.kickoff;
           return;
         }
         // Walls (the goal mouths are open).
@@ -9003,9 +9066,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (b.x = q.x + nx * R), (b.y = q.y + ny * R);
           q.state === "guard"
             ? ((b.vx = b.vy = 0), (b.lastBy = q))
-            : ((b.vx += nx * 0.9 + (q.mvx ?? 0) * 0.5),
-              (b.vy += ny * 0.9 + (q.mvy ?? 0) * 0.5));
+            : ((b.vx += (nx * 0.9 + (q.mvx ?? 0) * 0.5) / BALL.weight),
+              (b.vy += (ny * 0.9 + (q.mvy ?? 0) * 0.5) / BALL.weight));
         }
+        // Never pushed out of the pitch; how long it has sat still.
+        (b.x = me(b.x, B.x0 - 30, B.x1 + 30)), (b.y = me(b.y, B.y0 + b.r, B.y1 - b.r));
+        b.idleT = Math.hypot(b.vx, b.vy) < 0.4 ? (b.idleT ?? 0) + 1 : 0;
         // Time: ahead at the whistle wins; level goes to golden goal.
         let el = this.goTick == null ? 0 : this.tick - this.goTick;
         if (el >= BALL.time && !b.golden) {
@@ -9871,6 +9937,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (e.slot.cdX > 0 && e.slot.cdX--,
           e.slot.cdY > 0 && e.slot.cdY--,
           this.tick % 30 === 0 && this.emit({ type: "charging", who: e }));
+        // A Mega's specials come back a quarter sooner (cooldowns x 0.75).
+        e.burstT > 0 &&
+          e.burstKind === "mega" &&
+          this.tick % 3 === 0 &&
+          (e.slot.cdX > 0 && e.slot.cdX--, e.slot.cdY > 0 && e.slot.cdY--);
         for (let v of e.slots)
           v.cdX > 0 && v.cdX--,
             v.cdY > 0 && v.cdY--,
@@ -10001,7 +10072,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           let v = p < 0.25 && e.state !== "dodge" && e.state !== "hurt";
           e.stillT = v ? e.stillT + 1 : 0;
           let E = e.rooted;
-          (e.rooted = e.stillT >= 50),
+          (e.rooted = e.stillT >= 50 || (e.burstT > 0 && e.burstKind === "mega")),
             e.rooted !== E &&
               this.emit({ type: "rooted", who: e, on: e.rooted });
         } else e.rooted && ((e.rooted = !1), (e.stillT = 0));
@@ -10385,7 +10456,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           e.alpha = 0;
           this.match.phase === "fight" &&
             --e.zoneBack <= 0 &&
-            ((e.zoneBack = 0), this.respawn(e, !0));
+            ((e.zoneBack = 0),
+            this.respawn(e, !0),
+            // Poké Ball: back in at your own goal.
+            this.ball &&
+              ((e.x = e.px = e.team === this.players[0].team ? B.x0 + 40 : B.x1 - 40),
+              // beside the mouth, not standing in it.
+              (e.y = e.py = Te + (this.players.indexOf(e) % 2 ? 1 : -1) * (BALL.goalH / 2 + 26)),
+              (e.facing = e.team === this.players[0].team ? 0 : Math.PI)));
           return;
         }
         if (
@@ -10457,6 +10535,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             lives: free ? e.lives : e.lives - 1,
             support: e.support,
             raidMeter: e.raidMeter,
+            burstPick: e.burstPick,
             assistCd: e.assistCd,
           },
           foes = this.players.filter(
@@ -10571,7 +10650,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (e.state === "withdraw" || e.state === "spin") &&
             (e.slot.cdW = BLAST.withdrawCd),
           (e.flameEnd = 0),
+          // Tag Team: each Pokemon has its own Burst; one running ends on a switch.
+          e.burstT > 0 && (e.slot.monBase && ((e.slot.mon = e.slot.monBase), (e.slot.monBase = null)), (e.burstT = 0), (e.megaTint = null)),
+          (e.slot.burstUsed = e.burstUsed),
           (e.active = t),
+          (e.burstUsed = e.slot.burstUsed ?? 0),
           e.applyKit(),
           (e.state = "switchIn"),
           (e.t = 0),
@@ -11668,6 +11751,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         e.t >= ae.getupT + 4 &&
           ((e.state = "move"), (e.t = 0), (e.tech = !1), (e.wakeT = ae.wakeT));
       }
+      // Mega Metagross: Meteor Mash locks onto the nearest foe in range and
+      // the lunge reaches it.
+      megaHome(e, s) {
+        let v = e.lock ?? this.nearestTarget(e.team, e.x, e.y);
+        if (!v) return;
+        let d = Math.hypot(v.x - e.x, v.y - e.y);
+        d < 220 && ((e.atkDir = e.facing = Math.atan2(v.y - e.y, v.x - e.x)), (e.megaReach = Math.max(0, d - s.reach)));
+      }
       startSmash(e, t) {
         let s = e.kit.smash;
         (e.smashArmed = !1),
@@ -11711,13 +11802,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             s < 1 &&
             this.emit({ type: "smashFull", who: e }),
           (!e.rsHeld || e.t >= t.windup + t.maxCharge + 30) &&
-            ((e.state = "smash"),
+            (e.burstT > 0 && e.burstKind === "mega" && e.kit.id === "metagross" && this.megaHome(e, t),
+            (e.state = "smash"),
             (e.t = 0),
             (e.lungeDist =
               t.shape === "vine"
                 ? t.lunge
                 : t.lunge * (1 + (t.blitz ? t.blitz.grow * e.smashCharge : 0)) +
                   this.magnet(e, e.atkDir, t.reach, t.radius, 30)),
+            e.megaReach && ((e.lungeDist = Math.max(e.lungeDist, e.megaReach)), (e.megaReach = 0)),
             this.emit({
               type: "smashRelease",
               who: e,
@@ -16152,6 +16245,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       }
       updateProjectiles() {
         for (let e of this.projectiles) {
+          // Back crits count straight shots, not homing ones (see applyHit).
+          this.curProj = e;
           if (e.kind === "fireblast") {
             e.age++;
             let t = Math.min(1, e.age / e.flight);
@@ -16571,6 +16666,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
                     y: t.y - t.z,
                     by: e.owner,
                   })));
+          // Clash: a melee blow swats an enemy shot out of the air (and
+          // still lands on whoever it reaches).
+          if (e.melee && e.owner?.kind === "player")
+            for (let t of this.projectiles)
+              t.dead ||
+                t.team === e.team ||
+                t.legend ||
+                !this.shapeHits(e.shape, t.x, t.y, t.r ?? 6) ||
+                ((t.dead = !0), this.emit({ type: "swatShot", x: t.x, y: t.y - (t.z ?? 0), by: e.owner }));
           if (e.reflects)
             for (let t of this.projectiles)
               t.dead ||
@@ -16693,7 +16797,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               if (e.pierce) continue;
               break;
             }
-        this.projectiles = this.projectiles.filter((e) => !e.dead);
+        (this.curProj = null), (this.projectiles = this.projectiles.filter((e) => !e.dead));
       }
       srcLabel(e, t) {
         return e.kind === "player"
@@ -16749,9 +16853,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         );
       }
       attackerType(e) {
-        return e && (e.kind === "player" || e.kind === "assist")
-          ? (this.moveType ?? e.kit.type)
-          : "";
+        let t = e && (e.kind === "player" || e.kind === "assist") ? (this.moveType ?? e.kit.type) : "";
+        // Mega Charizard X: its fire is Dragon-type.
+        return t === "FIRE" && e.burstT > 0 && e.burstKind === "mega" && e.kit.id === "charizard" && e.megaForm !== "y" ? "DRAGON" : t;
       }
       outgoingMult(e) {
         if (!e || e.kind !== "player") return 1;
@@ -17078,7 +17182,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           q.list && q.list.push(v);
           let ux = d > 1 ? dx / d : Math.cos(o.facing ?? 0),
             uy = d > 1 ? dy / d : Math.sin(o.facing ?? 0);
-          this.exHit(v, o, dmg, kb, ux, uy, { ...q, x: v.x, y: v.y }) && n++;
+          (this.inArea = !0), this.exHit(v, o, dmg, kb, ux, uy, { ...q, x: v.x, y: v.y }) && n++, (this.inArea = !1);
         }
         return n;
       }
@@ -17221,7 +17325,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             this.exRelease(e);
         // Held by a grab that has ended: let go.
         e.heldBy &&
-          (e.heldBy.grab !== e || e.heldBy.state !== "ex") &&
+          ((e.heldBy.grab !== e && e.heldBy.grab2 !== e) || e.heldBy.state !== "ex") &&
           ((e.heldBy = null),
           (e.z = 0),
           e.state === "stunned" && (e.hitstun = Math.min(e.hitstun, e.t + 6)));
@@ -17276,6 +17380,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             (m *= X.golurk.ironFist),
           t.slot.rage > 0 && (m *= X.garchomp.rageDmg),
           t.slot.meteorT > 0 && (m *= X.metagross.mmBoost),
+          t.burstT > 0 &&
+            t.burstKind === "mega" &&
+            ((t.kit.id === "charizard" && t.megaForm === "y" && this.attackerType(t) === "FIRE") ||
+              (t.kit.id === "blastoise" && !/:(basic\d|smash|grab)/.test(String(k)))) &&
+            (m *= t.kit.id === "charizard" ? 1.25 : 1.3),
           t.burstT > 0 &&
             (m *=
               t.burstKind === "mega"
@@ -17333,9 +17442,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             /:smash/.test(String(k)) && (t.slot.curseSm = X.froslass.curseT),
             this.emit({ type: "cursed", who: t, by: w }));
         }
-        return w.burstT > 0 && w.burstKind === "mega"
-          ? Math.round(re * BURST.mega.taken)
-          : re;
+        return w.burstT > 0 ? Math.round(re * (w.burstKind === "mega" ? BURST.mega.taken : BURST.tera.taken)) : re;
       }
       // Chill: stacks slow you; at three you freeze for a moment, then
       // frost immunity stops a second freeze straight away.
@@ -18235,12 +18342,18 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         );
       }
       startBurst(e) {
-        let mk = MEGA[e.kit.id] && !A.burstPref && this.mons[MEGA[e.kit.id][0]];
+        let pk = burstResolve(e.kit.id, e.burstPick),
+          mega = pk.startsWith("mega"),
+          info = pk === "megaY" ? MEGA_Y[e.kit.id] : MEGA[e.kit.id],
+          mk = mega && info[0] && this.mons[info[0]];
         (e.lgMeter -= BURST.cost),
           (e.burstUsed = 1),
           (e.burstT = BURST.t),
-          (e.burstKind = mk ? "mega" : "tera"),
-          (e.teraType = TERA[e.kit.id] ?? e.kit.type);
+          (e.burstKind = mega ? "mega" : "tera"),
+          (e.megaForm = pk === "megaY" ? "y" : "x"),
+          (e.megaTint = mega && !mk ? info[2] : null),
+          (e.teraType = mega ? (TERA[e.kit.id] ?? e.kit.type) : pk.slice(5));
+        mega && e.kit.id === "scizor" && (e.slot.bp = 5);
         if (mk) {
           // The Mega sheet, with the base form's animations it lacks.
           let base = e.slot.mon;
@@ -18261,13 +18374,22 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       burstTick(e) {
         if (e.windT > 0) e.windT--;
         if (!(e.burstT > 0)) return;
-        let i = e.slot,
-          // Cooldowns run a third faster (Mega Gardevoir: twice as fast).
-          fast = e.burstKind === "mega" && e.kit.id === "gardevoir" ? 2 : 3;
-        this.tick % fast === 0 && (i.cdX > 0 && i.cdX--, i.cdY > 0 && i.cdY--);
+        let i = e.slot;
+        // Special cooldowns run a third faster (x0.75).
+        this.tick % 3 === 0 && (i.cdX > 0 && i.cdX--, i.cdY > 0 && i.cdY--);
+        if (e.burstKind === "mega") {
+          // Mega Garchomp: Outrage never runs out while it lasts.
+          e.kit.id === "garchomp" && i.rage > 0 && i.rage < 30 && (i.rage = 30);
+          // Mega Scizor: five Bullet Punch charges.
+          e.kit.id === "scizor" && i.bp != null && i.bp < 5 && this.tick % 40 === 0 && i.bp++;
+          // Mega Venusaur: roots in a moment, even walking.
+          e.kit.id === "venusaur" && !e.rooted && e.burstT < BURST.t - 10 && ((e.rooted = !0), this.emit({ type: "rooted", who: e, on: !0 }));
+        }
         // Mega Gengar: Shadow Sneak (its Y) is always ready.
         e.burstKind === "mega" && e.kit.id === "gengar" && (i.cdY = 0);
         if (--e.burstT > 0) return;
+        e.kit.id === "scizor" && i.bp > EXK.scizor.bpMax && (i.bp = EXK.scizor.bpMax);
+        (e.megaTint = null),
         e.slot.monBase &&
           ((e.slot.mon = e.slot.monBase), (e.slot.monBase = null), e.applyKit()),
           (e.windT = BURST.wind),
@@ -18326,6 +18448,10 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             // Floaters are out of reach of a grounded grab, unless it can
             // catch them (Noivern, Volcarona); Gengar's Levitate escapes.
             if (this.floating(v) && !g.air && !this.floating(e)) continue;
+            // ...and a floater can't grab a grounded foe unless its grab has a
+            // way down: a dive (Noivern, Volcarona), a reaching grip
+            // (Chandelure) or a rise from its shadow (Gengar).
+            if (this.floating(e) && !this.floating(v) && !g.air && g.kind !== "tether" && !g.behind) continue;
           }
           let dx = v.x - e.x,
             dy = v.y - e.y,
@@ -18991,6 +19117,24 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             let sc = d + ad * 60;
             sc < bs && ((bs = sc), (best = v));
           }
+          // Mega Gardevoir lifts a second foe too.
+          let second = null;
+          if (best && e.burstT > 0 && e.burstKind === "mega") {
+            let s2 = 1 / 0;
+            for (let v of this.victimsFor(e.team)) {
+              if (v === best || v.kind !== "player" || v.heldBy) continue;
+              let d = Math.hypot(v.x - e.x, v.y - e.y);
+              d < c.psRange + v.hurtR && d < s2 && ((s2 = d), (second = v));
+            }
+            second &&
+              ((e.grab2 = second),
+              (second.heldBy = e),
+              (second.state = "stunned"),
+              (second.t = 0),
+              (second.hitstun = 999),
+              (second.mvx = second.mvy = second.kvx = second.kvy = 0),
+              this.emit({ type: "psychicLift", who: e, v: second }));
+          }
           if (best)
             (e.grab = best),
               (e.grabT = e.t),
@@ -19025,6 +19169,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           this.exRelease(e), (e.exThrow = e.t);
           return;
         }
+        let v2 = e.grab2;
+        v2 &&
+          (v2.state === "faint" || v2.heldBy !== e
+            ? (e.grab2 = null)
+            : ((v2.state = "stunned"), (v2.hitstun = Math.max(v2.hitstun, v2.t + 8)), (v2.z = Math.min(14, q * 1.2)), (v2.mvx = v2.mvy = v2.kvx = v2.kvy = 0)));
         this.exFr(e, "SpAttack", 3, !0),
           mag > 0.3 && (e.flingDir = ang),
           (v.state = "stunned"),
@@ -19033,6 +19182,18 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           (v.mvx = v.mvy = v.kvx = v.kvy = 0);
         if (q >= c.psHold) {
           let a = e.flingDir;
+          if (e.grab2) {
+            let w = e.grab2;
+            (w.z = 0), (w.heldBy = null), (e.grab2 = null), (w.state = "move");
+            this.exHit(w, e, Math.round(c.psDmg * 0.8), c.psKb, Math.cos(a + 0.4), Math.sin(a + 0.4), {
+              heavy: !0,
+              src: "psychic",
+              mtype: "PSYCHIC",
+              pierceGuard: !0,
+              hitstun: A.hitstunHeavy,
+              color: "#ff8fd8",
+            });
+          }
           (v.z = 0),
             (v.heldBy = null),
             (e.grab = null),
@@ -21718,7 +21879,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ) {
         this.hitBy = t;
         // Poké Ball: a hit sends the ball off with the hit's knockback.
-        if (e.kind === "ball") return this.kickBall(t, i, r, o);
+        if (e.kind === "ball") return this.kickBall(t, i * (M ? 1 : BALL.shot), r, o);
         // Snorlax Launch: hits on the sleeper add to the launch.
         if (this.launch && e === this.launch.tgt) return this.launchHit(t, s, i, k);
         // Raid: the boss and its wild Pokemon keep their own health.
@@ -21840,7 +22001,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             this.inStartup(e),
           bk =
             !lg &&
-            !!M &&
+            // Melee, or a straight shot: not a homing one, not an area hit.
+            (!!M || (!this.inArea && !(this.curProj && (this.curProj.homing ?? 0) > 0))) &&
             e.kind === "player" &&
             t?.kind === "player" &&
             t.team !== e.team &&
@@ -21911,6 +22073,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           t.burstT > 0 &&
           t.burstKind === "mega" &&
           t.kit.id === "charizard" &&
+          t.megaForm !== "y" &&
           e.kind === "player" &&
           e.team !== t.team &&
           e.state !== "guard" &&
@@ -22416,6 +22579,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       KeyT: ["taunt"],
       KeyU: ["grab"],
       KeyG: ["burst"],
+      KeyY: ["burst"],
       Digit1: ["phraseL"],
       Digit2: ["phraseR"],
       Backspace: ["back"],
@@ -22442,10 +22606,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ) {
         kt.add(a.code), (wt = "keys");
         for (let e of sa[a.code] ?? []) Ue.add(e);
-        a.code === "ArrowUp" && Ue.add("up"),
+        // With a second keyboard player seated, the arrows are theirs.
+        keys2On() ||
+          (a.code === "ArrowUp" && Ue.add("up"),
           a.code === "ArrowDown" && Ue.add("down"),
           a.code === "ArrowLeft" && Ue.add("left"),
-          a.code === "ArrowRight" && Ue.add("right"),
+          a.code === "ArrowRight" && Ue.add("right")),
           Dt?.();
       }
     }),
@@ -22560,6 +22726,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       NumpadDivide: "taunt",
       NumpadEnter: "start",
     };
+  // Each local seat has its own colour: on its cursor and its tag in a fight.
+  var SEAT_COL = ["#33d6ff", "#ff4a63", "#4df08a", "#ffd166"];
+  function curCol(a, rv) {
+    let st = seatTurn();
+    return st ? SEAT_COL[(st.n - 1) % 4] : rv ? g.cpu : "#ffffff";
+  }
+  function keys2On() {
+    return SEATS.some((q) => q.pad === "keys2");
+  }
   function seatsMax() {
     return [0, 4, 6, 9].includes(A.gameMode)
       ? 1
@@ -22578,6 +22753,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ay = 0;
     if (se.pad === "keys2") {
       for (let [k, v] of Object.entries(KEYS2)) kt.has(k) && held.add(v);
+      // Arrows move P2 (the number pad's 8 4 5 6 work too).
+      kt.has("ArrowUp") && held.add("up"),
+        kt.has("ArrowDown") && held.add("down"),
+        kt.has("ArrowLeft") && held.add("left"),
+        kt.has("ArrowRight") && held.add("right");
       let x = (held.has("right") ? 1 : 0) - (held.has("left") ? 1 : 0),
         y = (held.has("down") ? 1 : 0) - (held.has("up") ? 1 : 0);
       if (x || y) {
@@ -22629,7 +22809,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           !SEATS.some((q) => q.pad === pad) &&
           (SEATS.push({ pad, n: SEATS.length + 2, prev: new Set(["attack", "confirm"]) }),
           S.select(),
-          (seatToast = `P${SEATS.length + 1} joined`),
+          (seatToast = pad === "keys2" ? `P${SEATS.length + 1} joined: arrows + number pad (P1 Smash is now H)` : `P${SEATS.length + 1} joined`),
           (seatToastT = 90));
       },
       leave = (pad) => {
@@ -22671,7 +22851,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     think() {
       let i = readSeat(this.se);
-      return i.pressed.has("start") && (seatPauseReq = !0), i.pressed.delete("start"), i;
+      return i.pressed.has("start") && (seatPauseReq = this.se), i.pressed.delete("start"), i;
     }
   }
   // After a match starts: joined seats take over CPU fighters. Order: the
@@ -22733,8 +22913,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       let p = Math.hypot(u, h);
       (e = u / p), (t = h / p);
     }
-    let c = (f("ArrowRight") ? 1 : 0) - (f("ArrowLeft") ? 1 : 0),
-      y = (f("ArrowDown") ? 1 : 0) - (f("ArrowUp") ? 1 : 0);
+    let k2 = keys2On(),
+      c = k2 ? 0 : (f("ArrowRight") ? 1 : 0) - (f("ArrowLeft") ? 1 : 0),
+      y = k2 ? 0 : (f("ArrowDown") ? 1 : 0) - (f("ArrowUp") ? 1 : 0);
+    (u || h) && (ha.ld = Math.atan2(h, u));
+    // ...and P1's Smash moves to H, in the way P1 last moved.
+    k2 && f("KeyH") && ((c = Math.cos(ha.ld ?? 0)), (y = Math.sin(ha.ld ?? 0)));
     if (c || y) {
       let p = Math.hypot(c, y);
       (s = c / p), (i = y / p);
@@ -24897,6 +25081,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         g.arc(p.x, p.y - 10, r, 0, Math.PI * 2),
         g.fill();
     }
+    // Shots glow through the fog.
+    g.fillStyle = "rgba(0,0,0,0.85)";
+    for (let q of e.projectiles) q.dead || (g.beginPath(), g.arc(q.x, q.y - (q.z ?? 0), 9, 0, Math.PI * 2), g.fill());
     a.save(), a.setTransform(1, 0, 0, 1, 0, 0), a.drawImage(c, 0, 0), a.restore();
   }
   // The air layer: fliers, a passing flock, weather, confetti, then light.
@@ -28143,22 +28330,288 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   function raidEll(a, x, y, r) {
     a.beginPath(), a.ellipse(x, y, Math.max(0.5, r), Math.max(0.5, r * 0.87), 0, 0, Math.PI * 2);
   }
+  // Each boss's floor, drawn over its world so the world still shows at the
+  // edges: Zekrom's wet basalt, Darkrai's fog, Deoxys's hex panels, Groudon's
+  // magma cracks, the Sky Pillar's rings, the Bell Tower's planks, Dialga's
+  // clock, Palkia's pearl ripples, Giratina's broken platforms, Area Zero's
+  // crystals and Miraidon's neon road. Seeded, so it holds still.
+  function raidFloor(a, kind, form, t) {
+    let W = B.x1 - B.x0,
+      Hh = B.y1 - B.y0,
+      g = rt(kind.length * 131 + 7),
+      fill = (c) => ((a.fillStyle = c), a.fillRect(B.x0, B.y0, W, Hh)),
+      seam = (c, lw = 1) => ((a.strokeStyle = c), (a.lineWidth = lw)),
+      line = (x1, y1, x2, y2) => (a.beginPath(), a.moveTo(x1, y1), a.lineTo(x2, y2), a.stroke()),
+      flash = kind === "zekrom" && t % 97 < 3;
+    a.save(), a.beginPath(), a.rect(B.x0, B.y0, W, Hh), a.clip();
+    switch (kind) {
+      case "zekrom": {
+        fill("rgba(14,20,36,0.8)");
+        for (let r = 0, y = B.y0; y < B.y1; r++, y += 40)
+          for (let x = B.x0 - (r % 2) * 29; x < B.x1; x += 58)
+            (a.fillStyle = `rgba(${26 + g() * 14},${34 + g() * 14},${56 + g() * 18},0.7)`), a.fillRect(x + 1, y + 1, 56, 38);
+        for (let k = 0; k < 8; k++) {
+          let x = B.x0 + 30 + g() * (W - 60),
+            y = B.y0 + 20 + g() * (Hh - 40),
+            r = 14 + g() * 22;
+          (a.fillStyle = flash ? "rgba(210,236,255,0.55)" : "rgba(70,110,170,0.28)"), raidEll(a, x, y, r), a.fill();
+          let q = (t * 0.7 + k * 23) % 40;
+          (a.globalAlpha = 1 - q / 40), seam("rgba(170,210,255,0.5)"), raidEll(a, x + (k % 3) * 4, y, q * 0.35), a.stroke(), (a.globalAlpha = 1);
+        }
+        break;
+      }
+      case "darkrai": {
+        fill("rgba(10,6,20,0.82)"), seam("rgba(120,90,200,0.12)");
+        for (let k = 0; k < 16; k++) {
+          let x = B.x0 + g() * W,
+            y = B.y0 + g() * Hh;
+          a.beginPath(), a.moveTo(x, y);
+          for (let j = 0; j < 4; j++) (x += (g() - 0.5) * 70), (y += (g() - 0.5) * 40), a.lineTo(x, y);
+          a.stroke();
+        }
+        (a.fillStyle = "rgba(230,220,255,0.1)"), a.beginPath(), a.arc(Se + 150, B.y0 + 60, 26, 0, Math.PI * 2), a.fill();
+        (a.fillStyle = "rgba(10,6,20,0.9)"), a.beginPath(), a.arc(Se + 160, B.y0 + 54, 24, 0, Math.PI * 2), a.fill();
+        for (let k = 0; k < 10; k++) {
+          let y = B.y0 + 20 + g() * (Hh - 40),
+            x = B.x0 + ((g() * W + t * (0.15 + g() * 0.2)) % (W + 160)) - 80;
+          (a.fillStyle = "rgba(150,130,190,0.07)"), a.beginPath(), a.ellipse(x, y, 70, 14, 0, 0, Math.PI * 2), a.fill();
+        }
+        break;
+      }
+      case "deoxys": {
+        fill("rgba(6,10,24,0.84)");
+        let col = form === "speed" ? "90,220,255" : form === "attack" ? "255,90,90" : form === "defense" ? "120,255,160" : "255,120,90";
+        a.lineWidth = 1;
+        for (let r = 0, y = B.y0; y < B.y1 + 20; r++, y += 19)
+          for (let x = B.x0 + (r % 2) * 17; x < B.x1 + 20; x += 34) {
+            let d = Math.hypot(x - Se, y - Te),
+              p = 0.1 + 0.25 * Math.max(0, Math.sin(d * 0.04 - t * 0.08));
+            (a.strokeStyle = `rgba(${col},${p})`), a.beginPath();
+            for (let j = 0; j < 6; j++) {
+              let q = (j / 6) * Math.PI * 2 + Math.PI / 6;
+              j ? a.lineTo(x + Math.cos(q) * 11, y + Math.sin(q) * 11 * 0.9) : a.moveTo(x + Math.cos(q) * 11, y + Math.sin(q) * 11 * 0.9);
+            }
+            a.closePath(), a.stroke();
+          }
+        break;
+      }
+      case "groudon": {
+        fill("rgba(34,16,10,0.86)");
+        for (let k = 0; k < 40; k++)
+          (a.fillStyle = `rgba(${50 + g() * 30},${24 + g() * 12},${16 + g() * 8},0.6)`), raidEll(a, B.x0 + g() * W, B.y0 + g() * Hh, 10 + g() * 26), a.fill();
+        for (let k = 0; k < 14; k++) {
+          let x = B.x0 + g() * W,
+            y = B.y0 + g() * Hh,
+            pts = [[x, y]];
+          for (let j = 0; j < 5; j++) (x += (g() - 0.5) * 60), (y += (g() - 0.5) * 34), pts.push([x, y]);
+          let glow = 0.35 + 0.3 * Math.sin(t * 0.05 + k);
+          for (let [lw, c] of [[5, `rgba(255,90,30,${glow * 0.35})`], [1.6, `rgba(255,180,80,${glow + 0.2})`]]) {
+            seam(c, lw), a.beginPath();
+            pts.forEach(([u, v], i) => (i ? a.lineTo(u, v) : a.moveTo(u, v))), a.stroke();
+          }
+        }
+        for (let [x, y] of [[B.x0 + 40, B.y1 - 30], [B.x1 - 50, B.y0 + 30], [B.x1 - 70, B.y1 - 24]]) {
+          (a.fillStyle = "rgba(255,90,30,0.55)"), raidEll(a, x, y, 26), a.fill();
+          (a.fillStyle = "rgba(255,210,100,0.5)"), raidEll(a, x + 4 * Math.sin(t * 0.03), y, 12), a.fill();
+        }
+        break;
+      }
+      case "rayquaza": {
+        fill("rgba(30,44,40,0.84)"), seam("rgba(160,220,190,0.16)", 1.4);
+        for (let r = 50; r < 340; r += 46) raidEll(a, Se, Te, r), a.stroke();
+        for (let k = 0; k < 24; k++) {
+          let q = (k / 24) * Math.PI * 2;
+          line(Se + Math.cos(q) * 50, Te + Math.sin(q) * 43, Se + Math.cos(q) * 340, Te + Math.sin(q) * 296);
+        }
+        for (let k = 0; k < 18; k++) (a.fillStyle = "rgba(80,150,90,0.22)"), raidEll(a, B.x0 + g() * W, B.y0 + g() * Hh, 6 + g() * 14), a.fill();
+        seam("rgba(255,255,255,0.14)", 1.2);
+        for (let k = 0; k < 12; k++) {
+          let y = B.y0 + g() * Hh,
+            x = B.x0 + ((g() * W + t * 4) % (W + 120)) - 60;
+          line(x, y, x + 40, y - 3);
+        }
+        break;
+      }
+      case "hooh": {
+        fill("rgba(58,32,16,0.86)");
+        for (let r = 0, y = B.y0; y < B.y1; r++, y += 18) {
+          (a.fillStyle = r % 2 ? "rgba(98,58,28,0.7)" : "rgba(84,48,22,0.7)"), a.fillRect(B.x0, y, W, 17);
+          seam("rgba(30,14,6,0.5)");
+          for (let x = B.x0 + ((r * 37) % 90); x < B.x1; x += 90) line(x, y, x, y + 17);
+        }
+        seam("rgba(255,200,90,0.35)", 1.5), raidEll(a, Se, Te, 90), a.stroke(), raidEll(a, Se, Te, 70), a.stroke();
+        for (let k = 0; k < 18; k++) {
+          let x = B.x0 + g() * W,
+            y = B.y1 - ((g() * Hh + t * (0.4 + g() * 0.4)) % Hh);
+          (a.fillStyle = `rgba(255,${150 + g() * 80},60,${0.5 + 0.3 * Math.sin(t * 0.1 + k)})`), a.fillRect(x, y, 2, 2);
+        }
+        break;
+      }
+      case "dialga": {
+        fill("rgba(40,52,74,0.84)"), seam("rgba(200,220,255,0.1)", 1);
+        for (let k = 0; k < 12; k++) {
+          let x = B.x0 + g() * W,
+            y = B.y0 + g() * Hh;
+          a.beginPath(), a.moveTo(x, y), a.quadraticCurveTo(x + (g() - 0.5) * 80, y + (g() - 0.5) * 40, x + (g() - 0.5) * 140, y + (g() - 0.5) * 60), a.stroke();
+        }
+        let R0 = 112;
+        seam("rgba(159,196,255,0.4)", 2), raidEll(a, Se, Te, R0), a.stroke(), raidEll(a, Se, Te, R0 - 8), a.stroke();
+        for (let k = 0; k < 12; k++) {
+          let q = (k / 12) * Math.PI * 2;
+          seam("rgba(159,196,255,0.55)", k % 3 ? 1.5 : 3), line(Se + Math.cos(q) * (R0 - 18), Te + Math.sin(q) * (R0 - 18) * 0.87, Se + Math.cos(q) * (R0 - 9), Te + Math.sin(q) * (R0 - 9) * 0.87);
+        }
+        for (let [sp, L, lw] of [[0.002, 56, 4], [0.024, 84, 2]]) {
+          let q = t * sp - Math.PI / 2;
+          seam("rgba(200,225,255,0.5)", lw), line(Se, Te, Se + Math.cos(q) * L, Te + Math.sin(q) * L * 0.87);
+        }
+        break;
+      }
+      case "palkia": {
+        fill("rgba(48,30,60,0.8)");
+        for (let k = 0; k < 5; k++) {
+          let x = B.x0 + 60 + g() * (W - 120),
+            y = B.y0 + 40 + g() * (Hh - 80);
+          for (let j = 0; j < 3; j++) {
+            let q = (t * 0.5 + j * 45 + k * 31) % 135;
+            (a.globalAlpha = 0.35 * (1 - q / 135)), seam("#ffb8e8", 1.5), raidEll(a, x, y, q), a.stroke();
+          }
+        }
+        a.globalAlpha = 1;
+        seam("rgba(255,200,240,0.1)", 6);
+        for (let k = 0; k < 6; k++) {
+          let x = B.x0 + ((k * 120 + t * 0.6) % (W + 200)) - 100;
+          line(x, B.y0, x + 120, B.y1);
+        }
+        break;
+      }
+      case "giratina": {
+        fill("rgba(4,2,10,0.7)");
+        (a.fillStyle = `rgba(110,40,160,${0.12 + 0.06 * Math.sin(t * 0.04)})`), a.fillRect(B.x0, B.y0, W, Hh);
+        for (let k = 0; k < 9; k++) {
+          let cx = B.x0 + 50 + (k % 3) * ((W - 100) / 2) + (g() - 0.5) * 40,
+            cy = B.y0 + 46 + Math.floor(k / 3) * ((Hh - 92) / 2) + (g() - 0.5) * 24,
+            n = 7,
+            pts = [];
+          for (let j = 0; j < n; j++) {
+            let q = (j / n) * Math.PI * 2,
+              r = 70 + g() * 30;
+            pts.push([cx + Math.cos(q) * r, cy + Math.sin(q) * r * 0.55]);
+          }
+          let poly = (dy, c) => ((a.fillStyle = c), a.beginPath(), pts.forEach(([u, v], i) => (i ? a.lineTo(u, v + dy) : a.moveTo(u, v + dy))), a.closePath(), a.fill());
+          poly(7, "rgba(20,10,30,0.9)"), poly(0, `rgba(${70 + g() * 20},${62 + g() * 16},${84 + g() * 20},0.88)`);
+        }
+        seam("rgba(40,10,60,0.6)", 3);
+        for (let k = 0; k < 6; k++) {
+          let x = B.x0 + g() * W;
+          a.beginPath(), a.moveTo(x, B.y1);
+          for (let j = 1; j < 8; j++) a.lineTo(x + Math.sin(t * 0.03 + j + k) * 10, B.y1 - j * 12);
+          a.stroke();
+        }
+        break;
+      }
+      case "koraidon": {
+        fill("rgba(70,28,16,0.84)");
+        for (let k = 0; k < 30; k++) (a.fillStyle = `rgba(${110 + g() * 40},${44 + g() * 20},${24},0.35)`), raidEll(a, B.x0 + g() * W, B.y0 + g() * Hh, 12 + g() * 30), a.fill();
+        for (let k = 0; k < 9; k++) {
+          let side = k % 3,
+            x = side === 0 ? B.x0 + 20 + g() * 60 : side === 1 ? B.x1 - 20 - g() * 60 : B.x0 + g() * W,
+            y = side === 2 ? (g() < 0.5 ? B.y0 + 14 : B.y1 - 10) : B.y0 + g() * Hh,
+            hue = Math.floor(g() * 360);
+          for (let j = 0; j < 3; j++) {
+            let h = 14 + g() * 18,
+              w = 4 + g() * 3,
+              dx = (j - 1) * 7;
+            (a.fillStyle = `hsla(${hue + j * 30},90%,70%,0.75)`), a.beginPath(), a.moveTo(x + dx - w, y), a.lineTo(x + dx + (j - 1) * 3, y - h), a.lineTo(x + dx + w, y), a.closePath(), a.fill();
+          }
+          (t + k * 40) % 160 < 8 && ((a.fillStyle = "rgba(255,255,255,0.9)"), a.fillRect(x - 1, y - 18, 2, 2));
+        }
+        break;
+      }
+      case "miraidon": {
+        fill("rgba(8,6,24,0.86)");
+        let off = (t * 0.6) % 40;
+        seam("rgba(255,60,200,0.22)", 1);
+        for (let x = B.x0 - 40 + off; x < B.x1; x += 40) line(x, B.y0, x, B.y1);
+        seam("rgba(60,220,255,0.22)", 1);
+        for (let y = B.y0 + 20; y < B.y1; y += 40) line(B.x0, y, B.x1, y);
+        a.setLineDash([18, 14]), (a.lineDashOffset = -t * 1.5), seam("rgba(255,224,102,0.5)", 3), line(B.x0, Te, B.x1, Te), a.setLineDash([]);
+        seam("rgba(255,60,200,0.5)", 2), line(B.x0, Te - 70, B.x1, Te - 70), line(B.x0, Te + 70, B.x1, Te + 70);
+        break;
+      }
+      default:
+        fill("rgba(8,6,18,0.32)");
+    }
+    a.restore();
+  }
+  // A shock ring as it rolls out, in the boss's look: Groudon's Precipice
+  // Blades, Rayquaza's gusts, Dialga's clock ticks, Palkia's ripple,
+  // Koraidon's dust.
+  function raidRingLook(a, kind, z, t) {
+    let n = Math.max(10, Math.round(z.rr / 9)),
+      at = (k, r) => [z.x + Math.cos((k / n) * Math.PI * 2) * r, z.y + Math.sin((k / n) * Math.PI * 2) * r * 0.87];
+    a.globalAlpha = 1;
+    if (kind === "groudon") {
+      for (let k = 0; k < n; k++) {
+        let [x, y] = at(k + 0.5 * (k % 2), z.rr - (k % 2) * 6);
+        lgBlade(a, x, y, 26 + ((k * 7) % 12), 8, !0);
+      }
+      for (let k = 0; k < n; k += 2) {
+        let [x, y] = at(k, Math.max(0, z.rr - 26));
+        lgBlade(a, x, y, 15, 6, !1);
+      }
+    } else if (kind === "rayquaza") {
+      (a.strokeStyle = "#c8ffd8"), (a.lineWidth = 2);
+      for (let k = 0; k < 8; k++) {
+        let q = (k / 8) * Math.PI * 2 + t * 0.05;
+        a.beginPath(), a.ellipse(z.x, z.y, z.rr + 6, (z.rr + 6) * 0.87, 0, q, q + 0.35), a.stroke();
+      }
+    } else if (kind === "dialga") {
+      (a.strokeStyle = "#dfe9ff"), (a.lineWidth = 2);
+      for (let k = 0; k < 12; k++) {
+        let [x1, y1] = at((k * n) / 12, z.rr - 8),
+          [x2, y2] = at((k * n) / 12, z.rr + 8);
+        a.beginPath(), a.moveTo(x1, y1), a.lineTo(x2, y2), a.stroke();
+      }
+    } else if (kind === "palkia") {
+      (a.globalAlpha = 0.6), (a.strokeStyle = "#ffb8e8"), (a.lineWidth = 3), raidEll(a, z.x, z.y, z.rr * 0.82), a.stroke();
+    } else if (kind === "koraidon") {
+      a.fillStyle = "rgba(160,96,52,0.8)";
+      for (let k = 0; k < n; k++) {
+        let [x, y] = at(k, z.rr + ((k * 5) % 7) - 3);
+        raidEll(a, x, y, 4 + (k % 3)), a.fill();
+      }
+    }
+  }
+  // Behind a charging boss (lane and charge), in local lane space.
+  function raidTrail(a, kind, L, w, t) {
+    if (L < 2) return;
+    a.globalAlpha = 0.85;
+    if (kind === "zekrom" || kind === "miraidon") {
+      (a.strokeStyle = kind === "zekrom" ? "#bfe6ff" : "#ffe066"), (a.lineWidth = 2.5), a.beginPath(), a.moveTo(0, 0);
+      for (let q = 12; q < L; q += 12) a.lineTo(q, ((q * 13 + t * 7) % 17) - 8);
+      a.stroke();
+    } else if (kind === "koraidon" || kind === "groudon" || kind === "hooh") {
+      let gr = a.createLinearGradient(0, 0, L, 0);
+      gr.addColorStop(0, "rgba(255,120,40,0)"), gr.addColorStop(1, "rgba(255,190,80,0.75)"), (a.fillStyle = gr), a.fillRect(0, -w * 0.35, L, w * 0.7);
+    } else if (kind === "darkrai" || kind === "giratina") {
+      (a.fillStyle = "rgba(20,8,36,0.7)"), a.fillRect(0, -w * 0.4, L, w * 0.8);
+    } else {
+      let c = LG_INFO[kind]?.rgb ?? "255,255,255",
+        gr = a.createLinearGradient(0, 0, L, 0);
+      gr.addColorStop(0, `rgba(${c},0)`), gr.addColorStop(1, `rgba(${c},0.6)`), (a.fillStyle = gr), a.fillRect(0, -w * 0.3, L, w * 0.6);
+    }
+    a.globalAlpha = 1;
+  }
   function raidGround(a, e) {
     let R = e.raid,
       t = e.tick,
       b = R.boss,
       rgb = LG_INFO[R.kind]?.rgb ?? "255,255,255";
     a.save(), raidScene(a, R.kind, b.form, t), a.restore();
-    // The scene is the arena: a floor over it, edged in the boss's colour.
+    // The scene is the arena: the boss's own floor over it, edged in its colour.
+    raidFloor(a, R.kind, b.form, t);
     a.save(),
-      (a.fillStyle = "rgba(8,6,18,0.32)"),
-      a.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0),
-      (a.globalAlpha = 0.07),
-      (a.strokeStyle = "#ffffff"),
-      (a.lineWidth = 1);
-    for (let x = B.x0 + 40; x < B.x1; x += 40) a.beginPath(), a.moveTo(x, B.y0), a.lineTo(x, B.y1), a.stroke();
-    for (let y = B.y0 + 40; y < B.y1; y += 40) a.beginPath(), a.moveTo(B.x0, y), a.lineTo(B.x1, y), a.stroke();
-    (a.globalAlpha = 0.55 + 0.15 * Math.sin(t * 0.05)),
+      (a.globalAlpha = 0.55 + 0.15 * Math.sin(t * 0.05)),
       (a.strokeStyle = `rgb(${rgb})`),
       (a.lineWidth = 2),
       a.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0),
@@ -28180,6 +28633,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           a.fillRect(0, -z.w / 2, L * p, 2), a.fillRect(0, z.w / 2 - 2, L * p, 2);
           (a.globalAlpha = 0.3 + 0.3 * p), (a.strokeStyle = "#ffffff"), (a.lineWidth = 2);
           for (let q = (t * 2) % 26; q < L; q += 26) a.beginPath(), a.moveTo(q, -8), a.lineTo(q + 8, 0), a.lineTo(q, 8), a.stroke();
+          // The charge itself: a trail behind the boss in its own look.
+          z.live && raidTrail(a, R.kind, Math.min(L, Math.hypot(b.x - z.x1, b.y - z.y1)), z.w, t);
         } else if (z.shape === "ring") {
           if (zt < K.warn) {
             let r = b.r + 8 + 14 * p;
@@ -28187,6 +28642,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           } else {
             (a.globalAlpha = 0.75), (a.strokeStyle = `rgb(${col})`), (a.lineWidth = 9), raidEll(a, z.x, z.y, z.rr), a.stroke();
             (a.lineWidth = 2), (a.strokeStyle = "#ffffff"), raidEll(a, z.x, z.y, z.rr), a.stroke();
+            raidRingLook(a, R.kind, z, t);
           }
         } else {
           K.k === "hunt" && ((a.globalAlpha = 0.55), (a.fillStyle = "#05030a"), raidEll(a, z.x, z.y, z.r * 0.7), a.fill());
@@ -28935,8 +29391,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     if (a.brain?.human)
       return {
         label: a.brain.name,
-        color:
-          e && a.team === e.player.team ? t.ally : t.cpu[(a.brain.seat - 2) % 3],
+        color: SEAT_COL[(a.brain.seat - 1) % 4],
       };
     if (a.brain?.net)
       return a.brain.local
@@ -30832,6 +31287,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         l.fh,
       ),
       (a.filter = "none"),
+      C &&
+        C.burstT > 0 &&
+        C.megaTint &&
+        (a.save(),
+        (a.globalAlpha = (0.42 + 0.08 * Math.sin(t.tick * 0.15)) * v),
+        a.drawImage(megaTintImg(l.img, C.megaTint), p, k, l.fw, l.fh, M, P, l.fw, l.fh),
+        a.restore()),
       C &&
         C.burstT > 0 &&
         C.burstKind === "tera" &&
@@ -34405,6 +34867,51 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // Gallade with its guard down after Close Combat: a red flicker.
   // Burst: a Tera jewel crown and facets in the Tera type's colour, or a
   // Mega's rainbow aura; a ring round the feet runs down with the time left.
+  // What a fighter can Burst into: its Mega(s), then Tera in each of its own
+  // types and its Tera type. A pick that doesn't fit falls back to the default
+  // (Mega where there is one, unless Options prefers Tera).
+  // A sprite sheet washed in a Mega's colour (cached per sheet and colour).
+  var MEGA_TINT = new WeakMap();
+  function megaTintImg(img, col) {
+    let m = MEGA_TINT.get(img);
+    m || MEGA_TINT.set(img, (m = new Map()));
+    let c = m.get(col);
+    return c || (m.set(col, (c = Jt(img, col))), c);
+  }
+  // The VS screen's Burst choice, on the left under your portrait.
+  function burstChip(e, a, t) {
+    let id = a.picks[0],
+      pk = burstResolve(id, A.burstPick),
+      lab = burstLabel(id, pk),
+      col = pk.startsWith("tera") ? (Rt[pk.slice(5)] ?? g.gold) : "#ff7ad0",
+      n = burstOptions(id).length,
+      w = ye(lab, 7) + 64,
+      x = 12,
+      y = 150;
+    tapRect(x, y, w, 15, () => Ue.add("special1")),
+      te(x, y, w, 15, "rgba(8,6,18,0.88)", 4),
+      (d.fillStyle = col),
+      d.fillRect(m(x + 4), m(y + 14), m(w - 8), m(1)),
+      Pe("X", x + 9, y + 7.5, 3),
+      G("BURST", x + 17, y + 6, 4.2, g.haze, { weight: 800 }),
+      G(lab, x + 17, y + 12.5, 6.4, col, { weight: 800 }),
+      n > 1 && G(`${burstOptions(id).indexOf(pk) + 1}/${n}`, x + w - 6, y + 9.5, 4.6, g.haze, { align: "right", weight: 700 });
+  }
+  function burstOptions(id) {
+    let k = xe[id],
+      o = [];
+    MEGA[id] && o.push("mega"), MEGA_Y[id] && o.push("megaY");
+    for (let ty of [TERA[id], k?.type, k?.type2]) ty && !o.includes("tera:" + ty) && o.push("tera:" + ty);
+    return o;
+  }
+  function burstResolve(id, pick) {
+    let o = burstOptions(id);
+    return o.includes(pick) ? pick : (!A.burstPref && o.find((x) => x.startsWith("mega"))) || o.find((x) => x.startsWith("tera")) || "tera:NORMAL";
+  }
+  function burstLabel(id, pick) {
+    let k = burstResolve(id, pick);
+    return k === "mega" ? (id === "charizard" ? "Mega Charizard X" : `Mega ${_a(xe[id]?.name ?? "")}`) : k === "megaY" ? "Mega Charizard Y" : `Tera ${_a(k.slice(5))}`;
+  }
   function overBurst(a, e, p, t) {
     let x = p.x,
       y = p.y,
@@ -35965,7 +36472,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     LOCK: "Shift",
     GRAB: "U",
     LEGEND: "R",
-    BURST: "G",
+    BURST: "Y",
     TAUNT: "T",
   };
   // On a pad, prompts use the Xbox names; the actions below have their own.
@@ -36496,7 +37003,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     if (a.daily)
       return match.result === "win" && a.stage < ARC.stages - 1
         ? ["Next fight", "Quit"]
-        : ["Quit"];
+        : a.final
+          ? ["Compare code", "Quit"]
+          : ["Quit"];
     return match.mode === "sweep" || match.mode === "launch"
       ? ["Next fight", "Quit"]
       : match.result !== "win"
@@ -36591,8 +37100,53 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
   }
   // A code to compare runs: the day and the score, in base 36.
+  // Six characters: the day (2, counted from 2025-01-01) and the score (4).
+  var DAILY_EPOCH = Date.UTC(2025, 0, 1);
   function dailyCode(seed, score) {
-    return `${seed.toString(36)}-${score.toString(36)}`.toUpperCase();
+    let day = Math.round((Date.UTC(Math.floor(seed / 1e4), Math.floor(seed / 100) % 100 - 1, seed % 100) - DAILY_EPOCH) / 864e5);
+    return (
+      Math.max(0, Math.min(1295, day)).toString(36).padStart(2, "0") +
+      Math.max(0, Math.min(36 ** 4 - 1, score | 0)).toString(36).padStart(4, "0")
+    ).toUpperCase();
+  }
+  function dailyDecode(code) {
+    if (!/^[0-9A-Z]{6}$/.test(code)) return null;
+    let day = parseInt(code.slice(0, 2), 36),
+      score = parseInt(code.slice(2), 36),
+      d = new Date(DAILY_EPOCH + day * 864e5);
+    return { seed: d.getUTCFullYear() * 1e4 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate(), score };
+  }
+  // A friend's code: type it in to see their day's setup and their score.
+  function dailyCodeInput(ui, on) {
+    let el = document.getElementById("daily-code");
+    if (!on) return void (el && (el.blur(), el.remove()));
+    if (el) return;
+    (ui.dailyTyping = ""), (el = document.createElement("input"));
+    (el.id = "daily-code"),
+      (el.maxLength = 6),
+      (el.autocomplete = "off"),
+      (el.spellcheck = !1),
+      el.setAttribute("autocapitalize", "characters"),
+      el.setAttribute("aria-label", "Daily share code"),
+      (el.style.cssText =
+        "position:absolute;left:50%;top:50%;width:40%;height:18%;transform:translate(-50%,-50%);opacity:0.01;font-size:16px;border:0;background:transparent;color:transparent;caret-color:transparent;z-index:5"),
+      el.addEventListener("input", () => {
+        let t = el.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+        (el.value = t), (ui.dailyTyping = t);
+      }),
+      el.addEventListener("keydown", (t) => {
+        t.stopPropagation();
+        if (t.key === "Escape") return (ui.dailyTyping = null), dailyCodeInput(ui, !1);
+        if (t.key !== "Enter") return;
+        let dc = dailyDecode(ui.dailyTyping ?? "");
+        dc &&
+          ((ui.dailyCmp = { ...dc, roll: dailyRoll(dc.seed), mine: dailyRec().days[dc.seed] ?? null }),
+          (ui.dailyTyping = null),
+          dailyCodeInput(ui, !1));
+      }),
+      el.addEventListener("pointerdown", (t) => t.stopPropagation()),
+      document.getElementById("stage").appendChild(el),
+      setTimeout(() => el.focus(), 0);
   }
   function arcClock(t) {
     let s = Math.floor(t / 60);
@@ -37395,6 +37949,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       s.debug && as(e),
       !s.paused && e.match.phase === "fight" && moveTray(e, s),
       e.match.phase === "fight" && ruleHud(e, s),
+      s.board && scoreBoard(e),
       e.match.phase === "results" && os(e, s, o),
       ga(s),
       s.paused && hs(e, s, o),
@@ -37531,9 +38086,22 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         d.fillRect(m(x), m(y0 + h - 18), m(1), m(6)),
         G(`${mk}`, x, y0 + h - 4, 5, "#ffffff", { align: "center", weight: 700 });
     }
-    // Snorlax on an arc: up, then down to land at the end.
-    let arc = Math.sin(Math.min(1, k) * Math.PI) * 60,
-      sy = y0 + h - 22 - arc,
+    // Snorlax on an arc, then a bounce or two before it settles.
+    let arc =
+        k < 0.7
+          ? Math.sin((k / 0.7) * Math.PI) * 60
+          : k < 0.88
+            ? Math.sin(((k - 0.7) / 0.18) * Math.PI) * 16
+            : Math.sin(((k - 0.88) / 0.12) * Math.PI) * 5,
+      land = (k > 0.66 && k < 0.74) || (k > 0.86 && k < 0.9);
+    land &&
+      ((d.globalAlpha = 0.7),
+      (d.fillStyle = "#d8c8a0"),
+      d.beginPath(),
+      d.ellipse(m(H / 2), m(y0 + h - 18), m(18), m(4), 0, 0, Math.PI * 2),
+      d.fill(),
+      (d.globalAlpha = 1));
+    let sy = y0 + h - 22 - arc,
       M = e.mons?.snorlax?.anims?.Rotate ?? e.mons?.snorlax?.anims?.Hurt;
     M && et(d, M, Be(M, t, 1), 0, m(H / 2), m(sy), Fe * 1.2, 0);
     V(`${Math.round(cur)} m`, H / 2, y0 + 22, 16, g.gold, { align: "center", outline: 2.4 }),
@@ -37975,6 +38543,16 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       (d.fillStyle = "rgba(6,4,10,0.55)");
     for (let k = 1; k < 4; k++)
       d.fillRect(m(x + (w * k) / 4 - 0.3), m(y2), m(0.6), m(H2));
+    // The Burst mark at half: lit and pulsing while a Burst is ready.
+    let bx = x + w / 2,
+      bReady = !t.burstUsed && t.lgMeter >= BURST.cost && !full;
+    (d.fillStyle = bReady ? `rgba(255,${200 + 55 * pulse},255,1)` : "rgba(255,255,255,0.7)"),
+      d.fillRect(m(bx - 0.7), m(y2 - 1.2), m(1.4), m(H2 + 2.4)),
+      bReady &&
+        ((d.globalCompositeOperation = "lighter"),
+        (d.fillStyle = `rgba(255,122,208,${0.25 + 0.25 * pulse})`),
+        d.fillRect(m(bx - 3), m(y2 - 1.5), m(6), m(H2 + 3)),
+        (d.globalCompositeOperation = "source-over"));
     let you = !1,
       btn = "E";
     if (full) {
@@ -38661,6 +39239,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     energyBar(M, 11, 170, 10, l.hp / l.maxHp, P / l.maxHp, r, h);
     // Under it, the legendary meter (guard shows on the shield in the arena).
     t.legend && lgStrip(a, e, t, X(50, 150), 23, 150, 4, r, o, h);
+    // Touch: tapping your own meter while it glows at half Bursts.
+    t === a.player &&
+      t.legend &&
+      !t.burstUsed &&
+      t.lgMeter >= BURST.cost &&
+      t.lgMeter < 100 &&
+      tapRect(X(50, 150), 18, 150, 14, () => Ue.add("burst"));
     G(`${Math.ceil(l.hp)}`, X(190), 8.8, 7.4, Sa(l.hp / l.maxHp)[1], {
       align: r ? "left" : "right",
       weight: 700,
@@ -38989,7 +39574,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           ? t.burstKind === "mega"
             ? "Mega"
             : "Tera"
-          : MEGA[t.kit.id] && !A.burstPref
+          : burstResolve(t.kit.id, t.burstPick).startsWith("mega")
             ? "Mega"
             : "Tera",
         t.burstT > 0
@@ -39989,7 +40574,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           i + 4,
           "rgba(255,255,255,0.55)",
           (i + 4) * RG_SK,
-          rivalPhase(a) ? g.cpu : "#ffffff",
+          curCol(a, rivalPhase(a)),
           6,
           0.6,
         ),
@@ -39999,7 +40584,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         s - 1.4,
         i + 2.8,
         i + 2.8,
-        r ? (rivalPhase(a) ? g.cpu : "#ffffff") : "rgba(10,8,22,0.95)",
+        r ? curCol(a, rivalPhase(a)) : "rgba(10,8,22,0.95)",
         (i + 2.8) * RG_SK,
       ),
       te(t, s, i, i, "#191530", i * RG_SK),
@@ -40810,8 +41395,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       let f = 64;
       for (let c of o.type2 ? [o.type, o.type2] : [o.type])
         f += ue(c, Rt[c] ?? "#888", f, 55, { size: 4.8 }) + 1.2;
-      G(o.role, 64, 72, 5.4, g.haze, { italic: !0, weight: 600 }),
-        G("HOW TO PLAY", 24, 92, 5.6, g.gold, { weight: 700 });
+      G(o.role, 64, 68, 5.4, g.haze, { italic: !0, weight: 600 });
+      // The type card: what hits it hard.
+      let wk = Object.keys(Rt).filter((T) => Ua(T, o.type) * (o.type2 ? Ua(T, o.type2) : 1) > 1.01);
+      G("WEAK TO", 64, 79, 4.2, g.cpu, { weight: 800 });
+      let wx = 88;
+      for (let T of wk.slice(0, 4)) wx += ue(T, Rt[T], wx, 75.5, { size: 3.6 }) + 1;
+      G("HOW TO PLAY", 24, 92, 5.6, g.gold, { weight: 700 });
       wrapText(l[0], 5.6, 128).forEach((c, y) =>
         G(c, 24, 101 + y * 7.4, 5.6, g.chalk),
       );
@@ -40910,6 +41500,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               : "unknown",
         ),
         faceSeam(),
+        a.picks[0] && burstChip(e, a, t),
         V(
           A.gameMode === 5 ? "READY TO GO ONLINE" : "READY?",
           H / 2,
@@ -41584,7 +42175,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       12,
       22,
       16,
-      stn ? g.gold : rv ? g.cpu : g.chalk,
+      stn ? SEAT_COL[(stn.n - 1) % 4] : rv ? g.cpu : g.chalk,
       {
         skew: !0,
         outline: 2,
@@ -41645,7 +42236,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           v + 4 + $ * 2,
           "rgba(255,255,255,0.55)",
           (v + 4 + $ * 2) * RG_SK,
-          rv ? g.cpu : "#ffffff",
+          curCol(a, rv),
           6,
           0.6,
         ),
@@ -41660,9 +42251,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             : Q >= 0
               ? g.p1
               : K
-                ? rv
-                  ? g.cpu
-                  : "#ffffff"
+                ? curCol(a, rv)
                 : ie
                   ? "#7a1f30"
                   : "rgba(10,8,22,0.95)",
@@ -42263,11 +42852,28 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           G(`Share code ${q.code}`, 34, 112, 6, g.haze, { weight: 700 }),
           q.titles.length &&
             G(`Title earned: ${q.titles.join(", ")}`, 34, 121, 6, "#ffe066", { weight: 700 });
+        // Comparing a friend's code: their day and score against yours.
+        let cm = e.dailyCmp;
+        if (e.dailyTyping != null || cm) {
+          e.dailyTyping != null
+            ? (G("TYPE A FRIEND'S CODE", 34, 136, 4.8, g.dim, { weight: 800 }),
+              V((e.dailyTyping + "______").slice(0, 6).split("").join(" "), 34, 152, 12, g.gold, {}))
+            : (G(`THEIR DAY: ${String(cm.seed).replace(/(\d{4})(\d\d)(\d\d)/, "$1-$2-$3")}`, 34, 136, 4.8, g.dim, { weight: 800 }),
+              G(
+                `${_a(xe[cm.roll.kit]?.name ?? "")} on ${ARENAS[cm.roll.arena]?.name ?? "?"} \xB7 ${cm.roll.muts.map((k2) => Re.find((r) => r.key === k2)?.label ?? k2).join(" + ")}`,
+                34,
+                145,
+                5.6,
+                g.chalk,
+                { weight: 700 },
+              ),
+              G(`Their score ${cm.score}  \xB7  yours ${cm.mine ?? "not played"}`, 34, 155, 6.4, cm.mine != null && cm.mine >= cm.score ? g.gold : "#ff8a8a", { weight: 800 }));
+        }
         // The last 30 days: lit if played, brighter for a clear-level score.
         let rec = dailyRec(),
           now = new Date();
-        G("LAST 30 DAYS", 34, 133, 4.8, g.dim, { weight: 800 });
-        for (let j = 0; j < 30; j++) {
+        e.dailyTyping == null && !cm && G("LAST 30 DAYS", 34, 133, 4.8, g.dim, { weight: 800 });
+        for (let j = 0; j < (e.dailyTyping == null && !cm ? 30 : 0); j++) {
           let dd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (29 - j)),
             sc = rec.days[dailySeed(dd)],
             cx = 34 + (j % 15) * 12.5,
@@ -42416,11 +43022,46 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     return a.kind === "choice" ? (a.options[A[a.key]] ?? "") : "";
   }
+  // Party modes: hold Back for the scoreboard.
+  function scoreBoard(a) {
+    let ps = a.players,
+      w = 260,
+      x = H / 2 - w / 2,
+      y = 70;
+    te(x, y, w, 22 + ps.length * 16, "rgba(8,6,18,0.92)", 6),
+      V("SCOREBOARD", x + 10, y + 15, 9, g.gold, { skew: !0, outline: 1.5 }),
+      G("K.O.s", x + 150, y + 15, 5, g.haze, { align: "center", weight: 800 }),
+      G("DAMAGE", x + 195, y + 15, 5, g.haze, { align: "center", weight: 800 }),
+      G("LIVES", x + 236, y + 15, 5, g.haze, { align: "center", weight: 800 });
+    [...ps]
+      .sort((p, q) => (q.stats.kos ?? 0) - (p.stats.kos ?? 0) || q.stats.dealt - p.stats.dealt)
+      .forEach((p, k) => {
+        let yy = y + 32 + k * 16,
+          tg = tagOf(p, a);
+        te(x + 6, yy - 10, w - 12, 14, k % 2 ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.07)", 3),
+          ue(tg.label, tg.color, x + 10, yy - 7, { size: 4.6, text: g.night }),
+          G(_a(p.kit.name), x + 52, yy, 6.4, p.out ? g.dim : g.chalk, { weight: 700 }),
+          G(`${p.stats.kos ?? 0}`, x + 150, yy, 6.4, g.chalk, { align: "center", weight: 800 }),
+          G(`${Math.round(p.stats.dealt)}`, x + 195, yy, 6.4, g.chalk, { align: "center", weight: 800 }),
+          G(p.out ? "OUT" : `${Math.max(1, p.lives ?? 1)}`, x + 236, yy, 6.4, p.out ? g.cpu : g.chalk, { align: "center", weight: 800 });
+      });
+  }
   function hs(a, e, t) {
     e.pauseT++;
     let s = Ee(e.pauseT / 9);
     (d.fillStyle = `rgba(8,6,18,${0.8 * s})`),
       d.fillRect(0, 0, m(H), m(oe)),
+      // Touch: the emote row. Tap one to resume with that taunt.
+      touchOn() &&
+        a.match.phase === "fight" &&
+        TAUNT.emotes.forEach(([nm, , gl, col], k) => {
+          let x = 122 + k * 46,
+            y = 12;
+          tapRect(x, y, 42, 18, () => ((e.queueTaunt = k), Ue.add("start"))),
+            te(x, y, 42, 18, "rgba(8,6,18,0.9)", 5),
+            cueGlyph(d, gl, m(x + 10), m(y + 9), m(5), col),
+            G(nm, x + 18, y + 11.5, 5.6, g.chalk, { weight: 700 });
+        }),
       d.save(),
       (d.globalAlpha = s),
       d.translate(m((1 - s) * -16), 0),
@@ -43986,7 +44627,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       }),
       (wt = w0),
       G(
-        "Keys: WASD move · J attack · K dodge · L / I specials · arrows Smash · O guard · U grab · Shift lock · Q switch · E assist · R legend · G Burst · T taunt",
+        "Keys: WASD move · J attack · K dodge · L / I specials · arrows Smash · O guard · U grab · Shift lock · Q switch · E assist · R legend · Y Burst · T taunt",
         a + t / 2,
         e + 14 + s.length * 12.2 + 2,
         5.8,
@@ -45964,7 +46605,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 45,
+  var NETV = 48,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -46001,11 +46642,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     // Settings that only change how this screen looks or sounds; everything
     // else in A can change the simulation, so the host's values are used.
     NET_LOCAL = [
+      "burstPick",
       "touchLock",
       "touchSmash",
       "touchSize",
       "touchLeft",
       "cueText",
+      "hitCalls",
       "rumble",
       "volume",
       "music",
@@ -46145,6 +46788,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       (a.thin != null && typeof a.thin !== "boolean") ||
       (a.ball != null && typeof a.ball !== "boolean") ||
       (a.raid != null && !LEGENDS.includes(a.raid)) ||
+      (a.burst != null && (!Array.isArray(a.burst) || !a.burst.every((x) => typeof x === "string" && x.length < 20))) ||
       (a.tune.arena != null &&
         !(
           Number.isInteger(a.tune.arena) &&
@@ -46480,6 +47124,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           nick: netShort(NET.nick, 20),
           team: r.myTeam,
           sh: r.myTeam.map(shinyWant),
+          bp: A.burstPick,
           lg: A.legends ? LG_PICKS[A.legendPick] : "off",
           ar: A.arena,
         },
@@ -46582,6 +47227,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         ((e.teams[k] = i.h.team),
         (e.shinyS[k] = Array.isArray(i.h.sh) ? i.h.sh.map((x) => x === !0) : []),
         (e.lgS[k] = i.h.lg),
+        ((e.burstS ??= [])[k] = typeof i.h.bp === "string" ? i.h.bp.slice(0, 16) : ""),
         (e.arenaS[k] =
           Number.isInteger(i.h.ar) && i.h.ar >= 0 && i.h.ar < ARENAS.length
             ? i.h.ar
@@ -48577,8 +49223,6 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           ? [U("assist", "SUPPORT", ["assist"], 44, 124, 10)]
           : []),
       ["start", "II", ["start"], H / 2, oe - 12, 10],
-      // Taunt: the stick picks the emote.
-      ["taunt", "EMOTE", ["taunt"], touchX(H / 2 + 30), oe - 12, 8],
     ];
   }
   function touchXY(a) {
@@ -49484,6 +50128,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             // Poké Ball: 1v1, or 2v2 with seats 1 and 3 against 2 and 4.
             ball: !!NET.ball && N !== 3,
             raid: NET.raid ? (LEGENDS[A.raidBoss - 1] ?? LEGENDS[Math.floor(Math.random() * LEGENDS.length)]) : null,
+            burst: D.seats.map((x, k) => (k === 0 ? A.burstPick : (D.burstS?.[k] ?? ""))),
             shiny: D.seats.map((x, k) =>
               (k === 0 ? D.myTeam.map(shinyWant) : (D.shinyS[k] ?? [])).slice(
                 0,
@@ -49529,6 +50174,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             e.startMatch(e.ballGame ? "team" : "ffa", D.teams[0], D.teams[1], D.e > 1))
           : e.startMatch("vs", D.teams[0], D.teams[1], D.e > 1),
           (e.tick = 0);
+        // Each player's Burst choice from the VS screen.
+        e.players.forEach((q, k) => (q.burstPick = D.burst?.[k] ?? ""));
         let R = (W) => ({
           net: !0,
           local: W === e.localIdx,
@@ -49949,6 +50596,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             : [],
       ),
         (A.arena = Ar),
+        (e.players[0].burstPick = A.burstPick),
         s.arcade && arcSetup(),
         (s.screen = "play"),
         (l.hidden = !0),
@@ -49967,6 +50615,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     }
     function startDaily() {
       let dy = dailyRoll(dailySeed());
+      (s.dailyCmp = null), (s.dailyTyping = null);
       DAILY_MUT.clear(), dy.muts.forEach((k) => DAILY_MUT.add(k));
       (ARC.stages = 3), (ARC.levels = [0, 1, 2]);
       x(!1);
@@ -50077,6 +50726,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       bonus
         ? (e.match.mode === "sweep" && (a.bonusMedal = sweepMedal(e.sweep?.score ?? 0)), (a.inBonus = !1))
         : (a.time += e.match.ticks ?? 0);
+      if (n === "Compare code") return dailyCodeInput(s, !0);
       if (n === "Next fight" && !bonus && a.stage === 2 && !a.bonusDone)
         return arcBonus();
       if (n === "Next fight" && !bonus && a.stage === 4 && !a.bonus2Done && !a.daily)
@@ -50362,6 +51012,12 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       ) {
         (s.readyPhase = !1), E();
         return;
+      }
+      // X: which Burst the lead fighter takes (Mega, Mega X/Y, or a Tera type).
+      if (s.readyT > 8 && n.pressed.has("special1") && s.picks[0]) {
+        let o = burstOptions(s.picks[0]),
+          i = o.indexOf(burstResolve(s.picks[0], A.burstPick));
+        return (A.burstPick = o[(i + 1) % o.length]), Ze(), S.ui(!0);
       }
       if (A.gameMode !== 5 && s.readyT > 8) {
         if (n.pressed.has("special2"))
@@ -51129,6 +51785,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       switch (n.type) {
         case "hit": {
           hitFlourish(n);
+          // Metal: every hit clanks.
+          mutOn("mutMetal") && (I("sq", F(100), F(94), 0.06, 0.04), I("tri", F(88), F(80), 0.08, 0.04));
           let R = n.victim === e.player,
             W = !!n.attacker && n.attacker.team === e.player.team,
             T = 8,
@@ -51267,7 +51925,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             n.eff !== 1 &&
               e.tick - Ce > 45 &&
               ((Ce = e.tick),
-              n.eff > 1
+              // The pop only at the Standard threshold or above, with the
+              // pack's big impact; a resisted hit is just a dull thud.
+              n.eff >= 1.15
                 ? (t.popup(
                     n.victim.x,
                     n.victim.y - 60,
@@ -51275,14 +51935,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
                     L.gold,
                     !1,
                   ),
+                  t.pfx("hitHeavy", n.victim.x, n.victim.y - 14, 0.9),
                   S.callout(0))
-                : t.popup(
-                    n.victim.x,
-                    n.victim.y - 60,
-                    "not very effective\u2026",
-                    "#9aa6b0",
-                    !1,
-                  )),
+                : n.eff < 1 && I("tri", F(36), F(30), 0.12, 0.05)),
             n.multi ||
               t.dust(n.victim.x, n.victim.y, n.heavy ? 6 : 3, -n.dx, -n.dy);
           break;
@@ -52422,7 +53077,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
               t.ring(w.x, w.y - 14, 6, 3.8, 22, "#ffffff", !0),
               t.ring(w.x, w.y - 14, 4, 2.6, 18, "#ff7ad0", !0),
               t.ring(w.x, w.y - 14, 2, 1.8, 14, "#4aa3ff", !0),
-              t.banner("MEGA EVOLUTION", "#ffffff", 70, w.kit.name))
+              t.banner("MEGA EVOLUTION", "#ffffff", 70, burstLabel(w.kit.id, w.burstPick).toUpperCase()))
             : (S.charge(),
               t.shake(0, 1.4, 8),
               t.ring(w.x, w.y - 14, 6, 3.4, 20, Rt[n.tera] ?? "#ffffff", !0),
@@ -52445,6 +53100,9 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         case "supportBuff":
           t.popup(n.x, n.y - 34, "SPEED UP", "#f4f0ff", !1), t.ring(n.x, n.y, 6, 2, 16, "#f4f0ff", !0);
           break;
+        case "swatShot":
+          S.swat?.(), t.ring(n.x, n.y, 3, 1.6, 8, "#ffffff", !0), t.motes(n.x, n.y, 6, 6, "#ffffff", 1.4);
+          break;
         case "clash":
           S.boom(),
             t.shake(0, 2, 8),
@@ -52461,16 +53119,52 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         case "raidWarn":
           Math.random() < 0.35 && S.cry(n.kind, 0.05);
           break;
+        // Each boss strikes in its own look (the effect sheets where one fits).
         case "raidBolt": {
-          let c = LG_INFO[n.kind]?.color ?? "#ffffff";
-          n.kind === "zekrom" || n.kind === "miraidon"
-            ? t.bolt(n.x, n.y - 140, n.x, n.y, "#bfe6ff", 8, 10, 2)
-            : t.motes(n.x, n.y - 6, 16, n.r, c, 2);
+          let c = LG_INFO[n.kind]?.color ?? "#ffffff",
+            k = n.kind;
+          k === "zekrom" || k === "miraidon"
+            ? (t.bolt(n.x, n.y - 140, n.x, n.y, k === "zekrom" ? "#bfe6ff" : "#ffe066", 8, 10, 2), t.sheet("zapStrike", n.x, n.y - 10, 0.9))
+            : k === "groudon"
+              ? (t.sheet("eruption", n.x, n.y, 0.55), t.embers(n.x, n.y, 6, 10))
+              : k === "hooh" || k === "koraidon"
+                ? (t.sheet("fireBig", n.x, n.y - 8, 0.8), t.embers(n.x, n.y, 6, 8))
+                : k === "darkrai" || k === "giratina"
+                  ? (t.sheet("void", n.x, n.y - 8, 0.9), t.wisps(n.x, n.y, 4, 8, "#8a5cff", n.r * 0.5))
+                  : k === "palkia"
+                    ? (t.sheet("rift", n.x, n.y - 8, 0.7), t.splash(n.x, n.y, 2, 12))
+                    : k === "dialga"
+                      ? (t.sheet("steel", n.x, n.y - 8, 0.9), t.motes(n.x, n.y - 6, 12, n.r, "#9fc4ff", 2))
+                      : k === "deoxys"
+                        ? (t.sheet("psychic", n.x, n.y - 8, 0.9), t.motes(n.x, n.y - 6, 12, n.r, c, 2))
+                        : (t.sheet("hitHeavy", n.x, n.y - 8, 0.9), t.motes(n.x, n.y - 6, 16, n.r, c, 2));
           t.ring(n.x, n.y, n.r * 0.4, n.r / 10, 14, c, !0), t.shake(0, 2, 8), I("saw", F(40), F(28), 0.12, 0.06);
           break;
         }
         case "raidPillar": {
-          let c = LG_INFO[n.kind]?.color ?? "#ffffff";
+          let c = LG_INFO[n.kind]?.color ?? "#ffffff",
+            k = n.kind;
+          // Zekrom's thunder pillar, Groudon's magma geyser, Rayquaza's dive,
+          // Giratina rising from below, Miraidon's bolt, and so on.
+          k === "zekrom"
+            ? (t.sheet("ultBolt", n.x, n.y + 4, 0.9), S.thunder())
+            : k === "groudon"
+              ? (t.sheet("eruption", n.x, n.y - 4, 1.1), t.embers(n.x, n.y, 10, 22))
+              : k === "rayquaza"
+                ? (t.sheet("ultHit", n.x, n.y - 12, 1.6), t.speedLines(n.x, n.y, 10, "#c8ffd8"))
+                : k === "giratina"
+                  ? (t.sheet("ghostBoom", n.x, n.y - 10, 1.2), t.wisps(n.x, n.y, 4, 16, "#b04aff", n.r * 0.5))
+                  : k === "miraidon"
+                    ? (t.sheet("ultBolt", n.x, n.y + 4, 0.8), t.sheet("zapBurst", n.x, n.y - 10, 1))
+                    : k === "darkrai"
+                      ? t.sheet("ultPulse", n.x, n.y - 8, 1)
+                      : k === "hooh" || k === "koraidon"
+                        ? (t.sheet("ultBoom", n.x, n.y - 8, 0.9), t.sheet("fireBig", n.x, n.y - 8, 1.1))
+                        : k === "deoxys"
+                          ? (t.sheet("ultBoom", n.x, n.y - 8, 0.9), t.sheet("psychic", n.x, n.y - 8, 1.2))
+                          : k === "dialga"
+                            ? (t.pfx("ultBoom", n.x, n.y - 8, 0.9, { tint: "#6fa8ff" }), t.sheet("steel", n.x, n.y - 8, 1.3), t.sheet("hourglass", n.x, n.y - 20, 0.8))
+                          : (t.sheet("ultBoom", n.x, n.y - 8, 0.9), t.sheet("hitHeavy", n.x, n.y - 8, 1.2));
           S.boom(), t.shake(0, 3, 14), t.ring(n.x, n.y, n.r * 0.5, n.r / 8, 18, c, !0), t.motes(n.x, n.y - 10, 26, n.r, c, 2.6);
           break;
         }
@@ -52478,15 +53172,18 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           S.boom(), t.shake(0, 2, 10), t.dust(n.x, n.y, 10);
           break;
         case "raidStop":
-          t.ring(n.x, n.y, n.r * 0.3, n.r / 9, 22, "#6fa8ff", !0), t.popup(n.x, n.y - 30, "TIME STOP", "#9fc4ff", !1);
+          t.sheet("hourglass", n.x, n.y - 16, 1.1),
+            t.ring(n.x, n.y, n.r * 0.3, n.r / 9, 22, "#6fa8ff", !0),
+            t.popup(n.x, n.y - 30, "TIME STOP", "#9fc4ff", !1);
           break;
         case "raidPool":
-          t.ring(n.x, n.y, 30, 3, 20, "#8a5cff", !0);
+          t.sheet("void", n.x, n.y - 6, 1.2), t.ring(n.x, n.y, 30, 3, 20, "#8a5cff", !0);
           break;
         case "raidSleep":
           t.popup(n.x, n.y - 30, "ASLEEP", "#c8a8ff", !1);
           break;
         case "raidHeal":
+          t.sheet("healSpell", n.x, n.y - 30, 1.4),
           t.popup(n.x, n.y - 46, "HEALED", "#4df08a", !0), t.banner("HO-OH HEALS", "#ff8a3d", 70, "stand on the flame ring to stop it");
           break;
         case "raidHealStop":
@@ -52533,6 +53230,8 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             t.shake(0, 3, 16),
             t.ring(n.x, n.y, 10, 4, 26, col, !0),
             t.motes(n.x, n.y - 10, 30, 40, col, 2.4),
+            // Confetti.
+            ["#ff4a63", "#ffd166", "#4df08a", "#4aa3ff", "#ff7ad0"].forEach((c, k) => t.motes(n.x + (k - 2) * 14, n.y - 30, 10, 50, c, 3)),
             t.banner("GOAL!", col, 90, `${n.score[0]} \u2013 ${n.score[1]}`);
           break;
         }
@@ -52555,13 +53254,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           S.boom(), t.shake(0, 2, 10), t.banner("SUDDEN DEATH", "#ff4a63", 90);
           break;
         case "counterHit":
-          I("sq", F(84), F(96), 0.14, 0.05),
-            t.flare(n.x, n.y - 14, 10, 18, "#ffe066", 6),
-            t.popup(n.x, n.y - 44, "COUNTER!", "#ffe066", !0);
+          I("sq", F(84), F(96), 0.14, 0.05);
+          A.hitCalls !== 2 &&
+            (t.flare(n.x, n.y - 14, 10, 18, "#ffe066", 6),
+            t.popup(n.x, n.y - 44, A.hitCalls ? "!!" : "COUNTER!", "#ffe066", !0));
           break;
         case "backCrit":
-          t.flare(n.x, n.y - 14, 8, 14, "#ffffff", 5),
-            t.popup(n.x, n.y - 36, "CRITICAL!", "#ffffff", !1);
+          A.hitCalls !== 2 &&
+            (t.flare(n.x, n.y - 14, 8, 14, "#ffffff", 5),
+            t.popup(n.x, n.y - 36, A.hitCalls ? "\u2726" : "CRITICAL!", "#ffffff", !1));
           break;
         case "bleed":
           t.popup(n.x, n.y - 30, "3", "#ff4a63", !1),
@@ -55182,10 +55883,31 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           }
           // A local player's Start pauses for everyone.
           seatPauseReq &&
-            ((seatPauseReq = !1),
-            s.paused || NET.m || e.match.phase !== "fight" || ee.pressed.add("start"));
+            (s.paused || NET.m || e.match.phase !== "fight" || (ee.pressed.add("start"), (s.pausedSeat = seatPauseReq), (s.toast = `P${seatPauseReq.n} paused \xB7 B on that pad drops to a CPU`), (s.toastT = 240)),
+            (seatPauseReq = !1));
+          // Paused by a local seat: Back on that seat's pad drops the player
+          // to a CPU and play goes on.
+          if (s.paused && s.pausedSeat) {
+            let ps = s.pausedSeat,
+              si = readSeat(ps);
+            if (si.pressed.has("back")) {
+              let q = e.players.find((z) => z.brain?.se === ps);
+              q && (q.brain = new ft(e.rand)),
+                (SEATS.splice(SEATS.indexOf(ps), 1), SEATS.forEach((z, k) => (z.n = k + 2))),
+                (s.pausedSeat = null),
+                (s.toast = `P${ps.n} dropped out: a CPU takes over`),
+                (s.toastT = 150),
+                ee.pressed.add("start");
+            }
+          }
+          s.paused || ee.pressed.has("start") || (s.pausedSeat = null);
           if (
-            (ee.pressed.has("select") && ((s.debug = !s.debug), S.ui(s.debug)),
+            // Back: held in a party mode, the scoreboard; in a duel, the debug view.
+            (s.board = ee.held.has("select") && e.players.length > 2 && e.match.phase === "fight"),
+            !s.paused &&
+              s.queueTaunt != null &&
+              ((ee.mx = [0, 0, 1, 0, -1][s.queueTaunt]), (ee.my = [0, -1, 0, 1, 0][s.queueTaunt]), ee.pressed.add("taunt"), (s.queueTaunt = null)),
+            (ee.pressed.has("select") && e.players.length <= 2 && ((s.debug = !s.debug), S.ui(s.debug)),
             s.paused)
           ) {
             we(ee);
@@ -55221,8 +55943,11 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       let Cz =
         ne &&
         e.summons.find((ee) => ee.phase === "intro" || ee.phase === "cine");
+      let Bq = ne && !Cz && e.players.find((ee) => ee.state === "ex" && ee.exMove === "burst" && ee.t < BURST.intro);
       Cz
         ? t.follow([cineFocus(Cz)], cineZoom(Cz))
+        : Bq
+        ? t.follow([{ x: Bq.x, y: Bq.y - 14 }], 1.6)
         : // When the fight ends the camera holds where it is: no pull back.
           ne && e.match.phase === "end"
           ? 0
