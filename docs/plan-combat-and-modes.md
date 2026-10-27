@@ -381,6 +381,6 @@ Duel round robin (Hard CPU, 4 reps against all 28 others, 112 games each, Emolga
 
 Party modes after that pass, with each mode's own damage scale retuned (2,000 four-fighter matches per mode, 200–550 appearances per fighter):
 - 2v2 (par 0.50): mean 0.50, spread 0.048, every fighter between 0.41 and 0.58.
-- Free-for-All (par 0.25; 4,000 matches): mean 0.25, spread 0.042, every fighter between 0.17 and 0.32 except Milotic at 0.35, whose Free-for-All scale then went from 0.6 to 0.52.
+- Free-for-All (par 0.25; 4,000 matches, after Milotic's Free-for-All scale went from 0.6 to 0.52): mean 0.25, spread 0.040, every fighter between 0.19 and 0.34 (Milotic 0.28; the top is Ceruledge 0.34, the bottom Greninja, Pikachu and Volcarona 0.19).
 - The meter: Burst-only against legendary-only 0.49; mixed beats each pure strategy (0.72 and 0.75), so using both is the strongest play and neither pure plan dominates.
 
