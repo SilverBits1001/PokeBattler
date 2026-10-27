@@ -345,14 +345,16 @@ Each phase ends with: the scripted tests for the feature, the full `bal3` duel r
 
 ## Part 6: as built
 
-Every feature in Parts 1 to 3 is in the game, to the rules above. This part records the few numbers that testing changed, and the test results.
+Every feature in Parts 1 to 3 is in the game, to the rules above. This part records the one number the plan's balance test set, and the test results.
 
-### Numbers that testing changed
+### Numbers the plan's own tests set
+
+Everything follows the rules above, with grabs to the per-fighter table in 2.1. One number was set by the plan's test rather than its first estimate:
 
 - **Burst strength.** With the plan's Mega numbers (damage × 1.25, taken × 0.9) a Burst-only CPU won 0.19 against a legendary-only CPU, far from the plan's own target (neither pure strategy above 0.55). The multipliers now are: Mega damage × 2.1, damage taken × 0.5, speed × 1.2; Tera damage × 2.05, same type × 1.35 on top, taken × 0.55. Everything else in 2.3 is as written: cost 50, 600 ticks, once a match, winded 180 ticks at half meter gain, special cooldowns × 0.75 for a Mega, and the eleven Mega changes.
-- **Grabs** follow the per-fighter table in 2.1; the pulls had their startup and recovery raised after Gardevoir won 0.64 of its duels.
-- **Snorlax Launch** keeps a safety net the plan left out: if no hit lands within five seconds of the bell, Snorlax launches on its own, so a run always ends.
-- **Raid.** Each boss's attacks are its own named pieces (Zekrom's lane dive, bolts and thunder pillar; Groudon's Precipice Blades rings and magma geysers; Rayquaza marking two players and diving; Dialga's time stop; Palkia's rifts; Giratina hunting from below; Darkrai's sleep pools; Deoxys changing Forme each phase; Ho-Oh's heal; Koraidon's charges; Miraidon's drift and bolt), each drawn in its own look. Every damaging attack telegraphs for 40 to 60 ticks; tracking attacks follow their target for 40 of those ticks and then lock. Ho-Oh's heal is a 150-tick channel rather than an attack, so players have time to reach the flame ring and stop it. The floor is a flat layout per boss drawn over its world: Zekrom's wet basalt, Darkrai's fog, Deoxys's hex panels, Groudon's magma cracks, the Sky Pillar's rings, the Bell Tower's planks, Dialga's clock, Palkia's pearl ripples, Giratina's broken platforms, Area Zero's crystals and Miraidon's neon road.
+### What the Raid looks like
+
+Each boss's attacks are its own named pieces (Zekrom's lane dive, bolts and thunder pillar; Groudon's Precipice Blades rings and magma geysers; Rayquaza marking two players and diving; Dialga's time stop; Palkia's rifts; Giratina hunting from below; Darkrai's sleep pools; Deoxys changing Forme each phase; Ho-Oh's heal; Koraidon's charges; Miraidon's drift and bolt), each drawn in its own look. Every attack telegraphs for 40 to 60 ticks; tracking attacks follow their target for 40 of those ticks and then lock. Ho-Oh's flame ring lands within reach of a player and gives 60 ticks to step onto it and stop the heal. The floor is a flat layout per boss drawn over its world: Zekrom's wet basalt, Darkrai's fog, Deoxys's hex panels, Groudon's magma cracks, the Sky Pillar's rings, the Bell Tower's planks, Dialga's clock, Palkia's pearl ripples, Giratina's broken platforms, Area Zero's crystals and Miraidon's neon road.
 
 ### Test numbers
 
@@ -365,14 +367,16 @@ Every feature in Parts 1 to 3 is in the game, to the rules above. This part reco
 | Burst | Cost, length, once a match, winded; every Mega change; Tera Fire against burn | All pass |
 | Burst strategy | Burst-only against legendary-only CPUs, 114 games | 0.49 for the Burst side (target: neither above 0.55) |
 | Poké Ball | One side standing still; two Hard CPU teams; bounds | The CPU scores within 60 s in 50 of 50; 38 of 40 matches (95%) finish by 2:00; the ball never leaves the pitch |
-| Snorlax Launch | Same inputs twice; Smash only; combo only; Rhyperior against Pikachu | Same distance; 52 m and 39 m, both score; Rhyperior 108 m, Pikachu 85 m |
+| Snorlax Launch | Same inputs twice; Smash only; combo only; Rhyperior against Pikachu | Same distance; 52 m and 39 m, both score; Rhyperior 108 m, Pikachu 85 m; after the bell the run waits for the next hit |
 | Mutators and Daily | Each of the 11 mutators alone, and all 10 Daily pairs, 60 s CPU fights; the same day on two pages; share codes | No errors, nobody out of the arena; same Daily; every code round-trips |
 | Local multiplayer | Two simulated pads and the number pad: join, pick, fight, pause, drop to CPU; a 2v2 with two local seats and two CPUs; a four-seat Free-for-All | All pass: the numpad seat moves with the arrows, its Start pauses for everyone and B hands its fighter to a CPU; the 2v2 and the four-seat Free-for-All run to a result; the hold-Back scoreboard shows |
 | Raid | 4 Hard CPUs, 3 runs per boss; 4 Normal CPUs, 2 runs per boss | Hard: 33 of 33 cleared, about 2:30 on average; Normal: 21 of 22, about 3:15 |
+| Ho-Oh's heal | 4 Hard CPU raids on Ho-Oh, 60-tick flame ring | Stopped 68 times of 71; Ho-Oh cleared 6 of 6 (Hard) and 4 of 4 (Normal) |
 | Raid rotation | Each boss for 4:00 against four idle fighters (kept alive) | No errors, the boss never leaves the arena, every attack in its rotation fires, wild Pokémon in phases 2 and 3 |
 | Raid script | Phase thresholds, respawn, all down, time | Phase 2 at 66%, phase 3 at 33%; back after 8 s at full health; all down fails; time up fails |
 | Support | Each support called beside a foe | Emolga stuns 50 ticks; Fennekin 22 damage and a burn; Snivy pulls; Chansey heals 12%; Togekiss 5 s of speed |
-| Mode Select | All 13 cards to a live match; the touch route by taps | Pass |
+| Mode Select | All 13 cards to a live match | Pass |
+| Touch audit | A phone viewport: taps from title to a fight, the stick, attack held and tapped, the pause button, an emote from the pause menu | Pass: moves, swings, pauses, and the emote resumes into a taunt |
 | Online | 4-player and 2-player parties; a 3-player Raid | 0 mismatches |
 
 Duel round robin (Hard CPU, 2 reps against all 28 others, Emolga support, legendaries off), after this round's changes (back crits on straight shots, the projectile swat, the clash push, Mega cooldowns):

@@ -6594,7 +6594,6 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
     // rank by distance; best per fighter kept.
     LAUNCH = {
       t: 600,
-      grace: 300,
       fly: 150,
       per: 8,
       ranks: [
@@ -8591,7 +8590,6 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
             (tg.state === "launched" || tg.state === "faint") && ((tg.state = "move"), (tg.t = 0));
         if (L.phase === "build" && ++L.t >= LAUNCH.t)
           (L.phase = "over"), (L.t = 0), this.emit({ type: "launchTime" });
-        else if (L.phase === "over" && ++L.t >= LAUNCH.grace) this.doLaunch(null, 0);
         else if (L.phase === "fly" && ++L.flyT >= LAUNCH.fly)
           this.emit({ type: "launchDone", m: L.m, rank: L.rank }), this.endRound("win");
       }
@@ -8753,10 +8751,13 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           case "sleep":
             a.zones.push(circ(tg.x, tg.y, 64)), (a.warn = 40);
             break;
+          // Ho-Oh's flame ring lands near a player, so 60 ticks is enough
+          // to step onto it and stop the heal.
           case "heal": {
-            let x = Se + (this.rand() - 0.5) * 300,
-              y = Te + (this.rand() - 0.5) * 140;
-            a.zones.push(circ(x, y, 42)), (a.warn = 150);
+            let ang = this.rand() * Math.PI * 2,
+              x = tg.x + Math.cos(ang) * 50,
+              y = tg.y + Math.sin(ang) * 30;
+            a.zones.push(circ(x, y, 42)), (a.warn = 60);
             break;
           }
           case "hunt":
@@ -43049,7 +43050,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         TAUNT.emotes.forEach(([nm, , gl, col], k) => {
           let x = 122 + k * 46,
             y = 12;
-          tapRect(x, y, 42, 18, () => ((e.queueTaunt = k), Ue.add("start"))),
+          tapRect(x, y, 42, 18, () => ((e.queueTaunt = k), (e.queueTauntT = 0), Ue.add("start"))),
             te(x, y, 42, 18, "rgba(8,6,18,0.9)", 5),
             cueGlyph(d, gl, m(x + 10), m(y + 9), m(5), col),
             G(nm, x + 18, y + 11.5, 5.6, g.chalk, { weight: 700 });
@@ -53205,7 +53206,7 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           t.banner(n.why === "time" ? "TIME UP" : "PARTY DOWN", "#ff4a63", 120, "the raid failed");
           break;
         case "launchTime":
-          S.boom(), t.banner("TIME!", "#ffffff", 50, "Smash it!");
+          S.boom(), t.banner("TIME!", "#ffffff", 50, "the next hit launches it");
           break;
         case "launchGo":
           S.launch(9), S.boom(), t.shake(0, 3, 14), t.ring(n.x, n.y - 12, 10, 4, 24, "#ffd166", !0);
@@ -55896,9 +55897,16 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
           if (
             // Back: held in a party mode, the scoreboard; in a duel, the debug view.
             (s.board = ee.held.has("select") && e.players.length > 2 && e.match.phase === "fight"),
+            // A taunt picked on the pause menu waits (up to a second) until
+            // the fighter is free to taunt.
             !s.paused &&
               s.queueTaunt != null &&
-              ((ee.mx = [0, 0, 1, 0, -1][s.queueTaunt]), (ee.my = [0, -1, 0, 1, 0][s.queueTaunt]), ee.pressed.add("taunt"), (s.queueTaunt = null)),
+              (e.player?.state === "move" || ++s.queueTauntT > 60
+                ? (e.player?.state === "move" &&
+                    ((ee.mx = [0, 0, 1, 0, -1][s.queueTaunt]), (ee.my = [0, -1, 0, 1, 0][s.queueTaunt]), ee.pressed.add("taunt")),
+                  (s.queueTaunt = null),
+                  (s.queueTauntT = 0))
+                : 0),
             (ee.pressed.has("select") && e.players.length <= 2 && ((s.debug = !s.debug), S.ui(s.debug)),
             s.paused)
           ) {
