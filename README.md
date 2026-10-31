@@ -109,7 +109,10 @@ controller is used.
   minutes; K.O.s come back after 8 s while an ally stands. The arena is the boss's
   own world with its own floor (Zekrom's wet basalt, Groudon's magma cracks, Dialga's
   clock, Miraidon's neon road and so on), and each boss strikes in its own look:
-  Groudon's blade rings and magma geysers, Zekrom's thunder pillar, Rayquaza's dive. A clear earns a title, a best time, a 1 in 8 shiny roll and that world
+  Groudon's blade rings and magma geysers, Zekrom's thunder pillar, Rayquaza's dive.
+  Hits on the boss land with a spark, a flash and a freeze. Its armour soaks the first
+  hits of each phase; break it and the boss is STAGGERED for 5 s and takes extra damage.
+  Each boss's moves are named on a cast bar and come in a fixed order, so you can learn the fight. A clear earns a title, a best time, a 1 in 8 shiny roll and that world
   as a VS-screen backdrop.
 
 **Toxtricity and Gallade.** Two new fighters, each built round one idea with a payoff

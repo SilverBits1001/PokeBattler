@@ -349,6 +349,9 @@ Every feature in Parts 1 to 3 is in the game, to the rules above, with grabs to 
 
 ### What the Raid looks like
 
+**Feel, after playtesting (Hades-style).** The boss's hurt circle covers its drawn body (50 across, not 30 at its feet). Every hit on it lands: a spark at the point of contact, a hit sound, a white flash and shake on the boss, a freeze on the attacker (4 frames, 7 on a heavy hit), and a screen shake on heavy hits. The boss carries armour, 8% of its health, restored at each phase: hits chip the armour first with a grey clank, and breaking it STAGGERS the boss for 5 s (no attacks, dizzy, 1.75x damage taken). Each boss's moves have names and come in a fixed order per phase, shown on a cast bar under its health while they wind up, so a party learns the fight (Groudon: Precipice Blades, Magma Geyser, then Headlong Rush, Eruption).
+
+
 Each boss's attacks are its own named pieces (Zekrom's lane dive, bolts and thunder pillar; Groudon's Precipice Blades rings and magma geysers; Rayquaza marking two players and diving; Dialga's time stop; Palkia's rifts; Giratina hunting from below; Darkrai's sleep pools; Deoxys changing Forme each phase; Ho-Oh's heal; Koraidon's charges; Miraidon's drift and bolt), each drawn in its own look. Every attack telegraphs for 40 to 60 ticks; tracking attacks follow their target for 40 of those ticks and then lock. Ho-Oh's flame ring lands within reach of a player and gives 60 ticks to step onto it and stop the heal. The floor is a flat layout per boss drawn over its world: Zekrom's wet basalt, Darkrai's fog, Deoxys's hex panels, Groudon's magma cracks, the Sky Pillar's rings, the Bell Tower's planks, Dialga's clock, Palkia's pearl ripples, Giratina's broken platforms, Area Zero's crystals and Miraidon's neon road.
 
 ### Test numbers
@@ -365,7 +368,7 @@ Each boss's attacks are its own named pieces (Zekrom's lane dive, bolts and thun
 | Snorlax Launch | Same inputs twice; Smash only; combo only; Rhyperior against Pikachu | Same distance; 52 m and 39 m, both score; Rhyperior 108 m, Pikachu 85 m; after the bell the run waits for the next hit |
 | Mutators and Daily | Each of the 11 mutators alone, and all 10 Daily pairs, 60 s CPU fights; the same day on two pages; share codes | No errors, nobody out of the arena; same Daily; every code round-trips |
 | Local multiplayer | Two simulated pads and the number pad: join, pick, fight, pause, drop to CPU; a 2v2 with two local seats and two CPUs; a four-seat Free-for-All | All pass: the numpad seat moves with the arrows, its Start pauses for everyone and B hands its fighter to a CPU; the 2v2 and the four-seat Free-for-All run to a result; the hold-Back scoreboard shows |
-| Raid | 4 Hard CPUs, 3 runs per boss; 4 Normal CPUs, 2 runs per boss | Hard: 33 of 33 cleared, about 2:30 on average; Normal: 21 of 22, about 3:15 |
+| Raid | 4 Hard CPUs, 3 runs per boss; 4 Normal CPUs, 2 runs per boss (with armour and staggers) | Hard: 33 of 33 cleared, about 2:30; Normal: 22 of 22, about 3:10; online 3 players, 0 mismatches |
 | Ho-Oh's heal | 4 Hard CPU raids on Ho-Oh, 60-tick flame ring | Stopped 68 times of 71; Ho-Oh cleared 6 of 6 (Hard) and 4 of 4 (Normal) |
 | Raid rotation | Each boss for 4:00 against four idle fighters (kept alive) | No errors, the boss never leaves the arena, every attack in its rotation fires, wild Pokémon in phases 2 and 3 |
 | Raid script | Phase thresholds, respawn, all down, time | Phase 2 at 66%, phase 3 at 33%; back after 8 s at full health; all down fails; time up fails |

@@ -6477,11 +6477,32 @@
       back: 480,
       team: 7,
       r: 30,
+      hurt: 50,
       gap: [120, 95, 72],
       warn: 50,
       addHp: 260,
       addN: 2,
       flinch: 400,
+      // Hades-style armour: a share of the boss's health it must lose first,
+      // once per phase. Breaking it staggers the boss (no attacks) and it
+      // takes more damage until it gets up.
+      armor: 0.08,
+      downT: 300,
+      downMul: 1.75,
+      // Each boss's moves by name, so a party can learn them.
+      names: {
+        zekrom: { lane: "Bolt Strike", bolts: "Thunder", pillar: "Fusion Bolt", bolts3: "Thunderstorm" },
+        darkrai: { sleep: "Dark Void", bolts: "Dark Pulse", mark: "Nightmare", rift: "Shadow Rift" },
+        deoxys: { bolts: "Psycho Boost", pillar: "Psychic Pillar", lane: "Extreme Speed", charge: "Rapid Dash", mark: "Zap Cannon" },
+        groudon: { ring: "Precipice Blades", pillar: "Magma Geyser", lane: "Headlong Rush", bolts3: "Eruption" },
+        rayquaza: { mark: "Dragon Ascent", lane: "Outrage", ring: "Hurricane", bolts3: "Draco Meteor" },
+        hooh: { bolts: "Sacred Fire", heal: "Recover", ring: "Fire Spin", mark: "Brave Bird" },
+        dialga: { ring: "Flash Cannon", stop: "Roar of Time", bolts: "Iron Head", pillar: "Draco Meteor" },
+        palkia: { rift: "Spacial Rend", lane: "Aqua Tail", ring: "Hydro Pump", stop: "Rift Lock" },
+        giratina: { hunt: "Shadow Force", bolts: "Shadow Ball", lane: "Dragon Claw", rift: "Distortion" },
+        koraidon: { charge: "Collision Course", ring: "Sunny Quake", bolts: "Flare Blitz", pillar: "Drain Punch" },
+        miraidon: { drift: "Electro Drift", bolts: "Thunderbolt", lane: "Volt Switch", mark: "Zap Cannon" },
+      },
       shiny: 8,
       key: "pocketbrawl-raid-v1",
       dmg: { lane: 110, bolt: 80, pillar: 130, ring: 90, mark: 100, rift: 90, hunt: 120, drift: 110, stop: 40, add: 45 },
@@ -8451,7 +8472,8 @@
           boss: kind,
           form: kind === "deoxys" ? "normal" : null,
           r: RAID.r,
-          hurtR: RAID.r,
+          // The hurt circle covers the drawn body, not just its feet.
+          hurtR: RAID.hurt,
           facing: Math.PI / 2,
           hidden: !1,
           brain: null,
@@ -8470,6 +8492,10 @@
           adds: [],
           pools: [],
           flinch: 0,
+          armor: Math.round(RAID.hp * n * RAID.armor),
+          armorMax: Math.round(RAID.hp * n * RAID.armor),
+          downT: 0,
+          seq: 0,
           downs: 0,
           healed: 0,
           result: null,
@@ -8500,13 +8526,28 @@
             dx * Math.cos(e.facing) + dy * Math.sin(e.facing) > 0.5,
           d = Math.max(1, Math.round(dmg * ae.dmg * (src?.kind === "player" ? this.exOut(src, dmg, k, e) : 1) * (back ? 1.2 : 1))),
           sl = e.slots[0];
-        (sl.hp = Math.max(0, sl.hp - d)), (e.flash = 4);
+        // The boss's armour takes hits first; broken, it is staggered and
+        // every hit lands harder.
+        let arm = 0;
+        if (e.kind === "boss")
+          if (R.downT > 0) d = Math.round(d * RAID.downMul);
+          else if (R.armor > 0) {
+            (arm = Math.min(R.armor, d)), (R.armor -= arm), (d -= arm);
+            R.armor <= 0 &&
+              ((R.downT = RAID.downT), (R.atk = null), (e.hidden = !1), (e.hitstop = 0),
+              this.emit({ type: "raidDown", kind: R.kind, x: e.x, y: e.y }));
+          }
+        (sl.hp = Math.max(0, sl.hp - d)), (e.flash = 6);
+        d += arm;
+        // Impact: the attacker freezes a beat on the hit, longer on a heavy one.
+        let heavy = d >= 30 || kb >= 7;
+        src?.kind === "player" && (src.hitstop = Math.max(src.hitstop ?? 0, heavy ? 7 : 4));
         src?.kind === "player" &&
           ((src.stats.dealt += d), (src.stats.landed += 1), this.gainMeter(e, src, d, k), (this.match.dealt += src === this.player ? d : 0));
         if (e.kind === "add")
           (e.stagger = 10), (e.kvx = dx * Math.min(6, kb) * 0.8), (e.kvy = dy * Math.min(6, kb) * 0.8), e.state === "wind" && ((e.state = "rest"), (e.t = 0));
         else (R.flinch += d) >= RAID.flinch && ((R.flinch -= RAID.flinch), (e.hitstop = 10), this.emit({ type: "raidFlinch", x: e.x, y: e.y, kind: R.kind }));
-        this.emit({ type: "raidHit", who: e, by: src, dmg: d, back, x: e.x, y: e.y - (e.kind === "boss" ? 30 : 10) });
+        this.emit({ type: "raidHit", who: e, by: src, dmg: d, back, heavy, armor: arm > 0 && arm === d, down: e.kind === "boss" && R.downT > 0, boss: e.kind === "boss", dx, dy, x: e.x - dx * (e.kind === "boss" ? 26 : 6), y: e.y - (e.kind === "boss" ? 26 : 10) - dy * 10 });
       }
       raidHurt(v, dmg, x, y, kb = 6) {
         let dx = v.x - x,
@@ -8553,9 +8594,9 @@
           b = R.boss,
           up = this.raidAlive();
         if (!up.length) return void (R.nextT = 30);
+        // A fixed rotation per phase, so the party can learn what comes next.
         let pool = R.set.rot.slice(0, R.phase + 1).flat(),
-          k = pool[Math.floor(this.rand() * pool.length)];
-        k === R.last && pool.length > 1 && (k = pool[(pool.indexOf(k) + 1 + Math.floor(this.rand() * (pool.length - 1))) % pool.length]);
+          k = pool[R.seq++ % pool.length];
         R.last = k;
         let tg = up[Math.floor(this.rand() * up.length)],
           near = up.reduce((a, q) => (Math.hypot(q.x - b.x, q.y - b.y) < Math.hypot(a.x - b.x, a.y - b.y) ? q : a)),
@@ -8616,7 +8657,7 @@
             break;
           }
         }
-        (R.atk = a), this.emit({ type: "raidWarn", k, kind: R.kind, x: b.x, y: b.y });
+        (R.atk = a), this.emit({ type: "raidWarn", k, kind: R.kind, name: RAID.names[R.kind]?.[k] ?? k, x: b.x, y: b.y });
       }
       raidAttack(a) {
         let R = this.raid,
@@ -8784,7 +8825,7 @@
         let hp = b.slots[0].hp / b.slots[0].maxHp,
           ph = hp > 2 / 3 ? 0 : hp > 1 / 3 ? 1 : 2;
         if (ph > R.phase) {
-          (R.phase = ph), R.kind === "deoxys" && (b.form = ph === 1 ? "attack" : "speed");
+          (R.phase = ph), (R.armor = R.armorMax), R.kind === "deoxys" && (b.form = ph === 1 ? "attack" : "speed");
           this.emit({ type: "raidPhase", phase: ph, kind: R.kind, x: b.x, y: b.y }), this.raidAdd(RAID.addN);
         }
         this.raidAddsTick();
@@ -8800,7 +8841,8 @@
           }
         }
         R.pools = R.pools.filter((o) => o.life > 0);
-        if (b.hitstop > 0) b.hitstop--;
+        if (R.downT > 0) --R.downT || ((R.nextT = 45), this.emit({ type: "raidUp", kind: R.kind, x: b.x, y: b.y }));
+        else if (b.hitstop > 0) b.hitstop--;
         else if (R.atk) this.raidAttack(R.atk);
         else {
           --R.nextT <= 0 && this.raidNext();
@@ -28580,19 +28622,28 @@
     if (!mon || b.hidden) return;
     let K = R.atk,
       w = K && K.t < K.warn,
-      an = w ? "Charge" : K ? (mon.anims.Attack ? "Attack" : mon.anims.SpAttack ? "SpAttack" : "Walk") : Math.hypot(b.mvx, b.mvy) > 0.3 ? "Walk" : "Idle",
-      y = b.y - 22 + Math.sin(t * 0.05) * 3,
+      down = R.downT > 0,
+      an = down ? (mon.anims.Hurt ? "Hurt" : "Idle") : w ? "Charge" : K ? (mon.anims.Attack ? "Attack" : mon.anims.SpAttack ? "SpAttack" : "Walk") : Math.hypot(b.mvx, b.mvy) > 0.3 ? "Walk" : "Idle",
+      // Staggered, it sags to the floor.
+      y = b.y - (down ? 10 : 22) + (down ? 0 : Math.sin(t * 0.05) * 3),
       sc = LG_SCALE[R.kind] ? 1.75 : R.kind === "zekrom" ? 1.7 : 2,
       out = R.result === "clear" ? Math.max(0, 1 - (e.match.endT != null ? (150 - e.match.endT) / 90 : 0)) : 1;
     a.save(),
       (a.globalAlpha = 0.4 * out),
       (a.fillStyle = "#05060f"),
       a.beginPath(),
-      a.ellipse(b.x, b.y + 4, 30, 9, 0, 0, Math.PI * 2),
+      a.ellipse(b.x, b.y + 4, RAID.hurt, RAID.hurt * 0.3, 0, 0, Math.PI * 2),
       a.fill(),
       glowAt(a, b.x, y, 74, LG_INFO[R.kind]?.rgb ?? "255,255,255", (0.22 + (w ? 0.22 : 0)) * out),
-      lgBig(a, mon, mon.anims[an] ? an : "Idle", t, b.facing, b.x, y, sc, out, b.flash > 2 ? 0.3 : 0),
-      a.restore();
+      // A hit shakes the boss and flashes it white.
+      lgBig(a, mon, mon.anims[an] ? an : "Idle", t, b.facing, b.x + (b.flash > 0 ? (t % 2 ? 2 : -2) * (b.flash / 6) : 0), y, sc, out, b.flash > 0 ? 0.55 * (b.flash / 6) : 0);
+    // Dizzy stars circle a staggered boss.
+    if (down)
+      for (let k = 0; k < 4; k++) {
+        let q = t * 0.08 + (k * Math.PI) / 2;
+        (a.globalAlpha = 0.9), (a.fillStyle = "#ffe066"), a.beginPath(), a.arc(b.x + Math.cos(q) * 26, y - 46 + Math.sin(q) * 7, 2.6, 0, Math.PI * 2), a.fill();
+      }
+    a.restore();
   }
   // Looming ground marks for falling rocks and meteors, and the surge set-pieces.
   function surgeGround(a, e) {
@@ -37883,6 +37934,28 @@
       d.fillRect(m(x + (w * 2) / 3), m(y + 2.5), m(0.8), m(4));
     R.adds.length &&
       G(`${R.adds.filter((q) => q.slots[0].hp > 0).length} wild`, x + 90, y - 0.5, 4.6, g.haze, { weight: 700 });
+    // Armour under the health bar; broken, a gold bar counting the stagger
+    // down. Under it, the move being wound up and how soon it lands.
+    let ay = y + 8;
+    R.downT > 0
+      ? (te(x, ay, w, 3, "rgba(255,224,102,0.18)", 1.5),
+        te(x, ay, w * (R.downT / RAID.downT), 3, e.tick % 10 < 5 ? "#ffe066" : "#ffb020", 1.5),
+        G("STAGGERED", x + w / 2, ay + 9, 5, "#ffe066", { align: "center", weight: 800, outline: 1.5 }))
+      : (te(x, ay, w, 3, "rgba(200,208,224,0.14)", 1.5),
+        R.armor > 0 && te(x, ay, w * (R.armor / R.armorMax), 3, "#c8d0e0", 1.5),
+        G("ARMOUR", x - 3, ay + 2.6, 3.8, "#c8d0e0", { align: "right", weight: 800 }));
+    let K = R.atk;
+    if (K && R.downT <= 0) {
+      let nm = (RAID.names[R.kind]?.[K.k] ?? K.k).toUpperCase(),
+        p = Math.min(1, K.t / K.warn),
+        cw = 120,
+        cx = H / 2 - cw / 2,
+        cy = ay + 7;
+      te(cx - 3, cy - 2, cw + 6, 11, "rgba(11,9,24,0.84)", 3),
+        te(cx, cy + 5.5, cw, 2, "rgba(255,255,255,0.12)", 1),
+        te(cx, cy + 5.5, cw * p, 2, p >= 1 ? "#ffffff" : (info.color ?? g.gold), 1),
+        G(nm, H / 2, cy + 4, 4.8, p >= 1 ? "#ffffff" : (info.color ?? g.chalk), { align: "center", weight: 800 });
+    }
   }
   // Snorlax Launch HUD: damage piled on and the seconds left; once it flies,
   // a strip that follows it down the runway with the metres ticking up.
@@ -46445,7 +46518,7 @@
   // its own inputs, through room presence, and every update carries all the
   // inputs the other side has not confirmed yet, so a dropped or merged update
   // loses nothing. Both pages run the same simulation from the same seed.
-  var NETV = 48,
+  var NETV = 49,
     // How long the arena roulette plays when the two players picked different arenas.
     NET_ROLL = 2600,
     RB_MAX = 40,
@@ -52952,12 +53025,39 @@
             I("sq", F(96), F(84), 0.1, 0.05),
             I("sq", F(91), F(79), 0.08, 0.05, 0.03);
           break;
+        // Every hit on the boss lands: a spark where it connects, a hit
+        // sound, a shake on the heavy ones, and the number.
         case "raidHit":
-          t.popup(n.x + (Math.random() - 0.5) * 16, n.y, `${n.dmg}`, n.back ? "#ffd166" : "#ffffff", !1),
-            n.back && t.ring(n.x, n.y, 4, 1.4, 8, "#ffd166", !0);
+          // On the armour: a grey clank and a dull spark instead.
+          if (n.armor) {
+            I("sq", F(100), F(94), 0.06, 0.04), I("tri", F(88), F(80), 0.08, 0.04);
+            t.hitSpark(n.x, n.y, n.dx || 0, n.dy || 0, !1, "#c8d0e0"), t.popup(n.x + (Math.random() - 0.5) * 16, n.y - 6, `${n.dmg}`, "#9aa4b8", !1);
+            break;
+          }
+          S.hit(!!n.heavy, "none", 1),
+            t.pfx(n.heavy ? "hitHeavy" : "hitMid", n.x, n.y, n.boss ? (n.heavy ? 1.25 : 0.95) : 0.7, { r: Math.atan2(n.dy || 0, n.dx || 1) }),
+            t.hitSpark(n.x, n.y, n.dx || 0, n.dy || 0, !!n.heavy, n.heavy ? "#ffffff" : "#ffe9a8"),
+            n.heavy && n.boss && t.shake(n.dx || 0, n.dy || 0, 3),
+            t.popup(n.x + (Math.random() - 0.5) * 16, n.y - 6, `${n.dmg}`, n.back ? "#ffd166" : n.heavy ? "#ffe066" : "#ffffff", !!n.heavy),
+            n.back && (t.ring(n.x, n.y, 4, 1.4, 8, "#ffd166", !0), t.popup(n.x, n.y - 22, "CRITICAL", "#ffd166", !1));
           break;
+        // The move's name is on the cast bar (raidHud) while it winds up.
         case "raidWarn":
           Math.random() < 0.35 && S.cry(n.kind, 0.05);
+          break;
+        case "raidDown":
+          S.boom(),
+            S.cry(n.kind, 0.08),
+            t.shake(0, 4, 18),
+            (t.impact = 4),
+            (t.screenFlash = 3),
+            (t.screenFlashColor = "#ffe066"),
+            t.pfx("boomGiant", n.x, n.y - 20, 1),
+            t.ring(n.x, n.y, 12, 5, 26, "#ffe066", !0),
+            t.banner("STAGGERED!", "#ffe066", 90, "armour broken: hit it now", !1);
+          break;
+        case "raidUp":
+          t.ring(n.x, n.y, 10, 3, 18, "#c8d0e0", !0);
           break;
         // Each boss strikes in its own look (the effect sheets where one fits).
         case "raidBolt": {
