@@ -6631,6 +6631,26 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       team: 7,
       r: 30,
       hurt: 50,
+      // Each boss's body on the floor, [half width, half depth, feet], measured
+      // from its drawn sprite (the lower half of the body, averaged over
+      // the eight facings), so fighters stop where they meet it. Feet is
+      // how far below the draw point its lowest pixels sit.
+      foot: {
+        zekrom: [37, 15, 15],
+        darkrai: [23, 11, 25],
+        deoxys: [22, 10, 3],
+        deoxysAttack: [24, 11, 2],
+        deoxysDefense: [27, 12, 4],
+        deoxysSpeed: [24, 11, 5],
+        groudon: [40, 17, 7],
+        rayquaza: [34, 14, 5],
+        hooh: [40, 16, 6],
+        dialga: [33, 14, 1],
+        palkia: [32, 14, 8],
+        giratina: [43, 17, 6],
+        koraidon: [20, 10, 6],
+        miraidon: [20, 10, 4],
+      },
       gap: [120, 95, 72],
       warn: 50,
       addHp: 260,
@@ -9016,16 +9036,20 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
         }
         (b.x = me(b.x, B.x0 + 24, B.x1 - 24)), (b.y = me(b.y, B.y0 + 24, B.y1 - 14));
         (b.mvx = b.x - b.px), (b.mvy = b.y - b.py), (b.kvx = b.kvy = 0), (b.state = "move"), (b.z = 0);
-        // Fighters can't walk through it.
-        if (!b.hidden)
+        // Fighters can't walk through it: its footprint is an oval the size
+        // of its drawn body, so they stop where they touch it.
+        if (!b.hidden) {
+          let [fx, fy, fo] = raidFoot(R.kind, b.form, R.downT > 0);
           for (let p of this.players) {
             if (p.state === "faint" || p.zoneBack) continue;
             let dx = p.x - b.x,
-              dy = p.y - b.y,
-              d = Math.hypot(dx, dy) || 1,
-              mn = b.r + p.r;
-            d < mn && ((p.x = b.x + (dx / d) * mn), (p.y = b.y + (dy / d) * mn));
+              dy = p.y - b.y - fo,
+              q = Math.hypot(dx / (fx + p.r), dy / (fy + p.r));
+            if (q >= 1) continue;
+            q < 1e-3 && ((dy = 1), (q = 1 / (fy + p.r)));
+            (p.x = b.x + dx / q), (p.y = b.y + fo + dy / q);
           }
+        }
       }
       // ---- Poké Ball ----
       kickBall(by, kb, dx, dy) {
@@ -28767,6 +28791,14 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       }
     }
   }
+  // A raid boss's footprint: [half width, half depth, centre below b.y].
+  // The boss is drawn hovering above b.y (lower when staggered; see
+  // raidAir), so its footprint is centred on its drawn feet.
+  function raidFoot(kind, form, down) {
+    let k = kind === "deoxys" && form && form !== "normal" ? "deoxys" + form[0].toUpperCase() + form.slice(1) : kind,
+      [fx, fy, feet] = RAID.foot[k] ?? RAID.foot[kind] ?? [RAID.r, 13, 22];
+    return [fx, fy, feet - (down ? 10 : 22)];
+  }
   function raidAir(a, e) {
     let R = e.raid,
       b = R.boss,
@@ -28780,12 +28812,15 @@ window.__STAGES__={"0":"data:image/webp;base64,UklGRrhMBABXRUJQVlA4WAoAAAAgAAAAf
       // Staggered, it sags to the floor.
       y = b.y - (down ? 10 : 22) + (down ? 0 : Math.sin(t * 0.05) * 3),
       sc = LG_SCALE[R.kind] ? 1.75 : R.kind === "zekrom" ? 1.7 : 2,
+      sw = null,
       out = R.result === "clear" ? Math.max(0, 1 - (e.match.endT != null ? (150 - e.match.endT) / 90 : 0)) : 1;
     a.save(),
       (a.globalAlpha = 0.4 * out),
       (a.fillStyle = "#05060f"),
       a.beginPath(),
-      a.ellipse(b.x, b.y + 4, RAID.hurt, RAID.hurt * 0.3, 0, 0, Math.PI * 2),
+      (sw = raidFoot(R.kind, b.form, down)),
+      // The shadow lies under its feet, about the size of its footprint.
+      a.ellipse(b.x, b.y + sw[2] + 2, sw[0] + 8, (sw[0] + 8) * 0.3, 0, 0, Math.PI * 2),
       a.fill(),
       glowAt(a, b.x, y, 74, LG_INFO[R.kind]?.rgb ?? "255,255,255", (0.22 + (w ? 0.22 : 0)) * out),
       // A hit shakes the boss and flashes it white.
